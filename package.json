@@ -2,6 +2,8 @@
   "name": "sensorview",
   "version": "0.1.0",
   "private": true,
+  "keywords": [],
+  "main": "src/index.js",
   "dependencies": {
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
