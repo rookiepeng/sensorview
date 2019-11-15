@@ -21,3 +21,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+python/.ipynb_checkpoints/
+
+python/__pycache__/
+.vscode/
