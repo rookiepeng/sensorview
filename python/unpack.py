@@ -22,8 +22,8 @@ def unpack_plotdata(path, file_name, save_list=True):
     el = pd.Series()
     amp = pd.Series()
     snr = pd.Series()
+    rng_bin = pd.Series(dtype=int)
     rcs = pd.Series()
-
     sub_frame = pd.Series()
     vel_speed = pd.Series()
     vel_yaw = pd.Series()
@@ -43,6 +43,8 @@ def unpack_plotdata(path, file_name, save_list=True):
                 vel_speed_temp = single_frame['speed'][()][0, 0]
                 vel_yaw_temp = single_frame['yaw'][()][0, 0]
 
+                vun = single_frame['rdd2Data']['rdd_output']['Vun'][()][0, 0]
+
                 if num_det > 0:
                     for rdop_det_idx in range(0, int(num_det)):
                         single_det = f[single_frame['afData']
@@ -55,6 +57,10 @@ def unpack_plotdata(path, file_name, save_list=True):
                         amp_temp = pd.Series(
                             20*np.log10(single_det['rdop_amp'][()][0, :]))
                         snr_temp = pd.Series(single_det['SNR'][()][0, :])
+                        dopp_shift_temp = pd.Series(
+                            single_det['Dopp_shift'][()][0, :])
+                        speed_temp = speed_temp - speed_temp / \
+                            np.abs(speed_temp)*vun*dopp_shift_temp/np.pi
 
                         look_name_temp = pd.Series(
                             np.zeros_like(snr_temp, dtype=object))
