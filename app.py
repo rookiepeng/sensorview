@@ -7,7 +7,8 @@ import os
 # external_stylesheets = ['./style/bWLwgP.css']
 # external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 # app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app = dash.Dash(__name__)
+app = dash.Dash(__name__,
+                meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}])
 
 data_files = []
 for r, d, f in os.walk('./data'):
@@ -22,17 +23,8 @@ available_indicators = df['Indicator Name'].unique()
 
 app.layout = html.Div([
     html.Div([
-        html.Div([
-            dcc.Dropdown(
-                id='data_picker',
-                options=[{'label': i, 'value': i} for i in data_files],
-                value=data_files[0]
-            )
-        ],
-            style={'width': '100%', 'display': 'inline-block'})
-    ]),
-
-    html.Div([
+        html.H4("Radar Viz"),
+        html.P("Radar detections visualization"),
         dcc.Graph(
             id='det_grid',
             hoverData={'points': [{'customdata': 'Japan'}]}
@@ -44,9 +36,17 @@ app.layout = html.Div([
             value=df['Year'].max(),
             marks={str(year): str(year) for year in df['Year'].unique()}
         )
-    ], style={'width': '66%', 'display': 'inline-block'}),
+    ], style={'box-sizing': 'border-box',
+              'width': '66%',
+              'display': 'inline-block',
+              'padding': '2rem 8rem'}),
 
     html.Div([
+        dcc.Dropdown(
+            id='data_picker',
+            options=[{'label': i, 'value': i} for i in data_files],
+            value=data_files[0]
+        ),
         html.Label('Look types'),
         dcc.Dropdown(
             options=[
@@ -68,8 +68,22 @@ app.layout = html.Div([
             value='Speed'
         )
         # dcc.Graph(id='y-time-series'),
-    ], style={'width': '33%', 'display': 'inline-block', 'vertical-align': 'top'})
-])
+    ], style={'box-sizing': 'border-box',
+              'width': '34%',
+              'display': 'inline-block',
+              'vertical-align': 'top',
+              'padding': '4rem 4rem',
+              'margin': '0 0',
+              'background-color': '#EEEEEE',
+              'min-height': '100vh',
+              'max-height': '100vh',
+              'overflow-y': 'scroll',
+              'overflow': 'scroll'})
+], style={'border-width': '0',
+          'box-sizing': 'border-box',
+          'display': 'flex',
+          'padding': '0rem 0rem',
+          'background-color': '#F5F5F5'})
 
 
 # @app.callback(
