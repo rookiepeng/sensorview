@@ -43,20 +43,14 @@ app.layout = html.Div([
 
     html.Div([
         dcc.Dropdown(
-            id='data_picker',
+            id='data_file_picker',
             options=[{'label': i, 'value': i} for i in data_files],
             value=data_files[0]
         ),
         html.Label('Look types'),
         dcc.Dropdown(
-            options=[
-                {'label': 'MRLL', 'value': 0},
-                {'label': 'LRLL', 'value': 2},
-                {'label': 'MRML', 'value': 1},
-                {'label': 'LRML', 'value': 3}
-            ],
-            multi=True,
-            value=[0, 1, 2, 3]
+            id='look_typy_picker',
+            multi=True
         ),
         html.Label('Color assignment'),
         dcc.Dropdown(
@@ -66,8 +60,10 @@ app.layout = html.Div([
                 {'label': 'SNR', 'value': 'SNR'}
             ],
             value='Speed'
-        )
-        # dcc.Graph(id='y-time-series'),
+        ),
+
+        # Hidden div inside the app that stores the intermediate value
+        html.Div(id='det_list', style={'display': 'none'})
     ], style={'box-sizing': 'border-box',
               'width': '34%',
               'display': 'inline-block',
@@ -86,13 +82,28 @@ app.layout = html.Div([
           'background-color': '#F5F5F5'})
 
 
-# @app.callback(
-#     dash.dependencies.Output('crossfilter-indicator-scatter', 'figure'),
-#     [dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
-#      dash.dependencies.Input('crossfilter-yaxis-column', 'value'),
-#      dash.dependencies.Input('crossfilter-xaxis-type', 'value'),
-#      dash.dependencies.Input('crossfilter-yaxis-type', 'value'),
-#      dash.dependencies.Input('crossfilter-year--slider', 'value')])
+@app.callback(
+    [dash.dependencies.Output('det_list', 'children'),
+     dash.dependencies.Output('look_typy_picker', 'options'),
+     dash.dependencies.Output('look_typy_picker', 'value')
+     ],
+    [dash.dependencies.Input('data_file_picker', 'value')
+     ])
+def update_data(data_file_name):
+    look_options = []
+    look_selection = []
+    if data_file_name is not None:
+        det_list = pd.read_pickle('./data/'+data_file_name)
+        look_types = det_list['LookName'].unique()
+        for look_name in look_types:
+            look_options.append({'label': look_name, 'value': look_name})
+            look_selection.append(look_name)
+        print(det_list[0:10])
+    else:
+        det_list = pd.DataFrame()
+    return det_list.to_json(), look_options, look_selection
+
+
 def update_graph(xaxis_column_name, yaxis_column_name,
                  xaxis_type, yaxis_type,
                  year_value):
@@ -149,30 +160,6 @@ def create_time_series(dff, axis_type, title):
             'xaxis': {'showgrid': False}
         }
     }
-
-
-# @app.callback(
-#     dash.dependencies.Output('x-time-series', 'figure'),
-#     [dash.dependencies.Input('crossfilter-indicator-scatter', 'hoverData'),
-#      dash.dependencies.Input('crossfilter-xaxis-column', 'value'),
-#      dash.dependencies.Input('crossfilter-xaxis-type', 'value')])
-# def update_y_timeseries(hoverData, xaxis_column_name, axis_type):
-#     country_name = hoverData['points'][0]['customdata']
-#     dff = df[df['Country Name'] == country_name]
-#     dff = dff[dff['Indicator Name'] == xaxis_column_name]
-#     title = '<b>{}</b><br>{}'.format(country_name, xaxis_column_name)
-#     return create_time_series(dff, axis_type, title)
-
-
-# @app.callback(
-#     dash.dependencies.Output('y-time-series', 'figure'),
-#     [dash.dependencies.Input('crossfilter-indicator-scatter', 'hoverData'),
-#      dash.dependencies.Input('crossfilter-yaxis-column', 'value'),
-#      dash.dependencies.Input('crossfilter-yaxis-type', 'value')])
-# def update_x_timeseries(hoverData, yaxis_column_name, axis_type):
-#     dff = df[df['Country Name'] == hoverData['points'][0]['customdata']]
-#     dff = dff[dff['Indicator Name'] == yaxis_column_name]
-#     return create_time_series(dff, axis_type, yaxis_column_name)
 
 
 if __name__ == '__main__':
