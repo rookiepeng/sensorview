@@ -4,11 +4,11 @@ import dash_html_components as html
 import pandas as pd
 import os
 
-# external_stylesheets = ['./style/bWLwgP.css']
-# external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-# app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app = dash.Dash(__name__,
-                meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}])
+                meta_tags=[{
+                    "name": "viewport",
+                    "content": "width=device-width,initial-scale=1"
+                }])
 
 data_files = []
 for r, d, f in os.walk('./data'):

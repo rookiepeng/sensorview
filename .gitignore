@@ -26,3 +26,7 @@ python/.ipynb_checkpoints/
 
 python/__pycache__/
 .vscode/
+
+__pycache__/
+
+*.pkl
