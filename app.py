@@ -107,7 +107,7 @@ app.layout = html.Div([
 
 @app.callback(
     [
-        # dash.dependencies.Output('det_grid', 'figure'),
+        dash.dependencies.Output('det_grid', 'figure'),
         dash.dependencies.Output('look_typy_picker', 'options'),
         dash.dependencies.Output('look_typy_picker', 'value'),
         dash.dependencies.Output('frame_slider', 'min'),
@@ -136,33 +136,22 @@ def update_data(data_file_name, det_plot):
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
         print(det_list[0:10])
-        # return update_det_graph(det_plot, det_frames[0], True),\
-        return    look_options,\
+        return update_det_graph(det_plot, det_frames[0], True),\
+            look_options,\
             look_selection,\
             0,\
             len(det_frames)-1,\
             0
-    else:
-        # det_list = pd.DataFrame()
-        # det_frames = []
-        # return det_plot,\
-        return    look_options,\
-            look_selection,\
-            0,\
-            0,\
-            0
-
-
-@app.callback(
-    dash.dependencies.Output('det_grid', 'figure'),
-    [
-        dash.dependencies.Input('frame_slider', 'value')
-    ],
-    [dash.dependencies.State('det_grid', 'figure')])
-def update_frame(frame_idx, det_plot):
-    global det_frames
-    return update_det_graph(det_plot, det_frames[frame_idx], False)
-
+                        # return update_ani(det_list),\
+    # else:
+    #     # det_list = pd.DataFrame()
+    #     # det_frames = []
+    #     return det_plot,\
+    #         look_options,\
+    #         look_selection,\
+    #         0,\
+    #         0,\
+    #         0
 
 def update_det_graph(det_plot, det_frame, update_layout=False):
     min_x = np.min([np.min(det_frame['Target_loc_x']),
@@ -253,17 +242,17 @@ def update_det_graph(det_plot, det_frame, update_layout=False):
                    ),
         margin=dict(l=0, r=0, b=0, t=20),
         legend=dict(x=0, y=0),
-        # uirevision=det_list,
+        uirevision='det_list',
     )
-    det_plot['data'] = [det_map, vel_map]
-    if update_layout:
-        det_plot['layout']['scene']['xaxis']['range'] = [min_x, max_x]
-        det_plot['layout']['scene']['yaxis']['range'] = [min_y, max_y]
-        det_plot['layout']['scene']['aspectratio']['x'] = (max_x-min_x)/40
-        det_plot['layout']['scene']['aspectratio']['y'] = (max_y-min_y)/40
-        det_plot['layout']['scene']['aspectratio']['z'] = 1
-    # return go.Figure(data=[det_map, vel_map], layout=plot_layout)
-    return det_plot
+    # det_plot['data'] = [det_map, vel_map]
+    # if update_layout:
+    #     det_plot['layout']['scene']['xaxis']['range'] = [min_x, max_x]
+    #     det_plot['layout']['scene']['yaxis']['range'] = [min_y, max_y]
+    #     det_plot['layout']['scene']['aspectratio']['x'] = (max_x-min_x)/40
+    #     det_plot['layout']['scene']['aspectratio']['y'] = (max_y-min_y)/40
+    #     det_plot['layout']['scene']['aspectratio']['z'] = 1
+    return go.Figure(data=[det_map, vel_map], layout=plot_layout)
+    # return det_plot
 
 
 if __name__ == '__main__':
