@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import os
 import plotly.graph_objs as go
+import plotly.io as pio
 
 app = dash.Dash(__name__,
                 meta_tags=[{
@@ -32,253 +33,32 @@ app.layout = html.Div([
             figure={
                 'data': [{'mode': 'markers', 'type': 'scatter3d', 'x': [0], 'y': [0], 'z': [0]}
                          ],
-                'layout': {'template': {
-                    'data': {'bar': [{'error_x': {'color': '#f2f5fa'},
-                                      'error_y': {'color': '#f2f5fa'},
-                                      'marker': {'line': {'color': 'rgb(17,17,17)', 'width': 0.5}},
-                                      'type': 'bar'}],
-                             'barpolar': [{'marker': {'line': {'color': 'rgb(17,17,17)', 'width': 0.5}}, 'type': 'barpolar'}],
-                             'carpet': [{'aaxis': {'endlinecolor': '#A2B1C6',
-                                                   'gridcolor': '#506784',
-                                                   'linecolor': '#506784',
-                                                   'minorgridcolor': '#506784',
-                                                   'startlinecolor': '#A2B1C6'},
-                                         'baxis': {'endlinecolor': '#A2B1C6',
-                                                   'gridcolor': '#506784',
-                                                   'linecolor': '#506784',
-                                                   'minorgridcolor': '#506784',
-                                                   'startlinecolor': '#A2B1C6'},
-                                         'type': 'carpet'}],
-                             'choropleth': [{'colorbar': {'outlinewidth': 0, 'ticks': ''}, 'type': 'choropleth'}],
-                             'contour': [{'colorbar': {'outlinewidth': 0, 'ticks': ''},
-                                          'colorscale': [[0.0, '#0d0887'], [0.1111111111111111,
-                                                                            '#46039f'], [0.2222222222222222,
-                                                                                         '#7201a8'], [0.3333333333333333,
-                                                                                                      '#9c179e'], [0.4444444444444444,
-                                                                                                                   '#bd3786'], [0.5555555555555556,
-                                                                                                                                '#d8576b'], [0.6666666666666666,
-                                                                                                                                             '#ed7953'], [0.7777777777777778,
-                                                                                                                                                          '#fb9f3a'], [0.8888888888888888,
-                                                                                                                                                                       '#fdca26'], [1.0, '#f0f921']],
-                                          'type': 'contour'}],
-                             'contourcarpet': [{'colorbar': {'outlinewidth': 0, 'ticks': ''}, 'type': 'contourcarpet'}],
-                             'heatmap': [{'colorbar': {'outlinewidth': 0, 'ticks': ''},
-                                          'colorscale': [[0.0, '#0d0887'], [0.1111111111111111,
-                                                                            '#46039f'], [0.2222222222222222,
-                                                                                         '#7201a8'], [0.3333333333333333,
-                                                                                                      '#9c179e'], [0.4444444444444444,
-                                                                                                                   '#bd3786'], [0.5555555555555556,
-                                                                                                                                '#d8576b'], [0.6666666666666666,
-                                                                                                                                             '#ed7953'], [0.7777777777777778,
-                                                                                                                                                          '#fb9f3a'], [0.8888888888888888,
-                                                                                                                                                                       '#fdca26'], [1.0, '#f0f921']],
-                                          'type': 'heatmap'}],
-                             'heatmapgl': [{'colorbar': {'outlinewidth': 0, 'ticks': ''},
-                                            'colorscale': [[0.0, '#0d0887'], [0.1111111111111111,
-                                                                              '#46039f'], [0.2222222222222222,
-                                                                                           '#7201a8'], [0.3333333333333333,
-                                                                                                        '#9c179e'], [0.4444444444444444,
-                                                                                                                     '#bd3786'], [0.5555555555555556,
-                                                                                                                                  '#d8576b'], [0.6666666666666666,
-                                                                                                                                               '#ed7953'], [0.7777777777777778,
-                                                                                                                                                            '#fb9f3a'], [0.8888888888888888,
-                                                                                                                                                                         '#fdca26'], [1.0, '#f0f921']],
-                                            'type': 'heatmapgl'}],
-                             'histogram': [{'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'histogram'}],
-                             'histogram2d': [{'colorbar': {'outlinewidth': 0, 'ticks': ''},
-                                              'colorscale': [[0.0, '#0d0887'],
-                                                             [0.1111111111111111,
-                                                              '#46039f'],
-                                                             [0.2222222222222222,
-                                                                 '#7201a8'],
-                                                             [0.3333333333333333,
-                                                                 '#9c179e'],
-                                                             [0.4444444444444444,
-                                                                 '#bd3786'],
-                                                             [0.5555555555555556,
-                                                                 '#d8576b'],
-                                                             [0.6666666666666666,
-                                                                 '#ed7953'],
-                                                             [0.7777777777777778,
-                                                                 '#fb9f3a'],
-                                                             [0.8888888888888888, '#fdca26'], [1.0,
-                                                                                               '#f0f921']],
-                                              'type': 'histogram2d'}],
-                             'histogram2dcontour': [{'colorbar': {'outlinewidth': 0, 'ticks': ''},
-                                                     'colorscale': [[0.0, '#0d0887'],
-                                                                    [0.1111111111111111,
-                                                                     '#46039f'],
-                                                                    [0.2222222222222222,
-                                                                     '#7201a8'],
-                                                                    [0.3333333333333333,
-                                                                     '#9c179e'],
-                                                                    [0.4444444444444444,
-                                                                     '#bd3786'],
-                                                                    [0.5555555555555556,
-                                                                     '#d8576b'],
-                                                                    [0.6666666666666666,
-                                                                     '#ed7953'],
-                                                                    [0.7777777777777778,
-                                                                     '#fb9f3a'],
-                                                                    [0.8888888888888888,
-                                                                     '#fdca26'], [1.0, '#f0f921']],
-                                                     'type': 'histogram2dcontour'}],
-                             'mesh3d': [{'colorbar': {'outlinewidth': 0, 'ticks': ''}, 'type': 'mesh3d'}],
-                             'parcoords': [{'line': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'parcoords'}],
-                             'pie': [{'automargin': True, 'type': 'pie'}],
-                             'scatter': [{'marker': {'line': {'color': '#283442'}}, 'type': 'scatter'}],
-                             'scatter3d': [{'line': {'colorbar': {'outlinewidth': 0, 'ticks': ''}},
-                                            'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}},
-                                            'type': 'scatter3d'}],
-                             'scattercarpet': [{'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'scattercarpet'}],
-                             'scattergeo': [{'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'scattergeo'}],
-                             'scattergl': [{'marker': {'line': {'color': '#283442'}}, 'type': 'scattergl'}],
-                             'scattermapbox': [{'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'scattermapbox'}],
-                             'scatterpolar': [{'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'scatterpolar'}],
-                             'scatterpolargl': [{'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'scatterpolargl'}],
-                             'scatterternary': [{'marker': {'colorbar': {'outlinewidth': 0, 'ticks': ''}}, 'type': 'scatterternary'}],
-                             'surface': [{'colorbar': {'outlinewidth': 0, 'ticks': ''},
-                                          'colorscale': [[0.0, '#0d0887'], [0.1111111111111111,
-                                                                            '#46039f'], [0.2222222222222222,
-                                                                                         '#7201a8'], [0.3333333333333333,
-                                                                                                      '#9c179e'], [0.4444444444444444,
-                                                                                                                   '#bd3786'], [0.5555555555555556,
-                                                                                                                                '#d8576b'], [0.6666666666666666,
-                                                                                                                                             '#ed7953'], [0.7777777777777778,
-                                                                                                                                                          '#fb9f3a'], [0.8888888888888888,
-                                                                                                                                                                       '#fdca26'], [1.0, '#f0f921']],
-                                          'type': 'surface'}],
-                             'table': [{'cells': {'fill': {'color': '#506784'}, 'line': {'color': 'rgb(17,17,17)'}},
-                                        'header': {'fill': {'color': '#2a3f5f'}, 'line': {'color': 'rgb(17,17,17)'}},
-                                        'type': 'table'}]},
-                    'layout': {'annotationdefaults': {'arrowcolor': '#f2f5fa', 'arrowhead': 0, 'arrowwidth': 1},
-                               'coloraxis': {'colorbar': {'outlinewidth': 0, 'ticks': ''}},
-                               'colorscale': {'diverging': [[0, '#8e0152'], [0.1, '#c51b7d'],
-                                                            [0.2, '#de77ae'], [
-                                                                0.3, '#f1b6da'],
-                                                            [0.4, '#fde0ef'], [
-                                                                0.5, '#f7f7f7'],
-                                                            [0.6, '#e6f5d0'], [
-                                                                0.7, '#b8e186'],
-                                                            [0.8, '#7fbc41'], [0.9, '#4d9221'], [1,
-                                                                                                 '#276419']],
-                                              'sequential': [[0.0, '#0d0887'],
-                                                             [0.1111111111111111,
-                                                                 '#46039f'],
-                                                             [0.2222222222222222,
-                                                                 '#7201a8'],
-                                                             [0.3333333333333333,
-                                                                 '#9c179e'],
-                                                             [0.4444444444444444,
-                                                                 '#bd3786'],
-                                                             [0.5555555555555556,
-                                                                 '#d8576b'],
-                                                             [0.6666666666666666,
-                                                                 '#ed7953'],
-                                                             [0.7777777777777778,
-                                                                 '#fb9f3a'],
-                                                             [0.8888888888888888, '#fdca26'], [1.0,
-                                                                                               '#f0f921']],
-                                              'sequentialminus': [[0.0, '#0d0887'],
-                                                                  [0.1111111111111111,
-                                                                   '#46039f'],
-                                                                  [0.2222222222222222,
-                                                                      '#7201a8'],
-                                                                  [0.3333333333333333,
-                                                                      '#9c179e'],
-                                                                  [0.4444444444444444,
-                                                                      '#bd3786'],
-                                                                  [0.5555555555555556,
-                                                                      '#d8576b'],
-                                                                  [0.6666666666666666,
-                                                                      '#ed7953'],
-                                                                  [0.7777777777777778,
-                                                                      '#fb9f3a'],
-                                                                  [0.8888888888888888,
-                                                                      '#fdca26'],
-                                                                  [1.0, '#f0f921']]},
-                               'colorway': ['#636efa', '#EF553B', '#00cc96', '#ab63fa', '#FFA15A', '#19d3f3',
-                                            '#FF6692', '#B6E880', '#FF97FF', '#FECB52'],
-                               'font': {'color': '#f2f5fa'},
-                               'geo': {'bgcolor': 'rgb(17,17,17)',
-                                       'lakecolor': 'rgb(17,17,17)',
-                                       'landcolor': 'rgb(17,17,17)',
-                                       'showlakes': True,
-                                       'showland': True,
-                                       'subunitcolor': '#506784'},
-                               'hoverlabel': {'align': 'left'},
-                               'hovermode': 'closest',
-                               'mapbox': {'style': 'dark'},
-                               'paper_bgcolor': 'rgb(17,17,17)',
-                               'plot_bgcolor': 'rgb(17,17,17)',
-                               'polar': {'angularaxis': {'gridcolor': '#506784', 'linecolor': '#506784', 'ticks': ''},
-                                         'bgcolor': 'rgb(17,17,17)',
-                                         'radialaxis': {'gridcolor': '#506784', 'linecolor': '#506784', 'ticks': ''}},
-                               'scene': {'xaxis': {'backgroundcolor': 'rgb(17,17,17)',
-                                                   'gridcolor': '#506784',
-                                                   'gridwidth': 2,
-                                                   'linecolor': '#506784',
-                                                   'showbackground': True,
-                                                   'ticks': '',
-                                                   'zerolinecolor': '#C8D4E3'},
-                                         'yaxis': {'backgroundcolor': 'rgb(17,17,17)',
-                                                   'gridcolor': '#506784',
-                                                   'gridwidth': 2,
-                                                   'linecolor': '#506784',
-                                                   'showbackground': True,
-                                                   'ticks': '',
-                                                   'zerolinecolor': '#C8D4E3'},
-                                         'zaxis': {'backgroundcolor': 'rgb(17,17,17)',
-                                                   'gridcolor': '#506784',
-                                                   'gridwidth': 2,
-                                                   'linecolor': '#506784',
-                                                   'showbackground': True,
-                                                   'ticks': '',
-                                                   'zerolinecolor': '#C8D4E3'}},
-                               'shapedefaults': {'line': {'color': '#f2f5fa'}},
-                               'sliderdefaults': {'bgcolor': '#C8D4E3', 'bordercolor': 'rgb(17,17,17)', 'borderwidth': 1, 'tickwidth': 0},
-                               'ternary': {'aaxis': {'gridcolor': '#506784', 'linecolor': '#506784', 'ticks': ''},
-                                           'baxis': {'gridcolor': '#506784', 'linecolor': '#506784', 'ticks': ''},
-                                           'bgcolor': 'rgb(17,17,17)',
-                                           'caxis': {'gridcolor': '#506784', 'linecolor': '#506784', 'ticks': ''}},
-                               'title': {'x': 0.05},
-                               'updatemenudefaults': {'bgcolor': '#506784', 'borderwidth': 0},
-                               'xaxis': {'automargin': True,
-                                         'gridcolor': '#283442',
-                                         'linecolor': '#506784',
-                                         'ticks': '',
-                                         'title': {'standoff': 15},
-                                         'zerolinecolor': '#283442',
-                                         'zerolinewidth': 2},
-                               'yaxis': {'automargin': True,
-                                         'gridcolor': '#283442',
-                                         'linecolor': '#506784',
-                                         'ticks': '',
-                                         'title': {'standoff': 15},
-                                         'zerolinecolor': '#283442',
-                                         'zerolinewidth': 2}}
-                },
-                    'height': 700,
-                    'scene': {'xaxis': {'range': [-100, 100],
-                                        'title': 'Lateral (m)',
-                                        'autorange': False},
-                              'yaxis': {'range': [-100, 100],
-                                        'title': 'Longitudinal (m)',
-                                        'autorange': False},
-                              'zaxis': {'range': [-20, 20], 'title': 'Height (m)', 'autorange': False},
-                              'aspectmode': 'manual'},
-                    'margin': {'l': 0, 'r': 0, 'b': 0, 't': 20},
-                    'legend': {'x': 0, 'y': 0}}
+                'layout': {'template': pio.templates['plotly_dark'],
+                           'height': 700,
+                           'scene': {'xaxis': {'range': [-100, 100],
+                                               'title': 'Lateral (m)',
+                                               'autorange': False},
+                                     'yaxis': {'range': [-100, 100],
+                                               'title': 'Longitudinal (m)',
+                                               'autorange': False},
+                                     'zaxis': {'range': [-20, 20], 'title': 'Height (m)', 'autorange': False},
+                                     'aspectmode': 'manual',
+                                     'aspectratio':{'x': 1, 'y': 1, 'z': 1}
+                                     },
+                           'margin': {'l': 0, 'r': 0, 'b': 0, 't': 20},
+                           'legend': {'x': 0, 'y': 0}}
             },
             hoverData={'points': [{'customdata': 'Japan'}]}
         ),
-        dcc.Slider(
-            id='crossfilter-year--slider',
-            # min=df['Year'].min(),
-            # max=df['Year'].max(),
-            # value=df['Year'].max(),
-            # marks={str(year): str(year) for year in df['Year'].unique()}
-        )
+        html.Div([
+            # html.Label('Frame'),
+            dcc.Slider(
+                id='frame_slider',
+                step=1,
+            )], style={'box-sizing': 'border-box',
+                       'width': '100%',
+                       'display': 'inline-block',
+                       'padding': '2rem 0rem'})
     ], style={'box-sizing': 'border-box',
               'width': '66%',
               'display': 'inline-block',
@@ -327,10 +107,12 @@ app.layout = html.Div([
 
 @app.callback(
     [
-        # dash.dependencies.Output('det_list', 'children'),
-        dash.dependencies.Output('det_grid', 'figure'),
+        # dash.dependencies.Output('det_grid', 'figure'),
         dash.dependencies.Output('look_typy_picker', 'options'),
-        dash.dependencies.Output('look_typy_picker', 'value')
+        dash.dependencies.Output('look_typy_picker', 'value'),
+        dash.dependencies.Output('frame_slider', 'min'),
+        dash.dependencies.Output('frame_slider', 'max'),
+        dash.dependencies.Output('frame_slider', 'value'),
     ],
     [
         dash.dependencies.Input('data_file_picker', 'value')
@@ -354,41 +136,60 @@ def update_data(data_file_name, det_plot):
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
         print(det_list[0:10])
+        # return update_det_graph(det_plot, det_frames[0], True),\
+        return    look_options,\
+            look_selection,\
+            0,\
+            len(det_frames)-1,\
+            0
     else:
-        det_list = pd.DataFrame()
-        det_frames = []
-    return update_det_graph(det_plot, det_frames[0]),\
-        look_options,\
-        look_selection
+        # det_list = pd.DataFrame()
+        # det_frames = []
+        # return det_plot,\
+        return    look_options,\
+            look_selection,\
+            0,\
+            0,\
+            0
 
 
-def update_det_graph(det_plot, det_list):
-    # global det_list
-    min_x = np.min([np.min(det_list['Target_loc_x']),
-                    np.min(det_list['vel_x'])])
-    max_x = np.max([np.max(det_list['Target_loc_x']),
-                    np.max(det_list['vel_x'])])
+@app.callback(
+    dash.dependencies.Output('det_grid', 'figure'),
+    [
+        dash.dependencies.Input('frame_slider', 'value')
+    ],
+    [dash.dependencies.State('det_grid', 'figure')])
+def update_frame(frame_idx, det_plot):
+    global det_frames
+    return update_det_graph(det_plot, det_frames[frame_idx], False)
 
-    min_y = np.min([np.min(det_list['Target_loc_y']),
-                    np.min(det_list['vel_y'])])
-    max_y = np.max([np.max(det_list['Target_loc_y']),
-                    np.max(det_list['vel_y'])])
 
-    fx = det_list['Target_loc_x']
-    fy = det_list['Target_loc_y']
-    fz = det_list['Target_loc_z']
-    famp = det_list['Amp']
-    frcs = det_list['RCS']
-    fframe = det_list['Frame']
-    fsnr = 20*np.log10(det_list['SNR'])
-    faz = det_list['Azimuth']
-    fel = det_list['Elevation']
-    frng = det_list['Range']
-    fspeed = det_list['Speed']
-    fl_type = det_list['LookName']
+def update_det_graph(det_plot, det_frame, update_layout=False):
+    min_x = np.min([np.min(det_frame['Target_loc_x']),
+                    np.min(det_frame['vel_x'])])
+    max_x = np.max([np.max(det_frame['Target_loc_x']),
+                    np.max(det_frame['vel_x'])])
 
-    vx = det_list['vel_x']
-    vy = det_list['vel_y']
+    min_y = np.min([np.min(det_frame['Target_loc_y']),
+                    np.min(det_frame['vel_y'])])
+    max_y = np.max([np.max(det_frame['Target_loc_y']),
+                    np.max(det_frame['vel_y'])])
+
+    fx = det_frame['Target_loc_x']
+    fy = det_frame['Target_loc_y']
+    fz = det_frame['Target_loc_z']
+    famp = det_frame['Amp']
+    frcs = det_frame['RCS']
+    fframe = det_frame['Frame']
+    fsnr = 20*np.log10(det_frame['SNR'])
+    faz = det_frame['Azimuth']
+    fel = det_frame['Elevation']
+    frng = det_frame['Range']
+    fspeed = det_frame['Speed']
+    fl_type = det_frame['LookName']
+
+    vx = det_frame['vel_x']
+    vy = det_frame['vel_y']
 
     hover = []
     for idx, var in enumerate(fframe.to_list()):
@@ -435,11 +236,7 @@ def update_det_graph(det_plot, det_list):
         marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
                     symbol='circle')
     )
-    camera = dict(
-        up=dict(x=0, y=0, z=1),
-        center=dict(x=0, y=0, z=0),
-        eye=dict(x=0, y=-1.5, z=10),
-    )
+
     plot_layout = dict(
         # title=file_name[:-4],
         template="plotly_dark",
@@ -459,6 +256,12 @@ def update_det_graph(det_plot, det_list):
         # uirevision=det_list,
     )
     det_plot['data'] = [det_map, vel_map]
+    if update_layout:
+        det_plot['layout']['scene']['xaxis']['range'] = [min_x, max_x]
+        det_plot['layout']['scene']['yaxis']['range'] = [min_y, max_y]
+        det_plot['layout']['scene']['aspectratio']['x'] = (max_x-min_x)/40
+        det_plot['layout']['scene']['aspectratio']['y'] = (max_y-min_y)/40
+        det_plot['layout']['scene']['aspectratio']['z'] = 1
     # return go.Figure(data=[det_map, vel_map], layout=plot_layout)
     return det_plot
 
