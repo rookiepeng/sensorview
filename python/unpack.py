@@ -24,8 +24,8 @@ def unpack_plotdata(path, file_name, save_list=True):
     snr = pd.Series()
     rcs = pd.Series()
     sub_frame = pd.Series()
-    vel_speed = pd.Series()
-    vel_yaw = pd.Series()
+    veh_speed = pd.Series()
+    veh_yaw_rate = pd.Series()
 
     for frame_idx in range(0, frame_size):
         try:
@@ -39,8 +39,8 @@ def unpack_plotdata(path, file_name, save_list=True):
 
                 num_det = single_frame['afData']['numDets'][()][0, 0]
                 cr_resp = single_frame['rdd2Data']['CR_Resp'][()][0, :]
-                vel_speed_temp = single_frame['speed'][()][0, 0]
-                vel_yaw_temp = single_frame['yaw'][()][0, 0]
+                veh_speed_temp = single_frame['speed'][()][0, 0]
+                veh_yaw_rate_temp = single_frame['yaw'][()][0, 0]
 
                 vun = single_frame['rdd2Data']['rdd_output']['Vun'][()][0, 0]
 
@@ -89,10 +89,10 @@ def unpack_plotdata(path, file_name, save_list=True):
                             rng_temp)*frame_temp), ignore_index=True)
                         sub_frame = sub_frame.append(pd.Series(np.ones_like(
                             rng_temp)*look_num), ignore_index=True)
-                        vel_speed = vel_speed.append(pd.Series(np.ones_like(
-                            rng_temp)*vel_speed_temp), ignore_index=True)
-                        vel_yaw = vel_yaw.append(pd.Series(np.ones_like(
-                            rng_temp)*vel_yaw_temp), ignore_index=True)
+                        veh_speed = veh_speed.append(pd.Series(np.ones_like(
+                            rng_temp)*veh_speed_temp), ignore_index=True)
+                        veh_yaw_rate = veh_yaw_rate.append(pd.Series(np.ones_like(
+                            rng_temp)*veh_yaw_rate_temp), ignore_index=True)
         except Exception:
             print("Missing data"+str(frame_idx))
 
@@ -100,11 +100,11 @@ def unpack_plotdata(path, file_name, save_list=True):
     jump_position = temp_frame - \
         pd.concat([pd.Series(temp_frame[0]), temp_frame[0:-1]],
                   ignore_index=True)
-    vel_angle = (vel_yaw*c_chirp_period*jump_position).cumsum()
-    vel_x = (vel_speed*c_chirp_period*jump_position *
-             np.sin(vel_angle/180*np.pi)).cumsum()
-    vel_y = (vel_speed*c_chirp_period*jump_position *
-             np.cos(vel_angle/180*np.pi)).cumsum()
+    veh_angle = (veh_yaw_rate*c_chirp_period*jump_position).cumsum()
+    veh_x = (veh_speed*c_chirp_period*jump_position *
+             np.sin(veh_angle/180*np.pi)).cumsum()
+    veh_y = (veh_speed*c_chirp_period*jump_position *
+             np.cos(veh_angle/180*np.pi)).cumsum()
 
     det_list = pd.DataFrame()
 
@@ -115,20 +115,20 @@ def unpack_plotdata(path, file_name, save_list=True):
     det_list['Speed'] = speed
     det_list['Azimuth'] = az
     det_list['Elevation'] = el
-    det_list['Amp'] = amp
+    det_list['Amplitude'] = amp
     det_list['SNR'] = snr
     det_list['RCS'] = rcs
-    det_list['Target_loc_x'] = -det_list['Range']*np.sin((det_list['Azimuth']+vel_angle)/180*np.pi)*np.cos(
-        det_list['Elevation']/180*np.pi) - vel_x
-    det_list['Target_loc_y'] = det_list['Range']*np.cos((det_list['Azimuth']+vel_angle)/180*np.pi)*np.cos(
-        det_list['Elevation']/180*np.pi) + vel_y
-    det_list['Target_rng_y'] = det_list['Range']*np.cos((det_list['Azimuth']+vel_angle)/180*np.pi)*np.cos(
-        det_list['Elevation']/180*np.pi)
-    det_list['Target_loc_z'] = det_list['Range'] * \
+    det_list['Latitude'] = -det_list['Range']*np.sin((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
+        det_list['Elevation']/180*np.pi) - veh_x
+    det_list['Longitude'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
+        det_list['Elevation']/180*np.pi) + veh_y
+    # det_list['Target_rng_y'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
+    #     det_list['Elevation']/180*np.pi)
+    det_list['Height'] = -det_list['Range'] * \
         np.sin(det_list['Elevation']/180*np.pi)
-    det_list['vel_angle'] = vel_angle
-    det_list['vel_x'] = -vel_x
-    det_list['vel_y'] = vel_y
+    det_list['VehYaw'] = veh_angle
+    det_list['VehLat'] = -veh_x
+    det_list['VehLong'] = veh_y
 
     if save_list:
         det_list.to_pickle(file_name[:-4]+'.pkl')
@@ -161,8 +161,8 @@ def unpack_session(path, file_name, save_list=True):
     # rng_bin = pd.Series(dtype=int)
     rcs = pd.Series()
     sub_frame = pd.Series(dtype=int)
-    vel_speed = pd.Series()
-    vel_yaw = pd.Series()
+    veh_speed = pd.Series()
+    veh_yaw_rate = pd.Series()
 
     for frame_idx in range(0, frame_size):
         single_frame = f[session_data['plotData'][0, frame_idx]]
@@ -174,8 +174,8 @@ def unpack_session(path, file_name, save_list=True):
 
         num_det = single_frame['afData']['numDets'][()][0, 0]
         cr_resp = single_frame['rdd2Data']['CR_Resp'][()][0, :]
-        vel_speed_temp = single_frame['speed'][()][0, 0]
-        vel_yaw_temp = single_frame['yaw'][()][0, 0]
+        veh_speed_temp = single_frame['speed'][()][0, 0]
+        veh_yaw_rate_temp = single_frame['yaw'][()][0, 0]
 
         if num_det > 0:
             for rdop_det_idx in range(0, int(num_det)):
@@ -229,10 +229,10 @@ def unpack_session(path, file_name, save_list=True):
                     rng_temp)*frame_temp), ignore_index=True)
 
                 sub_frame = sub_frame.append(sub_frame_temp, ignore_index=True)
-                vel_speed = vel_speed.append(pd.Series(np.ones_like(
-                    rng_temp)*vel_speed_temp), ignore_index=True)
-                vel_yaw = vel_yaw.append(pd.Series(np.ones_like(
-                    rng_temp)*vel_yaw_temp), ignore_index=True)
+                veh_speed = veh_speed.append(pd.Series(np.ones_like(
+                    rng_temp)*veh_speed_temp), ignore_index=True)
+                veh_yaw_rate = veh_yaw_rate.append(pd.Series(np.ones_like(
+                    rng_temp)*veh_yaw_rate_temp), ignore_index=True)
 
     chirp_period = 60e-3
 
@@ -240,46 +240,46 @@ def unpack_session(path, file_name, save_list=True):
 
     # det_list['Jump'] = jump_position
     det_list['Frame'] = frame
-    det_list['Sub_Frame'] = sub_frame
+    det_list['SubFrame'] = sub_frame
     det_list['LookType'] = look_type_idx
     det_list['LookName'] = look_type_name
     det_list['Range'] = rng
     det_list['Speed'] = speed
     det_list['Azimuth'] = az
     det_list['Elevation'] = el
-    det_list['Az_Conf'] = az_conf
-    det_list['El_Conf'] = el_conf
-    det_list['AF_Type'] = af_type
-    det_list['Amp'] = amp
+    det_list['AzConf'] = az_conf
+    det_list['ElConf'] = el_conf
+    det_list['AFType'] = af_type
+    det_list['Amplitude'] = amp
     det_list['SNR'] = snr
     det_list['RCS'] = rcs
-    det_list['Vel_Yaw'] = vel_yaw
-    det_list['Vel_Speed'] = vel_speed
+    det_list['VehYawRate'] = veh_yaw_rate
+    det_list['VehSpeed'] = veh_speed
 
     det_list = det_list.sort_values(
-        ['Frame', 'Sub_Frame'], ascending=[True, True])
+        ['Frame', 'SubFrame'], ascending=[True, True])
 
-    temp_frame = 4*det_list['Frame']+det_list['Sub_Frame']
+    temp_frame = 4*det_list['Frame']+det_list['SubFrame']
     jump_position = temp_frame - \
         pd.concat([pd.Series(temp_frame[0]), temp_frame[0:-1]],
                   ignore_index=True)
-    vel_angle = (det_list['Vel_Yaw'] * chirp_period*jump_position).cumsum()
-    vel_x = (det_list['Vel_Speed']*chirp_period*jump_position *
-             np.sin(vel_angle/180*np.pi)).cumsum()
-    vel_y = (vel_speed*chirp_period*jump_position *
-             np.cos(vel_angle/180*np.pi)).cumsum()
+    veh_angle = (det_list['VehYawRate'] * chirp_period*jump_position).cumsum()
+    veh_x = (det_list['VehSpeed']*chirp_period*jump_position *
+             np.sin(veh_angle/180*np.pi)).cumsum()
+    veh_y = (veh_speed*chirp_period*jump_position *
+             np.cos(veh_angle/180*np.pi)).cumsum()
 
-    det_list['Target_loc_x'] = -det_list['Range']*np.sin((det_list['Azimuth']+vel_angle)/180*np.pi)*np.cos(
-        det_list['Elevation']/180*np.pi) - vel_x
-    det_list['Target_loc_y'] = det_list['Range']*np.cos((det_list['Azimuth']+vel_angle)/180*np.pi)*np.cos(
-        det_list['Elevation']/180*np.pi) + vel_y
-    det_list['Target_rng_y'] = det_list['Range']*np.cos((det_list['Azimuth']+vel_angle)/180*np.pi)*np.cos(
-        det_list['Elevation']/180*np.pi)
-    det_list['Target_loc_z'] = det_list['Range'] * \
+    det_list['Latitude'] = -det_list['Range']*np.sin((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
+        det_list['Elevation']/180*np.pi) - veh_x
+    det_list['Longitude'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
+        det_list['Elevation']/180*np.pi) + veh_y
+    # det_list['Target_rng_y'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
+    #     det_list['Elevation']/180*np.pi)
+    det_list['Height'] = -det_list['Range'] * \
         np.sin(det_list['Elevation']/180*np.pi)
-    det_list['vel_angle'] = vel_angle
-    det_list['vel_x'] = -vel_x
-    det_list['vel_y'] = vel_y
+    det_list['VehYaw'] = veh_angle
+    det_list['VehLat'] = -veh_x
+    det_list['VehLong'] = veh_y
 
     if save_list:
         det_list.to_pickle(file_name[:-4]+'.pkl')
