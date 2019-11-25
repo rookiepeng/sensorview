@@ -210,6 +210,9 @@ def filter_data(data_frame, name, value):
     print(value)
     if name == 'LookName' or name == 'AF_Type' or name == 'Az_Conf' or name == 'El_Conf':
         return data_frame[pd.DataFrame(data_frame[name].tolist()).isin(value).any(1)].reset_index(drop=True)
+    else:
+        temp_frame = data_frame[data_frame[name] >= value[0]]
+        return temp_frame[temp_frame[name] <= value[1]].reset_index(drop=True)
 
 
 @app.callback(
@@ -220,11 +223,13 @@ def filter_data(data_frame, name, value):
         dash.dependencies.Input('af_type_picker', 'value'),
         dash.dependencies.Input('az_conf_picker', 'value'),
         dash.dependencies.Input('el_conf_picker', 'value'),
+        dash.dependencies.Input('longitude_filter', 'value'),
+        dash.dependencies.Input('latitude_filter', 'value'),
     ],
     [
         dash.dependencies.State('det_grid', 'figure')
     ])
-def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, fig):
+def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longitude, latitude, fig):
     global fig_list
     global det_frames
     ctx = dash.callback_context
@@ -247,14 +252,15 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, fig):
             return fig_list[frame_slider_value]
     else:
         if look_type is not None and af_type is not None and az_conf is not None and el_conf is not None:
-            filter_list = ['LookName', 'AF_Type']
-            filter_values = [look_type, af_type]
+            filter_list = ['LookName', 'AF_Type', 'Az_Conf',
+                           'El_Conf', 'Target_loc_y', 'Target_loc_x']
+            filter_values = [look_type, af_type,
+                             az_conf, el_conf, longitude, latitude]
             filterd_frame = det_frames[frame_slider_value]
 
             for filter_idx, filter_name in enumerate(filter_list):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, filter_values[filter_idx])
-                print(filterd_frame)
 
             return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
         else:
