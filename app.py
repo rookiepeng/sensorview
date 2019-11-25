@@ -141,7 +141,7 @@ app.layout = html.Div([
             min=0,
             max=10,
             step=0.5,
-            value=[-3, 7],
+            value=[0, 10],
             tooltip={'always_visible': False}
         ),
         html.Label('Range filter'),
@@ -151,7 +151,7 @@ app.layout = html.Div([
             min=0,
             max=10,
             step=0.5,
-            value=[-3, 7],
+            value=[0, 10],
             tooltip={'always_visible': False}
         ),
         html.Label('SNR filter'),
@@ -161,7 +161,7 @@ app.layout = html.Div([
             min=0,
             max=10,
             step=0.5,
-            value=[-3, 7],
+            value=[0, 10],
             tooltip={'always_visible': False}
         ),
         html.Label('Azimuth filter'),
@@ -171,7 +171,7 @@ app.layout = html.Div([
             min=0,
             max=10,
             step=0.5,
-            value=[-3, 7],
+            value=[0, 10],
             tooltip={'always_visible': False}
         ),
         html.Label('Elevation filter'),
@@ -181,7 +181,7 @@ app.layout = html.Div([
             min=0,
             max=10,
             step=0.5,
-            value=[-3, 7],
+            value=[0, 10],
             tooltip={'always_visible': False}
         ),
         # Hidden div inside the app that stores the intermediate value
@@ -206,24 +206,59 @@ app.layout = html.Div([
           })
 
 
+def filter_data(data_frame, name, value):
+    print(value)
+    if name == 'LookName' or name == 'AF_Type' or name == 'Az_Conf' or name == 'El_Conf':
+        return data_frame[pd.DataFrame(data_frame[name].tolist()).isin(value).any(1)].reset_index(drop=True)
+
+
 @app.callback(
     dash.dependencies.Output('det_grid', 'figure'),
     [
-        dash.dependencies.Input('frame_slider', 'value')
+        dash.dependencies.Input('frame_slider', 'value'),
+        dash.dependencies.Input('look_type_picker', 'value'),
+        dash.dependencies.Input('af_type_picker', 'value'),
+        dash.dependencies.Input('az_conf_picker', 'value'),
+        dash.dependencies.Input('el_conf_picker', 'value'),
     ],
     [
         dash.dependencies.State('det_grid', 'figure')
     ])
-def update_data(frame_slider_value, fig):
+def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, fig):
     global fig_list
+    global det_frames
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    min_x = np.min([np.min(det_list['Target_loc_x']),
+                    np.min(det_list['vel_x'])])
+    max_x = np.max([np.max(det_list['Target_loc_x']),
+                    np.max(det_list['vel_x'])])
+
+    min_y = np.min([np.min(det_list['Target_loc_y']),
+                    np.min(det_list['vel_y'])])
+    max_y = np.max([np.max(det_list['Target_loc_y']),
+                    np.max(det_list['vel_y'])])
 
     if trigger_id == 'frame_slider':
         if len(fig_list) <= frame_slider_value:
             return fig
         else:
             return fig_list[frame_slider_value]
+    else:
+        if look_type is not None and af_type is not None and az_conf is not None and el_conf is not None:
+            filter_list = ['LookName', 'AF_Type']
+            filter_values = [look_type, af_type]
+            filterd_frame = det_frames[frame_slider_value]
+
+            for filter_idx, filter_name in enumerate(filter_list):
+                filterd_frame = filter_data(
+                    filterd_frame, filter_name, filter_values[filter_idx])
+                print(filterd_frame)
+
+            return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
+        else:
+            return fig
 
 
 @app.callback(
@@ -239,14 +274,30 @@ def update_data(frame_slider_value, fig):
         dash.dependencies.Output('az_conf_picker', 'value'),
         dash.dependencies.Output('el_conf_picker', 'options'),
         dash.dependencies.Output('el_conf_picker', 'value'),
-        dash.dependencies.Output('longitude_value', 'children'),
         dash.dependencies.Output('longitude_filter', 'min'),
         dash.dependencies.Output('longitude_filter', 'max'),
         dash.dependencies.Output('longitude_filter', 'value'),
-        dash.dependencies.Output('latitude_value', 'children'),
         dash.dependencies.Output('latitude_filter', 'min'),
         dash.dependencies.Output('latitude_filter', 'max'),
         dash.dependencies.Output('latitude_filter', 'value'),
+        dash.dependencies.Output('height_filter', 'min'),
+        dash.dependencies.Output('height_filter', 'max'),
+        dash.dependencies.Output('height_filter', 'value'),
+        dash.dependencies.Output('speed_filter', 'min'),
+        dash.dependencies.Output('speed_filter', 'max'),
+        dash.dependencies.Output('speed_filter', 'value'),
+        dash.dependencies.Output('range_filter', 'min'),
+        dash.dependencies.Output('range_filter', 'max'),
+        dash.dependencies.Output('range_filter', 'value'),
+        dash.dependencies.Output('snr_filter', 'min'),
+        dash.dependencies.Output('snr_filter', 'max'),
+        dash.dependencies.Output('snr_filter', 'value'),
+        dash.dependencies.Output('az_filter', 'min'),
+        dash.dependencies.Output('az_filter', 'max'),
+        dash.dependencies.Output('az_filter', 'value'),
+        dash.dependencies.Output('el_filter', 'min'),
+        dash.dependencies.Output('el_filter', 'max'),
+        dash.dependencies.Output('el_filter', 'value'),
     ],
     [
         dash.dependencies.Input('data_file_picker', 'value')
@@ -307,6 +358,18 @@ def update_data(data_file_name):
         longitude_max = round(np.max(det_list['Target_loc_y']), 1)
         latitude_min = round(np.min(det_list['Target_loc_x']), 1)
         latitude_max = round(np.max(det_list['Target_loc_x']), 1)
+        height_min = round(np.min(det_list['Target_loc_z']), 1)
+        height_max = round(np.max(det_list['Target_loc_z']), 1)
+        speed_min = round(np.min(det_list['Speed']), 1)
+        speed_max = round(np.max(det_list['Speed']), 1)
+        range_min = round(np.min(det_list['Range']), 1)
+        range_max = round(np.max(det_list['Range']), 1)
+        snr_min = round(np.min(det_list['SNR']), 1)
+        snr_max = round(np.max(det_list['SNR']), 1)
+        az_min = round(np.min(det_list['Azimuth']), 1)
+        az_max = round(np.max(det_list['Azimuth']), 1)
+        el_min = round(np.min(det_list['Elevation']), 1)
+        el_max = round(np.max(det_list['Elevation']), 1)
         return [0,
                 len(det_frames)-1,
                 0,
@@ -318,26 +381,30 @@ def update_data(data_file_name):
                 az_conf_selection,
                 el_conf_options,
                 el_conf_selection,
-                'Longitude Range: ['+str(longitude_min) +
-                ', '+str(longitude_max)+'] m',
                 longitude_min,
                 longitude_max,
                 [longitude_min, longitude_max],
-                'Latitude Range: ['+str(latitude_min) +
-                ', '+str(latitude_max)+'] m',
                 latitude_min,
                 latitude_max,
-                [latitude_min, latitude_max]]
-
-    # else:
-    #     # det_list = pd.DataFrame()
-    #     # det_frames = []
-    #     return det_plot,\
-    #         look_options,\
-    #         look_selection,\
-    #         0,\
-    #         0,\
-    #         0
+                [latitude_min, latitude_max],
+                height_min,
+                height_max,
+                [height_min, height_max],
+                speed_min,
+                speed_max,
+                [speed_min, speed_max],
+                range_min,
+                range_max,
+                [range_min, range_max],
+                snr_min,
+                snr_max,
+                [snr_min, snr_max],
+                az_min,
+                az_max,
+                [az_min, az_max],
+                el_min,
+                el_max,
+                [el_min, el_max]]
 
 
 def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
