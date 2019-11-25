@@ -243,6 +243,10 @@ def update_data(frame_slider_value, fig):
         dash.dependencies.Output('longitude_filter', 'min'),
         dash.dependencies.Output('longitude_filter', 'max'),
         dash.dependencies.Output('longitude_filter', 'value'),
+        dash.dependencies.Output('latitude_value', 'children'),
+        dash.dependencies.Output('latitude_filter', 'min'),
+        dash.dependencies.Output('latitude_filter', 'max'),
+        dash.dependencies.Output('latitude_filter', 'value'),
     ],
     [
         dash.dependencies.Input('data_file_picker', 'value')
@@ -299,8 +303,10 @@ def update_data(data_file_name):
             el_conf_options.append({'label': el_c, 'value': el_c})
             el_conf_selection.append(el_c)
 
-        longitude_min = round(np.min(det_list['Target_loc_y']),1)
-        longitude_max = round(np.max(det_list['Target_loc_y']),1)
+        longitude_min = round(np.min(det_list['Target_loc_y']), 1)
+        longitude_max = round(np.max(det_list['Target_loc_y']), 1)
+        latitude_min = round(np.min(det_list['Target_loc_x']), 1)
+        latitude_max = round(np.max(det_list['Target_loc_x']), 1)
         return [0,
                 len(det_frames)-1,
                 0,
@@ -312,10 +318,16 @@ def update_data(data_file_name):
                 az_conf_selection,
                 el_conf_options,
                 el_conf_selection,
-                'Longitude Range: ['+str(longitude_min)+', '+str(longitude_max)+'] m',
+                'Longitude Range: ['+str(longitude_min) +
+                ', '+str(longitude_max)+'] m',
                 longitude_min,
                 longitude_max,
-                [longitude_min, longitude_max]]
+                [longitude_min, longitude_max],
+                'Latitude Range: ['+str(latitude_min) +
+                ', '+str(latitude_max)+'] m',
+                latitude_min,
+                latitude_max,
+                [latitude_min, latitude_max]]
 
     # else:
     #     # det_list = pd.DataFrame()
