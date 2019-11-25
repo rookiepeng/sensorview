@@ -30,3 +30,9 @@ python/__pycache__/
 __pycache__/
 
 *.pkl
+
+.ipynb_checkpoints/
+
+data/
+
+*.mat
