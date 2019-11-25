@@ -23,11 +23,10 @@ for r, d, f in os.walk('./data'):
 
 det_list = pd.DataFrame()
 det_frames = []
+fig_list = []
 
 app.layout = html.Div([
     html.Div([
-        html.H4("Radar Viz"),
-        html.P("Radar detections visualization"),
         dcc.Graph(
             id='det_grid',
             figure={
@@ -48,13 +47,13 @@ app.layout = html.Div([
                            'margin': {'l': 0, 'r': 0, 'b': 0, 't': 20},
                            'legend': {'x': 0, 'y': 0}}
             },
-            hoverData={'points': [{'customdata': 'Japan'}]}
         ),
         html.Div([
             # html.Label('Frame'),
             dcc.Slider(
                 id='frame_slider',
                 step=1,
+                value=0,
                 updatemode='drag',
             )], style={'box-sizing': 'border-box',
                        'width': '100%',
@@ -63,18 +62,15 @@ app.layout = html.Div([
     ], style={'box-sizing': 'border-box',
               'width': '66%',
               'display': 'inline-block',
-              'padding': '2rem 4rem'}),
+              'padding': '4rem 4rem'}),
 
     html.Div([
+        html.H4("Radar Viz"),
+        html.P("Radar detections visualization"),
         dcc.Dropdown(
             id='data_file_picker',
             options=[{'label': i, 'value': i} for i in data_files],
             value=data_files[0]
-        ),
-        html.Label('Look types'),
-        dcc.Dropdown(
-            id='look_typy_picker',
-            multi=True
         ),
         html.Label('Color assignment'),
         dcc.Dropdown(
@@ -85,7 +81,26 @@ app.layout = html.Div([
             ],
             value='Speed'
         ),
-        # html.Label('Longitude filter'),
+        html.Label('Look Type'),
+        dcc.Dropdown(
+            id='look_type_picker',
+            multi=True
+        ),
+        html.Label('AF Type'),
+        dcc.Dropdown(
+            id='af_type_picker',
+            multi=True
+        ),
+        html.Label('AF Azimuth Confidence Level'),
+        dcc.Dropdown(
+            id='az_conf_picker',
+            multi=True
+        ),
+        html.Label('AF Elevation Confidence Level'),
+        dcc.Dropdown(
+            id='el_conf_picker',
+            multi=True
+        ),
         html.Label(id='longitude_value',
                    children='Longitude Range'),
         dcc.RangeSlider(
@@ -149,16 +164,6 @@ app.layout = html.Div([
             value=[-3, 7],
             tooltip={'always_visible': False}
         ),
-        html.Label('AF Type filter'),
-        dcc.RangeSlider(
-            id='af_type_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[-3, 7],
-            tooltip={'always_visible': False}
-        ),
         html.Label('Azimuth filter'),
         dcc.RangeSlider(
             id='az_filter',
@@ -172,26 +177,6 @@ app.layout = html.Div([
         html.Label('Elevation filter'),
         dcc.RangeSlider(
             id='el_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[-3, 7],
-            tooltip={'always_visible': False}
-        ),
-        html.Label('AF Azimuth Confidence Level filter'),
-        dcc.RangeSlider(
-            id='az_conf_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[-3, 7],
-            tooltip={'always_visible': False}
-        ),
-        html.Label('AF Elevation Confidence Level filter'),
-        dcc.RangeSlider(
-            id='el_conf_filter',
             count=1,
             min=0,
             max=10,
@@ -225,19 +210,39 @@ app.layout = html.Div([
     dash.dependencies.Output('det_grid', 'figure'),
     [
         dash.dependencies.Input('frame_slider', 'value')
+    ],
+    [
+        dash.dependencies.State('det_grid', 'figure')
     ])
-def update_data(frame_slider_value):
-    global det_frames
-    return update_det_graph(det_frames[frame_slider_value], True)
+def update_data(frame_slider_value, fig):
+    global fig_list
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if trigger_id == 'frame_slider':
+        if len(fig_list) <= frame_slider_value:
+            return fig
+        else:
+            return fig_list[frame_slider_value]
 
 
 @app.callback(
     [
-        dash.dependencies.Output('look_typy_picker', 'options'),
-        dash.dependencies.Output('look_typy_picker', 'value'),
         dash.dependencies.Output('frame_slider', 'min'),
         dash.dependencies.Output('frame_slider', 'max'),
         dash.dependencies.Output('frame_slider', 'value'),
+        dash.dependencies.Output('look_type_picker', 'options'),
+        dash.dependencies.Output('look_type_picker', 'value'),
+        dash.dependencies.Output('af_type_picker', 'options'),
+        dash.dependencies.Output('af_type_picker', 'value'),
+        dash.dependencies.Output('az_conf_picker', 'options'),
+        dash.dependencies.Output('az_conf_picker', 'value'),
+        dash.dependencies.Output('el_conf_picker', 'options'),
+        dash.dependencies.Output('el_conf_picker', 'value'),
+        dash.dependencies.Output('longitude_value', 'children'),
+        dash.dependencies.Output('longitude_filter', 'min'),
+        dash.dependencies.Output('longitude_filter', 'max'),
+        dash.dependencies.Output('longitude_filter', 'value'),
     ],
     [
         dash.dependencies.Input('data_file_picker', 'value')
@@ -245,25 +250,73 @@ def update_data(frame_slider_value):
 def update_data(data_file_name):
     global det_list
     global det_frames
+    global fig_list
     look_options = []
     look_selection = []
+    af_type_options = []
+    af_type_selection = []
+    az_conf_options = []
+    az_conf_selection = []
+    el_conf_options = []
+    el_conf_selection = []
     if data_file_name is not None:
         det_list = pd.read_pickle('./data/'+data_file_name)
+        min_x = np.min([np.min(det_list['Target_loc_x']),
+                        np.min(det_list['vel_x'])])
+        max_x = np.max([np.max(det_list['Target_loc_x']),
+                        np.max(det_list['vel_x'])])
+
+        min_y = np.min([np.min(det_list['Target_loc_y']),
+                        np.min(det_list['vel_y'])])
+        max_y = np.max([np.max(det_list['Target_loc_y']),
+                        np.max(det_list['vel_y'])])
         det_frames = []
         frame_list = det_list['Frame'].unique()
         for frame_idx in frame_list:
             filtered_list = det_list[det_list['Frame'] == frame_idx]
             filtered_list = filtered_list.reset_index()
             det_frames.append(filtered_list)
+            fig_list.append(update_det_graph(
+                filtered_list, min_x, max_x, min_y, max_y))
+
         look_types = det_list['LookName'].unique()
         for look_name in look_types:
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
-        return look_options,\
-            look_selection,\
-            0,\
-            len(det_frames)-1,\
-            0
+
+        af_types = det_list['AF_Type'].unique()
+        for af_type in af_types:
+            af_type_options.append({'label': af_type, 'value': af_type})
+            af_type_selection.append(af_type)
+
+        az_conf = det_list['Az_Conf'].unique()
+        for az_c in az_conf:
+            az_conf_options.append({'label': az_c, 'value': az_c})
+            az_conf_selection.append(az_c)
+
+        el_conf = det_list['El_Conf'].unique()
+        for el_c in el_conf:
+            el_conf_options.append({'label': el_c, 'value': el_c})
+            el_conf_selection.append(el_c)
+
+        longitude_min = round(np.min(det_list['Target_loc_y']),1)
+        longitude_max = round(np.max(det_list['Target_loc_y']),1)
+        return [0,
+                len(det_frames)-1,
+                0,
+                look_options,
+                look_selection,
+                af_type_options,
+                af_type_selection,
+                az_conf_options,
+                az_conf_selection,
+                el_conf_options,
+                el_conf_selection,
+                'Longitude Range: ['+str(longitude_min)+', '+str(longitude_max)+'] m',
+                longitude_min,
+                longitude_max,
+                [longitude_min, longitude_max]]
+
     # else:
     #     # det_list = pd.DataFrame()
     #     # det_frames = []
@@ -275,17 +328,7 @@ def update_data(data_file_name):
     #         0
 
 
-def update_det_graph(det_frame, update_layout=False):
-    min_x = np.min([np.min(det_frame['Target_loc_x']),
-                    np.min(det_frame['vel_x'])])
-    max_x = np.max([np.max(det_frame['Target_loc_x']),
-                    np.max(det_frame['vel_x'])])
-
-    min_y = np.min([np.min(det_frame['Target_loc_y']),
-                    np.min(det_frame['vel_y'])])
-    max_y = np.max([np.max(det_frame['Target_loc_y']),
-                    np.max(det_frame['vel_y'])])
-
+def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
     fx = det_frame['Target_loc_x']
     fy = det_frame['Target_loc_y']
     fz = det_frame['Target_loc_z']
@@ -364,17 +407,9 @@ def update_det_graph(det_frame, update_layout=False):
                    ),
         margin=dict(l=0, r=0, b=0, t=20),
         legend=dict(x=0, y=0),
-        uirevision='det_list',
+        uirevision='no_change',
     )
-    # det_plot['data'] = [det_map, vel_map]
-    # if update_layout:
-    #     det_plot['layout']['scene']['xaxis']['range'] = [min_x, max_x]
-    #     det_plot['layout']['scene']['yaxis']['range'] = [min_y, max_y]
-    #     det_plot['layout']['scene']['aspectratio']['x'] = (max_x-min_x)/40
-    #     det_plot['layout']['scene']['aspectratio']['y'] = (max_y-min_y)/40
-    #     det_plot['layout']['scene']['aspectratio']['z'] = 1
     return go.Figure(data=[det_map, vel_map], layout=plot_layout)
-    # return det_plot
 
 
 if __name__ == '__main__':
