@@ -209,7 +209,7 @@ app.layout = html.Div([
 
 
 def filter_data(data_frame, name, value):
-    if name == 'LookName' or name == 'AF_Type' or name == 'Az_Conf' or name == 'El_Conf':
+    if name == 'LookName' or name == 'AFType' or name == 'AzConf' or name == 'ElConf':
         return data_frame[pd.DataFrame(data_frame[name].tolist()).isin(value).any(1)].reset_index(drop=True)
     else:
         temp_frame = data_frame[data_frame[name] >= value[0]]
@@ -247,15 +247,15 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    min_x = np.min([np.min(det_list['Target_loc_x']),
-                    np.min(det_list['vel_x'])])
-    max_x = np.max([np.max(det_list['Target_loc_x']),
-                    np.max(det_list['vel_x'])])
+    min_x = np.min([np.min(det_list['Latitude']),
+                    np.min(det_list['VehLat'])])
+    max_x = np.max([np.max(det_list['Latitude']),
+                    np.max(det_list['VehLat'])])
 
-    min_y = np.min([np.min(det_list['Target_loc_y']),
-                    np.min(det_list['vel_y'])])
-    max_y = np.max([np.max(det_list['Target_loc_y']),
-                    np.max(det_list['vel_y'])])
+    min_y = np.min([np.min(det_list['Longitude']),
+                    np.min(det_list['VehLong'])])
+    max_y = np.max([np.max(det_list['Longitude']),
+                    np.max(det_list['VehLong'])])
 
     if trigger_id == 'frame_slider':
         if len(fig_list) <= frame_slider_value:
@@ -265,9 +265,9 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
             return fig_list[frame_slider_value], 0
         else:
             print('calculate')
-            filter_list = ['LookName', 'AF_Type', 'Az_Conf',
-                           'El_Conf', 'Target_loc_y', 'Target_loc_x',
-                           'Target_loc_z', 'Speed', 'Range', 'SNR',
+            filter_list = ['LookName', 'AFType', 'AzConf',
+                           'ElConf', 'Longitude', 'Latitude',
+                           'Height', 'Speed', 'Range', 'SNR',
                            'Azimuth', 'Elevation']
             filter_values = [look_type, af_type,
                              az_conf, el_conf, longitude, latitude,
@@ -282,9 +282,9 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
     else:
         if look_type is not None and af_type is not None and az_conf is not None and el_conf is not None:
             filter_trigger = 1
-            filter_list = ['LookName', 'AF_Type', 'Az_Conf',
-                           'El_Conf', 'Target_loc_y', 'Target_loc_x',
-                           'Target_loc_z', 'Speed', 'Range', 'SNR',
+            filter_list = ['LookName', 'AFType', 'AzConf',
+                           'ElConf', 'Longitude', 'Latitude',
+                           'Height', 'Speed', 'Range', 'SNR',
                            'Azimuth', 'Elevation']
             filter_values = [look_type, af_type,
                              az_conf, el_conf, longitude, latitude,
@@ -325,19 +325,19 @@ def update_figure_list(trigger_state, look_type, af_type, az_conf, el_conf, long
     global det_list
     global fig_list
     if trigger_state == 1:
-        min_x = np.min([np.min(det_list['Target_loc_x']),
-                        np.min(det_list['vel_x'])])
-        max_x = np.max([np.max(det_list['Target_loc_x']),
-                        np.max(det_list['vel_x'])])
+        min_x = np.min([np.min(det_list['Latitude']),
+                        np.min(det_list['VehLat'])])
+        max_x = np.max([np.max(det_list['Latitude']),
+                        np.max(det_list['VehLat'])])
 
-        min_y = np.min([np.min(det_list['Target_loc_y']),
-                        np.min(det_list['vel_y'])])
-        max_y = np.max([np.max(det_list['Target_loc_y']),
-                        np.max(det_list['vel_y'])])
+        min_y = np.min([np.min(det_list['Longitude']),
+                        np.min(det_list['VehLong'])])
+        max_y = np.max([np.max(det_list['Longitude']),
+                        np.max(det_list['VehLong'])])
 
-        filter_list = ['LookName', 'AF_Type', 'Az_Conf',
-                       'El_Conf', 'Target_loc_y', 'Target_loc_x',
-                       'Target_loc_z', 'Speed', 'Range', 'SNR',
+        filter_list = ['LookName', 'AFType', 'AzConf',
+                       'ElConf', 'Longitude', 'Latitude',
+                       'Height', 'Speed', 'Range', 'SNR',
                        'Azimuth', 'Elevation']
         filter_values = [look_type, af_type,
                          az_conf, el_conf, longitude, latitude,
@@ -413,15 +413,15 @@ def update_data(data_file_name):
     el_conf_selection = []
     if data_file_name is not None:
         det_list = pd.read_pickle('./data/'+data_file_name)
-        min_x = np.min([np.min(det_list['Target_loc_x']),
-                        np.min(det_list['vel_x'])])
-        max_x = np.max([np.max(det_list['Target_loc_x']),
-                        np.max(det_list['vel_x'])])
+        min_x = np.min([np.min(det_list['Latitude']),
+                        np.min(det_list['VehLat'])])
+        max_x = np.max([np.max(det_list['Latitude']),
+                        np.max(det_list['VehLat'])])
 
-        min_y = np.min([np.min(det_list['Target_loc_y']),
-                        np.min(det_list['vel_y'])])
-        max_y = np.max([np.max(det_list['Target_loc_y']),
-                        np.max(det_list['vel_y'])])
+        min_y = np.min([np.min(det_list['Longitude']),
+                        np.min(det_list['VehLong'])])
+        max_y = np.max([np.max(det_list['Longitude']),
+                        np.max(det_list['VehLong'])])
         det_frames = []
         frame_list = det_list['Frame'].unique()
         for frame_idx in frame_list:
@@ -436,27 +436,27 @@ def update_data(data_file_name):
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
 
-        af_types = det_list['AF_Type'].unique()
+        af_types = det_list['AFType'].unique()
         for af_type in af_types:
             af_type_options.append({'label': af_type, 'value': af_type})
             af_type_selection.append(af_type)
 
-        az_conf = det_list['Az_Conf'].unique()
+        az_conf = det_list['AzConf'].unique()
         for az_c in az_conf:
             az_conf_options.append({'label': az_c, 'value': az_c})
             az_conf_selection.append(az_c)
 
-        el_conf = det_list['El_Conf'].unique()
+        el_conf = det_list['ElConf'].unique()
         for el_c in el_conf:
             el_conf_options.append({'label': el_c, 'value': el_c})
             el_conf_selection.append(el_c)
 
-        longitude_min = round(np.min(det_list['Target_loc_y']), 1)
-        longitude_max = round(np.max(det_list['Target_loc_y']), 1)
-        latitude_min = round(np.min(det_list['Target_loc_x']), 1)
-        latitude_max = round(np.max(det_list['Target_loc_x']), 1)
-        height_min = round(np.min(det_list['Target_loc_z']), 1)
-        height_max = round(np.max(det_list['Target_loc_z']), 1)
+        longitude_min = round(np.min(det_list['Longitude']), 1)
+        longitude_max = round(np.max(det_list['Longitude']), 1)
+        latitude_min = round(np.min(det_list['Latitude']), 1)
+        latitude_max = round(np.max(det_list['Latitude']), 1)
+        height_min = round(np.min(det_list['Height']), 1)
+        height_max = round(np.max(det_list['Height']), 1)
         speed_min = round(np.min(det_list['Speed']), 1)
         speed_max = round(np.max(det_list['Speed']), 1)
         range_min = round(np.min(det_list['Range']), 1)
@@ -505,10 +505,10 @@ def update_data(data_file_name):
 
 
 def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
-    fx = det_frame['Target_loc_x']
-    fy = det_frame['Target_loc_y']
-    fz = det_frame['Target_loc_z']
-    famp = det_frame['Amp']
+    fx = det_frame['Latitude']
+    fy = det_frame['Longitude']
+    fz = det_frame['Height']
+    famp = det_frame['Amplitude']
     frcs = det_frame['RCS']
     fframe = det_frame['Frame']
     fsnr = 20*np.log10(det_frame['SNR'])
@@ -518,8 +518,8 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
     fspeed = det_frame['Speed']
     fl_type = det_frame['LookName']
 
-    vx = det_frame['vel_x']
-    vy = det_frame['vel_y']
+    vx = det_frame['VehLat']
+    vy = det_frame['VehLong']
 
     hover = []
     for idx, var in enumerate(fframe.to_list()):
