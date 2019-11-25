@@ -34,7 +34,7 @@ app.layout = html.Div([
                 'data': [{'mode': 'markers', 'type': 'scatter3d', 'x': [], 'y': [], 'z': []}
                          ],
                 'layout': {'template': pio.templates['plotly_dark'],
-                           'height': 700,
+                           'height': 650,
                            'scene': {'xaxis': {'range': [-100, 100],
                                                'title': 'Lateral (m)',
                                                'autorange': False},
@@ -65,7 +65,9 @@ app.layout = html.Div([
     ], style={'box-sizing': 'border-box',
               'width': '66%',
               'display': 'inline-block',
-              'padding': '4rem 4rem'}),
+              'padding': '4rem 4rem',
+              'max-height': '100vh',
+              'overflow': 'auto', }),
 
     html.Div([
         html.H4("Radar Viz"),
@@ -194,17 +196,20 @@ app.layout = html.Div([
               'width': '34%',
               'display': 'inline-block',
               'vertical-align': 'top',
-              'padding': '4rem 4rem',
+              'padding': '2rem 4rem',
               'margin': '0 0',
-              'background-color': '#EEEEEE',
-              'min-height': '100vh',
+              'background-color': '#B0BEC5',
+              #   'min-height': '100vh',
               'max-height': '100vh',
+              'overflow': 'auto',
               })
 ], style={'border-width': '0',
           'box-sizing': 'border-box',
           'display': 'flex',
           'padding': '0rem 0rem',
-          'background-color': '#F5F5F5',
+          'background-color': '#212121',
+          'min-height': '100vh',
+          'max-height': '100vh',
           #   'overflow-y': 'scroll',
           #   'overflow': 'scroll'
           })
@@ -586,7 +591,7 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
     plot_layout = dict(
         # title=file_name[:-4],
         template="plotly_dark",
-        height=700,
+        height=650,
         scene=dict(xaxis=dict(range=[min_x, max_x], title='Lateral (m)', autorange=False),
                    yaxis=dict(range=[min_y, max_y],
                               title='Longitudinal (m)', autorange=False),
