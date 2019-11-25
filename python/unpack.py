@@ -20,8 +20,11 @@ def unpack_plotdata(path, file_name, save_list=True):
     speed = pd.Series()
     az = pd.Series()
     el = pd.Series()
+    az_conf = pd.Series(dtype=int)
+    el_conf = pd.Series(dtype=int)
     amp = pd.Series()
     snr = pd.Series()
+    af_type = pd.Series(dtype=object)
     rcs = pd.Series()
     sub_frame = pd.Series()
     veh_speed = pd.Series()
@@ -53,6 +56,14 @@ def unpack_plotdata(path, file_name, save_list=True):
                             single_det['range_rate'][()][0, :])
                         az_temp = pd.Series(single_det['az'][()][0, :])
                         el_temp = pd.Series(single_det['el'][()][0, :])
+                        az_conf_temp = pd.Series(
+                            single_det['az_conf'][()][0, :])
+                        el_conf_temp = pd.Series(
+                            single_det['el_conf'][()][0, :])
+                        af_type_temp = pd.Series(
+                            np.zeros_like(az_temp, dtype=object))
+                        af_type_temp[:] = single_det['type'][()][:, 0].astype(
+                            np.uint8).tostring().decode("ascii")
                         amp_temp = pd.Series(
                             20*np.log10(single_det['rdop_amp'][()][0, :]))
                         snr_temp = pd.Series(single_det['SNR'][()][0, :])
@@ -78,6 +89,12 @@ def unpack_plotdata(path, file_name, save_list=True):
                         speed = speed.append(speed_temp, ignore_index=True)
                         az = az.append(az_temp, ignore_index=True)
                         el = el.append(el_temp, ignore_index=True)
+                        az_conf = az_conf.append(
+                            az_conf_temp, ignore_index=True)
+                        el_conf = el_conf.append(
+                            el_conf_temp, ignore_index=True)
+                        af_type = af_type.append(
+                            af_type_temp, ignore_index=True)
                         amp = amp.append(amp_temp, ignore_index=True)
                         snr = snr.append(snr_temp, ignore_index=True)
                         rcs = rcs.append(rcs_temp, ignore_index=True)
@@ -115,9 +132,15 @@ def unpack_plotdata(path, file_name, save_list=True):
     det_list['Speed'] = speed
     det_list['Azimuth'] = az
     det_list['Elevation'] = el
+    det_list['AzConf'] = az_conf
+    det_list['ElConf'] = el_conf
+    det_list['AFType'] = af_type
     det_list['Amplitude'] = amp
     det_list['SNR'] = snr
     det_list['RCS'] = rcs
+    det_list['VehYawRate'] = veh_yaw_rate
+    det_list['VehSpeed'] = veh_speed
+
     det_list['Latitude'] = -det_list['Range']*np.sin((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
         det_list['Elevation']/180*np.pi) - veh_x
     det_list['Longitude'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
