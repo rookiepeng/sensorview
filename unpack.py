@@ -72,9 +72,7 @@ def unpack_plotdata(path, file_name, save_list=True):
                         dopp_shift_temp = pd.Series(
                             single_det['Dopp_shift'][()][0, :])
                         dopp_unfold_flag_temp = pd.Series(
-                            single_det['flag_Doppler_Unfolding_fail_vec'][()][0, :])
-                        # speed_temp = speed_temp - speed_temp / \
-                        #     np.abs(speed_temp)*vun*dopp_shift_temp/np.pi
+                            single_det['flag_Doppler_Unfolding_fail_vec'][()][0, 0]*np.ones_like(dopp_shift_temp))
 
                         look_name_temp = pd.Series(
                             np.zeros_like(snr_temp, dtype=object))
