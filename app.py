@@ -31,7 +31,7 @@ app.layout = html.Div([
         dcc.Graph(
             id='det_grid',
             figure={
-                'data': [{'mode': 'markers', 'type': 'scatter3d', 'x': [0], 'y': [0], 'z': [0]}
+                'data': [{'mode': 'markers', 'type': 'scatter3d', 'x': [], 'y': [], 'z': []}
                          ],
                 'layout': {'template': pio.templates['plotly_dark'],
                            'height': 700,
@@ -46,7 +46,9 @@ app.layout = html.Div([
                                      'aspectratio':{'x': 1, 'y': 1, 'z': 1}
                                      },
                            'margin': {'l': 0, 'r': 0, 'b': 0, 't': 20},
-                           'legend': {'x': 0, 'y': 0}}
+                           'legend': {'x': 0, 'y': 0},
+                           'uirevision': 'no_change'
+                           }
             },
         ),
         html.Div([
@@ -247,24 +249,30 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    min_x = np.min([np.min(det_list['Latitude']),
-                    np.min(det_list['VehLat'])])
-    max_x = np.max([np.max(det_list['Latitude']),
-                    np.max(det_list['VehLat'])])
+    if det_list.size == 0:
+        min_x = -10
+        max_x = 10
+        min_y = -10
+        max_y = 10
+    else:
+        min_x = np.min([np.min(det_list['Latitude']),
+                        np.min(det_list['VehLat'])])
+        max_x = np.max([np.max(det_list['Latitude']),
+                        np.max(det_list['VehLat'])])
 
-    min_y = np.min([np.min(det_list['Longitude']),
-                    np.min(det_list['VehLong'])])
-    max_y = np.max([np.max(det_list['Longitude']),
-                    np.max(det_list['VehLong'])])
+        min_y = np.min([np.min(det_list['Longitude']),
+                        np.min(det_list['VehLong'])])
+        max_y = np.max([np.max(det_list['Longitude']),
+                        np.max(det_list['VehLong'])])
 
     if trigger_id == 'frame_slider':
         if len(fig_list) <= frame_slider_value:
             return fig, 0
         elif filter_trigger == 0:
-            print('return directly')
+            # print('return directly')
             return fig_list[frame_slider_value], 0
         else:
-            print('calculate')
+            # print('calculate')
             filter_list = ['LookName', 'AFType', 'AzConf',
                            'ElConf', 'Longitude', 'Latitude',
                            'Height', 'Speed', 'Range', 'SNR',
@@ -536,7 +544,7 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
     det_map = go.Scatter3d(
         x=fx,
         y=fy,
-        z=-fz,
+        z=fz,
         text=hover,
         hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
         'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
@@ -555,10 +563,18 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
         ),
     )
 
+    if len(vx) == 0:
+        vx_temp = []
+        vy_temp = []
+        vz_temp = []
+    else:
+        vx_temp = [vx[0]]
+        vy_temp = [vy[0]]
+        vz_temp = [0]
     vel_map = go.Scatter3d(
-        x=[vx[0]],
-        y=[vy[0]],
-        z=[0],
+        x=vx_temp,
+        y=vy_temp,
+        z=vz_temp,
         hovertemplate='Lateral: %{x:.2f} m<br>' +
         'Longitudinal: %{y:.2f} m<br>',
         mode='markers',
