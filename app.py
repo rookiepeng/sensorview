@@ -24,6 +24,7 @@ for r, d, f in os.walk('./data'):
 det_list = pd.DataFrame()
 det_frames = []
 fig_list = []
+filter_trigger = 0
 
 app.layout = html.Div([
     html.Div([
@@ -185,7 +186,8 @@ app.layout = html.Div([
             tooltip={'always_visible': False}
         ),
         # Hidden div inside the app that stores the intermediate value
-        html.Div(id='det_list', style={'display': 'none'})
+        html.Div(id='trigger', style={'display': 'none'}),
+        html.Div(id='dummy', style={'display': 'none'}),
     ], style={'box-sizing': 'border-box',
               'width': '34%',
               'display': 'inline-block',
@@ -207,7 +209,6 @@ app.layout = html.Div([
 
 
 def filter_data(data_frame, name, value):
-    print(value)
     if name == 'LookName' or name == 'AF_Type' or name == 'Az_Conf' or name == 'El_Conf':
         return data_frame[pd.DataFrame(data_frame[name].tolist()).isin(value).any(1)].reset_index(drop=True)
     else:
@@ -216,7 +217,10 @@ def filter_data(data_frame, name, value):
 
 
 @app.callback(
-    dash.dependencies.Output('det_grid', 'figure'),
+    [
+        dash.dependencies.Output('det_grid', 'figure'),
+        dash.dependencies.Output('trigger', 'children')
+    ],
     [
         dash.dependencies.Input('frame_slider', 'value'),
         dash.dependencies.Input('look_type_picker', 'value'),
@@ -225,13 +229,21 @@ def filter_data(data_frame, name, value):
         dash.dependencies.Input('el_conf_picker', 'value'),
         dash.dependencies.Input('longitude_filter', 'value'),
         dash.dependencies.Input('latitude_filter', 'value'),
+        dash.dependencies.Input('height_filter', 'value'),
+        dash.dependencies.Input('speed_filter', 'value'),
+        dash.dependencies.Input('range_filter', 'value'),
+        dash.dependencies.Input('snr_filter', 'value'),
+        dash.dependencies.Input('az_filter', 'value'),
+        dash.dependencies.Input('el_filter', 'value'),
     ],
     [
-        dash.dependencies.State('det_grid', 'figure')
+        dash.dependencies.State('det_grid', 'figure'),
+        dash.dependencies.State('trigger', 'children')
     ])
-def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longitude, latitude, fig):
+def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longitude, latitude, height, speed, rng, snr, az, el, fig, trigger_state):
     global fig_list
     global det_frames
+    global filter_trigger
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -247,24 +259,103 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
 
     if trigger_id == 'frame_slider':
         if len(fig_list) <= frame_slider_value:
-            return fig
+            return fig, 0
+        elif filter_trigger == 0:
+            print('return directly')
+            return fig_list[frame_slider_value], 0
         else:
-            return fig_list[frame_slider_value]
-    else:
-        if look_type is not None and af_type is not None and az_conf is not None and el_conf is not None:
+            print('calculate')
             filter_list = ['LookName', 'AF_Type', 'Az_Conf',
-                           'El_Conf', 'Target_loc_y', 'Target_loc_x']
+                           'El_Conf', 'Target_loc_y', 'Target_loc_x',
+                           'Target_loc_z', 'Speed', 'Range', 'SNR',
+                           'Azimuth', 'Elevation']
             filter_values = [look_type, af_type,
-                             az_conf, el_conf, longitude, latitude]
+                             az_conf, el_conf, longitude, latitude,
+                             height, speed, rng, snr, az, el]
             filterd_frame = det_frames[frame_slider_value]
 
             for filter_idx, filter_name in enumerate(filter_list):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, filter_values[filter_idx])
 
-            return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
+            return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y), 0
+    else:
+        if look_type is not None and af_type is not None and az_conf is not None and el_conf is not None:
+            filter_trigger = 1
+            filter_list = ['LookName', 'AF_Type', 'Az_Conf',
+                           'El_Conf', 'Target_loc_y', 'Target_loc_x',
+                           'Target_loc_z', 'Speed', 'Range', 'SNR',
+                           'Azimuth', 'Elevation']
+            filter_values = [look_type, af_type,
+                             az_conf, el_conf, longitude, latitude,
+                             height, speed, rng, snr, az, el]
+            filterd_frame = det_frames[frame_slider_value]
+
+            for filter_idx, filter_name in enumerate(filter_list):
+                filterd_frame = filter_data(
+                    filterd_frame, filter_name, filter_values[filter_idx])
+            # print(filter_trigger)
+            return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y), filter_trigger
         else:
-            return fig
+            return fig, filter_trigger
+
+
+@app.callback(
+    dash.dependencies.Output('dummy', 'children'),
+    [
+        dash.dependencies.Input('trigger', 'children'),
+    ],
+    [
+        dash.dependencies.State('look_type_picker', 'value'),
+        dash.dependencies.State('af_type_picker', 'value'),
+        dash.dependencies.State('az_conf_picker', 'value'),
+        dash.dependencies.State('el_conf_picker', 'value'),
+        dash.dependencies.State('longitude_filter', 'value'),
+        dash.dependencies.State('latitude_filter', 'value'),
+        dash.dependencies.State('height_filter', 'value'),
+        dash.dependencies.State('speed_filter', 'value'),
+        dash.dependencies.State('range_filter', 'value'),
+        dash.dependencies.State('snr_filter', 'value'),
+        dash.dependencies.State('az_filter', 'value'),
+        dash.dependencies.State('el_filter', 'value'),
+    ])
+def update_figure_list(trigger_state, look_type, af_type, az_conf, el_conf, longitude, latitude, height, speed, rng, snr, az, el):
+    global filter_trigger
+    global det_frames
+    global det_list
+    global fig_list
+    if trigger_state == 1:
+        min_x = np.min([np.min(det_list['Target_loc_x']),
+                        np.min(det_list['vel_x'])])
+        max_x = np.max([np.max(det_list['Target_loc_x']),
+                        np.max(det_list['vel_x'])])
+
+        min_y = np.min([np.min(det_list['Target_loc_y']),
+                        np.min(det_list['vel_y'])])
+        max_y = np.max([np.max(det_list['Target_loc_y']),
+                        np.max(det_list['vel_y'])])
+
+        filter_list = ['LookName', 'AF_Type', 'Az_Conf',
+                       'El_Conf', 'Target_loc_y', 'Target_loc_x',
+                       'Target_loc_z', 'Speed', 'Range', 'SNR',
+                       'Azimuth', 'Elevation']
+        filter_values = [look_type, af_type,
+                         az_conf, el_conf, longitude, latitude,
+                         height, speed, rng, snr, az, el]
+        filterd_det_list = det_list
+        for filter_idx, filter_name in enumerate(filter_list):
+            filterd_det_list = filter_data(
+                filterd_det_list, filter_name, filter_values[filter_idx])
+
+        frame_list = filterd_det_list['Frame'].unique()
+        for idx, frame_idx in enumerate(frame_list):
+            filtered_list = filterd_det_list[filterd_det_list['Frame'] == frame_idx]
+            filtered_list = filtered_list.reset_index()
+            # det_frames.append(filtered_list)
+            fig_list[idx] = update_det_graph(
+                filtered_list, min_x, max_x, min_y, max_y)
+        filter_trigger = 0
+    return 0
 
 
 @app.callback(
