@@ -29,6 +29,8 @@ def unpack_plotdata(path, file_name, save_list=True):
     sub_frame = pd.Series()
     veh_speed = pd.Series()
     veh_yaw_rate = pd.Series()
+    dopp_shift = pd.Series()
+    dopp_unfold_flag = pd.Series(dtype=int)
 
     for frame_idx in range(0, frame_size):
         try:
@@ -69,8 +71,10 @@ def unpack_plotdata(path, file_name, save_list=True):
                         snr_temp = pd.Series(single_det['SNR'][()][0, :])
                         dopp_shift_temp = pd.Series(
                             single_det['Dopp_shift'][()][0, :])
-                        speed_temp = speed_temp - speed_temp / \
-                            np.abs(speed_temp)*vun*dopp_shift_temp/np.pi
+                        dopp_unfold_flag_temp = pd.Series(
+                            single_det['flag_Doppler_Unfolding_fail_vec'][()][0, :])
+                        # speed_temp = speed_temp - speed_temp / \
+                        #     np.abs(speed_temp)*vun*dopp_shift_temp/np.pi
 
                         look_name_temp = pd.Series(
                             np.zeros_like(snr_temp, dtype=object))
@@ -87,6 +91,11 @@ def unpack_plotdata(path, file_name, save_list=True):
 
                         rng = rng.append(rng_temp, ignore_index=True)
                         speed = speed.append(speed_temp, ignore_index=True)
+                        dopp_shift = dopp_shift.append(
+                            dopp_shift_temp, ignore_index=True)
+                        dopp_unfold_flag = dopp_unfold_flag.append(
+                            dopp_unfold_flag_temp, ignore_index=True)
+
                         az = az.append(az_temp, ignore_index=True)
                         el = el.append(el_temp, ignore_index=True)
                         az_conf = az_conf.append(
@@ -130,6 +139,8 @@ def unpack_plotdata(path, file_name, save_list=True):
     det_list['LookName'] = look_type_name
     det_list['Range'] = rng
     det_list['Speed'] = speed
+    det_list['DoppShift'] = dopp_shift
+    det_list['DoppUnfoldFlag'] = dopp_unfold_flag
     det_list['Azimuth'] = az
     det_list['Elevation'] = el
     det_list['AzConf'] = az_conf
