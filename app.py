@@ -55,6 +55,7 @@ app.layout = html.Div([
             dcc.Slider(
                 id='frame_slider',
                 step=1,
+                updatemode='drag',
             )], style={'box-sizing': 'border-box',
                        'width': '100%',
                        'display': 'inline-block',
@@ -84,7 +85,120 @@ app.layout = html.Div([
             ],
             value='Speed'
         ),
-
+        # html.Label('Longitude filter'),
+        html.Label(id='longitude_value',
+                   children='Longitude Range'),
+        dcc.RangeSlider(
+            id='longitude_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[0, 10],
+            tooltip={'always_visible': False}
+        ),
+        html.Label(id='latitude_value',
+                   children='Latitude Range'),
+        dcc.RangeSlider(
+            id='latitude_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[0, 10],
+            tooltip={'always_visible': False}
+        ),
+        html.Label(id='height_value',
+                   children='Height Range'),
+        dcc.RangeSlider(
+            id='height_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[0, 10],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('Speed filter'),
+        dcc.RangeSlider(
+            id='speed_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('Range filter'),
+        dcc.RangeSlider(
+            id='range_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('SNR filter'),
+        dcc.RangeSlider(
+            id='snr_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('AF Type filter'),
+        dcc.RangeSlider(
+            id='af_type_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('Azimuth filter'),
+        dcc.RangeSlider(
+            id='az_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('Elevation filter'),
+        dcc.RangeSlider(
+            id='el_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('AF Azimuth Confidence Level filter'),
+        dcc.RangeSlider(
+            id='az_conf_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
+        html.Label('AF Elevation Confidence Level filter'),
+        dcc.RangeSlider(
+            id='el_conf_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[-3, 7],
+            tooltip={'always_visible': False}
+        ),
         # Hidden div inside the app that stores the intermediate value
         html.Div(id='det_list', style={'display': 'none'})
     ], style={'box-sizing': 'border-box',
@@ -96,18 +210,29 @@ app.layout = html.Div([
               'background-color': '#EEEEEE',
               'min-height': '100vh',
               'max-height': '100vh',
-              'overflow-y': 'scroll',
-              'overflow': 'scroll'})
+              })
 ], style={'border-width': '0',
           'box-sizing': 'border-box',
           'display': 'flex',
           'padding': '0rem 0rem',
-          'background-color': '#F5F5F5'})
+          'background-color': '#F5F5F5',
+          #   'overflow-y': 'scroll',
+          #   'overflow': 'scroll'
+          })
+
+
+@app.callback(
+    dash.dependencies.Output('det_grid', 'figure'),
+    [
+        dash.dependencies.Input('frame_slider', 'value')
+    ])
+def update_data(frame_slider_value):
+    global det_frames
+    return update_det_graph(det_frames[frame_slider_value], True)
 
 
 @app.callback(
     [
-        dash.dependencies.Output('det_grid', 'figure'),
         dash.dependencies.Output('look_typy_picker', 'options'),
         dash.dependencies.Output('look_typy_picker', 'value'),
         dash.dependencies.Output('frame_slider', 'min'),
@@ -116,9 +241,8 @@ app.layout = html.Div([
     ],
     [
         dash.dependencies.Input('data_file_picker', 'value')
-    ],
-    [dash.dependencies.State('det_grid', 'figure')])
-def update_data(data_file_name, det_plot):
+    ])
+def update_data(data_file_name):
     global det_list
     global det_frames
     look_options = []
@@ -135,14 +259,11 @@ def update_data(data_file_name, det_plot):
         for look_name in look_types:
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
-        print(det_list[0:10])
-        return update_det_graph(det_plot, det_frames[0], True),\
-            look_options,\
+        return look_options,\
             look_selection,\
             0,\
             len(det_frames)-1,\
             0
-                        # return update_ani(det_list),\
     # else:
     #     # det_list = pd.DataFrame()
     #     # det_frames = []
@@ -153,7 +274,8 @@ def update_data(data_file_name, det_plot):
     #         0,\
     #         0
 
-def update_det_graph(det_plot, det_frame, update_layout=False):
+
+def update_det_graph(det_frame, update_layout=False):
     min_x = np.min([np.min(det_frame['Target_loc_x']),
                     np.min(det_frame['vel_x'])])
     max_x = np.max([np.max(det_frame['Target_loc_x']),
