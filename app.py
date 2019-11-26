@@ -17,6 +17,7 @@ app = dash.Dash(__name__,
                 }])
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
+app.title = 'Radar Viz'
 
 data_files = []
 for r, d, f in os.walk('./data'):
@@ -40,6 +41,10 @@ app.layout = html.Div([
     html.Div([
         dcc.Graph(
             id='det_grid',
+            config={
+                "displaylogo": False,
+                # 'modeBarButtonsToRemove': ['pan2d', 'lasso2d']
+            },
             figure={
                 'data': [{'mode': 'markers', 'type': 'scatter3d', 'x': [], 'y': [], 'z': []}
                          ],
@@ -208,7 +213,7 @@ app.layout = html.Div([
               'vertical-align': 'top',
               'padding': '2rem 4rem',
               'margin': '0 0',
-              'background-color': '#B0BEC5',
+              'background-color': '#E0E0E0',
               #   'min-height': '100vh',
               'max-height': '100vh',
               'overflow': 'auto',
@@ -217,7 +222,7 @@ app.layout = html.Div([
           'box-sizing': 'border-box',
           'display': 'flex',
           'padding': '0rem 0rem',
-          'background-color': '#212121',
+          'background-color': '#111111',
           'min-height': '100vh',
           'max-height': '100vh',
           #   'overflow-y': 'scroll',
@@ -285,19 +290,11 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
         if len(fig_list) <= frame_slider_value:
             return fig
         elif fig_list_ready:
-            # print('return directly')
             print('figure list ready')
             return fig_list[frame_slider_value]
         else:
-            # print('calculate')
             print('figure list not ready')
-            # filter_list = ['LookName', 'AFType', 'AzConf',
-            #                'ElConf', 'Longitude', 'Latitude',
-            #                'Height', 'Speed', 'Range', 'SNR',
-            #                'Azimuth', 'Elevation']
-            # filter_values = [look_type, af_type,
-            #                  az_conf, el_conf, longitude, latitude,
-            #                  height, speed, rng, snr, az, el]
+
             filterd_frame = det_frames[frame_slider_value]
 
             for filter_idx, filter_name in enumerate(filter_list):
