@@ -33,7 +33,7 @@ def unpack_plotdata(path, file_name, save_list=True, duty_cycle=60e-3):
     dopp_unfold_flag = pd.Series(dtype=int)
 
     for frame_idx in range(0, frame_size):
-#         try:
+        #         try:
         single_frame = f[f['plotData'][frame_idx, 0]]
 
         look_type_temp = single_frame['look'][()][0, 0]
@@ -49,7 +49,8 @@ def unpack_plotdata(path, file_name, save_list=True, duty_cycle=60e-3):
 
         if num_det > 0:
             for rdop_det_idx in range(0, int(num_det)):
-                single_det = f[single_frame['afData']['af_output'][rdop_det_idx, 0]]
+                single_det = f[single_frame['afData']
+                               ['af_output'][rdop_det_idx, 0]]
                 rng_temp = pd.Series(single_det['range'][()][0, :])
                 speed_temp = pd.Series(single_det['range_rate'][()][0, :])
                 az_temp = pd.Series(single_det['az'][()][0, :])
@@ -57,35 +58,45 @@ def unpack_plotdata(path, file_name, save_list=True, duty_cycle=60e-3):
                 az_conf_temp = pd.Series(single_det['az_conf'][()][0, :])
                 el_conf_temp = pd.Series(single_det['el_conf'][()][0, :])
                 af_type_temp = pd.Series(np.zeros_like(az_temp, dtype=object))
-                af_type_temp[:] = single_det['type'][()][:, 0].astype(np.uint8).tostring().decode("ascii")
-                amp_temp = pd.Series(20*np.log10(single_det['rdop_amp'][()][0, :]))
+                af_type_temp[:] = single_det['type'][()][:, 0].astype(
+                    np.uint8).tostring().decode("ascii")
+                amp_temp = pd.Series(
+                    20*np.log10(single_det['rdop_amp'][()][0, :]))
                 snr_temp = pd.Series(single_det['SNR'][()][0, :])
                 dopp_shift_temp = pd.Series(single_det['Dopp_shift'][()][0, :])
-                dopp_unfold_flag_temp = pd.Series(single_det['flag_Doppler_Unfolding_fail_vec'][()][0, :])
+                dopp_unfold_flag_temp = pd.Series(
+                    single_det['flag_Doppler_Unfolding_fail_vec'][()][0, :])
 
                 if single_det['flag_Doppler_Unfolding_fail'][()][0, 0] == 0:
-                    unfolded_speed_temp = speed_temp-speed_temp/np.abs(speed_temp)*vun*dopp_shift_temp/np.pi
+                    unfolded_speed_temp = speed_temp-speed_temp / \
+                        np.abs(speed_temp)*vun*dopp_shift_temp/np.pi
                 else:
                     unfolded_speed_temp = speed_temp
 
-                look_name_temp = pd.Series(np.zeros_like(snr_temp, dtype=object))
+                look_name_temp = pd.Series(
+                    np.zeros_like(snr_temp, dtype=object))
                 look_name_temp[:] = c_look_names[int(look_type_temp-1)]
-                sub_frame_temp = pd.Series(np.ones_like(snr_temp))*c_firing_order[int(look_type_temp-1)]
+                sub_frame_temp = pd.Series(np.ones_like(
+                    snr_temp))*c_firing_order[int(look_type_temp-1)]
 
                 rng_bin_temp = single_det['rindx'][()][0, :]
                 cr_resp_temp = cr_resp[int(rng_bin_temp[0])-1]
                 if cr_resp_temp == 0:
                     cr_resp_temp = 4.645275098003292e+03
 
-                cr = pd.Series(20*np.log10((np.ones_like(rng_temp)*cr_resp_temp)))
+                cr = pd.Series(
+                    20*np.log10((np.ones_like(rng_temp)*cr_resp_temp)))
 
                 rcs_temp = amp_temp-cr
 
                 rng = rng.append(rng_temp, ignore_index=True)
                 speed = speed.append(speed_temp, ignore_index=True)
-                unfolded_speed = unfolded_speed.append(unfolded_speed_temp, ignore_index=True)
-                dopp_shift = dopp_shift.append(dopp_shift_temp, ignore_index=True)
-                dopp_unfold_flag = dopp_unfold_flag.append(dopp_unfold_flag_temp, ignore_index=True)
+                unfolded_speed = unfolded_speed.append(
+                    unfolded_speed_temp, ignore_index=True)
+                dopp_shift = dopp_shift.append(
+                    dopp_shift_temp, ignore_index=True)
+                dopp_unfold_flag = dopp_unfold_flag.append(
+                    dopp_unfold_flag_temp, ignore_index=True)
 
                 az = az.append(az_temp, ignore_index=True)
                 el = el.append(el_temp, ignore_index=True)
@@ -95,14 +106,22 @@ def unpack_plotdata(path, file_name, save_list=True, duty_cycle=60e-3):
                 amp = amp.append(amp_temp, ignore_index=True)
                 snr = snr.append(snr_temp, ignore_index=True)
                 rcs = rcs.append(rcs_temp, ignore_index=True)
-                look_type_name = look_type_name.append(look_name_temp, ignore_index=True)
-                look_type_idx = look_type_idx.append(pd.Series(np.ones_like(rng_temp)*look_type_temp), ignore_index=True)
-                frame = frame.append(pd.Series(np.ones_like(rng_temp)*frame_temp), ignore_index=True)
+                look_type_name = look_type_name.append(
+                    look_name_temp, ignore_index=True)
+                look_type_idx = look_type_idx.append(
+                    pd.Series(np.ones_like(rng_temp)*look_type_temp),
+                    ignore_index=True)
+                frame = frame.append(pd.Series(np.ones_like(
+                    rng_temp)*frame_temp), ignore_index=True)
                 # sub_frame = sub_frame.append(pd.Series(np.ones_like(
                 #     rng_temp)*look_num), ignore_index=True)
                 sub_frame = sub_frame.append(sub_frame_temp, ignore_index=True)
-                veh_speed = veh_speed.append(pd.Series(np.ones_like(rng_temp)*veh_speed_temp), ignore_index=True)
-                veh_yaw_rate = veh_yaw_rate.append(pd.Series(np.ones_like(rng_temp)*veh_yaw_rate_temp), ignore_index=True)
+                veh_speed = veh_speed.append(
+                    pd.Series(np.ones_like(rng_temp)*veh_speed_temp),
+                    ignore_index=True)
+                veh_yaw_rate = veh_yaw_rate.append(
+                    pd.Series(np.ones_like(rng_temp)*veh_yaw_rate_temp),
+                    ignore_index=True)
 #         except Exception:
 #             print("Missing data"+str(frame_idx))
 
@@ -138,24 +157,34 @@ def unpack_plotdata(path, file_name, save_list=True, duty_cycle=60e-3):
     det_list['VehYawRate'] = veh_yaw_rate
     det_list['VehSpeed'] = veh_speed
 
-    det_list = det_list.sort_values(['Frame', 'SubFrame'], ascending=[True, True])
+    det_list = det_list.sort_values(
+        ['Frame', 'SubFrame'], ascending=[True, True])
     det_list = det_list.reset_index(drop=True)
 
     temp_frame = 4*det_list['Frame']+det_list['SubFrame']
-    jump_position = temp_frame-pd.concat([pd.Series(temp_frame[0]), temp_frame[0:-1]],ignore_index=True)
+    jump_position = temp_frame - \
+        pd.concat([pd.Series(temp_frame[0]), temp_frame[0:-1]],
+                  ignore_index=True)
     veh_angle = (det_list['VehYawRate']*duty_cycle*jump_position).cumsum()
-    veh_x = (det_list['VehSpeed']*duty_cycle*jump_position*np.sin(veh_angle/180*np.pi)).cumsum()
-    veh_y = (veh_speed*duty_cycle*jump_position*np.cos(veh_angle/180*np.pi)).cumsum()
+    veh_x = (det_list['VehSpeed']*duty_cycle*jump_position *
+             np.sin(veh_angle/180*np.pi)).cumsum()
+    veh_y = (veh_speed*duty_cycle*jump_position *
+             np.cos(veh_angle/180*np.pi)).cumsum()
 
-    det_list['Latitude'] = -det_list['Range']*np.sin((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(det_list['Elevation']/180*np.pi) - veh_x
-    det_list['Longitude'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(det_list['Elevation']/180*np.pi) + veh_y
+    det_list['Latitude'] = -det_list['Range'] * \
+        np.sin((det_list['Azimuth']+veh_angle)/180*np.pi) * \
+        np.cos(det_list['Elevation']/180*np.pi) - veh_x
+    det_list['Longitude'] = det_list['Range'] * \
+        np.cos((det_list['Azimuth']+veh_angle)/180*np.pi) * \
+        np.cos(det_list['Elevation']/180*np.pi) + veh_y
     # det_list['Target_rng_y'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
     #     det_list['Elevation']/180*np.pi)
-    det_list['Height'] = -det_list['Range']*np.sin(det_list['Elevation']/180*np.pi)
+    det_list['Height'] = -det_list['Range'] * \
+        np.sin(det_list['Elevation']/180*np.pi)
     det_list['VehYaw'] = veh_angle
     det_list['VehLat'] = -veh_x
     det_list['VehLong'] = veh_y
-    
+
     det_list = det_list.reset_index(drop=True)
 
     if save_list:
