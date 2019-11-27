@@ -30,6 +30,7 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
     for file in f:
         if '.pkl' in file:
             data_files.append(file)
+    break
 
 det_list = pd.DataFrame()
 det_frames = []
@@ -50,10 +51,12 @@ app.layout = html.Div([
             id='det_grid',
             config={
                 "displaylogo": False,
-                # 'modeBarButtonsToRemove': ['pan2d', 'lasso2d']
+                'modeBarButtonsToRemove': ['resetCameraDefault3d',
+                                           'resetCameraLastSave3d'],
             },
             figure={
-                'data': [{'mode': 'markers', 'type': 'scatter3d', 'x': [], 'y': [], 'z': []}
+                'data': [{'mode': 'markers', 'type': 'scatter3d',
+                          'x': [], 'y': [], 'z': []}
                          ],
                 'layout': {'template': pio.templates['plotly_dark'],
                            'height': 650,
@@ -63,7 +66,9 @@ app.layout = html.Div([
                                      'yaxis': {'range': [-100, 100],
                                                'title': 'Longitudinal (m)',
                                                'autorange': False},
-                                     'zaxis': {'range': [-20, 20], 'title': 'Height (m)', 'autorange': False},
+                                     'zaxis': {'range': [-20, 20],
+                                               'title': 'Height (m)',
+                                               'autorange': False},
                                      'aspectmode': 'manual',
                                      'aspectratio':{'x': 1, 'y': 1, 'z': 1}
                                      },
@@ -266,11 +271,15 @@ def update_test_case(test_case):
 
 
 def filter_data(data_frame, name, value):
-    if name == 'LookName' or name == 'AFType' or name == 'AzConf' or name == 'ElConf':
-        return data_frame[pd.DataFrame(data_frame[name].tolist()).isin(value).any(1)].reset_index(drop=True)
+    if name in ['LookName', 'AFType', 'AzConf', 'ElConf']:
+        return data_frame[pd.DataFrame(
+            data_frame[name].tolist()
+        ).isin(value).any(1)].reset_index(drop=True)
     else:
         temp_frame = data_frame[data_frame[name] >= value[0]]
-        return temp_frame[temp_frame[name] <= value[1]].reset_index(drop=True)
+        return temp_frame[
+            temp_frame[name] <= value[1]
+        ].reset_index(drop=True)
 
 
 @app.callback(
@@ -294,7 +303,21 @@ def filter_data(data_frame, name, value):
         dash.dependencies.State('det_grid', 'figure'),
         dash.dependencies.State('trigger', 'children')
     ])
-def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longitude, latitude, height, speed, rng, snr, az, el, fig, trigger_state):
+def update_filter(frame_slider_value,
+                  look_type,
+                  af_type,
+                  az_conf,
+                  el_conf,
+                  longitude,
+                  latitude,
+                  height,
+                  speed,
+                  rng,
+                  snr,
+                  az,
+                  el,
+                  fig,
+                  trigger_state):
     global fig_list
     global det_frames
     global fig_list_ready
@@ -338,11 +361,11 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
 
             return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
     else:
-        if look_type is not None and af_type is not None and az_conf is not None and el_conf is not None:
-            filter_list = ['LookName', 'AFType', 'AzConf',
-                           'ElConf', 'Longitude', 'Latitude',
-                           'Height', 'Speed', 'Range', 'SNR',
-                           'Azimuth', 'Elevation']
+        if None not in [look_type, af_type, az_conf, el_conf]:
+            # filter_list = ['LookName', 'AFType', 'AzConf',
+            #                'ElConf', 'Longitude', 'Latitude',
+            #                'Height', 'Speed', 'Range', 'SNR',
+            #                'Azimuth', 'Elevation']
             filter_values = [look_type, af_type,
                              az_conf, el_conf, longitude, latitude,
                              height, speed, rng, snr, az, el]
@@ -403,7 +426,7 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
     [
         dash.dependencies.State('test_case_picker', 'value')
     ])
-def update_data(data_file_name, test_case):
+def update_data_file(data_file_name, test_case):
     global det_list
     global det_frames
     global fig_list
@@ -573,7 +596,7 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
         name=trace_name,
         marker=dict(
             size=3,
-            color=fspeed,                # set color to an array/list of desired values
+            color=fspeed,  # set color to an array/list of desired values
             colorscale='Rainbow',   # choose a colorscale
             opacity=0.8,
             colorbar=dict(
@@ -608,7 +631,9 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
         # title=file_name[:-4],
         template=pio.templates['plotly_dark'],
         height=650,
-        scene=dict(xaxis=dict(range=[min_x, max_x], title='Lateral (m)', autorange=False),
+        scene=dict(xaxis=dict(range=[min_x, max_x],
+                              title='Lateral (m)',
+                              autorange=False),
                    yaxis=dict(range=[min_y, max_y],
                               title='Longitudinal (m)', autorange=False),
                    zaxis=dict(range=[-20, 20],
@@ -627,7 +652,6 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
             'layout': plot_layout}
 
 
-# def update_figure_list_threaded(figure_list, figure_ready, new_filter, filter_dict):
 class Plotting(Thread):
     def __init__(self):
         Thread.__init__(self)
@@ -659,11 +683,15 @@ class Plotting(Thread):
                 filterd_det_list = det_list
                 for filter_idx, filter_name in enumerate(filter_list):
                     filterd_det_list = filter_data(
-                        filterd_det_list, filter_name, filter_values[filter_idx])
+                        filterd_det_list,
+                        filter_name,
+                        filter_values[filter_idx])
 
                 frame_list = det_list['Frame'].unique()
                 for idx, frame_idx in enumerate(frame_list):
-                    filtered_list = filterd_det_list[filterd_det_list['Frame'] == frame_idx]
+                    filtered_list = filterd_det_list[
+                        filterd_det_list['Frame'] == frame_idx
+                    ]
                     filtered_list = filtered_list.reset_index()
                     # det_frames.append(filtered_list)
                     fig_list[idx] = update_det_graph(
