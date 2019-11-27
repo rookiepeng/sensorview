@@ -247,6 +247,24 @@ app.layout = html.Div([
           })
 
 
+@app.callback(
+    [
+        dash.dependencies.Output('data_file_picker', 'value'),
+        dash.dependencies.Output('data_file_picker', 'options'),
+    ],
+    [
+        dash.dependencies.Input('test_case_picker', 'value')
+    ])
+def update_test_case(test_case):
+    data_files = []
+    for r, d, f in os.walk('./data/'+test_case):
+        for file in f:
+            if '.pkl' in file:
+                data_files.append(file)
+
+    return data_files[0], [{'label': i, 'value': i} for i in data_files]
+
+
 def filter_data(data_frame, name, value):
     if name == 'LookName' or name == 'AFType' or name == 'AzConf' or name == 'ElConf':
         return data_frame[pd.DataFrame(data_frame[name].tolist()).isin(value).any(1)].reset_index(drop=True)
@@ -339,24 +357,6 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
             return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
         else:
             return fig
-
-
-@app.callback(
-    [
-        dash.dependencies.Output('data_file_picker', 'value'),
-        dash.dependencies.Output('data_file_picker', 'options'),
-    ],
-    [
-        dash.dependencies.Input('test_case_picker', 'value')
-    ])
-def update_data(test_case):
-    data_files = []
-    for r, d, f in os.walk('./data/'+test_case):
-        for file in f:
-            if '.pkl' in file:
-                data_files.append(file)
-
-    return data_files[0], [{'label': i, 'value': i} for i in data_files]
 
 
 @app.callback(
@@ -545,6 +545,11 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
     vx = det_frame['VehLat']
     vy = det_frame['VehLong']
 
+    if fframe.size == 0:
+        trace_name = 'Frame'
+    else:
+        trace_name = 'Frame: '+str(int(fframe[0]))
+
     hover = []
     for idx, var in enumerate(fframe.to_list()):
         hover.append('Frame: '+str(int(var))+'<br>' +
@@ -565,7 +570,7 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
         hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
         'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
         mode='markers',
-        # name='Frame: '+str(int(frame_idx)),
+        name=trace_name,
         marker=dict(
             size=3,
             color=fspeed,                # set color to an array/list of desired values
@@ -601,7 +606,7 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
 
     plot_layout = dict(
         # title=file_name[:-4],
-        template="plotly_dark",
+        template=pio.templates['plotly_dark'],
         height=650,
         scene=dict(xaxis=dict(range=[min_x, max_x], title='Lateral (m)', autorange=False),
                    yaxis=dict(range=[min_y, max_y],
@@ -617,7 +622,9 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
         legend=dict(x=0, y=0),
         uirevision='no_change',
     )
-    return go.Figure(data=[det_map, vel_map], layout=plot_layout)
+    # return go.Figure(data=[det_map, vel_map], layout=plot_layout)
+    return {'data': [det_map, vel_map],
+            'layout': plot_layout}
 
 
 # def update_figure_list_threaded(figure_list, figure_ready, new_filter, filter_dict):
@@ -649,13 +656,6 @@ class Plotting(Thread):
                 max_y = np.max([np.max(det_list['Longitude']),
                                 np.max(det_list['VehLong'])])
 
-                # filter_list = ['LookName', 'AFType', 'AzConf',
-                #                'ElConf', 'Longitude', 'Latitude',
-                #                'Height', 'Speed', 'Range', 'SNR',
-                #                'Azimuth', 'Elevation']
-                # filter_values = [look_type, af_type,
-                #                  az_conf, el_conf, longitude, latitude,
-                #                  height, speed, rng, snr, az, el]
                 filterd_det_list = det_list
                 for filter_idx, filter_name in enumerate(filter_list):
                     filterd_det_list = filter_data(
@@ -683,5 +683,4 @@ class Plotting(Thread):
 if __name__ == '__main__':
     plotting = Plotting()
     plotting.start()
-    # t.join()
     app.run_server(debug=True)
