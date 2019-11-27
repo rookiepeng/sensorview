@@ -4,6 +4,7 @@ from time import sleep
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+from dash.exceptions import PreventUpdate
 import numpy as np
 import pandas as pd
 import os
@@ -19,8 +20,13 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'Radar Viz'
 
+test_cases = []
+for (dirpath, dirnames, filenames) in os.walk('./data'):
+    test_cases.extend(dirnames)
+    break
+
 data_files = []
-for r, d, f in os.walk('./data'):
+for r, d, f in os.walk('./data/'+test_cases[0]):
     for file in f:
         if '.pkl' in file:
             data_files.append(file)
@@ -30,6 +36,7 @@ det_frames = []
 fig_list = []
 fig_list_ready = False
 filter_trigger = 0
+callback_indicator = 0
 filter_list = ['LookName', 'AFType', 'AzConf',
                            'ElConf', 'Longitude', 'Latitude',
                            'Height', 'Speed', 'Range', 'SNR',
@@ -87,11 +94,20 @@ app.layout = html.Div([
     html.Div([
         html.H4("Radar Viz"),
         html.P("Radar detections visualization"),
+        html.Br(),
+        html.Label('Test Cases'),
+        dcc.Dropdown(
+            id='test_case_picker',
+            options=[{'label': i, 'value': i} for i in test_cases],
+            value=test_cases[0]
+        ),
+        html.Label('Data Files'),
         dcc.Dropdown(
             id='data_file_picker',
             options=[{'label': i, 'value': i} for i in data_files],
             value=data_files[0]
         ),
+        html.Br(),
         html.Label('Color assignment'),
         dcc.Dropdown(
             options=[
@@ -101,6 +117,7 @@ app.layout = html.Div([
             ],
             value='Speed'
         ),
+        html.Br(),
         html.Label('Look Type'),
         dcc.Dropdown(
             id='look_type_picker',
@@ -326,6 +343,24 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
 
 @app.callback(
     [
+        dash.dependencies.Output('data_file_picker', 'value'),
+        dash.dependencies.Output('data_file_picker', 'options'),
+    ],
+    [
+        dash.dependencies.Input('test_case_picker', 'value')
+    ])
+def update_data(test_case):
+    data_files = []
+    for r, d, f in os.walk('./data/'+test_case):
+        for file in f:
+            if '.pkl' in file:
+                data_files.append(file)
+
+    return data_files[0], [{'label': i, 'value': i} for i in data_files]
+
+
+@app.callback(
+    [
         dash.dependencies.Output('frame_slider', 'min'),
         dash.dependencies.Output('frame_slider', 'max'),
         dash.dependencies.Output('frame_slider', 'value'),
@@ -364,11 +399,17 @@ def update_data(frame_slider_value, look_type, af_type, az_conf, el_conf, longit
     ],
     [
         dash.dependencies.Input('data_file_picker', 'value')
+    ],
+    [
+        dash.dependencies.State('test_case_picker', 'value')
     ])
-def update_data(data_file_name):
+def update_data(data_file_name, test_case):
     global det_list
     global det_frames
     global fig_list
+    global callback_indicator
+    callback_indicator = callback_indicator+1
+    local_callback_indicator = callback_indicator
     look_options = []
     look_selection = []
     af_type_options = []
@@ -378,7 +419,7 @@ def update_data(data_file_name):
     el_conf_options = []
     el_conf_selection = []
     if data_file_name is not None:
-        det_list = pd.read_pickle('./data/'+data_file_name)
+        det_list = pd.read_pickle('./data/'+test_case+'/'+data_file_name)
         min_x = np.min([np.min(det_list['Latitude']),
                         np.min(det_list['VehLat'])])
         max_x = np.max([np.max(det_list['Latitude']),
@@ -396,26 +437,41 @@ def update_data(data_file_name):
             det_frames.append(filtered_list)
             fig_list.append(update_det_graph(
                 filtered_list, min_x, max_x, min_y, max_y))
+            if local_callback_indicator != callback_indicator:
+                print('abort calculation')
+                raise PreventUpdate
 
         look_types = det_list['LookName'].unique()
         for look_name in look_types:
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
+            if local_callback_indicator != callback_indicator:
+                print('abort calculation')
+                raise PreventUpdate
 
         af_types = det_list['AFType'].unique()
         for af_type in af_types:
             af_type_options.append({'label': af_type, 'value': af_type})
             af_type_selection.append(af_type)
+            if local_callback_indicator != callback_indicator:
+                print('abort calculation')
+                raise PreventUpdate
 
         az_conf = det_list['AzConf'].unique()
         for az_c in az_conf:
             az_conf_options.append({'label': az_c, 'value': az_c})
             az_conf_selection.append(az_c)
+            if local_callback_indicator != callback_indicator:
+                print('abort calculation')
+                raise PreventUpdate
 
         el_conf = det_list['ElConf'].unique()
         for el_c in el_conf:
             el_conf_options.append({'label': el_c, 'value': el_c})
             el_conf_selection.append(el_c)
+            if local_callback_indicator != callback_indicator:
+                print('abort calculation')
+                raise PreventUpdate
 
         longitude_min = round(np.min(det_list['Longitude']), 1)
         longitude_max = round(np.max(det_list['Longitude']), 1)
@@ -433,6 +489,8 @@ def update_data(data_file_name):
         az_max = round(np.max(det_list['Azimuth']), 1)
         el_min = round(np.min(det_list['Elevation']), 1)
         el_max = round(np.max(det_list['Elevation']), 1)
+        callback_indicator = 0
+        print('complete calculation')
         return [0,
                 len(det_frames)-1,
                 0,
