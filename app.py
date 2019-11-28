@@ -36,8 +36,8 @@ det_list = pd.DataFrame()
 det_frames = []
 fig_list = []
 fig_list_ready = False
-filter_trigger = 0
-callback_indicator = 0
+filter_trigger = False
+
 filter_list = ['LookName', 'AFType', 'AzConf',
                            'ElConf', 'Longitude', 'Latitude',
                            'Height', 'Speed', 'Range', 'SNR',
@@ -60,26 +60,11 @@ app.layout = html.Div([
                          ],
                 'layout': {'template': pio.templates['plotly_dark'],
                            'height': 650,
-                           #    'scene': {'xaxis': {'range': [-100, 100],
-                           #                        'title': 'Lateral (m)',
-                           #                        'autorange': False},
-                           #              'yaxis': {'range': [-100, 100],
-                           #                        'title': 'Longitudinal (m)',
-                           #                        'autorange': False},
-                           #              'zaxis': {'range': [-20, 20],
-                           #                        'title': 'Height (m)',
-                           #                        'autorange': False},
-                           #              'aspectmode': 'manual',
-                           #              'aspectratio':{'x': 1, 'y': 1, 'z': 1}
-                           #              },
-                           #    'margin': {'l': 0, 'r': 0, 'b': 0, 't': 20},
-                           #    'legend': {'x': 0, 'y': 0},
                            'uirevision': 'no_change'
                            }
             },
         ),
         html.Div([
-            # html.Label('Frame'),
             dcc.Slider(
                 id='frame_slider',
                 step=1,
@@ -344,16 +329,10 @@ def update_filter(frame_slider_value,
                         np.max(det_list['VehLong'])])
 
     if trigger_id == 'frame_slider':
-        if len(fig_list) <= frame_slider_value:
-            return fig
-        elif fig_list_ready:
-            # print('figure list ready')
+        if fig_list_ready:
             return fig_list[frame_slider_value]
         else:
-            # print('figure list not ready')
-
             filterd_frame = det_frames[frame_slider_value]
-
             for filter_idx, filter_name in enumerate(filter_list):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, filter_values[filter_idx])
@@ -361,21 +340,18 @@ def update_filter(frame_slider_value,
             return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
     else:
         if None not in [look_type, af_type, az_conf, el_conf]:
-            # filter_list = ['LookName', 'AFType', 'AzConf',
-            #                'ElConf', 'Longitude', 'Latitude',
-            #                'Height', 'Speed', 'Range', 'SNR',
-            #                'Azimuth', 'Elevation']
             filter_values = [look_type, af_type,
                              az_conf, el_conf, longitude, latitude,
                              height, speed, rng, snr, az, el]
             filter_trigger = True
             fig_list_ready = False
+
             filterd_frame = det_frames[frame_slider_value]
 
             for filter_idx, filter_name in enumerate(filter_list):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, filter_values[filter_idx])
-            # print(filter_trigger)
+
             return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
         else:
             return fig
@@ -428,10 +404,7 @@ def update_filter(frame_slider_value,
 def update_data_file(data_file_name, test_case):
     global det_list
     global det_frames
-    global fig_list
-    global callback_indicator
-    callback_indicator = callback_indicator+1
-    local_callback_indicator = callback_indicator
+
     look_options = []
     look_selection = []
     af_type_options = []
@@ -442,6 +415,7 @@ def update_data_file(data_file_name, test_case):
     el_conf_selection = []
     if data_file_name is not None:
         det_list = pd.read_pickle('./data/'+test_case+'/'+data_file_name)
+
         min_x = np.min([np.min(det_list['Latitude']),
                         np.min(det_list['VehLat'])])
         max_x = np.max([np.max(det_list['Latitude']),
@@ -451,49 +425,33 @@ def update_data_file(data_file_name, test_case):
                         np.min(det_list['VehLong'])])
         max_y = np.max([np.max(det_list['Longitude']),
                         np.max(det_list['VehLong'])])
+
         det_frames = []
         frame_list = det_list['Frame'].unique()
         for frame_idx in frame_list:
             filtered_list = det_list[det_list['Frame'] == frame_idx]
             filtered_list = filtered_list.reset_index()
             det_frames.append(filtered_list)
-            fig_list.append(update_det_graph(
-                filtered_list, min_x, max_x, min_y, max_y))
-            if local_callback_indicator != callback_indicator:
-                # print('abort calculation')
-                raise PreventUpdate
 
         look_types = det_list['LookName'].unique()
         for look_name in look_types:
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
-            if local_callback_indicator != callback_indicator:
-                # print('abort calculation')
-                raise PreventUpdate
 
         af_types = det_list['AFType'].unique()
         for af_type in af_types:
             af_type_options.append({'label': af_type, 'value': af_type})
             af_type_selection.append(af_type)
-            if local_callback_indicator != callback_indicator:
-                # print('abort calculation')
-                raise PreventUpdate
 
         az_conf = det_list['AzConf'].unique()
         for az_c in az_conf:
             az_conf_options.append({'label': az_c, 'value': az_c})
             az_conf_selection.append(az_c)
-            if local_callback_indicator != callback_indicator:
-                # print('abort calculation')
-                raise PreventUpdate
 
         el_conf = det_list['ElConf'].unique()
         for el_c in el_conf:
             el_conf_options.append({'label': el_c, 'value': el_c})
             el_conf_selection.append(el_c)
-            if local_callback_indicator != callback_indicator:
-                # print('abort calculation')
-                raise PreventUpdate
 
         longitude_min = round(np.min(det_list['Longitude']), 1)
         longitude_max = round(np.max(det_list['Longitude']), 1)
@@ -511,10 +469,18 @@ def update_data_file(data_file_name, test_case):
         az_max = round(np.max(det_list['Azimuth']), 1)
         el_min = round(np.min(det_list['Elevation']), 1)
         el_max = round(np.max(det_list['Elevation']), 1)
-        callback_indicator = 0
-        # print('complete calculation')
+
+        filter_values = [look_types, af_types,
+                         az_conf, el_conf, [longitude_min, longitude_max],
+                         [latitude_min, latitude_max],
+                         [height_min, height_max], [speed_min, speed_max],
+                         [range_min, range_max], [snr_min, snr_max],
+                         [az_min, az_max], [el_min, el_max]]
+        fig_list_ready = False
+        filter_trigger = True
+
         return [0,
-                len(det_frames)-1,
+                det_list['Frame'].unique().size-1,
                 0,
                 look_options,
                 look_selection,
@@ -646,12 +612,12 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
         legend=dict(x=0, y=0),
         uirevision='no_change',
     )
-    # return go.Figure(data=[det_map, vel_map], layout=plot_layout)
+
     return {'data': [det_map, vel_map],
             'layout': plot_layout}
 
 
-class Plotting(Thread):
+class Filtering(Thread):
     def __init__(self):
         Thread.__init__(self)
 
@@ -663,11 +629,10 @@ class Plotting(Thread):
         global filter_list
         global filter_values
 
-        # print('start thread')
         while True:
             if filter_trigger:
+                fig_list_ready = False
                 is_skipped = False
-                # print("recalculating figures")
                 filter_trigger = False
                 min_x = np.min([np.min(det_list['Latitude']),
                                 np.min(det_list['VehLat'])])
@@ -685,29 +650,31 @@ class Plotting(Thread):
                         filterd_det_list,
                         filter_name,
                         filter_values[filter_idx])
+                    if filter_trigger:
+                        is_skipped = True
+                        break
 
+                fig_list = []
                 frame_list = det_list['Frame'].unique()
                 for idx, frame_idx in enumerate(frame_list):
                     filtered_list = filterd_det_list[
                         filterd_det_list['Frame'] == frame_idx
                     ]
                     filtered_list = filtered_list.reset_index()
-                    # det_frames.append(filtered_list)
-                    fig_list[idx] = update_det_graph(
-                        filtered_list, min_x, max_x, min_y, max_y)
+                    fig_list.append(update_det_graph(
+                        filtered_list, min_x, max_x, min_y, max_y))
                     if filter_trigger:
                         is_skipped = True
-                        # print("skip recalculating figures")
                         break
 
                 if not is_skipped:
                     fig_list_ready = True
-                    # print("done recalculating figures")
+
             if not filter_trigger:
                 sleep(1)
 
 
 if __name__ == '__main__':
-    plotting = Plotting()
+    plotting = Filtering()
     plotting.start()
     app.run_server(debug=True)
