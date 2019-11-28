@@ -4,32 +4,32 @@ import plotly.graph_objs as go
 import plotly.io as pio
 
 
-def get_figure_data(det_frame, color_assign='Speed', c_range=[-30, 30], db=False):
-    if det_frame.shape[0] > 0:
-        color = det_frame[color_assign]
+def get_figure_data(det_list, color_assign='Speed', c_range=[-30, 30], db=False):
+    if det_list.shape[0] > 0:
+        color = det_list[color_assign]
         if db:
             color = 20*np.log10(color)
 
-        frame_list = det_frame['Frame'].to_list()
+        frame_list = det_list['Frame'].to_list()
 
         hover = []
         for idx, var in enumerate(frame_list):
             hover.append(
                 'Frame: '+str(int(var))+'<br>' +
-                'Amp: '+'{:.2f}'.format(det_frame['Amplitude'][idx])+'dB<br>' +
-                'RCS: ' + '{:.2f}'.format(det_frame['RCS'][idx])+'dB<br>' +
-                'SNR: ' + '{:.2f}'.format(20*np.log10(det_frame['SNR'])[idx])+'dB<br>' +
-                'Az: ' + '{:.2f}'.format(det_frame['Azimuth'][idx])+'deg<br>' +
-                'El: ' + '{:.2f}'.format(det_frame['Elevation'][idx])+'deg<br>' +
-                'Range: ' + '{:.2f}'.format(det_frame['Range'][idx])+'m<br>' +
-                'Speed: ' + '{:.2f}'.format(det_frame['Speed'][idx])+'m/s<br>' +
-                'LookType: ' + det_frame['LookName'][idx] + '<br>'
+                'Amp: '+'{:.2f}'.format(det_list['Amplitude'][idx])+'dB<br>' +
+                'RCS: ' + '{:.2f}'.format(det_list['RCS'][idx])+'dB<br>' +
+                'SNR: ' + '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+'dB<br>' +
+                'Az: ' + '{:.2f}'.format(det_list['Azimuth'][idx])+'deg<br>' +
+                'El: ' + '{:.2f}'.format(det_list['Elevation'][idx])+'deg<br>' +
+                'Range: ' + '{:.2f}'.format(det_list['Range'][idx])+'m<br>' +
+                'Speed: ' + '{:.2f}'.format(det_list['Speed'][idx])+'m/s<br>' +
+                'LookType: ' + det_list['LookName'][idx] + '<br>'
             )
 
         det_map = go.Scatter3d(
-            x=det_frame['Latitude'],
-            y=det_frame['Longitude'],
-            z=det_frame['Height'],
+            x=det_list['Latitude'],
+            y=det_list['Longitude'],
+            z=det_list['Height'],
             text=hover,
             hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
             'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
@@ -49,8 +49,8 @@ def get_figure_data(det_frame, color_assign='Speed', c_range=[-30, 30], db=False
         )
 
         vel_map = go.Scatter3d(
-            x=[det_frame['VehLat'][0]],
-            y=[det_frame['VehLong'][0]],
+            x=[det_list['VehLat'][0]],
+            y=[det_list['VehLong'][0]],
             z=[0],
             hovertemplate='Lateral: %{x:.2f} m<br>' +
             'Longitudinal: %{y:.2f} m<br>',
