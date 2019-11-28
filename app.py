@@ -60,20 +60,20 @@ app.layout = html.Div([
                          ],
                 'layout': {'template': pio.templates['plotly_dark'],
                            'height': 650,
-                           'scene': {'xaxis': {'range': [-100, 100],
-                                               'title': 'Lateral (m)',
-                                               'autorange': False},
-                                     'yaxis': {'range': [-100, 100],
-                                               'title': 'Longitudinal (m)',
-                                               'autorange': False},
-                                     'zaxis': {'range': [-20, 20],
-                                               'title': 'Height (m)',
-                                               'autorange': False},
-                                     'aspectmode': 'manual',
-                                     'aspectratio':{'x': 1, 'y': 1, 'z': 1}
-                                     },
-                           'margin': {'l': 0, 'r': 0, 'b': 0, 't': 20},
-                           'legend': {'x': 0, 'y': 0},
+                           #    'scene': {'xaxis': {'range': [-100, 100],
+                           #                        'title': 'Lateral (m)',
+                           #                        'autorange': False},
+                           #              'yaxis': {'range': [-100, 100],
+                           #                        'title': 'Longitudinal (m)',
+                           #                        'autorange': False},
+                           #              'zaxis': {'range': [-20, 20],
+                           #                        'title': 'Height (m)',
+                           #                        'autorange': False},
+                           #              'aspectmode': 'manual',
+                           #              'aspectratio':{'x': 1, 'y': 1, 'z': 1}
+                           #              },
+                           #    'margin': {'l': 0, 'r': 0, 'b': 0, 't': 20},
+                           #    'legend': {'x': 0, 'y': 0},
                            'uirevision': 'no_change'
                            }
             },
@@ -236,7 +236,6 @@ app.layout = html.Div([
               'padding': '2rem 4rem',
               'margin': '0 0',
               'background-color': '#E0E0E0',
-              #   'min-height': '100vh',
               'max-height': '100vh',
               'overflow': 'auto',
               })
@@ -348,10 +347,10 @@ def update_filter(frame_slider_value,
         if len(fig_list) <= frame_slider_value:
             return fig
         elif fig_list_ready:
-            print('figure list ready')
+            # print('figure list ready')
             return fig_list[frame_slider_value]
         else:
-            print('figure list not ready')
+            # print('figure list not ready')
 
             filterd_frame = det_frames[frame_slider_value]
 
@@ -461,7 +460,7 @@ def update_data_file(data_file_name, test_case):
             fig_list.append(update_det_graph(
                 filtered_list, min_x, max_x, min_y, max_y))
             if local_callback_indicator != callback_indicator:
-                print('abort calculation')
+                # print('abort calculation')
                 raise PreventUpdate
 
         look_types = det_list['LookName'].unique()
@@ -469,7 +468,7 @@ def update_data_file(data_file_name, test_case):
             look_options.append({'label': look_name, 'value': look_name})
             look_selection.append(look_name)
             if local_callback_indicator != callback_indicator:
-                print('abort calculation')
+                # print('abort calculation')
                 raise PreventUpdate
 
         af_types = det_list['AFType'].unique()
@@ -477,7 +476,7 @@ def update_data_file(data_file_name, test_case):
             af_type_options.append({'label': af_type, 'value': af_type})
             af_type_selection.append(af_type)
             if local_callback_indicator != callback_indicator:
-                print('abort calculation')
+                # print('abort calculation')
                 raise PreventUpdate
 
         az_conf = det_list['AzConf'].unique()
@@ -485,7 +484,7 @@ def update_data_file(data_file_name, test_case):
             az_conf_options.append({'label': az_c, 'value': az_c})
             az_conf_selection.append(az_c)
             if local_callback_indicator != callback_indicator:
-                print('abort calculation')
+                # print('abort calculation')
                 raise PreventUpdate
 
         el_conf = det_list['ElConf'].unique()
@@ -493,7 +492,7 @@ def update_data_file(data_file_name, test_case):
             el_conf_options.append({'label': el_c, 'value': el_c})
             el_conf_selection.append(el_c)
             if local_callback_indicator != callback_indicator:
-                print('abort calculation')
+                # print('abort calculation')
                 raise PreventUpdate
 
         longitude_min = round(np.min(det_list['Longitude']), 1)
@@ -513,7 +512,7 @@ def update_data_file(data_file_name, test_case):
         el_min = round(np.min(det_list['Elevation']), 1)
         el_max = round(np.max(det_list['Elevation']), 1)
         callback_indicator = 0
-        print('complete calculation')
+        # print('complete calculation')
         return [0,
                 len(det_frames)-1,
                 0,
@@ -664,11 +663,11 @@ class Plotting(Thread):
         global filter_list
         global filter_values
 
-        print('start thread')
+        # print('start thread')
         while True:
             if filter_trigger:
                 is_skipped = False
-                print("recalculating figures")
+                # print("recalculating figures")
                 filter_trigger = False
                 min_x = np.min([np.min(det_list['Latitude']),
                                 np.min(det_list['VehLat'])])
@@ -698,12 +697,12 @@ class Plotting(Thread):
                         filtered_list, min_x, max_x, min_y, max_y)
                     if filter_trigger:
                         is_skipped = True
-                        print("skip recalculating figures")
+                        # print("skip recalculating figures")
                         break
 
                 if not is_skipped:
                     fig_list_ready = True
-                    print("done recalculating figures")
+                    # print("done recalculating figures")
             if not filter_trigger:
                 sleep(1)
 
