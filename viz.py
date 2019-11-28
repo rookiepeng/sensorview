@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
+import plotly.io as pio
 
 
 def get_figure_data(det_frame, color_assign='Speed', c_range=[-30, 30], db=False):
@@ -66,25 +67,27 @@ def get_figure_data(det_frame, color_assign='Speed', c_range=[-30, 30], db=False
                 ]
 
 
-def get_figure_layout():
-    plot_layout = dict(
+def get_figure_layout(x_range, y_range, z_range=[-20, 20], height=650):
+    scale = np.min([x_range[1]-x_range[0], y_range[1] -
+                    y_range[0], z_range[1]-z_range[0]])
+    return dict(
         # title=file_name[:-4],
-        template="plotly_dark",
-        height=700,
-        scene=dict(xaxis=dict(range=[min_x, max_x], title='Lateral (m)', autorange=False),
-                   yaxis=dict(range=[min_y, max_y],
+        template=pio.templates['plotly_dark'],
+        height=height,
+        scene=dict(xaxis=dict(range=x_range, title='Lateral (m)', autorange=False),
+                   yaxis=dict(range=y_range,
                               title='Longitudinal (m)', autorange=False),
-                   zaxis=dict(range=[-20, 20],
+                   zaxis=dict(range=z_range,
                               title='Height (m)', autorange=False),
                    aspectmode='manual',
-                   aspectratio=dict(x=(max_x-min_x)/40,
-                                    y=(max_y-min_y)/40, z=1),
+                   aspectratio=dict(x=(x_range[1]-x_range[0])/scale,
+                                    y=(y_range[1]-y_range[0])/scale,
+                                    z=(z_range[1]-z_range[0])/scale),
                    ),
         margin=dict(l=0, r=0, b=0, t=20),
         legend=dict(x=0, y=0),
         uirevision='no_change',
     )
-    return plot_layout
 
 
 def gen_figure(det_frame, min_x, max_x, min_y, max_y):

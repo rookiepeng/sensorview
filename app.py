@@ -11,7 +11,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz import get_figure_data
+from viz import get_figure_data, get_figure_layout
 
 app = dash.Dash(__name__,
                 meta_tags=[{
@@ -519,31 +519,12 @@ def update_data_file(data_file_name, test_case):
 
 
 def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
-    data = get_figure_data(det_frame, color_assign='Speed', c_range=[-30, 30], db=False)
-
-    plot_layout = dict(
-        # title=file_name[:-4],
-        template=pio.templates['plotly_dark'],
-        height=650,
-        scene=dict(xaxis=dict(range=[min_x, max_x],
-                              title='Lateral (m)',
-                              autorange=False),
-                   yaxis=dict(range=[min_y, max_y],
-                              title='Longitudinal (m)', autorange=False),
-                   zaxis=dict(range=[-20, 20],
-                              title='Height (m)', autorange=False),
-                   #    camera=camera,
-                   aspectmode='manual',
-                   aspectratio=dict(x=(max_x-min_x)/40,
-                                    y=(max_y-min_y)/40, z=1),
-                   ),
-        margin=dict(l=0, r=0, b=0, t=20),
-        legend=dict(x=0, y=0),
-        uirevision='no_change',
-    )
-
+    data = get_figure_data(det_frame, color_assign='Speed',
+                           c_range=[-30, 30], db=False)
+    layout = get_figure_layout(
+        [min_x, max_x], [min_y, max_y], [-20, 20], height=650)
     return {'data': data,
-            'layout': plot_layout}
+            'layout': layout}
 
 
 class Filtering(Thread):
