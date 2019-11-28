@@ -263,6 +263,7 @@ def update_test_case(test_case):
         for file in f:
             if '.pkl' in file:
                 data_files.append(file)
+        break
 
     return data_files[0], [{'label': i, 'value': i} for i in data_files]
 
