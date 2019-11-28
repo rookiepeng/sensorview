@@ -480,7 +480,7 @@ def update_data_file(data_file_name, test_case):
         filter_trigger = True
 
         return [0,
-                det_list['Frame'].unique().size-1,
+                len(det_frames)-1,
                 0,
                 look_options,
                 look_selection,
