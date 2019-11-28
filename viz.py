@@ -4,7 +4,10 @@ import plotly.graph_objs as go
 import plotly.io as pio
 
 
-def get_figure_data(det_list, color_assign='Speed', c_range=[-30, 30], db=False):
+def get_figure_data(det_list,
+                    color_assign='Speed',
+                    c_range=[-30, 30],
+                    db=False):
     if det_list.shape[0] > 0:
         color = det_list[color_assign]
         if db:
@@ -15,15 +18,24 @@ def get_figure_data(det_list, color_assign='Speed', c_range=[-30, 30], db=False)
         hover = []
         for idx, var in enumerate(frame_list):
             hover.append(
-                'Frame: '+str(int(var))+'<br>' +
-                'Amp: '+'{:.2f}'.format(det_list['Amplitude'][idx])+'dB<br>' +
-                'RCS: ' + '{:.2f}'.format(det_list['RCS'][idx])+'dB<br>' +
-                'SNR: ' + '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+'dB<br>' +
-                'Az: ' + '{:.2f}'.format(det_list['Azimuth'][idx])+'deg<br>' +
-                'El: ' + '{:.2f}'.format(det_list['Elevation'][idx])+'deg<br>' +
-                'Range: ' + '{:.2f}'.format(det_list['Range'][idx])+'m<br>' +
-                'Speed: ' + '{:.2f}'.format(det_list['Speed'][idx])+'m/s<br>' +
-                'LookType: ' + det_list['LookName'][idx] + '<br>'
+                'Frame: ' +
+                str(int(var))+'<br>' +
+                'Amp: ' +
+                '{:.2f}'.format(det_list['Amplitude'][idx])+'dB<br>' +
+                'RCS: ' +
+                '{:.2f}'.format(det_list['RCS'][idx])+'dB<br>' +
+                'SNR: ' +
+                '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+'dB<br>' +
+                'Az: ' +
+                '{:.2f}'.format(det_list['Azimuth'][idx])+'deg<br>' +
+                'El: ' +
+                '{:.2f}'.format(det_list['Elevation'][idx])+'deg<br>' +
+                'Range: ' +
+                '{:.2f}'.format(det_list['Range'][idx])+'m<br>' +
+                'Speed: ' +
+                '{:.2f}'.format(det_list['Speed'][idx])+'m/s<br>' +
+                'LookType: ' +
+                det_list['LookName'][idx]+'<br>'
             )
 
         det_map = go.Scatter3d(
@@ -37,8 +49,8 @@ def get_figure_data(det_list, color_assign='Speed', c_range=[-30, 30], db=False)
             name='Frame: '+str(int(frame_list[0])),
             marker=dict(
                 size=3,
-                color=color,                # set color to an array/list of desired values
-                colorscale='Rainbow',   # choose a colorscale
+                color=color,
+                colorscale='Rainbow',
                 opacity=0.8,
                 colorbar=dict(
                     title=color_assign,
@@ -74,7 +86,9 @@ def get_figure_layout(x_range, y_range, z_range=[-20, 20], height=650):
         # title=file_name[:-4],
         template=pio.templates['plotly_dark'],
         height=height,
-        scene=dict(xaxis=dict(range=x_range, title='Lateral (m)', autorange=False),
+        scene=dict(xaxis=dict(range=x_range,
+                              title='Lateral (m)',
+                              autorange=False),
                    yaxis=dict(range=y_range,
                               title='Longitudinal (m)', autorange=False),
                    zaxis=dict(range=z_range,
@@ -90,11 +104,20 @@ def get_figure_layout(x_range, y_range, z_range=[-20, 20], height=650):
     )
 
 
-def gen_figure(det_frame, min_x, max_x, min_y, max_y):
-    data = get_figure_data(det_frame, min_x, max_x, min_y, max_y)
-    layout = get_figure_layout()
+def get_figure(det_list,
+               x_range,
+               y_range,
+               z_range=[-20, 20],
+               color_assign='Speed',
+               c_range=[-30, 30],
+               db=False,
+               height=650):
+    data = get_figure_data(
+        det_list=det_list, color_assign=color_assign, c_range=c_range, db=db)
+    layout = get_figure_layout(
+        x_range=x_range, y_range=y_range, z_range=z_range, height=height)
 
-    return go.Figure(data=[det_map, vel_map], layout=plot_layout)
+    return dict(data=data, layout=layout)
 
 
 def gen_animation():

@@ -11,7 +11,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz import get_figure_data, get_figure_layout
+from viz import get_figure
 
 app = dash.Dash(__name__,
                 meta_tags=[{
@@ -39,6 +39,16 @@ det_frames = []
 fig_list = []
 fig_list_ready = False
 filter_trigger = False
+
+layout_params = {
+    'x_range': [0, 0],
+    'y_range': [0, 0],
+    'z_range': [0, 0],
+    'c_range': [0, 0],
+    'color_assign': 'Speed',
+    'db': False,
+}
+
 
 filter_list = ['LookName', 'AFType', 'AzConf',
                            'ElConf', 'Longitude', 'Latitude',
@@ -77,7 +87,7 @@ app.layout = html.Div([
                        'display': 'inline-block',
                        'padding': '2rem 0rem'})
     ], style={'box-sizing': 'border-box',
-              'width': '66%',
+              'width': '75%',
               'display': 'inline-block',
               'padding': '4rem 4rem',
               'max-height': '100vh',
@@ -102,6 +112,7 @@ app.layout = html.Div([
         html.Br(),
         html.Label('Color assignment'),
         dcc.Dropdown(
+            id='color_assign_picker',
             options=[
                 {'label': 'Speed', 'value': 'Speed'},
                 {'label': 'RCS', 'value': 'RCS'},
@@ -217,12 +228,12 @@ app.layout = html.Div([
         html.Div(id='trigger', style={'display': 'none'}),
         html.Div(id='dummy', style={'display': 'none'}),
     ], style={'box-sizing': 'border-box',
-              'width': '34%',
+              'width': '25%',
               'display': 'inline-block',
               'vertical-align': 'top',
               'padding': '2rem 4rem',
               'margin': '0 0',
-              'background-color': '#E0E0E0',
+              'background-color': '#EEEEEE',
               'max-height': '100vh',
               'overflow': 'auto',
               })
@@ -271,6 +282,7 @@ def filter_data(data_frame, name, value):
 @app.callback(
     dash.dependencies.Output('det_grid', 'figure'),
     [
+        dash.dependencies.Input('color_assign_picker', 'value'),
         dash.dependencies.Input('frame_slider', 'value'),
         dash.dependencies.Input('look_type_picker', 'value'),
         dash.dependencies.Input('af_type_picker', 'value'),
@@ -289,7 +301,8 @@ def filter_data(data_frame, name, value):
         dash.dependencies.State('det_grid', 'figure'),
         dash.dependencies.State('trigger', 'children')
     ])
-def update_filter(frame_slider_value,
+def update_filter(color_assign,
+                  frame_slider_value,
                   look_type,
                   af_type,
                   az_conf,
@@ -310,25 +323,10 @@ def update_filter(frame_slider_value,
     global filter_trigger
     global filter_list
     global filter_values
+    global layout_params
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    if det_list.size == 0:
-        min_x = -10
-        max_x = 10
-        min_y = -10
-        max_y = 10
-    else:
-        min_x = np.min([np.min(det_list['Latitude']),
-                        np.min(det_list['VehLat'])])
-        max_x = np.max([np.max(det_list['Latitude']),
-                        np.max(det_list['VehLat'])])
-
-        min_y = np.min([np.min(det_list['Longitude']),
-                        np.min(det_list['VehLong'])])
-        max_y = np.max([np.max(det_list['Longitude']),
-                        np.max(det_list['VehLong'])])
 
     if trigger_id == 'frame_slider':
         if fig_list_ready:
@@ -339,12 +337,32 @@ def update_filter(frame_slider_value,
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, filter_values[filter_idx])
 
-            return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
+            return get_figure(filterd_frame,
+                              layout_params['x_range'],
+                              layout_params['y_range'],
+                              layout_params['z_range'],
+                              layout_params['color_assign'],
+                              layout_params['c_range'],
+                              layout_params['db'])
     else:
         if None not in [look_type, af_type, az_conf, el_conf]:
             filter_values = [look_type, af_type,
                              az_conf, el_conf, longitude, latitude,
                              height, speed, rng, snr, az, el]
+            layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
+                                                np.min(det_list['VehLat'])]),
+                                        np.max([np.max(det_list['Latitude']),
+                                                np.max(det_list['VehLat'])])]
+            layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
+                                                np.min(det_list['VehLong'])]),
+                                        np.max([np.max(det_list['Longitude']),
+                                                np.max(det_list['VehLong'])])]
+            layout_params['z_range'] = [np.min(det_list['Height']),
+                                        np.max(det_list['Height'])]
+            layout_params['color_assign'] = color_assign
+            layout_params['c_range'] = [np.min(det_list[color_assign]),
+                                        np.max(det_list[color_assign])]
+
             filter_trigger = True
             fig_list_ready = False
 
@@ -354,7 +372,13 @@ def update_filter(frame_slider_value,
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, filter_values[filter_idx])
 
-            return update_det_graph(filterd_frame, min_x, max_x, min_y, max_y)
+            return get_figure(filterd_frame,
+                              layout_params['x_range'],
+                              layout_params['y_range'],
+                              layout_params['z_range'],
+                              layout_params['color_assign'],
+                              layout_params['c_range'],
+                              layout_params['db'])
         else:
             return fig
 
@@ -406,6 +430,7 @@ def update_filter(frame_slider_value,
 def update_data_file(data_file_name, test_case):
     global det_list
     global det_frames
+    global layout_params
 
     look_options = []
     look_selection = []
@@ -418,15 +443,20 @@ def update_data_file(data_file_name, test_case):
     if data_file_name is not None:
         det_list = pd.read_pickle('./data/'+test_case+'/'+data_file_name)
 
-        min_x = np.min([np.min(det_list['Latitude']),
-                        np.min(det_list['VehLat'])])
-        max_x = np.max([np.max(det_list['Latitude']),
-                        np.max(det_list['VehLat'])])
-
-        min_y = np.min([np.min(det_list['Longitude']),
-                        np.min(det_list['VehLong'])])
-        max_y = np.max([np.max(det_list['Longitude']),
-                        np.max(det_list['VehLong'])])
+        layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
+                                            np.min(det_list['VehLat'])]),
+                                    np.max([np.max(det_list['Latitude']),
+                                            np.max(det_list['VehLat'])])]
+        layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
+                                            np.min(det_list['VehLong'])]),
+                                    np.max([np.max(det_list['Longitude']),
+                                            np.max(det_list['VehLong'])])]
+        layout_params['z_range'] = [np.min(det_list['Height']),
+                                    np.max(det_list['Height'])]
+        layout_params['c_range'] = [
+            np.min(det_list[layout_params['color_assign']]),
+            np.max(det_list[layout_params['color_assign']])
+        ]
 
         det_frames = []
         frame_list = det_list['Frame'].unique()
@@ -518,15 +548,6 @@ def update_data_file(data_file_name, test_case):
                 [el_min, el_max]]
 
 
-def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
-    data = get_figure_data(det_frame, color_assign='Speed',
-                           c_range=[-30, 30], db=False)
-    layout = get_figure_layout(
-        [min_x, max_x], [min_y, max_y], [-20, 20], height=650)
-    return {'data': data,
-            'layout': layout}
-
-
 class Filtering(Thread):
     def __init__(self):
         Thread.__init__(self)
@@ -538,21 +559,13 @@ class Filtering(Thread):
         global filter_trigger
         global filter_list
         global filter_values
+        global layout_params
 
         while True:
             if filter_trigger:
                 fig_list_ready = False
                 is_skipped = False
                 filter_trigger = False
-                min_x = np.min([np.min(det_list['Latitude']),
-                                np.min(det_list['VehLat'])])
-                max_x = np.max([np.max(det_list['Latitude']),
-                                np.max(det_list['VehLat'])])
-
-                min_y = np.min([np.min(det_list['Longitude']),
-                                np.min(det_list['VehLong'])])
-                max_y = np.max([np.max(det_list['Longitude']),
-                                np.max(det_list['VehLong'])])
 
                 filterd_det_list = det_list
                 for filter_idx, filter_name in enumerate(filter_list):
@@ -571,8 +584,13 @@ class Filtering(Thread):
                         filterd_det_list['Frame'] == frame_idx
                     ]
                     filtered_list = filtered_list.reset_index()
-                    fig_list.append(update_det_graph(
-                        filtered_list, min_x, max_x, min_y, max_y))
+                    fig_list.append(get_figure(filtered_list,
+                                               layout_params['x_range'],
+                                               layout_params['y_range'],
+                                               layout_params['z_range'],
+                                               layout_params['color_assign'],
+                                               layout_params['c_range'],
+                                               layout_params['db']))
                     if filter_trigger:
                         is_skipped = True
                         break
