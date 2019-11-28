@@ -11,6 +11,8 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
+from viz import get_figure_data
+
 app = dash.Dash(__name__,
                 meta_tags=[{
                     "name": "viewport",
@@ -517,80 +519,7 @@ def update_data_file(data_file_name, test_case):
 
 
 def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
-    fx = det_frame['Latitude']
-    fy = det_frame['Longitude']
-    fz = det_frame['Height']
-    famp = det_frame['Amplitude']
-    frcs = det_frame['RCS']
-    fframe = det_frame['Frame']
-    fsnr = 20*np.log10(det_frame['SNR'])
-    faz = det_frame['Azimuth']
-    fel = det_frame['Elevation']
-    frng = det_frame['Range']
-    fspeed = det_frame['Speed']
-    fl_type = det_frame['LookName']
-
-    vx = det_frame['VehLat']
-    vy = det_frame['VehLong']
-
-    if fframe.size == 0:
-        trace_name = 'Frame'
-    else:
-        trace_name = 'Frame: '+str(int(fframe[0]))
-
-    hover = []
-    for idx, var in enumerate(fframe.to_list()):
-        hover.append('Frame: '+str(int(var))+'<br>' +
-                     'Amp: '+'{:.2f}'.format(famp[idx])+'dB<br>' +
-                     'RCS: ' + '{:.2f}'.format(frcs[idx])+'dB<br>' +
-                     'SNR: ' + '{:.2f}'.format(fsnr[idx])+'dB<br>' +
-                     'Az: ' + '{:.2f}'.format(faz[idx])+'deg<br>' +
-                     'El: ' + '{:.2f}'.format(fel[idx])+'deg<br>' +
-                     'Range: ' + '{:.2f}'.format(frng[idx])+'m<br>' +
-                     'Speed: ' + '{:.2f}'.format(fspeed[idx])+'m/s<br>' +
-                     'LookType: ' + fl_type[idx] + '<br>')
-
-    det_map = go.Scatter3d(
-        x=fx,
-        y=fy,
-        z=fz,
-        text=hover,
-        hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
-        'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
-        mode='markers',
-        name=trace_name,
-        marker=dict(
-            size=3,
-            color=fspeed,  # set color to an array/list of desired values
-            colorscale='Rainbow',   # choose a colorscale
-            opacity=0.8,
-            colorbar=dict(
-                title='Speed',
-            ),
-            cmin=-35,
-            cmax=35,
-        ),
-    )
-
-    if len(vx) == 0:
-        vx_temp = []
-        vy_temp = []
-        vz_temp = []
-    else:
-        vx_temp = [vx[0]]
-        vy_temp = [vy[0]]
-        vz_temp = [0]
-    vel_map = go.Scatter3d(
-        x=vx_temp,
-        y=vy_temp,
-        z=vz_temp,
-        hovertemplate='Lateral: %{x:.2f} m<br>' +
-        'Longitudinal: %{y:.2f} m<br>',
-        mode='markers',
-        name='Vehicle',
-        marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
-                    symbol='circle')
-    )
+    data = get_figure_data(det_frame, color_assign='Speed', c_range=[-30, 30], db=False)
 
     plot_layout = dict(
         # title=file_name[:-4],
@@ -613,7 +542,7 @@ def update_det_graph(det_frame, min_x, max_x, min_y, max_y):
         uirevision='no_change',
     )
 
-    return {'data': [det_map, vel_map],
+    return {'data': data,
             'layout': plot_layout}
 
 

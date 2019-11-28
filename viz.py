@@ -3,78 +3,67 @@ import pandas as pd
 import plotly.graph_objs as go
 
 
-def get_figure_data(det_frame, min_x, max_x, min_y, max_y):
-    fx = det_frame['Latitude']
-    fy = det_frame['Longitude']
-    fz = det_frame['Height']
-    famp = det_frame['Amplitude']
-    frcs = det_frame['RCS']
-    fframe = det_frame['Frame']
-    fsnr = 20*np.log10(det_frame['SNR'])
-    faz = det_frame['Azimuth']
-    fel = det_frame['Elevation']
-    frng = det_frame['Range']
-    fspeed = det_frame['Speed']
-    fl_type = det_frame['LookName']
+def get_figure_data(det_frame, color_assign='Speed', c_range=[-30, 30], db=False):
+    if det_frame.shape[0] > 0:
+        color = det_frame[color_assign]
+        if db:
+            color = 20*np.log10(color)
 
-    vx = det_frame['VehLat']
-    vy = det_frame['VehLong']
+        frame_list = det_frame['Frame'].to_list()
 
-    hover = []
-    for idx, var in enumerate(fframe.to_list()):
-        hover.append('Frame: '+str(int(var))+'<br>' +
-                     'Amp: '+'{:.2f}'.format(famp[idx])+'dB<br>' +
-                     'RCS: ' + '{:.2f}'.format(frcs[idx])+'dB<br>' +
-                     'SNR: ' + '{:.2f}'.format(fsnr[idx])+'dB<br>' +
-                     'Az: ' + '{:.2f}'.format(faz[idx])+'deg<br>' +
-                     'El: ' + '{:.2f}'.format(fel[idx])+'deg<br>' +
-                     'Range: ' + '{:.2f}'.format(frng[idx])+'m<br>' +
-                     'Speed: ' + '{:.2f}'.format(fspeed[idx])+'m/s<br>' +
-                     'LookType: ' + fl_type[idx] + '<br>')
+        hover = []
+        for idx, var in enumerate(frame_list):
+            hover.append(
+                'Frame: '+str(int(var))+'<br>' +
+                'Amp: '+'{:.2f}'.format(det_frame['Amplitude'][idx])+'dB<br>' +
+                'RCS: ' + '{:.2f}'.format(det_frame['RCS'][idx])+'dB<br>' +
+                'SNR: ' + '{:.2f}'.format(20*np.log10(det_frame['SNR'])[idx])+'dB<br>' +
+                'Az: ' + '{:.2f}'.format(det_frame['Azimuth'][idx])+'deg<br>' +
+                'El: ' + '{:.2f}'.format(det_frame['Elevation'][idx])+'deg<br>' +
+                'Range: ' + '{:.2f}'.format(det_frame['Range'][idx])+'m<br>' +
+                'Speed: ' + '{:.2f}'.format(det_frame['Speed'][idx])+'m/s<br>' +
+                'LookType: ' + det_frame['LookName'][idx] + '<br>'
+            )
 
-    det_map = go.Scatter3d(
-        x=fx,
-        y=fy,
-        z=fz,
-        text=hover,
-        hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
-        'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
-        mode='markers',
-        # name='Frame: '+str(int(frame_idx)),
-        marker=dict(
-            size=3,
-            color=fspeed,                # set color to an array/list of desired values
-            colorscale='Rainbow',   # choose a colorscale
-            opacity=0.8,
-            colorbar=dict(
-                title='Speed',
+        det_map = go.Scatter3d(
+            x=det_frame['Latitude'],
+            y=det_frame['Longitude'],
+            z=det_frame['Height'],
+            text=hover,
+            hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
+            'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
+            mode='markers',
+            name='Frame: '+str(int(frame_list[0])),
+            marker=dict(
+                size=3,
+                color=color,                # set color to an array/list of desired values
+                colorscale='Rainbow',   # choose a colorscale
+                opacity=0.8,
+                colorbar=dict(
+                    title=color_assign,
+                ),
+                cmin=c_range[0],
+                cmax=c_range[1],
             ),
-            cmin=-35,
-            cmax=35,
-        ),
-    )
+        )
 
-    if len(vx) == 0:
-        vx_temp = []
-        vy_temp = []
-        vz_temp = []
+        vel_map = go.Scatter3d(
+            x=[det_frame['VehLat'][0]],
+            y=[det_frame['VehLong'][0]],
+            z=[0],
+            hovertemplate='Lateral: %{x:.2f} m<br>' +
+            'Longitudinal: %{y:.2f} m<br>',
+            mode='markers',
+            name='Vehicle',
+            marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
+                        symbol='circle')
+        )
+
+        return [det_map, vel_map]
     else:
-        vx_temp = [vx[0]]
-        vy_temp = [vy[0]]
-        vz_temp = [0]
-    vel_map = go.Scatter3d(
-        x=vx_temp,
-        y=vy_temp,
-        z=vz_temp,
-        hovertemplate='Lateral: %{x:.2f} m<br>' +
-        'Longitudinal: %{y:.2f} m<br>',
-        mode='markers',
-        name='Vehicle',
-        marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
-                    symbol='circle')
-    )
-
-    return [det_map, vel_map]
+        return [{'mode': 'markers', 'type': 'scatter3d',
+                 'x': [], 'y': [], 'z': []}
+                ]
 
 
 def get_figure_layout():
@@ -101,7 +90,7 @@ def get_figure_layout():
 def gen_figure(det_frame, min_x, max_x, min_y, max_y):
     data = get_figure_data(det_frame, min_x, max_x, min_y, max_y)
     layout = get_figure_layout()
-    
+
     return go.Figure(data=[det_map, vel_map], layout=plot_layout)
 
 
