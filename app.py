@@ -432,6 +432,9 @@ def update_data_file(data_file_name, test_case):
     global det_list
     global det_frames
     global layout_params
+    global filter_values
+    global fig_list_ready
+    global filter_trigger
 
     look_options = []
     look_selection = []
