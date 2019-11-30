@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   inkscape:version="1.0beta1 (fe3e306, 2019-09-17)"
+   sodipodi:docname="favicon.svg"
+   id="svg1318"
+   version="1.1"
+   viewBox="0 0 24 24"
+   height="24"
+   width="24">
+  <metadata
+     id="metadata1324">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>radar</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs1322" />
+  <sodipodi:namedview
+     inkscape:current-layer="svg1318"
+     inkscape:cy="14.384597"
+     inkscape:cx="6.2031985"
+     inkscape:zoom="12.708333"
+     showgrid="false"
+     id="namedview1320"
+     inkscape:window-height="480"
+     inkscape:window-width="640"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0"
+     guidetolerance="10"
+     gridtolerance="10"
+     objecttolerance="10"
+     borderopacity="1"
+     inkscape:document-rotation="0"
+     bordercolor="#666666"
+     pagecolor="#ffffff" />
+  <title
+     id="title1314">radar</title>
+  <rect
+     y="-1.4163935"
+     x="-1.8885247"
+     height="28.406557"
+     width="28.406557"
+     id="rect1887"
+     style="opacity:1;fill:#f5f5f5;fill-opacity:1;stroke:none;stroke-width:1.99937;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+  <path
+     style="fill:#ff5722;fill-opacity:1"
+     inkscape:connector-curvature="0"
+     id="path1316"
+     fill-rule="nonzero"
+     fill="#000"
+     d="m 13.931817,11.482396 a 2,2 0 1 1 -1.414214,-1.414214 l 1.514623,-1.5146228 a 4.002,4.002 0 0 0 -4.8606522,6.2748658 4,4 0 0 0 6.8101452,-2.44164 1,1 0 0 1 1.990506,0.191626 6,6 0 1 1 -2.49538,-5.4694709 L 16.905908,5.6798773 A 8.001,8.001 0 0 0 6.3431467,17.656852 a 8,8 0 0 0 13.6492823,-6.00263 1.0000422,1.0000422 0 0 1 1.998284,-0.08485 9.974,9.974 0 0 1 -2.919644,7.501696 c -3.905351,3.90535 -10.2367851,3.90535 -14.1421359,0 -3.9053507,-3.905351 -3.9053507,-10.2367854 0,-14.1421361 3.9053508,-3.9053508 10.2367849,-3.9053508 14.1421359,0 a 1,1 0 0 1 0,1.4142135 z" />
+</svg>
