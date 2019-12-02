@@ -15,34 +15,35 @@ def get_figure_data(det_list,
 
         frame_list = det_list['Frame'].to_list()
 
-        hover = []
-        for idx, var in enumerate(frame_list):
-            hover.append(
-                'Frame: ' +
-                str(int(var))+'<br>' +
-                'Amp: ' +
-                '{:.2f}'.format(det_list['Amplitude'][idx])+' dB<br>' +
-                'RCS: ' +
-                '{:.2f}'.format(det_list['RCS'][idx])+' dB<br>' +
-                'SNR: ' +
-                '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+' dB<br>' +
-                'Az: ' +
-                '{:.2f}'.format(det_list['Azimuth'][idx])+' deg<br>' +
-                'El: ' +
-                '{:.2f}'.format(det_list['Elevation'][idx])+' deg<br>' +
-                'Range: ' +
-                '{:.2f}'.format(det_list['Range'][idx])+' m<br>' +
-                'Speed: ' +
-                '{:.2f}'.format(det_list['Speed'][idx])+' m/s<br>' +
-                'LookType: ' +
-                det_list['LookName'][idx]+'<br>'
-            )
+        # hover = []
+        # for idx, var in enumerate(frame_list):
+        #     hover.append(
+        #         'Frame: ' +
+        #         str(int(var))+'<br>' +
+        #         'Amp: ' +
+        #         '{:.2f}'.format(det_list['Amplitude'][idx])+' dB<br>' +
+        #         'RCS: ' +
+        #         '{:.2f}'.format(det_list['RCS'][idx])+' dB<br>' +
+        #         'SNR: ' +
+        #         '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+' dB<br>' +
+        #         'Az: ' +
+        #         '{:.2f}'.format(det_list['Azimuth'][idx])+' deg<br>' +
+        #         'El: ' +
+        #         '{:.2f}'.format(det_list['Elevation'][idx])+' deg<br>' +
+        #         'Range: ' +
+        #         '{:.2f}'.format(det_list['Range'][idx])+' m<br>' +
+        #         'Speed: ' +
+        #         '{:.2f}'.format(det_list['Speed'][idx])+' m/s<br>' +
+        #         'LookType: ' +
+        #         det_list['LookName'][idx]+'<br>'
+        #     )
 
-        det_map = go.Scatter3d(
+        det_map = dict(
+            type='scatter3d',
             x=det_list['Latitude'],
             y=det_list['Longitude'],
             z=det_list['Height'],
-            text=hover,
+            # text=hover,
             hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
             'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
             mode='markers',
@@ -60,7 +61,8 @@ def get_figure_data(det_list,
             ),
         )
 
-        vel_map = go.Scatter3d(
+        vel_map = dict(
+            type='scatter3d',
             x=[det_list['VehLat'][0]],
             y=[det_list['VehLong'][0]],
             z=[0],
