@@ -21,19 +21,19 @@ def get_figure_data(det_list,
                 'Frame: ' +
                 str(int(var))+'<br>' +
                 'Amp: ' +
-                '{:.2f}'.format(det_list['Amplitude'][idx])+'dB<br>' +
+                '{:.2f}'.format(det_list['Amplitude'][idx])+' dB<br>' +
                 'RCS: ' +
-                '{:.2f}'.format(det_list['RCS'][idx])+'dB<br>' +
+                '{:.2f}'.format(det_list['RCS'][idx])+' dB<br>' +
                 'SNR: ' +
-                '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+'dB<br>' +
+                '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+' dB<br>' +
                 'Az: ' +
-                '{:.2f}'.format(det_list['Azimuth'][idx])+'deg<br>' +
+                '{:.2f}'.format(det_list['Azimuth'][idx])+' deg<br>' +
                 'El: ' +
-                '{:.2f}'.format(det_list['Elevation'][idx])+'deg<br>' +
+                '{:.2f}'.format(det_list['Elevation'][idx])+' deg<br>' +
                 'Range: ' +
-                '{:.2f}'.format(det_list['Range'][idx])+'m<br>' +
+                '{:.2f}'.format(det_list['Range'][idx])+' m<br>' +
                 'Speed: ' +
-                '{:.2f}'.format(det_list['Speed'][idx])+'m/s<br>' +
+                '{:.2f}'.format(det_list['Speed'][idx])+' m/s<br>' +
                 'LookType: ' +
                 det_list['LookName'][idx]+'<br>'
             )
@@ -120,7 +120,7 @@ def get_figure(det_list,
     return dict(data=data, layout=layout)
 
 
-def gen_animation():
+def gen_animation(det_list):
 
     min_x = np.min([np.min(det_list['Latitude']),
                     np.min(det_list['VehLat'])])
@@ -157,13 +157,13 @@ def gen_animation():
         hover = []
         for idx, var in enumerate(fframe.to_list()):
             hover.append('Frame: '+str(int(var))+'<br>' +
-                         'Amp: '+'{:.2f}'.format(famp[idx])+'dB<br>' +
-                         'RCS: ' + '{:.2f}'.format(frcs[idx])+'dB<br>' +
-                         'SNR: ' + '{:.2f}'.format(fsnr[idx])+'dB<br>' +
-                         'Az: ' + '{:.2f}'.format(faz[idx])+'deg<br>' +
-                         'El: ' + '{:.2f}'.format(fel[idx])+'deg<br>' +
-                         'Range: ' + '{:.2f}'.format(frng[idx])+'m<br>' +
-                         'Speed: ' + '{:.2f}'.format(fspeed[idx])+'m/s<br>' +
+                         'Amp: '+'{:.2f}'.format(famp[idx])+' dB<br>' +
+                         'RCS: ' + '{:.2f}'.format(frcs[idx])+' dB<br>' +
+                         'SNR: ' + '{:.2f}'.format(fsnr[idx])+' dB<br>' +
+                         'Az: ' + '{:.2f}'.format(faz[idx])+' deg<br>' +
+                         'El: ' + '{:.2f}'.format(fel[idx])+' deg<br>' +
+                         'Range: ' + '{:.2f}'.format(frng[idx])+' m<br>' +
+                         'Speed: ' + '{:.2f}'.format(fspeed[idx])+' m/s<br>' +
                          'LookType: ' + fl_type[idx] + '<br>')
 
         det_map = go.Scatter3d(
