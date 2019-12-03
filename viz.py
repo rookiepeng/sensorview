@@ -7,43 +7,40 @@ import plotly.io as pio
 def get_figure_data(det_list,
                     color_assign='Speed',
                     c_range=[-30, 30],
-                    db=False):
+                    db=False, colormap='Rainbow'):
     if det_list.shape[0] > 0:
         color = det_list[color_assign]
         if db:
             color = 20*np.log10(color)
 
-        frame_list = det_list['Frame'].to_list()
+        frame_list = det_list['Frame']
 
-        # hover = []
-        # for idx, var in enumerate(frame_list):
-        #     hover.append(
-        #         'Frame: ' +
-        #         str(int(var))+'<br>' +
-        #         'Amp: ' +
-        #         '{:.2f}'.format(det_list['Amplitude'][idx])+' dB<br>' +
-        #         'RCS: ' +
-        #         '{:.2f}'.format(det_list['RCS'][idx])+' dB<br>' +
-        #         'SNR: ' +
-        #         '{:.2f}'.format(20*np.log10(det_list['SNR'])[idx])+' dB<br>' +
-        #         'Az: ' +
-        #         '{:.2f}'.format(det_list['Azimuth'][idx])+' deg<br>' +
-        #         'El: ' +
-        #         '{:.2f}'.format(det_list['Elevation'][idx])+' deg<br>' +
-        #         'Range: ' +
-        #         '{:.2f}'.format(det_list['Range'][idx])+' m<br>' +
-        #         'Speed: ' +
-        #         '{:.2f}'.format(det_list['Speed'][idx])+' m/s<br>' +
-        #         'LookType: ' +
-        #         det_list['LookName'][idx]+'<br>'
-        #     )
+        hover = np.zeros_like(frame_list, dtype=object)
+        hover = 'Frame: ' +\
+            det_list['Frame'].map('{:,.0f}'.format) +\
+                '<br>Amp: ' +\
+            det_list['Amplitude'].map('{:,.2f}'.format) +\
+                ' dB<br>RCS: ' +\
+            det_list['Amplitude'].map('{:,.2f}'.format) +\
+                ' dB<br>SNR: ' +\
+            det_list['SNR'].map('{:,.2f}'.format) +\
+                ' dB<br>Az: ' +\
+            det_list['Azimuth'].map('{:,.2f}'.format) +\
+                ' deg<br>El: ' +\
+            det_list['Elevation'].map('{:,.2f}'.format) +\
+                ' deg<br>Range: ' +\
+            det_list['Range'].map('{:,.2f}'.format) +\
+                ' m<br>Speed: ' +\
+            det_list['Speed'].map('{:,.2f}'.format) +\
+                ' m/s<br>LookType: ' +\
+            det_list['LookName']+'<br>'
 
         det_map = dict(
             type='scatter3d',
             x=det_list['Latitude'],
             y=det_list['Longitude'],
             z=det_list['Height'],
-            # text=hover,
+            text=hover,
             hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
             'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
             mode='markers',
@@ -51,7 +48,7 @@ def get_figure_data(det_list,
             marker=dict(
                 size=3,
                 color=color,
-                colorscale='Rainbow',
+                colorscale=colormap,
                 opacity=0.8,
                 colorbar=dict(
                     title=color_assign,
