@@ -74,8 +74,7 @@ def get_figure_data(det_list,
         return [det_map, vel_map]
     else:
         return [{'mode': 'markers', 'type': 'scatter3d',
-                 'x': [], 'y': [], 'z': []}
-                ]
+                 'x': [], 'y': [], 'z': []}]
 
 
 def get_figure_layout(x_range, y_range, z_range=[-20, 20], height=650):
