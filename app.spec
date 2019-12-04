@@ -4,9 +4,9 @@ block_cipher = None
 
 
 a = Analysis(['app.py'],
-             pathex=['C:\\Users\\zjx8rj\\OneDrive - Aptiv\\radarviz'],
+             pathex=['C:\\Users\\zjx8rj\\OneDrive\\sensorview'],
              binaries=[],
-             datas=[('assets/typography.css', 'assets')],
+             datas=[('assets/favicon.ico', 'assets'), ('assets/typography.css', 'assets')],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
