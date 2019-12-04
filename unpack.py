@@ -134,8 +134,6 @@ def unpack_detections(path,
                         ignore_index=True)
                     frame = frame.append(pd.Series(np.ones_like(
                         rng_temp)*frame_temp), ignore_index=True)
-                    # sub_frame = sub_frame.append(pd.Series(np.ones_like(
-                    #     rng_temp)*look_num), ignore_index=True)
                     sub_frame = sub_frame.append(
                         sub_frame_temp, ignore_index=True)
                     veh_speed = veh_speed.append(
@@ -146,16 +144,6 @@ def unpack_detections(path,
                         ignore_index=True)
         # except Exception:
         #     print("Missing data"+str(frame_idx))
-
-    # temp_frame = 4*frame+sub_frame
-    # jump_position = temp_frame - \
-    #     pd.concat([pd.Series(temp_frame[0]), temp_frame[0:-1]],
-    #               ignore_index=True)
-    # veh_angle = (veh_yaw_rate*duty_cycle*jump_position).cumsum()
-    # veh_x = (veh_speed*duty_cycle*jump_position *
-    #          np.sin(veh_angle/180*np.pi)).cumsum()
-    # veh_y = (veh_speed*duty_cycle*jump_position *
-    #          np.cos(veh_angle/180*np.pi)).cumsum()
 
     det_list = pd.DataFrame()
 
@@ -199,8 +187,6 @@ def unpack_detections(path,
     det_list['Longitude'] = det_list['Range'] * \
         np.cos((det_list['Azimuth']+veh_angle)/180*np.pi) * \
         np.cos(det_list['Elevation']/180*np.pi) + veh_y
-    # det_list['Target_rng_y'] = det_list['Range']*np.cos((det_list['Azimuth']+veh_angle)/180*np.pi)*np.cos(
-    #     det_list['Elevation']/180*np.pi)
     det_list['Height'] = -det_list['Range'] * \
         np.sin(det_list['Elevation']/180*np.pi)
     det_list['VehYaw'] = veh_angle
