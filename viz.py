@@ -21,7 +21,7 @@ def get_figure_data(det_list,
                 '<br>Amp: ' +\
             det_list['Amplitude'].map('{:,.2f}'.format) +\
                 ' dB<br>RCS: ' +\
-            det_list['Amplitude'].map('{:,.2f}'.format) +\
+            det_list['RCS'].map('{:,.2f}'.format) +\
                 ' dB<br>SNR: ' +\
             det_list['SNR'].map('{:,.2f}'.format) +\
                 ' dB<br>Az: ' +\
