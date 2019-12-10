@@ -52,7 +52,9 @@ def unpack_detections(path,
             look_type_temp = single_frame['look'][()][0, 0]
             if data_type == 'session':
                 frame_str = (
-                    (f[session_data['RawDataFile'][frame_idx, 0]][()]-48).ravel())[22:-4]
+                    (
+                        f[session_data['RawDataFile'][frame_idx, 0]][()]-48
+                    ).ravel())[22:-4]
             elif data_type == 'plotdata':
                 frame_str = (
                     (single_frame['RawDataFile'][()]-48).ravel())[22:-4]
@@ -86,7 +88,8 @@ def unpack_detections(path,
                     dopp_shift_temp = pd.Series(
                         single_det['Dopp_shift'][()][0, :])
                     dopp_unfold_flag_temp = pd.Series(
-                        single_det['flag_Doppler_Unfolding_fail_vec'][()][0, :])
+                        single_det['flag_Doppler_Unfolding_fail_vec'][()][0, :]
+                    )
 
                     if single_det['flag_Doppler_Unfolding_fail'][()][0, 0] == 0:
                         unfolded_speed_temp = speed_temp-speed_temp / \
