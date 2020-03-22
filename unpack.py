@@ -16,7 +16,9 @@ def unpack_detections(path,
 
     if data_type == 'session':
         session_data = f['sess_data']
-        frame_size = np.shape(session_data['plotData'])[1]
+        # frame_size = np.shape(session_data['plotData'])[1]
+        frame_size = int(session_data['numFiles'][0,0])
+        # print(frame_size)
     elif data_type == 'plotdata':
         frame_size = np.shape(f['plotData'])[0]
 
@@ -54,7 +56,7 @@ def unpack_detections(path,
                 frame_str = (
                     (
                         f[session_data['RawDataFile'][frame_idx, 0]][()]-48
-                    ).ravel())[22:-4]
+                    ).ravel())[22:]
             elif data_type == 'plotdata':
                 frame_str = (
                     (single_frame['RawDataFile'][()]-48).ravel())[22:-4]
