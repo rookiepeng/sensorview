@@ -65,7 +65,15 @@ slider_callback = [
     dash.dependencies.Output('slider', 'value'),
 ]
 
+slider_input = [
+    dash.dependencies.Input('slider', 'value')
+]
+
+key_list = []
+key_values = []
+
 picker_callback = []
+picker_input = []
 for idx, d_item in enumerate(ui_config['picker']):
     picker_callback.append(
         dash.dependencies.Output(d_item+'_picker', 'options')
@@ -73,18 +81,31 @@ for idx, d_item in enumerate(ui_config['picker']):
     picker_callback.append(
         dash.dependencies.Output(d_item+'_picker', 'value')
     )
+    picker_input.append(
+        dash.dependencies.Input(d_item+'_picker', 'value')
+    )
+    key_list.append(ui_config['picker'][d_item]['key'])
+    key_values.append([])
+
 
 filter_callback = []
+filter_input = []
 for idx, s_item in enumerate(ui_config['filter']):
     filter_callback.append(
-        dash.dependencies.Output(s_item+'_filter', 'min'),
+        dash.dependencies.Output(s_item+'_filter', 'min')
     )
     filter_callback.append(
-        dash.dependencies.Output(s_item+'_filter', 'max'),
+        dash.dependencies.Output(s_item+'_filter', 'max')
     )
     filter_callback.append(
-        dash.dependencies.Output(s_item+'_filter', 'value'),
+        dash.dependencies.Output(s_item+'_filter', 'value')
     )
+    filter_input.append(
+        dash.dependencies.Input(s_item+'_filter', 'value')
+    )
+
+    key_list.append(ui_config['filter'][s_item]['key'])
+    key_values.append([0, 0])
 
 
 test_cases = []
@@ -115,12 +136,12 @@ layout_params = {
 }
 
 
-filter_list = ['LookName', 'AFType', 'AzConf',
-                           'ElConf', 'Longitude', 'Latitude',
-                           'Height', 'Speed', 'Range', 'SNR',
-                           'Azimuth', 'Elevation']
-filter_values = [[], [], [], [], [0, 0], [0, 0],
-                 [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
+# key_list = ['LookName', 'AFType', 'AzConf',
+#                            'ElConf', 'Longitude', 'Latitude',
+#                            'Height', 'Speed', 'Range', 'SNR',
+#                            'Azimuth', 'Elevation']
+# key_values = [[], [], [], [], [0, 0], [0, 0],
+#                  [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
 
 
 app.layout = html.Div([
@@ -245,43 +266,33 @@ def filter_data(data_frame, name, value):
 
 @app.callback(
     dash.dependencies.Output('det_grid', 'figure'),
-    [
+    slider_input + picker_input + filter_input+[
         dash.dependencies.Input('color_assign_picker', 'value'),
-        dash.dependencies.Input('slider', 'value'),
-        dash.dependencies.Input('look_type_picker', 'value'),
-        dash.dependencies.Input('longitude_filter', 'value'),
-        dash.dependencies.Input('latitude_filter', 'value'),
-        dash.dependencies.Input('height_filter', 'value'),
-        dash.dependencies.Input('speed_filter', 'value'),
-        dash.dependencies.Input('range_filter', 'value'),
-        dash.dependencies.Input('snr_filter', 'value'),
     ],
     [
         dash.dependencies.State('det_grid', 'figure'),
         dash.dependencies.State('trigger', 'children')
     ])
-def update_filter(color_assign,
-                  slider_value,
-                  look_type,
-                  af_type,
-                  az_conf,
-                  el_conf,
-                  longitude,
-                  latitude,
-                  height,
-                  speed,
-                  rng,
-                  snr,
-                  az,
-                  el,
-                  fig,
-                  trigger_state):
+# def update_filter(color_assign,
+#                   slider_value,
+#                   look_type,
+#                   rng,
+#                   speed,
+#                   az,
+#                   el,
+#                   longitude,
+#                   latitude,
+#                   height,
+#                   snr,
+#                   fig,
+#                   trigger_state):
+def update_filter(*args):
     global fig_list
     global det_frames
     global fig_list_ready
     global filter_trigger
-    global filter_list
-    global filter_values
+    global key_list
+    global key_values
     global layout_params
 
     ctx = dash.callback_context
@@ -289,12 +300,12 @@ def update_filter(color_assign,
 
     if trigger_id == 'slider':
         if fig_list_ready:
-            return fig_list[slider_value]
+            return fig_list[args[0]]
         else:
-            filterd_frame = det_frames[slider_value]
-            for filter_idx, filter_name in enumerate(filter_list):
+            filterd_frame = det_frames[args[0]]
+            for filter_idx, filter_name in enumerate(key_list):
                 filterd_frame = filter_data(
-                    filterd_frame, filter_name, filter_values[filter_idx])
+                    filterd_frame, filter_name, key_values[filter_idx])
 
             return get_figure(filterd_frame,
                               layout_params['x_range'],
@@ -304,10 +315,8 @@ def update_filter(color_assign,
                               layout_params['c_range'],
                               layout_params['db'])
     else:
-        if None not in [look_type, af_type, az_conf, el_conf]:
-            filter_values = [look_type, af_type,
-                             az_conf, el_conf, longitude, latitude,
-                             height, speed, rng, snr, az, el]
+        if None not in args[0:len(ctx.inputs_list)]:
+            key_values = args[1:(len(ctx.inputs_list)-1)]
             layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
                                                 np.min(det_list['VehLat'])]),
                                         np.max([np.max(det_list['Latitude']),
@@ -318,18 +327,18 @@ def update_filter(color_assign,
                                                 np.max(det_list['VehLong'])])]
             layout_params['z_range'] = [np.min(det_list['Height']),
                                         np.max(det_list['Height'])]
-            layout_params['color_assign'] = color_assign
-            layout_params['c_range'] = [np.min(det_list[color_assign]),
-                                        np.max(det_list[color_assign])]
+            layout_params['color_assign'] = args[len(ctx.inputs_list)-1]
+            layout_params['c_range'] = [np.min(det_list[args[len(ctx.inputs_list)-1]]),
+                                        np.max(det_list[args[len(ctx.inputs_list)-1]])]
 
             filter_trigger = True
             fig_list_ready = False
 
-            filterd_frame = det_frames[slider_value]
+            filterd_frame = det_frames[args[0]]
 
-            for filter_idx, filter_name in enumerate(filter_list):
+            for filter_idx, filter_name in enumerate(key_list):
                 filterd_frame = filter_data(
-                    filterd_frame, filter_name, filter_values[filter_idx])
+                    filterd_frame, filter_name, key_values[filter_idx])
 
             return get_figure(filterd_frame,
                               layout_params['x_range'],
@@ -339,7 +348,7 @@ def update_filter(color_assign,
                               layout_params['c_range'],
                               layout_params['db'])
         else:
-            return fig
+            return args[-2]
 
 
 @app.callback(
@@ -354,7 +363,7 @@ def update_data_file(data_file_name, test_case):
     global det_list
     global det_frames
     global layout_params
-    global filter_values
+    global key_values
     global fig_list_ready
     global filter_trigger
 
@@ -428,12 +437,11 @@ def update_data_file(data_file_name, test_case):
         el_min = round(np.min(det_list['Elevation']), 1)
         el_max = round(np.max(det_list['Elevation']), 1)
 
-        filter_values = [look_types, af_types,
-                         az_conf, el_conf, [longitude_min, longitude_max],
-                         [latitude_min, latitude_max],
-                         [height_min, height_max], [speed_min, speed_max],
-                         [range_min, range_max], [snr_min, snr_max],
-                         [az_min, az_max], [el_min, el_max]]
+        key_values = [look_types, [longitude_min, longitude_max],
+                      [latitude_min, latitude_max],
+                      [height_min, height_max], [speed_min, speed_max],
+                      [range_min, range_max], [snr_min, snr_max],
+                      [az_min, az_max], [el_min, el_max]]
         fig_list_ready = False
         filter_trigger = True
 
@@ -442,12 +450,18 @@ def update_data_file(data_file_name, test_case):
                 0,
                 look_options,
                 look_selection,
-                af_type_options,
-                af_type_selection,
-                az_conf_options,
-                az_conf_selection,
-                el_conf_options,
-                el_conf_selection,
+                range_min,
+                range_max,
+                [range_min, range_max],
+                speed_min,
+                speed_max,
+                [speed_min, speed_max],
+                az_min,
+                az_max,
+                [az_min, az_max],
+                el_min,
+                el_max,
+                [el_min, el_max],
                 longitude_min,
                 longitude_max,
                 [longitude_min, longitude_max],
@@ -457,21 +471,9 @@ def update_data_file(data_file_name, test_case):
                 height_min,
                 height_max,
                 [height_min, height_max],
-                speed_min,
-                speed_max,
-                [speed_min, speed_max],
-                range_min,
-                range_max,
-                [range_min, range_max],
                 snr_min,
                 snr_max,
-                [snr_min, snr_max],
-                az_min,
-                az_max,
-                [az_min, az_max],
-                el_min,
-                el_max,
-                [el_min, el_max]]
+                [snr_min, snr_max]]
 
 
 class Filtering(Thread):
@@ -483,8 +485,8 @@ class Filtering(Thread):
         global fig_list
         global fig_list_ready
         global filter_trigger
-        global filter_list
-        global filter_values
+        global key_list
+        global key_values
         global layout_params
 
         while True:
@@ -494,11 +496,11 @@ class Filtering(Thread):
                 filter_trigger = False
 
                 filterd_det_list = det_list
-                for filter_idx, filter_name in enumerate(filter_list):
+                for filter_idx, filter_name in enumerate(key_list):
                     filterd_det_list = filter_data(
                         filterd_det_list,
                         filter_name,
-                        filter_values[filter_idx])
+                        key_values[filter_idx])
                     if filter_trigger:
                         is_skipped = True
                         break
