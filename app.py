@@ -59,39 +59,43 @@ filter_values = [[], [], [], [], [0, 0], [0, 0],
 
 app.layout = html.Div([
     html.Div([
-        dcc.Graph(
-            id='det_grid',
-            config={
-                "displaylogo": False,
-                'modeBarButtonsToRemove': ['resetCameraDefault3d',
-                                           'resetCameraLastSave3d'],
-            },
-            figure={
-                'data': [{'mode': 'markers', 'type': 'scatter3d',
-                          'x': [], 'y': [], 'z': []}
-                         ],
-                'layout': {'template': pio.templates['plotly_dark'],
-                           'height': 650,
-                           'uirevision': 'no_change'
-                           }
-            },
-        ),
         html.Div([
-            dcc.Slider(
-                id='frame_slider',
-                step=1,
-                value=0,
-                updatemode='drag',
-            )], style={'box-sizing': 'border-box',
-                       'width': '100%',
-                       'display': 'inline-block',
-                       'padding': '2rem 0rem'})
-    ], style={'box-sizing': 'border-box',
-              'width': '75%',
-              'display': 'inline-block',
-              'padding': '4rem 4rem',
-              'max-height': '100vh',
-              'overflow': 'auto', }),
+            html.Div([
+                dcc.Graph(
+                    id='det_grid',
+                    config={
+                        "displaylogo": False,
+                        'modeBarButtonsToRemove': ['resetCameraDefault3d',
+                                                   'resetCameraLastSave3d'],
+                    },
+                    figure={
+                        'data': [{'mode': 'markers', 'type': 'scatter3d',
+                                  'x': [], 'y': [], 'z': []}
+                                 ],
+                        'layout': {'template': pio.templates['plotly_dark'],
+                                   'height': 650,
+                                   'uirevision': 'no_change'
+                                   }
+                    },
+                ),
+                html.Div([
+                    dcc.Slider(
+                        id='frame_slider',
+                        step=1,
+                        value=0,
+                        updatemode='drag',
+                    )], style={'box-sizing': 'border-box',
+                               'width': '100%',
+                               'display': 'inline-block',
+                               'padding': '2rem 0rem'})
+            ], className="pretty_container twelve columns"),
+
+
+        ], className="row flex-display rows"),
+    ], className="eight columns",
+        # style={'display': 'inline-block',
+        #        'overflow': 'auto'}
+               ),
 
     html.Div([
         html.H4("Radar Viz"),
@@ -227,26 +231,15 @@ app.layout = html.Div([
         # Hidden div inside the app that stores the intermediate value
         html.Div(id='trigger', style={'display': 'none'}),
         html.Div(id='dummy', style={'display': 'none'}),
-    ], style={'box-sizing': 'border-box',
-              'width': '25%',
-              'display': 'inline-block',
-              'vertical-align': 'top',
-              'padding': '2rem 4rem',
-              'margin': '0 0',
-              'background-color': '#EEEEEE',
-              'max-height': '100vh',
-              'overflow': 'auto',
-              })
-], style={'border-width': '0',
-          'box-sizing': 'border-box',
-          'display': 'flex',
-          'padding': '0rem 0rem',
-          'background-color': '#111111',
-          'min-height': '100vh',
-          'max-height': '100vh',
-          #   'overflow-y': 'scroll',
-          #   'overflow': 'scroll'
-          })
+    ],
+        className="pretty_container four columns",
+        # style={'display': 'inline-block',
+        #        'overflow': 'auto'}
+               )
+], className="row flex-display",
+    # style={'min-height': '100vh',
+    #        'max-height': '100vh'}
+           )
 
 
 @app.callback(
