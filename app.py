@@ -9,6 +9,7 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.exceptions import PreventUpdate
 import numpy as np
+from numpy.lib.function_base import append
 import pandas as pd
 import os
 import plotly.graph_objs as go
@@ -134,15 +135,6 @@ layout_params = {
     'color_assign': 'Speed',
     'db': False,
 }
-
-
-# key_list = ['LookName', 'AFType', 'AzConf',
-#                            'ElConf', 'Longitude', 'Latitude',
-#                            'Height', 'Speed', 'Range', 'SNR',
-#                            'Azimuth', 'Elevation']
-# key_values = [[], [], [], [], [0, 0], [0, 0],
-#                  [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
-
 
 app.layout = html.Div([
     html.Div([
@@ -360,6 +352,7 @@ def update_filter(*args):
         dash.dependencies.State('test_case_picker', 'value')
     ])
 def update_data_file(data_file_name, test_case):
+    global ui_config
     global det_list
     global det_frames
     global layout_params
@@ -367,14 +360,6 @@ def update_data_file(data_file_name, test_case):
     global fig_list_ready
     global filter_trigger
 
-    look_options = []
-    look_selection = []
-    af_type_options = []
-    af_type_selection = []
-    az_conf_options = []
-    az_conf_selection = []
-    el_conf_options = []
-    el_conf_selection = []
     if data_file_name is not None:
         det_list = pd.read_pickle('./data/'+test_case+'/'+data_file_name)
 
@@ -394,86 +379,43 @@ def update_data_file(data_file_name, test_case):
         ]
 
         det_frames = []
-        frame_list = det_list['Frame'].unique()
+        frame_list = det_list[ui_config['slider']].unique()
         for frame_idx in frame_list:
-            filtered_list = det_list[det_list['Frame'] == frame_idx]
+            filtered_list = det_list[det_list[ui_config['slider']] == frame_idx]
             filtered_list = filtered_list.reset_index()
             det_frames.append(filtered_list)
 
-        look_types = det_list['LookName'].unique()
-        for look_name in look_types:
-            look_options.append({'label': look_name, 'value': look_name})
-            look_selection.append(look_name)
+        output = [0, len(det_frames)-1, 0]
 
-        af_types = det_list['AFType'].unique()
-        for af_type in af_types:
-            af_type_options.append({'label': af_type, 'value': af_type})
-            af_type_selection.append(af_type)
+        key_values = []
+        for idx, d_item in enumerate(ui_config['picker']):
+            var_list = det_list[ui_config['picker'][d_item]['key']].unique()
+            key_values.append(var_list)
 
-        az_conf = det_list['AzConf'].unique()
-        for az_c in az_conf:
-            az_conf_options.append({'label': az_c, 'value': az_c})
-            az_conf_selection.append(az_c)
+            options = []
+            selection = []
+            for var in var_list:
+                options.append({'label': var, 'value': var})
+                selection.append(var)
+            output.append(options)
+            output.append(selection)
 
-        el_conf = det_list['ElConf'].unique()
-        for el_c in el_conf:
-            el_conf_options.append({'label': el_c, 'value': el_c})
-            el_conf_selection.append(el_c)
+        for idx, s_item in enumerate(ui_config['filter']):
+            var_min = round(
+                np.min(det_list[ui_config['filter'][s_item]['key']]), 1)
+            var_max = round(
+                np.max(det_list[ui_config['filter'][s_item]['key']]), 1)
 
-        longitude_min = round(np.min(det_list['Longitude']), 1)
-        longitude_max = round(np.max(det_list['Longitude']), 1)
-        latitude_min = round(np.min(det_list['Latitude']), 1)
-        latitude_max = round(np.max(det_list['Latitude']), 1)
-        height_min = round(np.min(det_list['Height']), 1)
-        height_max = round(np.max(det_list['Height']), 1)
-        speed_min = round(np.min(det_list['Speed']), 1)
-        speed_max = round(np.max(det_list['Speed']), 1)
-        range_min = round(np.min(det_list['Range']), 1)
-        range_max = round(np.max(det_list['Range']), 1)
-        snr_min = round(np.min(det_list['SNR']), 1)
-        snr_max = round(np.max(det_list['SNR']), 1)
-        az_min = round(np.min(det_list['Azimuth']), 1)
-        az_max = round(np.max(det_list['Azimuth']), 1)
-        el_min = round(np.min(det_list['Elevation']), 1)
-        el_max = round(np.max(det_list['Elevation']), 1)
+            output.append(var_min)
+            output.append(var_max)
+            output.append([var_min, var_max])
 
-        key_values = [look_types, [longitude_min, longitude_max],
-                      [latitude_min, latitude_max],
-                      [height_min, height_max], [speed_min, speed_max],
-                      [range_min, range_max], [snr_min, snr_max],
-                      [az_min, az_max], [el_min, el_max]]
+            key_values.append([var_min, var_max])
+
         fig_list_ready = False
         filter_trigger = True
 
-        return [0,
-                len(det_frames)-1,
-                0,
-                look_options,
-                look_selection,
-                range_min,
-                range_max,
-                [range_min, range_max],
-                speed_min,
-                speed_max,
-                [speed_min, speed_max],
-                az_min,
-                az_max,
-                [az_min, az_max],
-                el_min,
-                el_max,
-                [el_min, el_max],
-                longitude_min,
-                longitude_max,
-                [longitude_min, longitude_max],
-                latitude_min,
-                latitude_max,
-                [latitude_min, latitude_max],
-                height_min,
-                height_max,
-                [height_min, height_max],
-                snr_min,
-                snr_max,
-                [snr_min, snr_max]]
+        return output
 
 
 class Filtering(Thread):
