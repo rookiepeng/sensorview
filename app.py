@@ -1,6 +1,9 @@
 from threading import Thread, Event
 from time import sleep
 
+import json
+import os
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -20,7 +23,69 @@ app = dash.Dash(__name__,
                 }])
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
-app.title = 'Radar Viz'
+app.title = 'SensorView'
+
+with open("ui.json", "r") as read_file:
+    ui_config = json.load(read_file)
+
+
+def gen_rangesliders(ui_config):
+    s_list = []
+    for idx, s_item in enumerate(ui_config['filter']):
+        s_list.append(
+            html.Div(id=s_item+'_value',
+                     children=ui_config['filter'][s_item]['description']))
+        s_list.append(dcc.RangeSlider(
+            id=s_item+'_filter',
+            count=1,
+            min=0,
+            max=10,
+            step=0.5,
+            value=[0, 10],
+            tooltip={'always_visible': False}
+        ))
+    return s_list
+
+
+def gen_dropdowns(ui_config):
+    d_list = []
+    for idx, d_item in enumerate(ui_config['picker']):
+        d_list.append(html.Label(ui_config['picker'][d_item]['description']))
+        d_list.append(dcc.Dropdown(
+            id=d_item+'_picker',
+            multi=True
+        ))
+
+    return d_list
+
+
+slider_callback = [
+    dash.dependencies.Output('slider', 'min'),
+    dash.dependencies.Output('slider', 'max'),
+    dash.dependencies.Output('slider', 'value'),
+]
+
+picker_callback = []
+for idx, d_item in enumerate(ui_config['picker']):
+    picker_callback.append(
+        dash.dependencies.Output(d_item+'_picker', 'options')
+    )
+    picker_callback.append(
+        dash.dependencies.Output(d_item+'_picker', 'value')
+    )
+
+filter_callback = []
+for idx, s_item in enumerate(ui_config['filter']):
+    filter_callback.append(
+        dash.dependencies.Output(s_item+'_filter', 'min'),
+    )
+    filter_callback.append(
+        dash.dependencies.Output(s_item+'_filter', 'max'),
+    )
+    filter_callback.append(
+        dash.dependencies.Output(s_item+'_filter', 'value'),
+    )
+
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
@@ -57,6 +122,7 @@ filter_list = ['LookName', 'AFType', 'AzConf',
 filter_values = [[], [], [], [], [0, 0], [0, 0],
                  [0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
 
+
 app.layout = html.Div([
     html.Div([
         html.Div([
@@ -80,7 +146,7 @@ app.layout = html.Div([
                 ),
                 html.Div([
                     dcc.Slider(
-                        id='frame_slider',
+                        id='slider',
                         step=1,
                         value=0,
                         updatemode='drag',
@@ -89,17 +155,15 @@ app.layout = html.Div([
                                'display': 'inline-block',
                                'padding': '2rem 0rem'})
             ], className="pretty_container twelve columns"),
-
-
         ], className="row flex-display rows"),
     ], className="eight columns",
         # style={'display': 'inline-block',
         #        'overflow': 'auto'}
-               ),
+    ),
 
     html.Div([
-        html.H4("Radar Viz"),
-        html.P("Radar detections visualization"),
+        html.H4("SensorView"),
+        html.P("Sensor detections visualization"),
         html.Br(),
         html.Label('Test Cases'),
         dcc.Dropdown(
@@ -125,121 +189,27 @@ app.layout = html.Div([
             value='Speed'
         ),
         html.Br(),
-        html.Label('Look Type'),
-        dcc.Dropdown(
-            id='look_type_picker',
-            multi=True
+
+        html.Div(
+            gen_dropdowns(ui_config)
         ),
-        html.Label('AF Type'),
-        dcc.Dropdown(
-            id='af_type_picker',
-            multi=True
+        html.Div(
+            gen_rangesliders(ui_config)
         ),
-        html.Label('AF Azimuth Confidence Level'),
-        dcc.Dropdown(
-            id='az_conf_picker',
-            multi=True
-        ),
-        html.Label('AF Elevation Confidence Level'),
-        dcc.Dropdown(
-            id='el_conf_picker',
-            multi=True
-        ),
-        html.Label(id='longitude_value',
-                   children='Longitude Range'),
-        dcc.RangeSlider(
-            id='longitude_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
-        html.Label(id='latitude_value',
-                   children='Latitude Range'),
-        dcc.RangeSlider(
-            id='latitude_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
-        html.Label(id='height_value',
-                   children='Height Range'),
-        dcc.RangeSlider(
-            id='height_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
-        html.Label('Speed filter'),
-        dcc.RangeSlider(
-            id='speed_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
-        html.Label('Range filter'),
-        dcc.RangeSlider(
-            id='range_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
-        html.Label('SNR filter'),
-        dcc.RangeSlider(
-            id='snr_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
-        html.Label('Azimuth filter'),
-        dcc.RangeSlider(
-            id='az_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
-        html.Label('Elevation filter'),
-        dcc.RangeSlider(
-            id='el_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ),
+
         # Hidden div inside the app that stores the intermediate value
         html.Div(id='trigger', style={'display': 'none'}),
         html.Div(id='dummy', style={'display': 'none'}),
+
     ],
         className="pretty_container four columns",
         # style={'display': 'inline-block',
         #        'overflow': 'auto'}
-               )
+    )
 ], className="row flex-display",
     # style={'min-height': '100vh',
     #        'max-height': '100vh'}
-           )
+)
 
 
 @app.callback(
@@ -277,26 +247,21 @@ def filter_data(data_frame, name, value):
     dash.dependencies.Output('det_grid', 'figure'),
     [
         dash.dependencies.Input('color_assign_picker', 'value'),
-        dash.dependencies.Input('frame_slider', 'value'),
+        dash.dependencies.Input('slider', 'value'),
         dash.dependencies.Input('look_type_picker', 'value'),
-        dash.dependencies.Input('af_type_picker', 'value'),
-        dash.dependencies.Input('az_conf_picker', 'value'),
-        dash.dependencies.Input('el_conf_picker', 'value'),
         dash.dependencies.Input('longitude_filter', 'value'),
         dash.dependencies.Input('latitude_filter', 'value'),
         dash.dependencies.Input('height_filter', 'value'),
         dash.dependencies.Input('speed_filter', 'value'),
         dash.dependencies.Input('range_filter', 'value'),
         dash.dependencies.Input('snr_filter', 'value'),
-        dash.dependencies.Input('az_filter', 'value'),
-        dash.dependencies.Input('el_filter', 'value'),
     ],
     [
         dash.dependencies.State('det_grid', 'figure'),
         dash.dependencies.State('trigger', 'children')
     ])
 def update_filter(color_assign,
-                  frame_slider_value,
+                  slider_value,
                   look_type,
                   af_type,
                   az_conf,
@@ -322,11 +287,11 @@ def update_filter(color_assign,
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if trigger_id == 'frame_slider':
+    if trigger_id == 'slider':
         if fig_list_ready:
-            return fig_list[frame_slider_value]
+            return fig_list[slider_value]
         else:
-            filterd_frame = det_frames[frame_slider_value]
+            filterd_frame = det_frames[slider_value]
             for filter_idx, filter_name in enumerate(filter_list):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, filter_values[filter_idx])
@@ -360,7 +325,7 @@ def update_filter(color_assign,
             filter_trigger = True
             fig_list_ready = False
 
-            filterd_frame = det_frames[frame_slider_value]
+            filterd_frame = det_frames[slider_value]
 
             for filter_idx, filter_name in enumerate(filter_list):
                 filterd_frame = filter_data(
@@ -378,43 +343,7 @@ def update_filter(color_assign,
 
 
 @app.callback(
-    [
-        dash.dependencies.Output('frame_slider', 'min'),
-        dash.dependencies.Output('frame_slider', 'max'),
-        dash.dependencies.Output('frame_slider', 'value'),
-        dash.dependencies.Output('look_type_picker', 'options'),
-        dash.dependencies.Output('look_type_picker', 'value'),
-        dash.dependencies.Output('af_type_picker', 'options'),
-        dash.dependencies.Output('af_type_picker', 'value'),
-        dash.dependencies.Output('az_conf_picker', 'options'),
-        dash.dependencies.Output('az_conf_picker', 'value'),
-        dash.dependencies.Output('el_conf_picker', 'options'),
-        dash.dependencies.Output('el_conf_picker', 'value'),
-        dash.dependencies.Output('longitude_filter', 'min'),
-        dash.dependencies.Output('longitude_filter', 'max'),
-        dash.dependencies.Output('longitude_filter', 'value'),
-        dash.dependencies.Output('latitude_filter', 'min'),
-        dash.dependencies.Output('latitude_filter', 'max'),
-        dash.dependencies.Output('latitude_filter', 'value'),
-        dash.dependencies.Output('height_filter', 'min'),
-        dash.dependencies.Output('height_filter', 'max'),
-        dash.dependencies.Output('height_filter', 'value'),
-        dash.dependencies.Output('speed_filter', 'min'),
-        dash.dependencies.Output('speed_filter', 'max'),
-        dash.dependencies.Output('speed_filter', 'value'),
-        dash.dependencies.Output('range_filter', 'min'),
-        dash.dependencies.Output('range_filter', 'max'),
-        dash.dependencies.Output('range_filter', 'value'),
-        dash.dependencies.Output('snr_filter', 'min'),
-        dash.dependencies.Output('snr_filter', 'max'),
-        dash.dependencies.Output('snr_filter', 'value'),
-        dash.dependencies.Output('az_filter', 'min'),
-        dash.dependencies.Output('az_filter', 'max'),
-        dash.dependencies.Output('az_filter', 'value'),
-        dash.dependencies.Output('el_filter', 'min'),
-        dash.dependencies.Output('el_filter', 'max'),
-        dash.dependencies.Output('el_filter', 'value'),
-    ],
+    slider_callback+picker_callback+filter_callback,
     [
         dash.dependencies.Input('data_file_picker', 'value')
     ],

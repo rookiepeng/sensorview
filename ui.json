@@ -1,0 +1,53 @@
+{
+    "slider":"Frame",
+    "host":{
+        "longitude":{
+            "key":"HostLongitude",
+            "description":"Range (m)"
+        },
+        "latitude":{
+            "key":"HostLatitude",
+            "description":"Range (m)"
+        }
+    },
+    "filter": {
+        "range":{
+            "key":"Range",
+            "description":"Range (m)"
+        },
+        "speed":{
+            "key":"Speed",
+            "description":"Range rate (m/s)"
+        },
+        "azimuth":{
+            "key":"Azimuth",
+            "description":"Target's azimuth (deg)"
+        },
+        "elevation":{
+            "key":"Elevation",
+            "description":"Target's elevation (deg)"
+        },
+        "longitude": {
+            "key":"Longitude",
+            "description":"Target's longitude (m)"
+        },
+        "latitude": {
+            "key":"Latitude",
+            "description":"Target's latitude (m)"
+        },
+        "height": {
+            "key":"Height",
+            "description":"Target's height (m)"
+        },
+        "snr": {
+            "key":"SNR",
+            "description":"Target's signal to noise ratio (dB)"
+        }
+    },
+    "picker": {
+        "look_type": {
+            "key":"LookName",
+            "description":"Frame's look type"
+        }
+    }
+}
