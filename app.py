@@ -5,6 +5,7 @@ import json
 import os
 
 import dash
+from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.exceptions import PreventUpdate
@@ -122,10 +123,12 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
     break
 
 det_list = pd.DataFrame()
+filtered_det = pd.DataFrame()
 det_frames = []
 fig_list = []
 fig_list_ready = False
 filter_trigger = False
+filter_done = False
 
 layout_params = {
     'x_range': [0, 0],
@@ -202,9 +205,7 @@ app.layout = html.Div([
                 gen_rangesliders(ui_config)
             ),
 
-            # Hidden div inside the app that stores the intermediate value
-            html.Div(id='trigger', style={'display': 'none'}),
-            html.Div(id='dummy', style={'display': 'none'}),
+
 
         ],
             className="pretty_container three columns",
@@ -245,6 +246,7 @@ app.layout = html.Div([
             ], className="pretty_container"),
 
             html.Div([
+
                 html.Div([
                     dcc.Graph(
                         id='graph_2d_left',
@@ -265,8 +267,11 @@ app.layout = html.Div([
                             html.Label('x-axis'),
                             dcc.Dropdown(
                                 id='x_left',
-                                options=[{'label': ui_config['filter'][f_item]['key'], 'value': ui_config['filter'][f_item]['key']}
-                                         for idx, f_item in enumerate(ui_config['filter'])],
+                                options=[{
+                                    'label': ui_config['filter'][f_item]['key'],
+                                    'value': ui_config['filter'][f_item]['key']
+                                }
+                                    for idx, f_item in enumerate(ui_config['filter'])],
                                 value=ui_config['graph_2d_left']['default_x']
                             ),
                         ], className="one-third column"),
@@ -349,6 +354,11 @@ app.layout = html.Div([
         # style={'min-height': '100vh',
         #        'max-height': '100vh'}
     ),
+
+    # Hidden div inside the app that stores the intermediate value
+    html.Div(id='trigger', style={'display': 'none'}),
+    html.Div(id='dummy', style={'display': 'none'}),
+    dcc.Interval(id='interval', interval=500),
 ], style={"display": "flex", "flex-direction": "column"},)
 
 
@@ -463,87 +473,69 @@ def update_filter(*args):
             return args[-2]
 
 
-# @app.callback(
-#     [
-#         dash.dependencies.Output('graph_2d_left', 'figure'),
-#         dash.dependencies.Output('graph_2d_right', 'figure')
-#     ],
-#     picker_input + filter_input+[
-#         dash.dependencies.Input('x_left', 'value'),
-#         dash.dependencies.Input('y_left', 'value'),
-#         dash.dependencies.Input('color_left', 'value'),
-#         dash.dependencies.Input('x_right', 'value'),
-#         dash.dependencies.Input('y_right', 'value'),
-#         dash.dependencies.Input('color_right', 'value'),
-#         dash.dependencies.Input('color_assign_picker', 'value'),
-#     ],
-#     [
-#         dash.dependencies.State('det_grid', 'figure'),
-#         dash.dependencies.State('trigger', 'children')
-#     ])
-# def update_2d_graphs(*args):
-#     global det_list
-#     global fig_list
-#     global det_frames
-#     global fig_list_ready
-#     global filter_trigger
-#     global key_list
-#     global key_values
-#     global layout_params
+@app.callback(
+    [
+        dash.dependencies.Output('graph_2d_left', 'figure'),
+        dash.dependencies.Output('graph_2d_right', 'figure'),
+        Output('interval', 'disabled')
+    ],
+    picker_input+filter_input+[
+        dash.dependencies.Input('x_left', 'value'),
+        dash.dependencies.Input('y_left', 'value'),
+        dash.dependencies.Input('color_left', 'value'),
+        dash.dependencies.Input('x_right', 'value'),
+        dash.dependencies.Input('y_right', 'value'),
+        dash.dependencies.Input('color_right', 'value'),
+        Input('interval', 'n_intervals')
+    ],
+    [
+        State('graph_2d_left', 'figure'),
+        State('graph_2d_right', 'figure'),
+    ]
+)
+def update_2d_graphs(*args):
+    global det_list
+    global fig_list
+    global det_frames
+    global fig_list_ready
+    global filter_trigger
+    global key_list
+    global key_values
+    global layout_params
 
-#     ctx = dash.callback_context
-#     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    global filtered_det
+    global filter_done
 
-#     if trigger_id == 'slider':
-#         if fig_list_ready:
-#             return [get_2d_scatter(
-#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
-#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
-#         else:
-#             filterd_frame = det_frames[args[0]]
-#             for filter_idx, filter_name in enumerate(key_list):
-#                 filterd_frame = filter_data(
-#                     filterd_frame, filter_name, key_values[filter_idx])
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-#             return [
-#                     get_2d_scatter(
-#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
-#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
-#     else:
-#         if None not in args[0:len(ctx.inputs_list)]:
-#             key_values = args[1:(len(ctx.inputs_list)-1)]
-#             layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
-#                                                 np.min(det_list['VehLat'])]),
-#                                         np.max([np.max(det_list['Latitude']),
-#                                                 np.max(det_list['VehLat'])])]
-#             layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
-#                                                 np.min(det_list['VehLong'])]),
-#                                         np.max([np.max(det_list['Longitude']),
-#                                                 np.max(det_list['VehLong'])])]
-#             layout_params['z_range'] = [np.min(det_list['Height']),
-#                                         np.max(det_list['Height'])]
-#             layout_params['color_assign'] = args[len(ctx.inputs_list)-1]
-#             layout_params['c_range'] = [np.min(det_list[args[len(ctx.inputs_list)-1]]),
-#                                         np.max(det_list[args[len(ctx.inputs_list)-1]])]
-
-#             filter_trigger = True
-#             fig_list_ready = False
-
-#             filterd_frame = det_frames[args[0]]
-
-#             for filter_idx, filter_name in enumerate(key_list):
-#                 filterd_frame = filter_data(
-#                     filterd_frame, filter_name, key_values[filter_idx])
-
-#             return [
-#                     get_2d_scatter(
-#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
-#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
-#         else:
-#             return [
-#                     get_2d_scatter(
-#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
-#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
+    if trigger_id == 'interval':
+        if filter_done:
+            return [
+                get_2d_scatter(
+                    filtered_det, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
+                get_2d_scatter(filtered_det, ctx.inputs['x_right.value'],
+                               ctx.inputs['y_right.value'], ctx.inputs['color_right.value'],
+                               ),
+                True
+            ]
+        else:
+            raise PreventUpdate()
+    elif (trigger_id in ['x_left', 'y_left', 'color_left', 'x_right', 'y_right', 'color_right']):
+        return [
+            get_2d_scatter(
+                filtered_det, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
+            get_2d_scatter(filtered_det, ctx.inputs['x_right.value'],
+                           ctx.inputs['y_right.value'], ctx.inputs['color_right.value'],
+                           ),
+            True
+        ]
+    else:
+        return [
+            args[-2],
+            args[-1],
+            False
+        ]
 
 
 @app.callback(
@@ -557,6 +549,7 @@ def update_filter(*args):
 def update_data_file(data_file_name, test_case):
     global ui_config
     global det_list
+    global filtered_det
     global det_frames
     global layout_params
     global key_values
@@ -565,6 +558,7 @@ def update_data_file(data_file_name, test_case):
 
     if data_file_name is not None:
         det_list = pd.read_pickle('./data/'+test_case+'/'+data_file_name)
+        filtered_det = det_list
 
         layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
                                             np.min(det_list['VehLat'])]),
@@ -627,23 +621,26 @@ class Filtering(Thread):
 
     def run(self):
         global det_list
+        global filtered_det
         global fig_list
         global fig_list_ready
         global filter_trigger
         global key_list
         global key_values
         global layout_params
+        global filter_done
 
         while True:
             if filter_trigger:
+                filter_done = False
                 fig_list_ready = False
                 is_skipped = False
                 filter_trigger = False
 
-                filterd_det_list = det_list
+                filtered_det = det_list
                 for filter_idx, filter_name in enumerate(key_list):
-                    filterd_det_list = filter_data(
-                        filterd_det_list,
+                    filtered_det = filter_data(
+                        filtered_det,
                         filter_name,
                         key_values[filter_idx])
                     if filter_trigger:
@@ -653,8 +650,8 @@ class Filtering(Thread):
                 fig_list = []
                 frame_list = det_list['Frame'].unique()
                 for idx, frame_idx in enumerate(frame_list):
-                    filtered_list = filterd_det_list[
-                        filterd_det_list['Frame'] == frame_idx
+                    filtered_list = filtered_det[
+                        filtered_det['Frame'] == frame_idx
                     ]
                     filtered_list = filtered_list.reset_index()
                     fig_list.append(get_figure(filtered_list,
@@ -669,6 +666,7 @@ class Filtering(Thread):
                         break
 
                 if not is_skipped:
+                    filter_done = True
                     fig_list_ready = True
 
             if not filter_trigger:
