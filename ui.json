@@ -55,13 +55,13 @@
         }
     },
     "graph_2d_left":{
-        "default_x": "Range",
-        "default_y": "Azimuth",
-        "default_color": "Frame"
+        "default_x": "range",
+        "default_y": "azimuth",
+        "default_color": "frame"
     },
     "graph_2d_right":{
-        "default_x": "Range",
-        "default_y": "Elevation",
-        "default_color": "Frame"
+        "default_x": "range",
+        "default_y": "elevation",
+        "default_color": "frame"
     }
 }

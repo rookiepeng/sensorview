@@ -129,28 +129,46 @@ def get_figure(det_list,
     return dict(data=data, layout=layout)
 
 
-def get_2d_scatter(det_list, x_name, y_name, color_name, colormap='Rainbow', margin=dict(l=0, r=0, b=0, t=0)):
+def get_2d_scatter(det_list,
+                   x_key,
+                   y_key,
+                   color_key,
+                   x_label=None,
+                   y_label=None,
+                   color_label=None,
+                   colormap='Rainbow',
+                   margin=dict(l=40, r=40, b=40, t=60)):
+
+    if x_label is None:
+        x_label = x_key
+
+    if y_label is None:
+        y_label = y_key
+
+    if color_label is None:
+        color_label = color_key
+
     return dict(
         data=[dict(
             type='scatter',
-            x=det_list[x_name],
-            y=det_list[y_name],
+            x=det_list[x_key],
+            y=det_list[y_key],
             mode='markers',
             marker=dict(
                 size=3,
-                color=det_list[color_name],
+                color=det_list[color_key],
                 colorscale=colormap,
                 opacity=0.8,
                 colorbar=dict(
-                    title=color_name,
+                    title=color_label,
                 ),
                 # cmin=c_range[0],
                 # cmax=c_range[1],
             )
         )],
         layout=dict(
-            xaxis=dict(title='Azimuth (deg)'),
-            yaxis=dict(title='Amplitude (dB)'),
+            xaxis=dict(title=x_label),
+            yaxis=dict(title=y_label),
             margin=margin,
             uirevision='no_change',
         )
