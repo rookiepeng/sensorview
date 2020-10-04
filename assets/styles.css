@@ -4,7 +4,7 @@
 }
 
 body {
-  background-color: #f2f2f2;
+  background-color: #eeeeee;
   margin: 1%;
 }
 
@@ -19,7 +19,7 @@ body {
 
 .pretty_container {
   border-radius: 5px;
-  background-color: #f9f9f9;
+  background-color: #ffffff;
   margin: 10px;
   padding: 15px;
   position: relative;

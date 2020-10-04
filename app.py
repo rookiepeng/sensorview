@@ -15,7 +15,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz import get_figure
+from viz import get_figure, get_2d_scatter
 
 app = dash.Dash(__name__,
                 meta_tags=[{
@@ -138,7 +138,82 @@ layout_params = {
 
 app.layout = html.Div([
     html.Div([
+        html.Div([], className="one-third column"),
         html.Div([
+            html.Div(
+                [
+                    html.H3(
+                        "SensorView",
+                        style={"margin-bottom": "0px"},
+                    ),
+                    html.H5(
+                        "Sensor Data Visualization",
+                        style={"margin-top": "0px"}),
+                ]
+            ),
+        ],
+            className="one-half columns",
+            id="title",
+        ),
+
+        html.Div([], className="one-third column"),
+    ], className="row flex-display",
+        style={"margin-bottomm": "25px"}),
+
+    html.Div([
+        html.Div([
+            html.Label('Test Cases'),
+            dcc.Dropdown(
+                id='test_case_picker',
+                options=[{'label': i, 'value': i} for i in test_cases],
+                value=test_cases[0]
+            ),
+        ], className="pretty_container six column"),
+
+        html.Div([
+            html.Label('Data Files'),
+            dcc.Dropdown(
+                id='data_file_picker',
+                options=[{'label': i, 'value': i} for i in data_files],
+                value=data_files[0]
+            ),
+        ], className="pretty_container rix column"),
+    ], className="row flex-display"),
+
+    html.Div([
+
+        html.Div([
+            html.Label('Color assignment'),
+            dcc.Dropdown(
+                id='color_assign_picker',
+                options=[
+                    {'label': 'Speed', 'value': 'Speed'},
+                    {'label': 'RCS', 'value': 'RCS'},
+                    {'label': 'SNR', 'value': 'SNR'}
+                ],
+                value='Speed'
+            ),
+            html.Br(),
+
+            html.Div(
+                gen_dropdowns(ui_config)
+            ),
+            html.Div(
+                gen_rangesliders(ui_config)
+            ),
+
+            # Hidden div inside the app that stores the intermediate value
+            html.Div(id='trigger', style={'display': 'none'}),
+            html.Div(id='dummy', style={'display': 'none'}),
+
+        ],
+            className="pretty_container three columns",
+            # style={'display': 'inline-block',
+            #        'overflow': 'auto'}
+        ),
+
+        html.Div([
+
             html.Div([
                 dcc.Graph(
                     id='det_grid',
@@ -167,62 +242,114 @@ app.layout = html.Div([
                                'width': '100%',
                                'display': 'inline-block',
                                'padding': '2rem 0rem'})
-            ], className="pretty_container twelve columns"),
-        ], className="row flex-display rows"),
-    ], className="eight columns",
-        # style={'display': 'inline-block',
-        #        'overflow': 'auto'}
+            ], className="pretty_container"),
+
+            html.Div([
+                html.Div([
+                    dcc.Graph(
+                        id='graph_2d_left',
+                        config={
+                            "displaylogo": False
+                        },
+                        figure={
+                            'data': [{'mode': 'markers', 'type': 'scatter',
+                                      'x': [], 'y': []}
+                                     ],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+                    html.Div([
+                        html.Div([
+                            html.Label('x-axis'),
+                            dcc.Dropdown(
+                                id='x_left',
+                                options=[{'label': ui_config['filter'][f_item]['key'], 'value': ui_config['filter'][f_item]['key']}
+                                         for idx, f_item in enumerate(ui_config['filter'])],
+                                value=ui_config['graph_2d_left']['default_x']
+                            ),
+                        ], className="one-third column"),
+                        html.Div([
+                            html.Label('y-axis'),
+                            dcc.Dropdown(
+                                id='y_left',
+                                options=[{'label': ui_config['filter'][f_item]['key'], 'value': ui_config['filter'][f_item]['key']}
+                                         for idx, f_item in enumerate(ui_config['filter'])],
+                                value=ui_config['graph_2d_left']['default_y']
+                            ),
+                        ], className="one-third column"),
+                        html.Div([
+                            html.Label('color'),
+                            dcc.Dropdown(
+                                id='color_left',
+                                options=[{'label': ui_config['filter'][f_item]['key'], 'value': ui_config['filter'][f_item]['key']}
+                                         for idx, f_item in enumerate(ui_config['filter'])],
+                                value=ui_config['graph_2d_left']['default_color']
+                            ),
+                        ], className="one-third column"),
+                    ], className="row flex-display")
+                ], className="pretty_container six columns"),
+
+                html.Div([
+                    dcc.Graph(
+                        id='graph_2d_right',
+                        config={
+                            "displaylogo": False
+                        },
+                        figure={
+                            'data': [{'mode': 'markers', 'type': 'scatter',
+                                      'x': [], 'y': []}
+                                     ],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+                    html.Div([
+                        html.Div([
+                            html.Label('x-axis'),
+                            dcc.Dropdown(
+                                id='x_right',
+                                options=[{'label': ui_config['filter'][f_item]['key'], 'value': ui_config['filter'][f_item]['key']}
+                                         for idx, f_item in enumerate(ui_config['filter'])],
+                                value=ui_config['graph_2d_right']['default_x']
+                            ),
+                        ], className="one-third column"),
+                        html.Div([
+                            html.Label('y-axis'),
+                            dcc.Dropdown(
+                                id='y_right',
+                                options=[{'label': ui_config['filter'][f_item]['key'], 'value': ui_config['filter'][f_item]['key']}
+                                         for idx, f_item in enumerate(ui_config['filter'])],
+                                value=ui_config['graph_2d_right']['default_y']
+                            ),
+                        ], className="one-third column"),
+                        html.Div([
+                            html.Label('color'),
+                            dcc.Dropdown(
+                                id='color_right',
+                                options=[{'label': ui_config['filter'][f_item]['key'], 'value': ui_config['filter'][f_item]['key']}
+                                         for idx, f_item in enumerate(ui_config['filter'])],
+                                value=ui_config['graph_2d_right']['default_color']
+                            ),
+                        ], className="one-third column"),
+                    ], className="row flex-display")
+                ], className="pretty_container six columns"),
+            ], className="row flex-display"),
+
+
+        ], className="nine columns",
+            # style={'display': 'inline-block',
+            #        'overflow': 'auto'}
+        ),
+
+
+    ], className="row flex-display rows",
+        # style={'min-height': '100vh',
+        #        'max-height': '100vh'}
     ),
-
-    html.Div([
-        html.H4("SensorView"),
-        html.P("Sensor detections visualization"),
-        html.Br(),
-        html.Label('Test Cases'),
-        dcc.Dropdown(
-            id='test_case_picker',
-            options=[{'label': i, 'value': i} for i in test_cases],
-            value=test_cases[0]
-        ),
-        html.Label('Data Files'),
-        dcc.Dropdown(
-            id='data_file_picker',
-            options=[{'label': i, 'value': i} for i in data_files],
-            value=data_files[0]
-        ),
-        html.Br(),
-        html.Label('Color assignment'),
-        dcc.Dropdown(
-            id='color_assign_picker',
-            options=[
-                {'label': 'Speed', 'value': 'Speed'},
-                {'label': 'RCS', 'value': 'RCS'},
-                {'label': 'SNR', 'value': 'SNR'}
-            ],
-            value='Speed'
-        ),
-        html.Br(),
-
-        html.Div(
-            gen_dropdowns(ui_config)
-        ),
-        html.Div(
-            gen_rangesliders(ui_config)
-        ),
-
-        # Hidden div inside the app that stores the intermediate value
-        html.Div(id='trigger', style={'display': 'none'}),
-        html.Div(id='dummy', style={'display': 'none'}),
-
-    ],
-        className="pretty_container four columns",
-        # style={'display': 'inline-block',
-        #        'overflow': 'auto'}
-    )
-], className="row flex-display",
-    # style={'min-height': '100vh',
-    #        'max-height': '100vh'}
-)
+], style={"display": "flex", "flex-direction": "column"},)
 
 
 @app.callback(
@@ -259,25 +386,18 @@ def filter_data(data_frame, name, value):
 @app.callback(
     dash.dependencies.Output('det_grid', 'figure'),
     slider_input + picker_input + filter_input+[
+        dash.dependencies.Input('x_left', 'value'),
+        dash.dependencies.Input('y_left', 'value'),
+        dash.dependencies.Input('color_left', 'value'),
+        dash.dependencies.Input('x_right', 'value'),
+        dash.dependencies.Input('y_right', 'value'),
+        dash.dependencies.Input('color_right', 'value'),
         dash.dependencies.Input('color_assign_picker', 'value'),
     ],
     [
         dash.dependencies.State('det_grid', 'figure'),
         dash.dependencies.State('trigger', 'children')
     ])
-# def update_filter(color_assign,
-#                   slider_value,
-#                   look_type,
-#                   rng,
-#                   speed,
-#                   az,
-#                   el,
-#                   longitude,
-#                   latitude,
-#                   height,
-#                   snr,
-#                   fig,
-#                   trigger_state):
 def update_filter(*args):
     global fig_list
     global det_frames
@@ -341,6 +461,89 @@ def update_filter(*args):
                               layout_params['db'])
         else:
             return args[-2]
+
+
+# @app.callback(
+#     [
+#         dash.dependencies.Output('graph_2d_left', 'figure'),
+#         dash.dependencies.Output('graph_2d_right', 'figure')
+#     ],
+#     picker_input + filter_input+[
+#         dash.dependencies.Input('x_left', 'value'),
+#         dash.dependencies.Input('y_left', 'value'),
+#         dash.dependencies.Input('color_left', 'value'),
+#         dash.dependencies.Input('x_right', 'value'),
+#         dash.dependencies.Input('y_right', 'value'),
+#         dash.dependencies.Input('color_right', 'value'),
+#         dash.dependencies.Input('color_assign_picker', 'value'),
+#     ],
+#     [
+#         dash.dependencies.State('det_grid', 'figure'),
+#         dash.dependencies.State('trigger', 'children')
+#     ])
+# def update_2d_graphs(*args):
+#     global det_list
+#     global fig_list
+#     global det_frames
+#     global fig_list_ready
+#     global filter_trigger
+#     global key_list
+#     global key_values
+#     global layout_params
+
+#     ctx = dash.callback_context
+#     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+#     if trigger_id == 'slider':
+#         if fig_list_ready:
+#             return [get_2d_scatter(
+#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
+#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
+#         else:
+#             filterd_frame = det_frames[args[0]]
+#             for filter_idx, filter_name in enumerate(key_list):
+#                 filterd_frame = filter_data(
+#                     filterd_frame, filter_name, key_values[filter_idx])
+
+#             return [
+#                     get_2d_scatter(
+#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
+#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
+#     else:
+#         if None not in args[0:len(ctx.inputs_list)]:
+#             key_values = args[1:(len(ctx.inputs_list)-1)]
+#             layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
+#                                                 np.min(det_list['VehLat'])]),
+#                                         np.max([np.max(det_list['Latitude']),
+#                                                 np.max(det_list['VehLat'])])]
+#             layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
+#                                                 np.min(det_list['VehLong'])]),
+#                                         np.max([np.max(det_list['Longitude']),
+#                                                 np.max(det_list['VehLong'])])]
+#             layout_params['z_range'] = [np.min(det_list['Height']),
+#                                         np.max(det_list['Height'])]
+#             layout_params['color_assign'] = args[len(ctx.inputs_list)-1]
+#             layout_params['c_range'] = [np.min(det_list[args[len(ctx.inputs_list)-1]]),
+#                                         np.max(det_list[args[len(ctx.inputs_list)-1]])]
+
+#             filter_trigger = True
+#             fig_list_ready = False
+
+#             filterd_frame = det_frames[args[0]]
+
+#             for filter_idx, filter_name in enumerate(key_list):
+#                 filterd_frame = filter_data(
+#                     filterd_frame, filter_name, key_values[filter_idx])
+
+#             return [
+#                     get_2d_scatter(
+#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
+#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
+#         else:
+#             return [
+#                     get_2d_scatter(
+#                         det_list, ctx.inputs['x_left.value'], ctx.inputs['y_left.value'], ctx.inputs['color_left.value']),
+#                     get_2d_scatter(det_list, ctx.inputs['x_right.value'], ctx.inputs['y_right.value'], ctx.inputs['color_right.value'])]
 
 
 @app.callback(

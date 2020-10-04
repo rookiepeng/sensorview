@@ -11,6 +11,10 @@
         }
     },
     "filter": {
+        "frame":{
+            "key":"Frame",
+            "description":"Frame"
+        },
         "range":{
             "key":"Range",
             "description":"Range (m)"
@@ -21,33 +25,43 @@
         },
         "azimuth":{
             "key":"Azimuth",
-            "description":"Target's azimuth (deg)"
+            "description":"Azimuth (deg)"
         },
         "elevation":{
             "key":"Elevation",
-            "description":"Target's elevation (deg)"
+            "description":"Elevation (deg)"
         },
         "longitude": {
             "key":"Longitude",
-            "description":"Target's longitude (m)"
+            "description":"Longitude (m)"
         },
         "latitude": {
             "key":"Latitude",
-            "description":"Target's latitude (m)"
+            "description":"Latitude (m)"
         },
         "height": {
             "key":"Height",
-            "description":"Target's height (m)"
+            "description":"Height (m)"
         },
         "snr": {
             "key":"SNR",
-            "description":"Target's signal to noise ratio (dB)"
+            "description":"SNR (dB)"
         }
     },
     "picker": {
         "look_type": {
             "key":"LookName",
-            "description":"Frame's look type"
+            "description":"Look type"
         }
+    },
+    "graph_2d_left":{
+        "default_x": "Range",
+        "default_y": "Azimuth",
+        "default_color": "Frame"
+    },
+    "graph_2d_right":{
+        "default_x": "Range",
+        "default_y": "Elevation",
+        "default_color": "Frame"
     }
 }
