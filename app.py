@@ -16,7 +16,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz import get_2d_scatter, get_figure_data, get_figure_layout
+from viz import get_2d_scatter, get_figure_data, get_figure_layout, get_host_data
 
 app = dash.Dash(__name__,
                 meta_tags=[{
@@ -470,6 +470,11 @@ def update_filter(*args):
                         **ui_config['filter'], **ui_config['picker']},
                     c_range=layout_params['c_range'],
                     db=layout_params['db']
+                ),
+                    get_host_data(
+                    det_list=filterd_frame,
+                    x_key='VehLat',
+                    y_key='VehLong',
                 )],
                 layout=get_figure_layout(
                     x_range=layout_params['x_range'],
@@ -517,6 +522,11 @@ def update_filter(*args):
                         **ui_config['filter'], **ui_config['picker']},
                     c_range=layout_params['c_range'],
                     db=layout_params['db']
+                ),
+                    get_host_data(
+                    det_list=filterd_frame,
+                    x_key='VehLat',
+                    y_key='VehLong',
                 )],
                 layout=get_figure_layout(
                     x_range=layout_params['x_range'],
@@ -772,6 +782,11 @@ class Filtering(Thread):
                                     },
                                     c_range=layout_params['c_range'],
                                     db=layout_params['db']
+                                ),
+                                get_host_data(
+                                    det_list=filtered_list,
+                                    x_key='VehLat',
+                                    y_key='VehLong',
                                 )
                             ],
                             layout=get_figure_layout(

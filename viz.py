@@ -77,6 +77,32 @@ def get_figure_data(det_list,
                 'x': [], 'y': [], 'z': []}
 
 
+def get_host_data(det_list,
+                  x_key,
+                  y_key,
+                  name='Host'):
+
+    if det_list.shape[0] > 0:
+
+        vel_map = dict(
+            type='scatter3d',
+            x=[det_list[x_key][0]],
+            y=[det_list[y_key][0]],
+            z=[0],
+            hovertemplate='Lateral: %{x:.2f} m<br>' +
+            'Longitudinal: %{y:.2f} m<br>',
+            mode='markers',
+            name=name,
+            marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
+                        symbol='circle')
+        )
+
+        return vel_map
+    else:
+        return {'mode': 'markers', 'type': 'scatter3d',
+                'x': [], 'y': [], 'z': []}
+
+
 def get_figure_layout(
     x_range,
     y_range,
@@ -117,7 +143,7 @@ def get_figure_layout(
 #                c_range=[-30, 30],
 #                db=False,
 #                height=650):
-    
+
 #     data = get_figure_data(
 #         det_list=det_list,
 #         x_key='Latitude',
