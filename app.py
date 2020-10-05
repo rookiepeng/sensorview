@@ -16,7 +16,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz import get_figure, get_2d_scatter
+from viz import get_2d_scatter, get_figure_data, get_figure_layout
 
 app = dash.Dash(__name__,
                 meta_tags=[{
@@ -165,7 +165,7 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.Label('Test Cases'),
+            html.H6('Test Case'),
             dcc.Dropdown(
                 id='test_case_picker',
                 options=[{'label': i, 'value': i} for i in test_cases],
@@ -174,7 +174,7 @@ app.layout = html.Div([
         ], className="pretty_container six column"),
 
         html.Div([
-            html.Label('Data Files'),
+            html.H6('Data File'),
             dcc.Dropdown(
                 id='data_file_picker',
                 options=[{'label': i, 'value': i} for i in data_files],
@@ -186,6 +186,7 @@ app.layout = html.Div([
     html.Div([
 
         html.Div([
+            html.H6('Filter'),
             html.Label('Color assignment'),
             dcc.Dropdown(
                 id='color_assign_picker',
@@ -213,6 +214,23 @@ app.layout = html.Div([
         # html.Div([
 
         html.Div([
+
+            html.Div([
+                html.Div([
+                    html.H6('3D View'),
+                ], className="ten columns"),
+                html.Div([
+                    dcc.Dropdown(
+                        id='color_main',
+                        options=[{
+                            'label': ui_config['filter'][f_item]['description'],
+                            'value': f_item
+                        }
+                            for idx, f_item in enumerate(ui_config['filter'])],
+                        value=ui_config['graph_2d_left']['default_color']
+                    ),
+                ], className="two columns"),
+            ], className="row flex-display"),
             dcc.Graph(
                 id='det_grid',
                 config={
@@ -439,13 +457,25 @@ def update_filter(*args):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, key_values[filter_idx])
 
-            return get_figure(filterd_frame,
-                              layout_params['x_range'],
-                              layout_params['y_range'],
-                              layout_params['z_range'],
-                              layout_params['color_assign'],
-                              layout_params['c_range'],
-                              layout_params['db'])
+            return dict(
+                data=[get_figure_data(
+                    det_list=filterd_frame,
+                    x_key='Latitude',
+                    y_key='Longitude',
+                    z_key='Height',
+                    color_key=layout_params['color_assign'],
+                    color_label=None,
+                    name=None,
+                    hover_dict={
+                        **ui_config['filter'], **ui_config['picker']},
+                    c_range=layout_params['c_range'],
+                    db=layout_params['db']
+                )],
+                layout=get_figure_layout(
+                    x_range=layout_params['x_range'],
+                    y_range=layout_params['y_range'],
+                    z_range=layout_params['z_range'])
+            )
     else:
         if None not in args[0:len(ctx.inputs_list)]:
             key_values = args[1:(len(ctx.inputs_list)-1)]
@@ -474,13 +504,25 @@ def update_filter(*args):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, key_values[filter_idx])
 
-            return get_figure(filterd_frame,
-                              layout_params['x_range'],
-                              layout_params['y_range'],
-                              layout_params['z_range'],
-                              layout_params['color_assign'],
-                              layout_params['c_range'],
-                              layout_params['db'])
+            return dict(
+                data=[get_figure_data(
+                    det_list=filterd_frame,
+                    x_key='Latitude',
+                    y_key='Longitude',
+                    z_key='Height',
+                    color_key=layout_params['color_assign'],
+                    color_label=None,
+                    name=None,
+                    hover_dict={
+                        **ui_config['filter'], **ui_config['picker']},
+                    c_range=layout_params['c_range'],
+                    db=layout_params['db']
+                )],
+                layout=get_figure_layout(
+                    x_range=layout_params['x_range'],
+                    y_range=layout_params['y_range'],
+                    z_range=layout_params['z_range'])
+            )
         else:
             return args[-2]
 
@@ -688,6 +730,8 @@ class Filtering(Thread):
         global layout_params
         global filter_done
 
+        global ui_config
+
         while True:
             if filter_trigger:
                 filter_done = False
@@ -712,13 +756,30 @@ class Filtering(Thread):
                         filtered_det['Frame'] == frame_idx
                     ]
                     filtered_list = filtered_list.reset_index()
-                    fig_list.append(get_figure(filtered_list,
-                                               layout_params['x_range'],
-                                               layout_params['y_range'],
-                                               layout_params['z_range'],
-                                               layout_params['color_assign'],
-                                               layout_params['c_range'],
-                                               layout_params['db']))
+                    fig_list.append(
+                        dict(
+                            data=[
+                                get_figure_data(
+                                    det_list=filtered_list,
+                                    x_key='Latitude',
+                                    y_key='Longitude',
+                                    z_key='Height',
+                                    color_key=layout_params['color_assign'],
+                                    name=None,
+                                    hover_dict={
+                                        **ui_config['filter'],
+                                        **ui_config['picker']
+                                    },
+                                    c_range=layout_params['c_range'],
+                                    db=layout_params['db']
+                                )
+                            ],
+                            layout=get_figure_layout(
+                                x_range=layout_params['x_range'],
+                                y_range=layout_params['y_range'],
+                                z_range=layout_params['z_range'])
+                        )
+                    )
                     if filter_trigger:
                         is_skipped = True
                         break

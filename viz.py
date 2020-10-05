@@ -5,76 +5,76 @@ import plotly.io as pio
 
 
 def get_figure_data(det_list,
-                    color_assign='Speed',
+                    x_key,
+                    y_key,
+                    z_key,
+                    color_key,
+                    color_label=None,
+                    name=None,
+                    hover_dict=None,
                     c_range=[-30, 30],
-                    db=False, colormap='Rainbow'):
+                    db=False,
+                    colormap='Rainbow',):
+
     if det_list.shape[0] > 0:
-        color = det_list[color_assign]
+        color = det_list[color_key]
         if db:
             color = 20*np.log10(color)
 
-        frame_list = det_list['Frame']
+        rows = len(det_list.index)
 
-        hover = np.zeros_like(frame_list, dtype=object)
-        hover = 'Frame: ' +\
-            det_list['Frame'].map('{:,.0f}'.format) +\
-                '<br>Amp: ' +\
-            det_list['Amplitude'].map('{:,.2f}'.format) +\
-                ' dB<br>RCS: ' +\
-            det_list['RCS'].map('{:,.2f}'.format) +\
-                ' dB<br>SNR: ' +\
-            det_list['SNR'].map('{:,.2f}'.format) +\
-                ' dB<br>Az: ' +\
-            det_list['Azimuth'].map('{:,.2f}'.format) +\
-                ' deg<br>El: ' +\
-            det_list['Elevation'].map('{:,.2f}'.format) +\
-                ' deg<br>Range: ' +\
-            det_list['Range'].map('{:,.2f}'.format) +\
-                ' m<br>Speed: ' +\
-            det_list['Speed'].map('{:,.2f}'.format) +\
-                ' m/s<br>LookType: ' +\
-            det_list['LookName']+'<br>'
+        hover = np.full(rows, '', dtype=object)
+
+        for idx, key in enumerate(hover_dict):
+            if "format" in hover_dict[key]:
+                hover = hover + hover_dict[key]['description'] + ': ' + \
+                    det_list[hover_dict[key]['key']].map(
+                        hover_dict[key]['format'].format)+'<br>'
+            else:
+                hover = hover + hover_dict[key]['description'] + \
+                    ': ' + det_list[hover_dict[key]['key']]+'<br>'
 
         det_map = dict(
             type='scatter3d',
-            x=det_list['Latitude'],
-            y=det_list['Longitude'],
-            z=det_list['Height'],
+            x=det_list[x_key],
+            y=det_list[y_key],
+            z=det_list[z_key],
             text=hover,
-            hovertemplate='%{text}'+'Lateral: %{x:.2f} m<br>' +
-            'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
+            hovertemplate='%{text}',
+            # +'Lateral: %{x:.2f} m<br>' +
+            # 'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
             mode='markers',
-            name='Frame: '+str(int(frame_list[0])),
+            name=name,
             marker=dict(
                 size=3,
                 color=color,
                 colorscale=colormap,
                 opacity=0.8,
                 colorbar=dict(
-                    title=color_assign,
+                    title=color_label,
                 ),
                 cmin=c_range[0],
                 cmax=c_range[1],
             ),
         )
 
-        vel_map = dict(
-            type='scatter3d',
-            x=[det_list['VehLat'][0]],
-            y=[det_list['VehLong'][0]],
-            z=[0],
-            hovertemplate='Lateral: %{x:.2f} m<br>' +
-            'Longitudinal: %{y:.2f} m<br>',
-            mode='markers',
-            name='Vehicle',
-            marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
-                        symbol='circle')
-        )
+        # vel_map = dict(
+        #     type='scatter3d',
+        #     x=[det_list['VehLat'][0]],
+        #     y=[det_list['VehLong'][0]],
+        #     z=[0],
+        #     hovertemplate='Lateral: %{x:.2f} m<br>' +
+        #     'Longitudinal: %{y:.2f} m<br>',
+        #     mode='markers',
+        #     name='Vehicle',
+        #     marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
+        #                 symbol='circle')
+        # )
 
-        return [det_map, vel_map]
+        return det_map
     else:
-        return [{'mode': 'markers', 'type': 'scatter3d',
-                 'x': [], 'y': [], 'z': []}]
+        return {'mode': 'markers', 'type': 'scatter3d',
+                'x': [], 'y': [], 'z': []}
 
 
 def get_figure_layout(
@@ -109,24 +109,77 @@ def get_figure_layout(
     )
 
 
-def get_figure(det_list,
-               x_range,
-               y_range,
-               z_range=[-20, 20],
-               color_assign='Speed',
-               c_range=[-30, 30],
-               db=False,
-               height=650):
-    data = get_figure_data(
-        det_list=det_list,
-        color_assign=color_assign,
-        c_range=c_range,
-        db=db
-    )
-    layout = get_figure_layout(
-        x_range=x_range, y_range=y_range, z_range=z_range, height=height)
+# def get_figure(det_list,
+#                x_range,
+#                y_range,
+#                z_range=[-20, 20],
+#                color_key='Speed',
+#                c_range=[-30, 30],
+#                db=False,
+#                height=650):
+    
+#     data = get_figure_data(
+#         det_list=det_list,
+#         x_key='Latitude',
+#         y_key='Longitude',
+#         z_key='Height',
+#         color_key=color_key,
+#         color_label=None,
+#         name=None,
+#         hover_dict={
+#             "frame": {
+#                 "key": "Frame",
+#                 "description": "Frame",
+#                 "format": "{:,.0f}"
+#             },
+#             "range": {
+#                 "key": "Range",
+#                 "description": "Range (m)",
+#                 "format": "{:,.2f}"
+#             },
+#             "speed": {
+#                 "key": "Speed",
+#                 "description": "Range rate (m/s)",
+#                 "format": "{:,.2f}"
+#             },
+#             "azimuth": {
+#                 "key": "Azimuth",
+#                 "description": "Azimuth (deg)",
+#                 "format": "{:,.2f}"
+#             },
+#             "elevation": {
+#                 "key": "Elevation",
+#                 "description": "Elevation (deg)",
+#                 "format": "{:,.2f}"
+#             },
+#             "longitude": {
+#                 "key": "Longitude",
+#                 "description": "Longitude (m)",
+#                 "format": "{:,.2f}"
+#             },
+#             "latitude": {
+#                 "key": "Latitude",
+#                 "description": "Latitude (m)",
+#                 "format": "{:,.2f}"
+#             },
+#             "height": {
+#                 "key": "Height",
+#                 "description": "Height (m)",
+#                 "format": "{:,.2f}"
+#             },
+#             "snr": {
+#                 "key": "SNR",
+#                 "description": "SNR (dB)",
+#                 "format": "{:,.2f}"
+#             }
+#         },
+#         c_range=c_range,
+#         db=db
+#     )
+#     layout = get_figure_layout(
+#         x_range=x_range, y_range=y_range, z_range=z_range, height=height)
 
-    return dict(data=data, layout=layout)
+#     return dict(data=[data], layout=layout)
 
 
 def get_2d_scatter(det_list,
@@ -185,7 +238,7 @@ def frame_args(duration):
 
 
 def get_animation_data(det_list,
-                       color_assign='Speed',
+                       color_key='Speed',
                        db=False,
                        colormap='Rainbow',
                        title=None,
@@ -201,9 +254,9 @@ def get_animation_data(det_list,
                        np.max(det_list['VehLong'])])]
     z_range = [np.min(det_list['Height']),
                np.max(det_list['Height'])]
-    # layout_params['color_assign'] = color_assign
-    c_range = [np.min(det_list[color_assign]),
-               np.max(det_list[color_assign])]
+    # layout_params['color_key'] = color_key
+    c_range = [np.min(det_list[color_key]),
+               np.max(det_list[color_key])]
 
     ani_frames = []
     frame_list = det_list['Frame'].unique()
@@ -216,7 +269,7 @@ def get_animation_data(det_list,
             dict(
                 data=get_figure_data(
                     filtered_list,
-                    color_assign=color_assign,
+                    color_key=color_key,
                     c_range=c_range,
                     db=db, colormap=colormap
                 ),
