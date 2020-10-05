@@ -33,10 +33,10 @@ with open("ui.json", "r") as read_file:
 
 def gen_rangesliders(ui_config):
     s_list = []
-    for idx, s_item in enumerate(ui_config['filter']):
+    for idx, s_item in enumerate(ui_config['numerical']):
         s_list.append(
             html.Div(id=s_item+'_value',
-                     children=ui_config['filter'][s_item]['description']))
+                     children=ui_config['numerical'][s_item]['description']))
         s_list.append(dcc.RangeSlider(
             id=s_item+'_filter',
             count=1,
@@ -51,8 +51,8 @@ def gen_rangesliders(ui_config):
 
 def gen_dropdowns(ui_config):
     d_list = []
-    for idx, d_item in enumerate(ui_config['picker']):
-        d_list.append(html.Label(ui_config['picker'][d_item]['description']))
+    for idx, d_item in enumerate(ui_config['categorical']):
+        d_list.append(html.Label(ui_config['categorical'][d_item]['description']))
         d_list.append(dcc.Dropdown(
             id=d_item+'_picker',
             multi=True
@@ -76,7 +76,7 @@ key_values = []
 
 picker_callback = []
 picker_input = []
-for idx, d_item in enumerate(ui_config['picker']):
+for idx, d_item in enumerate(ui_config['categorical']):
     picker_callback.append(
         dash.dependencies.Output(d_item+'_picker', 'options')
     )
@@ -86,13 +86,13 @@ for idx, d_item in enumerate(ui_config['picker']):
     picker_input.append(
         dash.dependencies.Input(d_item+'_picker', 'value')
     )
-    key_list.append(ui_config['picker'][d_item]['key'])
+    key_list.append(ui_config['categorical'][d_item]['key'])
     key_values.append([])
 
 
 filter_callback = []
 filter_input = []
-for idx, s_item in enumerate(ui_config['filter']):
+for idx, s_item in enumerate(ui_config['numerical']):
     filter_callback.append(
         dash.dependencies.Output(s_item+'_filter', 'min')
     )
@@ -106,7 +106,7 @@ for idx, s_item in enumerate(ui_config['filter']):
         dash.dependencies.Input(s_item+'_filter', 'value')
     )
 
-    key_list.append(ui_config['filter'][s_item]['key'])
+    key_list.append(ui_config['numerical'][s_item]['key'])
     key_values.append([0, 0])
 
 
@@ -135,7 +135,12 @@ layout_params = {
     'y_range': [0, 0],
     'z_range': [0, 0],
     'c_range': [0, 0],
-    'color_assign': 'Speed',
+    'color_key': ui_config['numerical'][
+        ui_config['graph_3d_detections']['default_color']
+    ]['key'],
+    'color_label': ui_config['numerical'][
+        ui_config['graph_3d_detections']['default_color']
+    ]['description'],
     'db': False,
 }
 
@@ -187,17 +192,6 @@ app.layout = html.Div([
 
         html.Div([
             html.H6('Filter'),
-            html.Label('Color assignment'),
-            dcc.Dropdown(
-                id='color_assign_picker',
-                options=[
-                    {'label': 'Speed', 'value': 'Speed'},
-                    {'label': 'RCS', 'value': 'RCS'},
-                    {'label': 'SNR', 'value': 'SNR'}
-                ],
-                value='Speed'
-            ),
-            html.Br(),
 
             html.Div(
                 gen_dropdowns(ui_config)
@@ -223,11 +217,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_main',
                         options=[{
-                            'label': ui_config['filter'][f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['filter'])],
-                        value=ui_config['graph_2d_left']['default_color']
+                            for idx, f_item in enumerate(ui_config['numerical'])],
+                        value=ui_config['graph_3d_detections']['default_color']
                     ),
                 ], className="two columns"),
             ], className="row flex-display"),
@@ -279,10 +273,10 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_left',
                         options=[{
-                            'label': ui_config['filter'][f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['filter'])],
+                            for idx, f_item in enumerate(ui_config['numerical'])],
                         value=ui_config['graph_2d_left']['default_x']
                     ),
                 ], className="one-third column"),
@@ -291,10 +285,10 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_left',
                         options=[{
-                            'label': ui_config['filter'][f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['filter'])],
+                            for idx, f_item in enumerate(ui_config['numerical'])],
                         value=ui_config['graph_2d_left']['default_y']
                     ),
                 ], className="one-third column"),
@@ -303,10 +297,10 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_left',
                         options=[{
-                            'label': ui_config['filter'][f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['filter'])],
+                            for idx, f_item in enumerate(ui_config['numerical'])],
                         value=ui_config['graph_2d_left']['default_color']
                     ),
                 ], className="one-third column"),
@@ -334,10 +328,10 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_right',
                         options=[{
-                            'label': ui_config['filter'][f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['filter'])],
+                            for idx, f_item in enumerate(ui_config['numerical'])],
                         value=ui_config['graph_2d_right']['default_x']
                     ),
                 ], className="one-third column"),
@@ -346,10 +340,10 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_right',
                         options=[{
-                            'label': ui_config['filter'][f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['filter'])],
+                            for idx, f_item in enumerate(ui_config['numerical'])],
                         value=ui_config['graph_2d_right']['default_y']
                     ),
                 ], className="one-third column"),
@@ -358,10 +352,10 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_right',
                         options=[{
-                            'label': ui_config['filter'][f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['filter'])],
+                            for idx, f_item in enumerate(ui_config['numerical'])],
                         value=ui_config['graph_2d_right']['default_color']
                     ),
                 ], className="one-third column"),
@@ -424,13 +418,7 @@ def filter_data(data_frame, name, value):
 @app.callback(
     dash.dependencies.Output('det_grid', 'figure'),
     slider_input + picker_input + filter_input+[
-        dash.dependencies.Input('x_left', 'value'),
-        dash.dependencies.Input('y_left', 'value'),
-        dash.dependencies.Input('color_left', 'value'),
-        dash.dependencies.Input('x_right', 'value'),
-        dash.dependencies.Input('y_right', 'value'),
-        dash.dependencies.Input('color_right', 'value'),
-        dash.dependencies.Input('color_assign_picker', 'value'),
+        dash.dependencies.Input('color_main', 'value'),
     ],
     [
         dash.dependencies.State('det_grid', 'figure'),
@@ -463,11 +451,11 @@ def update_filter(*args):
                     x_key='Latitude',
                     y_key='Longitude',
                     z_key='Height',
-                    color_key=layout_params['color_assign'],
-                    color_label=None,
+                    color_key=layout_params['color_key'],
+                    color_label=layout_params['color_label'],
                     name=None,
                     hover_dict={
-                        **ui_config['filter'], **ui_config['picker']},
+                        **ui_config['numerical'], **ui_config['categorical']},
                     c_range=layout_params['c_range'],
                     db=layout_params['db']
                 ),
@@ -494,10 +482,11 @@ def update_filter(*args):
                                                 np.max(det_list['VehLong'])])]
             layout_params['z_range'] = [np.min(det_list['Height']),
                                         np.max(det_list['Height'])]
-            layout_params['color_assign'] = args[len(ctx.inputs_list)-1]
+            layout_params['color_key'] = ui_config['numerical'][args[-3]]['key']
+            layout_params['color_label'] = ui_config['numerical'][args[-3]]['description']
             layout_params['c_range'] = [
-                np.min(det_list[args[len(ctx.inputs_list)-1]]),
-                np.max(det_list[args[len(ctx.inputs_list)-1]])
+                np.min(det_list[ui_config['numerical'][args[-3]]['key']]),
+                np.max(det_list[ui_config['numerical'][args[-3]]['key']])
             ]
 
             filter_trigger = True
@@ -515,11 +504,11 @@ def update_filter(*args):
                     x_key='Latitude',
                     y_key='Longitude',
                     z_key='Height',
-                    color_key=layout_params['color_assign'],
-                    color_label=None,
+                    color_key=layout_params['color_key'],
+                    color_label=layout_params['color_label'],
                     name=None,
                     hover_dict={
-                        **ui_config['filter'], **ui_config['picker']},
+                        **ui_config['numerical'], **ui_config['categorical']},
                     c_range=layout_params['c_range'],
                     db=layout_params['db']
                 ),
@@ -579,29 +568,29 @@ def update_2d_graphs(*args):
             return [
                 get_2d_scatter(
                     filtered_det,
-                    ui_config['filter'][ctx.inputs['x_left.value']]['key'],
-                    ui_config['filter'][ctx.inputs['y_left.value']]['key'],
-                    ui_config['filter'][ctx.inputs['color_left.value']]['key'],
-                    ui_config['filter'][ctx.inputs['x_left.value']
+                    ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
+                    ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
+                    ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
+                    ui_config['numerical'][ctx.inputs['x_left.value']
                                         ]['description'],
-                    ui_config['filter'][ctx.inputs['y_left.value']
+                    ui_config['numerical'][ctx.inputs['y_left.value']
                                         ]['description'],
-                    ui_config['filter'][ctx.inputs['color_left.value']
+                    ui_config['numerical'][ctx.inputs['color_left.value']
                                         ]['description']
                 ),
                 get_2d_scatter(
                     filtered_det,
-                    ui_config['filter'][
+                    ui_config['numerical'][
                         ctx.inputs['x_right.value']]['key'],
-                    ui_config['filter'][
+                    ui_config['numerical'][
                         ctx.inputs['y_right.value']]['key'],
-                    ui_config['filter'][
+                    ui_config['numerical'][
                         ctx.inputs['color_right.value']]['key'],
-                    ui_config['filter'][
+                    ui_config['numerical'][
                         ctx.inputs['x_right.value']]['description'],
-                    ui_config['filter'][
+                    ui_config['numerical'][
                         ctx.inputs['y_right.value']]['description'],
-                    ui_config['filter'][
+                    ui_config['numerical'][
                         ctx.inputs['color_right.value']]['description']
                 ),
                 True
@@ -613,27 +602,27 @@ def update_2d_graphs(*args):
         return [
             get_2d_scatter(
                 filtered_det,
-                ui_config['filter'][ctx.inputs['x_left.value']]['key'],
-                ui_config['filter'][ctx.inputs['y_left.value']]['key'],
-                ui_config['filter'][ctx.inputs['color_left.value']]['key'],
-                ui_config['filter'][ctx.inputs['x_left.value']]['description'],
-                ui_config['filter'][ctx.inputs['y_left.value']]['description'],
-                ui_config['filter'][ctx.inputs['color_left.value']
+                ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
+                ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
+                ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
+                ui_config['numerical'][ctx.inputs['x_left.value']]['description'],
+                ui_config['numerical'][ctx.inputs['y_left.value']]['description'],
+                ui_config['numerical'][ctx.inputs['color_left.value']
                                     ]['description']
             ),
             get_2d_scatter(
                 filtered_det,
-                ui_config['filter'][
+                ui_config['numerical'][
                     ctx.inputs['x_right.value']]['key'],
-                ui_config['filter'][
+                ui_config['numerical'][
                     ctx.inputs['y_right.value']]['key'],
-                ui_config['filter'][
+                ui_config['numerical'][
                     ctx.inputs['color_right.value']]['key'],
-                ui_config['filter'][
+                ui_config['numerical'][
                     ctx.inputs['x_right.value']]['description'],
-                ui_config['filter'][
+                ui_config['numerical'][
                     ctx.inputs['y_right.value']]['description'],
-                ui_config['filter'][
+                ui_config['numerical'][
                     ctx.inputs['color_right.value']]['description']
             ),
             True
@@ -679,15 +668,15 @@ def update_data_file(data_file_name, test_case):
         layout_params['z_range'] = [np.min(det_list['Height']),
                                     np.max(det_list['Height'])]
         layout_params['c_range'] = [
-            np.min(det_list[layout_params['color_assign']]),
-            np.max(det_list[layout_params['color_assign']])
+            np.min(det_list[layout_params['color_key']]),
+            np.max(det_list[layout_params['color_key']])
         ]
 
         det_frames = []
-        frame_list = det_list[ui_config['slider']].unique()
+        frame_list = det_list[ui_config['numerical'][ui_config['slider']]['key']].unique()
         for frame_idx in frame_list:
             filtered_list = det_list[
-                det_list[ui_config['slider']] == frame_idx
+                det_list[ui_config['numerical'][ui_config['slider']]['key']] == frame_idx
             ]
             filtered_list = filtered_list.reset_index()
             det_frames.append(filtered_list)
@@ -695,8 +684,8 @@ def update_data_file(data_file_name, test_case):
         output = [0, len(det_frames)-1, 0]
 
         key_values = []
-        for idx, d_item in enumerate(ui_config['picker']):
-            var_list = det_list[ui_config['picker'][d_item]['key']].unique()
+        for idx, d_item in enumerate(ui_config['categorical']):
+            var_list = det_list[ui_config['categorical'][d_item]['key']].unique()
             key_values.append(var_list)
 
             options = []
@@ -707,11 +696,11 @@ def update_data_file(data_file_name, test_case):
             output.append(options)
             output.append(selection)
 
-        for idx, s_item in enumerate(ui_config['filter']):
+        for idx, s_item in enumerate(ui_config['numerical']):
             var_min = round(
-                np.min(det_list[ui_config['filter'][s_item]['key']]), 1)
+                np.min(det_list[ui_config['numerical'][s_item]['key']]), 1)
             var_max = round(
-                np.max(det_list[ui_config['filter'][s_item]['key']]), 1)
+                np.max(det_list[ui_config['numerical'][s_item]['key']]), 1)
 
             output.append(var_min)
             output.append(var_max)
@@ -774,11 +763,12 @@ class Filtering(Thread):
                                     x_key='Latitude',
                                     y_key='Longitude',
                                     z_key='Height',
-                                    color_key=layout_params['color_assign'],
-                                    name=None,
+                                    color_key=layout_params['color_key'],
+                                    color_label=layout_params['color_label'],
+                                    name=ui_config['numerical'][ui_config['slider']]['description']+': '+str(filtered_list[ui_config['numerical'][ui_config['slider']]['key']][0]),
                                     hover_dict={
-                                        **ui_config['filter'],
-                                        **ui_config['picker']
+                                        **ui_config['numerical'],
+                                        **ui_config['categorical']
                                     },
                                     c_range=layout_params['c_range'],
                                     db=layout_params['db']

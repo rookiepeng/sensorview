@@ -1,16 +1,5 @@
 {
-    "slider":"Frame",
-    "host":{
-        "longitude":{
-            "key":"HostLongitude",
-            "description":"Range (m)"
-        },
-        "latitude":{
-            "key":"HostLatitude",
-            "description":"Range (m)"
-        }
-    },
-    "filter": {
+    "numerical": {
         "frame":{
             "key":"Frame",
             "description":"Frame",
@@ -57,17 +46,28 @@
             "format": "{:,.2f}"
         }
     },
-    "picker": {
+    "categorical": {
         "look_type": {
             "key":"LookName",
             "description":"Look type"
         }
     },
+    "host":{
+        "longitude":{
+            "key":"VehLong",
+            "description":"Range (m)"
+        },
+        "latitude":{
+            "key":"VehLat",
+            "description":"Range (m)"
+        }
+    },
+    "slider":"frame",
     "graph_3d_detections":{
         "default_x": "latitude",
         "default_y": "longitude",
         "default_z": "height",
-        "default_color": "speed"
+        "default_color": "snr"
     },
     "graph_3d_host":{
         "default_x": "latitude",
