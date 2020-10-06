@@ -10,8 +10,8 @@
             "description":"Range (m)",
             "format": "{:,.2f}"
         },
-        "speed":{
-            "key":"Speed",
+        "range_rate":{
+            "key":"RangeRate",
             "description":"Range rate (m/s)",
             "format": "{:,.2f}"
         },
@@ -48,17 +48,18 @@
     },
     "categorical": {
         "look_type": {
-            "key":"LookName",
-            "description":"Look type"
+            "key":"LookType",
+            "description":"Look type",
+            "format": "{:,.0f}"
         }
     },
     "host":{
         "longitude":{
-            "key":"VehLong",
+            "key":"HostLongitude",
             "description":"Range (m)"
         },
         "latitude":{
-            "key":"VehLat",
+            "key":"HostLatitude",
             "description":"Range (m)"
         }
     },

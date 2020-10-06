@@ -5,6 +5,7 @@ import json
 import os
 
 import dash
+import dash_daq as daq
 from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
@@ -52,7 +53,8 @@ def gen_rangesliders(ui_config):
 def gen_dropdowns(ui_config):
     d_list = []
     for idx, d_item in enumerate(ui_config['categorical']):
-        d_list.append(html.Label(ui_config['categorical'][d_item]['description']))
+        d_list.append(html.Label(
+            ui_config['categorical'][d_item]['description']))
         d_list.append(dcc.Dropdown(
             id=d_item+'_picker',
             multi=True
@@ -71,6 +73,9 @@ slider_input = [
     dash.dependencies.Input('slider', 'value')
 ]
 
+
+categorical_key_list = []
+numerical_key_list = []
 key_list = []
 key_values = []
 
@@ -88,6 +93,8 @@ for idx, d_item in enumerate(ui_config['categorical']):
     )
     key_list.append(ui_config['categorical'][d_item]['key'])
     key_values.append([])
+
+    categorical_key_list.append(ui_config['categorical'][d_item]['key'])
 
 
 filter_callback = []
@@ -108,6 +115,8 @@ for idx, s_item in enumerate(ui_config['numerical']):
 
     key_list.append(ui_config['numerical'][s_item]['key'])
     key_values.append([0, 0])
+
+    numerical_key_list.append(ui_config['numerical'][s_item]['key'])
 
 
 test_cases = []
@@ -265,8 +274,11 @@ app.layout = html.Div([
     ),
 
     html.Div([
-
         html.Div([
+            daq.BooleanSwitch(
+                id='left-switch',
+                on=False
+            ),
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
@@ -319,9 +331,24 @@ app.layout = html.Div([
                     }
                 },
             ),
+
+            html.Div([
+                html.Div([
+                ], className="ten columns"),
+                html.Div([
+                    html.Button('Export', id='export_left', n_clicks=0),
+                    html.Div(id="hidden_export_left",
+                             style={"display": "none"}),
+                ], className="two columns"),
+            ], className="row flex-display"),
+
         ], className="pretty_container six columns"),
 
         html.Div([
+            daq.BooleanSwitch(
+                id='right-switch',
+                on=False
+            ),
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
@@ -374,6 +401,16 @@ app.layout = html.Div([
                     }
                 },
             ),
+
+            html.Div([
+                html.Div([
+                ], className="ten columns"),
+                html.Div([
+                    html.Button('Export', id='export_right', n_clicks=0),
+                    html.Div(id="hidden_export_right",
+                             style={"display": "none"}),
+                ], className="two columns"),
+            ], className="row flex-display"),
         ], className="pretty_container six columns"),
     ], className="row flex-display"),
 
@@ -404,7 +441,7 @@ def update_test_case(test_case):
 
 
 def filter_data(data_frame, name, value):
-    if name in ['LookName', 'AFType', 'AzConf', 'ElConf']:
+    if name in ['LookType', 'AFType', 'AzConf', 'ElConf']:
         return data_frame[pd.DataFrame(
             data_frame[name].tolist()
         ).isin(value).any(1)].reset_index(drop=True)
@@ -429,6 +466,9 @@ def update_filter(*args):
     global det_frames
     global fig_list_ready
     global filter_trigger
+
+    global numerical_key_list
+    global categorical_key_list
     global key_list
     global key_values
     global layout_params
@@ -436,11 +476,21 @@ def update_filter(*args):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    slider_arg = args[0]
+    categorical_args = args[1:(1+len(categorical_key_list))]
+    numerical_args = args[
+        (1+len(categorical_key_list)):
+        (1+len(categorical_key_list)+len(numerical_key_list))]
+    color_key = ui_config['numerical'][
+        args[1 + len(categorical_key_list)+len(numerical_key_list)]]['key']
+    color_label = ui_config['numerical'][
+        args[1 + len(categorical_key_list)+len(numerical_key_list)]]['description']
+
     if trigger_id == 'slider':
         if fig_list_ready:
-            return fig_list[args[0]]
+            return fig_list[slider_arg]
         else:
-            filterd_frame = det_frames[args[0]]
+            filterd_frame = det_frames[slider_arg]
             for filter_idx, filter_name in enumerate(key_list):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, key_values[filter_idx])
@@ -453,7 +503,10 @@ def update_filter(*args):
                     z_key='Height',
                     color_key=layout_params['color_key'],
                     color_label=layout_params['color_label'],
-                    name=None,
+                    name='Index: ' +
+                    str(slider_arg) + ' (' +
+                    ui_config['numerical'][ui_config['slider']
+                                           ]['description']+')',
                     hover_dict={
                         **ui_config['numerical'], **ui_config['categorical']},
                     c_range=layout_params['c_range'],
@@ -461,8 +514,8 @@ def update_filter(*args):
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key='VehLat',
-                    y_key='VehLong',
+                    x_key='HostLatitude',
+                    y_key='HostLongitude',
                 )],
                 layout=get_figure_layout(
                     x_range=layout_params['x_range'],
@@ -470,29 +523,29 @@ def update_filter(*args):
                     z_range=layout_params['z_range'])
             )
     else:
-        if None not in args[0:len(ctx.inputs_list)]:
-            key_values = args[1:(len(ctx.inputs_list)-1)]
+        if None not in categorical_args:
+            key_values = categorical_args+numerical_args
             layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
-                                                np.min(det_list['VehLat'])]),
+                                                np.min(det_list['HostLatitude'])]),
                                         np.max([np.max(det_list['Latitude']),
-                                                np.max(det_list['VehLat'])])]
+                                                np.max(det_list['HostLatitude'])])]
             layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
-                                                np.min(det_list['VehLong'])]),
+                                                np.min(det_list['HostLongitude'])]),
                                         np.max([np.max(det_list['Longitude']),
-                                                np.max(det_list['VehLong'])])]
+                                                np.max(det_list['HostLongitude'])])]
             layout_params['z_range'] = [np.min(det_list['Height']),
                                         np.max(det_list['Height'])]
-            layout_params['color_key'] = ui_config['numerical'][args[-3]]['key']
-            layout_params['color_label'] = ui_config['numerical'][args[-3]]['description']
+            layout_params['color_key'] = color_key
+            layout_params['color_label'] = color_label
             layout_params['c_range'] = [
-                np.min(det_list[ui_config['numerical'][args[-3]]['key']]),
-                np.max(det_list[ui_config['numerical'][args[-3]]['key']])
+                np.min(det_list[color_key]),
+                np.max(det_list[color_key])
             ]
 
             filter_trigger = True
             fig_list_ready = False
 
-            filterd_frame = det_frames[args[0]]
+            filterd_frame = det_frames[slider_arg]
 
             for filter_idx, filter_name in enumerate(key_list):
                 filterd_frame = filter_data(
@@ -506,7 +559,10 @@ def update_filter(*args):
                     z_key='Height',
                     color_key=layout_params['color_key'],
                     color_label=layout_params['color_label'],
-                    name=None,
+                    name='Index: ' +
+                    str(slider_arg) + ' (' +
+                    ui_config['numerical'][ui_config['slider']
+                                           ]['description']+')',
                     hover_dict={
                         **ui_config['numerical'], **ui_config['categorical']},
                     c_range=layout_params['c_range'],
@@ -514,8 +570,8 @@ def update_filter(*args):
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key='VehLat',
-                    y_key='VehLong',
+                    x_key='HostLatitude',
+                    y_key='HostLongitude',
                 )],
                 layout=get_figure_layout(
                     x_range=layout_params['x_range'],
@@ -533,15 +589,19 @@ def update_filter(*args):
         Output('interval', 'disabled')
     ],
     picker_input+filter_input+[
+        Input('left-switch', 'on'),
         dash.dependencies.Input('x_left', 'value'),
         dash.dependencies.Input('y_left', 'value'),
         dash.dependencies.Input('color_left', 'value'),
+        Input('right-switch', 'on'),
         dash.dependencies.Input('x_right', 'value'),
         dash.dependencies.Input('y_right', 'value'),
         dash.dependencies.Input('color_right', 'value'),
         Input('interval', 'n_intervals')
     ],
     [
+        State('left-switch', 'on'),
+        State('right-switch', 'on'),
         State('graph_2d_left', 'figure'),
         State('graph_2d_right', 'figure'),
     ]
@@ -563,22 +623,37 @@ def update_2d_graphs(*args):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if trigger_id == 'interval':
+    left_fig = args[-2]
+    right_fig = args[-1]
+    interval_flag = False
+
+    if trigger_id == 'interval' or trigger_id == 'left-switch' or trigger_id == 'right-switch':
         if filter_done:
-            return [
-                get_2d_scatter(
+
+            if args[-4]:
+                left_fig = get_2d_scatter(
                     filtered_det,
                     ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
                     ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
                     ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
                     ui_config['numerical'][ctx.inputs['x_left.value']
-                                        ]['description'],
+                                           ]['description'],
                     ui_config['numerical'][ctx.inputs['y_left.value']
-                                        ]['description'],
+                                           ]['description'],
                     ui_config['numerical'][ctx.inputs['color_left.value']
-                                        ]['description']
-                ),
-                get_2d_scatter(
+                                           ]['description']
+                )
+            else:
+                left_fig = {
+                    'data': [{'mode': 'markers', 'type': 'scatter',
+                                      'x': [], 'y': []}
+                             ],
+                    'layout': {
+                        'uirevision': 'no_change'
+                    }}
+
+            if args[-3]:
+                right_fig = get_2d_scatter(
                     filtered_det,
                     ui_config['numerical'][
                         ctx.inputs['x_right.value']]['key'],
@@ -592,47 +667,63 @@ def update_2d_graphs(*args):
                         ctx.inputs['y_right.value']]['description'],
                     ui_config['numerical'][
                         ctx.inputs['color_right.value']]['description']
-                ),
-                True
-            ]
+                )
+            else:
+                right_fig = {
+                    'data': [{'mode': 'markers', 'type': 'scatter',
+                                      'x': [], 'y': []}
+                             ],
+                    'layout': {
+                        'uirevision': 'no_change'
+                    }}
+
+            interval_flag = True
+
+            # return [
+            #     left_fig,
+            #     right_fig,
+            #     True
+            # ]
         else:
             raise PreventUpdate()
-    elif (trigger_id in ['x_left', 'y_left', 'color_left',
-                         'x_right', 'y_right', 'color_right']):
-        return [
-            get_2d_scatter(
-                filtered_det,
-                ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
-                ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
-                ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
-                ui_config['numerical'][ctx.inputs['x_left.value']]['description'],
-                ui_config['numerical'][ctx.inputs['y_left.value']]['description'],
-                ui_config['numerical'][ctx.inputs['color_left.value']
-                                    ]['description']
-            ),
-            get_2d_scatter(
-                filtered_det,
-                ui_config['numerical'][
-                    ctx.inputs['x_right.value']]['key'],
-                ui_config['numerical'][
-                    ctx.inputs['y_right.value']]['key'],
-                ui_config['numerical'][
-                    ctx.inputs['color_right.value']]['key'],
-                ui_config['numerical'][
-                    ctx.inputs['x_right.value']]['description'],
-                ui_config['numerical'][
-                    ctx.inputs['y_right.value']]['description'],
-                ui_config['numerical'][
-                    ctx.inputs['color_right.value']]['description']
-            ),
-            True
-        ]
-    else:
-        return [
-            args[-2],
-            args[-1],
-            False
-        ]
+    elif (trigger_id in ['x_left', 'y_left', 'color_left']) and args[-4]:
+        left_fig = get_2d_scatter(
+            filtered_det,
+            ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
+            ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
+            ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
+            ui_config['numerical'][ctx.inputs['x_left.value']
+                                   ]['description'],
+            ui_config['numerical'][ctx.inputs['y_left.value']
+                                   ]['description'],
+            ui_config['numerical'][ctx.inputs['color_left.value']
+                                   ]['description']
+        )
+        interval_flag = False
+
+    elif (trigger_id in ['x_right', 'y_right', 'color_right']) and args[-3]:
+        right_fig = get_2d_scatter(
+            filtered_det,
+            ui_config['numerical'][
+                ctx.inputs['x_right.value']]['key'],
+            ui_config['numerical'][
+                ctx.inputs['y_right.value']]['key'],
+            ui_config['numerical'][
+                ctx.inputs['color_right.value']]['key'],
+            ui_config['numerical'][
+                ctx.inputs['x_right.value']]['description'],
+            ui_config['numerical'][
+                ctx.inputs['y_right.value']]['description'],
+            ui_config['numerical'][
+                ctx.inputs['color_right.value']]['description']
+        )
+        interval_flag = False
+
+    return [
+        left_fig,
+        right_fig,
+        interval_flag
+    ]
 
 
 @app.callback(
@@ -658,13 +749,13 @@ def update_data_file(data_file_name, test_case):
         filtered_det = det_list
 
         layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
-                                            np.min(det_list['VehLat'])]),
+                                            np.min(det_list['HostLatitude'])]),
                                     np.max([np.max(det_list['Latitude']),
-                                            np.max(det_list['VehLat'])])]
+                                            np.max(det_list['HostLatitude'])])]
         layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
-                                            np.min(det_list['VehLong'])]),
+                                            np.min(det_list['HostLongitude'])]),
                                     np.max([np.max(det_list['Longitude']),
-                                            np.max(det_list['VehLong'])])]
+                                            np.max(det_list['HostLongitude'])])]
         layout_params['z_range'] = [np.min(det_list['Height']),
                                     np.max(det_list['Height'])]
         layout_params['c_range'] = [
@@ -673,10 +764,12 @@ def update_data_file(data_file_name, test_case):
         ]
 
         det_frames = []
-        frame_list = det_list[ui_config['numerical'][ui_config['slider']]['key']].unique()
+        frame_list = det_list[ui_config['numerical']
+                              [ui_config['slider']]['key']].unique()
         for frame_idx in frame_list:
             filtered_list = det_list[
-                det_list[ui_config['numerical'][ui_config['slider']]['key']] == frame_idx
+                det_list[ui_config['numerical']
+                         [ui_config['slider']]['key']] == frame_idx
             ]
             filtered_list = filtered_list.reset_index()
             det_frames.append(filtered_list)
@@ -685,7 +778,8 @@ def update_data_file(data_file_name, test_case):
 
         key_values = []
         for idx, d_item in enumerate(ui_config['categorical']):
-            var_list = det_list[ui_config['categorical'][d_item]['key']].unique()
+            var_list = det_list[ui_config['categorical']
+                                [d_item]['key']].unique()
             key_values.append(var_list)
 
             options = []
@@ -712,6 +806,28 @@ def update_data_file(data_file_name, test_case):
         filter_trigger = True
 
         return output
+
+
+@app.callback(
+    Output('hidden_export_left', 'children'),
+    Input('export_left', 'n_clicks'),
+    State('graph_2d_left', 'figure')
+)
+def export_left_fig(btn, fig):
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image("images/fig_left.png", scale=2)
+    return 0
+
+
+@app.callback(
+    Output('hidden_export_right', 'children'),
+    Input('export_right', 'n_clicks'),
+    State('graph_2d_right', 'figure')
+)
+def export_right_fig(btn, fig):
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image("images/fig_right.png", scale=2)
+    return 0
 
 
 class Filtering(Thread):
@@ -765,7 +881,10 @@ class Filtering(Thread):
                                     z_key='Height',
                                     color_key=layout_params['color_key'],
                                     color_label=layout_params['color_label'],
-                                    name=ui_config['numerical'][ui_config['slider']]['description']+': '+str(filtered_list[ui_config['numerical'][ui_config['slider']]['key']][0]),
+                                    name='Index: ' +
+                                    str(idx) + ' (' +
+                                    ui_config['numerical'][ui_config['slider']
+                                                           ]['description']+')',
                                     hover_dict={
                                         **ui_config['numerical'],
                                         **ui_config['categorical']
@@ -775,8 +894,8 @@ class Filtering(Thread):
                                 ),
                                 get_host_data(
                                     det_list=filtered_list,
-                                    x_key='VehLat',
-                                    y_key='VehLong',
+                                    x_key='HostLatitude',
+                                    y_key='HostLongitude',
                                 )
                             ],
                             layout=get_figure_layout(
