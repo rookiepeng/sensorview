@@ -139,6 +139,46 @@ fig_list_ready = False
 filter_trigger = False
 filter_done = False
 
+
+left_figure = {
+    'data': [{'mode': 'markers', 'type': 'scatter',
+              'x': [], 'y': []}
+             ],
+    'layout': {
+        'uirevision': 'no_change'
+    }}
+left_figure_keys = [ui_config['numerical'][ui_config['graph_2d_left']['default_x']]['key'],
+                    ui_config['numerical'][ui_config['graph_2d_left']
+                                           ['default_y']]['key'],
+                    ui_config['numerical'][ui_config['graph_2d_left']
+                                           ['default_color']]['key'],
+                    ui_config['numerical'][ui_config['graph_2d_left']['default_x']
+                                           ]['description'],
+                    ui_config['numerical'][ui_config['graph_2d_left']['default_y']
+                                           ]['description'],
+                    ui_config['numerical'][ui_config['graph_2d_left']['default_color']
+                                           ]['description']]
+right_figure = {
+    'data': [{'mode': 'markers', 'type': 'scatter',
+              'x': [], 'y': []}
+             ],
+    'layout': {
+        'uirevision': 'no_change'
+    }}
+right_figure_keys = [ui_config['numerical'][ui_config['graph_2d_right']['default_x']]['key'],
+                     ui_config['numerical'][ui_config['graph_2d_right']
+                                            ['default_y']]['key'],
+                     ui_config['numerical'][ui_config['graph_2d_right']
+                                            ['default_color']]['key'],
+                     ui_config['numerical'][ui_config['graph_2d_right']['default_x']
+                                            ]['description'],
+                     ui_config['numerical'][ui_config['graph_2d_right']['default_y']
+                                            ]['description'],
+                     ui_config['numerical'][ui_config['graph_2d_right']['default_color']
+                                            ]['description']]
+left_figure_ready = True
+right_figure_ready = True
+
 layout_params = {
     'x_range': [0, 0],
     'y_range': [0, 0],
@@ -618,6 +658,14 @@ def update_2d_graphs(*args):
 
     global filtered_det
     global filter_done
+
+    global left_figure_ready
+    global right_figure_ready
+    global left_figure_keys
+    global right_figure_keys
+    global left_figure
+    global right_figure
+
     global ui_config
 
     ctx = dash.callback_context
@@ -628,67 +676,36 @@ def update_2d_graphs(*args):
     interval_flag = False
 
     if trigger_id == 'interval' or trigger_id == 'left-switch' or trigger_id == 'right-switch':
-        if filter_done:
 
-            if args[-4]:
-                left_fig = get_2d_scatter(
-                    filtered_det,
-                    ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
-                    ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
-                    ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
-                    ui_config['numerical'][ctx.inputs['x_left.value']
-                                           ]['description'],
-                    ui_config['numerical'][ctx.inputs['y_left.value']
-                                           ]['description'],
-                    ui_config['numerical'][ctx.inputs['color_left.value']
-                                           ]['description']
-                )
-            else:
-                left_fig = {
-                    'data': [{'mode': 'markers', 'type': 'scatter',
-                                      'x': [], 'y': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }}
-
-            if args[-3]:
-                right_fig = get_2d_scatter(
-                    filtered_det,
-                    ui_config['numerical'][
-                        ctx.inputs['x_right.value']]['key'],
-                    ui_config['numerical'][
-                        ctx.inputs['y_right.value']]['key'],
-                    ui_config['numerical'][
-                        ctx.inputs['color_right.value']]['key'],
-                    ui_config['numerical'][
-                        ctx.inputs['x_right.value']]['description'],
-                    ui_config['numerical'][
-                        ctx.inputs['y_right.value']]['description'],
-                    ui_config['numerical'][
-                        ctx.inputs['color_right.value']]['description']
-                )
-            else:
-                right_fig = {
-                    'data': [{'mode': 'markers', 'type': 'scatter',
-                                      'x': [], 'y': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }}
-
-            interval_flag = True
-
-            # return [
-            #     left_fig,
-            #     right_fig,
-            #     True
-            # ]
+        if args[-4] and left_figure_ready:
+            left_fig = left_figure
         else:
-            raise PreventUpdate()
+            left_fig = {
+                'data': [{'mode': 'markers', 'type': 'scatter',
+                          'x': [], 'y': []}
+                         ],
+                'layout': {
+                    'uirevision': 'no_change'
+                }}
+
+        if args[-3] and right_figure_ready:
+            right_fig = right_figure
+        else:
+            right_fig = {
+                'data': [{'mode': 'markers', 'type': 'scatter',
+                          'x': [], 'y': []}
+                         ],
+                'layout': {
+                    'uirevision': 'no_change'
+                }}
+
+        if left_figure_ready and right_figure_ready:
+            interval_flag = True
+        else:
+            interval_flag = False
+
     elif (trigger_id in ['x_left', 'y_left', 'color_left']) and args[-4]:
-        left_fig = get_2d_scatter(
-            filtered_det,
+        left_figure_keys = [
             ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
             ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
             ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
@@ -697,13 +714,21 @@ def update_2d_graphs(*args):
             ui_config['numerical'][ctx.inputs['y_left.value']
                                    ]['description'],
             ui_config['numerical'][ctx.inputs['color_left.value']
-                                   ]['description']
-        )
+                                   ]['description']]
+        left_figure_ready = False
+
+        left_fig = {
+            'data': [{'mode': 'markers', 'type': 'scatter',
+                      'x': [], 'y': []}
+                     ],
+            'layout': {
+                'uirevision': 'no_change'
+            }}
+
         interval_flag = False
 
     elif (trigger_id in ['x_right', 'y_right', 'color_right']) and args[-3]:
-        right_fig = get_2d_scatter(
-            filtered_det,
+        right_figure_keys = [
             ui_config['numerical'][
                 ctx.inputs['x_right.value']]['key'],
             ui_config['numerical'][
@@ -716,9 +741,19 @@ def update_2d_graphs(*args):
                 ctx.inputs['y_right.value']]['description'],
             ui_config['numerical'][
                 ctx.inputs['color_right.value']]['description']
-        )
-        interval_flag = False
+        ]
+        right_figure_ready = False
 
+        right_fig = {
+            'data': [{'mode': 'markers', 'type': 'scatter',
+                      'x': [], 'y': []}
+                     ],
+            'layout': {
+                'uirevision': 'no_change'
+            }}
+
+        interval_flag = False
+        # raise PreventUpdate()
     return [
         left_fig,
         right_fig,
@@ -845,6 +880,9 @@ class Filtering(Thread):
         global layout_params
         global filter_done
 
+        global left_figure_ready
+        global right_figure_ready
+
         global ui_config
 
         while True:
@@ -853,6 +891,9 @@ class Filtering(Thread):
                 fig_list_ready = False
                 is_skipped = False
                 filter_trigger = False
+
+                left_figure_ready = False
+                right_figure_ready = False
 
                 filtered_det = det_list
                 for filter_idx, filter_name in enumerate(key_list):
@@ -871,6 +912,7 @@ class Filtering(Thread):
                         filtered_det['Frame'] == frame_idx
                     ]
                     filtered_list = filtered_list.reset_index()
+
                     fig_list.append(
                         dict(
                             data=[
@@ -916,7 +958,60 @@ class Filtering(Thread):
                 sleep(1)
 
 
+class Loading(Thread):
+    def __init__(self):
+        Thread.__init__(self)
+
+    def run(self):
+        global filtered_det
+        global filter_done
+
+        global left_figure
+        global right_figure
+
+        global left_figure_keys
+        global right_figure_keys
+
+        global left_figure_ready
+        global right_figure_ready
+
+        global ui_config
+
+        while True:
+            if filter_done or not left_figure_ready or not right_figure_ready:
+                if not left_figure_ready:
+
+                    left_figure = get_2d_scatter(
+                        filtered_det,
+                        left_figure_keys[0],
+                        left_figure_keys[1],
+                        left_figure_keys[2],
+                        left_figure_keys[3],
+                        left_figure_keys[4],
+                        left_figure_keys[5]
+                    )
+                    left_figure_ready = True
+
+                if not right_figure_ready:
+                    right_figure = get_2d_scatter(
+                        filtered_det,
+                        right_figure_keys[0],
+                        right_figure_keys[1],
+                        right_figure_keys[2],
+                        right_figure_keys[3],
+                        right_figure_keys[4],
+                        right_figure_keys[5]
+                    )
+                    right_figure_ready = True
+
+            else:
+                sleep(1)
+
+
 if __name__ == '__main__':
     plotting = Filtering()
     plotting.start()
-    app.run_server(debug=True)
+
+    loading = Loading()
+    loading.start()
+    app.run_server(debug=True, threaded=True, processes=1)
