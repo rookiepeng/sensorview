@@ -22,7 +22,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz import get_2d_scatter, get_figure_data, get_figure_layout, get_host_data
+from viz import get_figure_data, get_figure_layout, get_host_data
 
 
 def filter_data(data_frame, name, value):
@@ -155,7 +155,8 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
             data_files.append(file)
     break
 
-det_list = pd.DataFrame()
+# det_list = pd.DataFrame()
+frame_list = []
 filtered_det = pd.DataFrame()
 det_frames = []
 fig_list = []
@@ -261,7 +262,6 @@ app.layout = html.Div([
     ], className="row flex-display"),
 
     html.Div([
-
         html.Div([
             html.H6('Filter'),
 
@@ -273,14 +273,9 @@ app.layout = html.Div([
             ),
         ],
             className="pretty_container three columns",
-            # style={'display': 'inline-block',
-            #        'overflow': 'auto'}
         ),
 
-        # html.Div([
-
         html.Div([
-
             html.Div([
                 html.Div([
                     html.H6('3D View'),
@@ -326,11 +321,6 @@ app.layout = html.Div([
                            'padding': '2rem 0rem'})
         ], className="pretty_container nine columns"),
 
-        # ], className="nine columns",
-        #     # style={'display': 'inline-block',
-        #     #        'overflow': 'auto'}
-        # ),
-
     ], className="row flex-display rows",
         # style={'min-height': '100vh',
         #        'max-height': '100vh'}
@@ -338,10 +328,19 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            daq.BooleanSwitch(
-                id='left-switch',
-                on=False
-            ),
+            html.Div([
+                html.Div([
+                    html.H6('2D View'),
+                ], className="ten columns"),
+                html.Div([
+                    daq.BooleanSwitch(
+                        id='left-switch',
+                        on=False
+                    ),
+                ], className="two columns",
+                    style={"margin-top": "10px"}),
+            ], className="row flex-display"),
+
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
@@ -408,10 +407,19 @@ app.layout = html.Div([
         ], className="pretty_container six columns"),
 
         html.Div([
-            daq.BooleanSwitch(
-                id='right-switch',
-                on=False
-            ),
+            html.Div([
+                html.Div([
+                    html.H6('2D View'),
+                ], className="ten columns"),
+                html.Div([
+                    daq.BooleanSwitch(
+                        id='right-switch',
+                        on=False
+                    ),
+                ], className="two columns",
+                    style={"margin-top": "10px"}),
+            ], className="row flex-display"),
+
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
@@ -514,7 +522,7 @@ def update_test_case(test_case):
     ])
 def update_filter(*args):
     global fig_list
-    global det_frames
+    global frame_list
     global fig_list_ready
     global filter_trigger
 
@@ -541,11 +549,17 @@ def update_filter(*args):
         args[1 + len(categorical_key_list)+len(numerical_key_list)]]['description']
 
     if trigger_id == 'slider':
-        if processing.is_frame_list_ready():
-            print('get frame '+str(slider_arg))
+        if processing.get_frame_ready_index() > slider_arg:
             return processing.get_frame(slider_arg)
         else:
-            filterd_frame = det_frames[slider_arg]
+
+            filterd_frame = det_list[
+                det_list[ui_config['numerical']
+                         [ui_config['slider']]['key']] == frame_list[slider_arg]
+            ]
+            filterd_frame = filterd_frame.reset_index()
+
+            # filterd_frame = det_frames[slider_arg]
             for filter_idx, filter_name in enumerate(key_list):
                 filterd_frame = filter_data(
                     filterd_frame, filter_name, key_values[filter_idx])
@@ -614,7 +628,13 @@ def update_filter(*args):
                 }
             )
 
-            filterd_frame = det_frames[slider_arg]
+            # filterd_frame = det_frames[slider_arg]
+
+            filterd_frame = det_list[
+                det_list[ui_config['numerical']
+                         [ui_config['slider']]['key']] == frame_list[slider_arg]
+            ]
+            filterd_frame = filterd_frame.reset_index()
 
             for filter_idx, filter_name in enumerate(key_list):
                 filterd_frame = filter_data(
@@ -689,38 +709,36 @@ def update_2d_graphs(*args):
     interval_flag = False
 
     if trigger_id == 'interval' or trigger_id == 'left-switch' or trigger_id == 'right-switch':
-        if not fig_processing.is_left_outdated():
-            if args[-4] and fig_processing.is_left_figure_ready():
-                left_fig = fig_processing.get_left_figure()
-            else:
-                left_fig = {
-                    'data': [{'mode': 'markers', 'type': 'scatter',
-                              'x': [], 'y': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }}
+        if args[-4] and fig_processing.is_left_figure_ready():
+            left_fig = fig_processing.get_left_figure()
+        else:
+            left_fig = {
+                'data': [{'mode': 'markers', 'type': 'scatter',
+                          'x': [], 'y': []}
+                         ],
+                'layout': {
+                    'uirevision': 'no_change'
+                }}
 
-            if args[-3] and fig_processing.is_right_figure_ready():
-                right_fig = fig_processing.get_right_figure()
-            else:
-                right_fig = {
-                    'data': [{'mode': 'markers', 'type': 'scatter',
-                              'x': [], 'y': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }}
+        if args[-3] and fig_processing.is_right_figure_ready():
+            right_fig = fig_processing.get_right_figure()
+        else:
+            right_fig = {
+                'data': [{'mode': 'markers', 'type': 'scatter',
+                          'x': [], 'y': []}
+                         ],
+                'layout': {
+                    'uirevision': 'no_change'
+                }}
 
-            if fig_processing.is_left_figure_ready() and fig_processing.is_right_figure_ready():
-                interval_flag = True
-            else:
-                interval_flag = False
+        if fig_processing.is_left_figure_ready() and fig_processing.is_right_figure_ready():
+            interval_flag = True
+        else:
+            interval_flag = False
 
     elif (trigger_id in ['x_left', 'y_left', 'color_left']) and args[-4]:
         fig_processing.set_left_outdated()
-        fig_processing.set_right_outdated()
-        # if processing.is_filtering_ready():
+
         left_figure_keys = [
             ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
             ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
@@ -752,10 +770,8 @@ def update_2d_graphs(*args):
         interval_flag = False
 
     elif (trigger_id in ['x_right', 'y_right', 'color_right']) and args[-3]:
-
-        fig_processing.set_left_outdated()
         fig_processing.set_right_outdated()
-        # if processing.is_filtering_ready():
+
         right_figure_keys = [
             ui_config['numerical'][
                 ctx.inputs['x_right.value']]['key'],
@@ -816,7 +832,8 @@ def update_2d_graphs(*args):
 
 
 @app.callback(
-    slider_callback+picker_callback+filter_callback,
+    slider_callback+picker_callback+filter_callback +
+    [Output('color_main', 'value')],
     [
         dash.dependencies.Input('data_file_picker', 'value')
     ],
@@ -826,7 +843,7 @@ def update_2d_graphs(*args):
 def update_data_file(data_file_name, test_case):
     global ui_config
     global det_list
-    global det_frames
+    global frame_list
     global layout_params
     global key_list
     global key_values
@@ -835,6 +852,15 @@ def update_data_file(data_file_name, test_case):
     if data_file_name is not None:
         det_list = pd.read_pickle('./data/'+test_case+'/'+data_file_name)
 
+        layout_params['color_key'] = ui_config['numerical'][
+            ui_config['graph_3d_detections']['default_color']
+        ]['key']
+
+        layout_params['color_label'] = ui_config['numerical'][
+            ui_config['graph_3d_detections']['default_color']
+        ]['description']
+
+        layout_params['db'] = False
         layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
                                             np.min(det_list['HostLatitude'])]),
                                     np.max([np.max(det_list['Latitude']),
@@ -850,18 +876,18 @@ def update_data_file(data_file_name, test_case):
             np.max(det_list[layout_params['color_key']])
         ]
 
-        det_frames = []
+        # det_frames = []
         frame_list = det_list[ui_config['numerical']
                               [ui_config['slider']]['key']].unique()
-        for frame_idx in frame_list:
-            filtered_list = det_list[
-                det_list[ui_config['numerical']
-                         [ui_config['slider']]['key']] == frame_idx
-            ]
-            filtered_list = filtered_list.reset_index()
-            det_frames.append(filtered_list)
+        # for frame_idx in frame_list:
+        #     filtered_list = det_list[
+        #         det_list[ui_config['numerical']
+        #                  [ui_config['slider']]['key']] == frame_idx
+        #     ]
+        #     filtered_list = filtered_list.reset_index()
+        #     det_frames.append(filtered_list)
 
-        output = [0, len(det_frames)-1, 0]
+        output = [0, len(frame_list)-1, 0]
 
         key_values = []
         for idx, d_item in enumerate(ui_config['categorical']):
@@ -888,6 +914,8 @@ def update_data_file(data_file_name, test_case):
             output.append([var_min, var_max])
 
             key_values.append([var_min, var_max])
+
+        output.append(ui_config['graph_3d_detections']['default_color'])
 
         left_figure_keys = [ui_config['numerical'][ui_config['graph_2d_left']['default_x']]['key'],
                             ui_config['numerical'][ui_config['graph_2d_left']

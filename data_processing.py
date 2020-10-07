@@ -18,6 +18,8 @@ class DataProcessing(Thread):
         self.filtering_ready = False
         self.frame_list_ready = False
 
+        self.frame_ready_index=0
+
         self.filtered_table = pd.DataFrame()
         self.det_table = pd.DataFrame()
         self.fig_list = []
@@ -50,6 +52,9 @@ class DataProcessing(Thread):
 
     def is_frame_list_ready(self):
         return self.frame_list_ready
+    
+    def get_frame_ready_index(self):
+        return self.frame_ready_index
 
     def get_frame(self, idx):
         return self.fig_list[idx]
@@ -72,16 +77,14 @@ class DataProcessing(Thread):
         while True:
 
             if not self.skip_filter:
-                # print('task_queue.get()')
                 self.work = self.task_queue.get()  # 3s timeout
 
             if self.work['trigger'] == 'filter':
-                # print('start filtering')
-
                 self.skip_filter = False
 
                 self.filtering_ready = False
                 self.frame_list_ready = False
+                self.frame_ready_index = 0
 
                 layout_params = self.work['layout']
                 ui_config = self.work['config']
@@ -89,7 +92,6 @@ class DataProcessing(Thread):
                 full_table = self.work['data']
                 self.filtered_table = self.work['data']
                 for filter_idx, filter_name in enumerate(self.work['key_list']):
-                    # print('filtering '+filter_name)
                     self.filtered_table = self.filter_data(
                         self.filtered_table,
                         filter_name,
@@ -98,7 +100,6 @@ class DataProcessing(Thread):
                     if not self.task_queue.empty():
                         self.work = self.task_queue.get_nowait()
                         if self.work['trigger'] == 'filter':
-                            # print('new trigger')
                             self.skip_filter = True
                             self.task_queue.task_done()
                             break
@@ -116,8 +117,6 @@ class DataProcessing(Thread):
                     self.fig_list = []
                     frame_list = full_table['Frame'].unique()
                     for idx, frame_idx in enumerate(frame_list):
-                        # print('creating frame ' + str(idx))
-
                         filtered_list = self.filtered_table[
                             self.filtered_table['Frame'] == frame_idx
                         ]
@@ -157,16 +156,17 @@ class DataProcessing(Thread):
                             )
                         )
 
+                        self.frame_ready_index = idx
+
                         if not self.task_queue.empty():
                             self.work = self.task_queue.get_nowait()
                             if self.work['trigger'] == 'filter':
-                                # print('new trigger')
                                 self.skip_filter = True
+                                self.frame_ready_index=0
                                 self.task_queue.task_done()
                                 break
 
                     if not self.skip_filter:
-                        # print('frame list ready')
                         self.frame_list_ready = True
                         self.task_queue.task_done()
 
@@ -200,13 +200,13 @@ class FigureProcessing(Thread):
         self.left_figure_ready = False
         self.right_figure_ready = False
 
-        self.left_outdated = True
-        self.right_outdated = True
+        # self.left_outdated = True
+        # self.right_outdated = True
 
         self.work = {
             'trigger': 'none'
         }
-    
+
     def set_left_figure_keys(self, keys):
         self.left_figure_keys = keys
 
@@ -214,16 +214,10 @@ class FigureProcessing(Thread):
         self.right_figure_keys = keys
 
     def set_left_outdated(self):
-        self.left_outdated = True
+        self.left_figure_ready = False
 
     def set_right_outdated(self):
-        self.right_outdated = True
-
-    def is_left_outdated(self):
-        return self.left_outdated
-
-    def is_right_outdated(self):
-        return self.right_outdated
+        self.right_figure_ready = False
 
     def is_left_figure_ready(self):
         return self.left_figure_ready
@@ -242,7 +236,6 @@ class FigureProcessing(Thread):
             self.work = self.task_queue.get()
 
             if self.work['trigger'] == 'left_figure':
-                print('left figure')
                 self.left_figure_ready = False
 
                 self.left_figure = get_2d_scatter(
@@ -255,12 +248,11 @@ class FigureProcessing(Thread):
                     self.left_figure_keys[5]
                 )
                 self.left_figure_ready = True
-                self.left_outdated = False
-                self.right_outdated = False
+                # self.left_outdated = False
+                # self.right_outdated = False
                 self.task_queue.task_done()
 
             elif self.work['trigger'] == 'right_figure':
-                print('right figure')
                 self.right_figure_ready = False
 
                 self.right_figure = get_2d_scatter(
@@ -273,12 +265,10 @@ class FigureProcessing(Thread):
                     self.right_figure_keys[5]
                 )
                 self.right_figure_ready = True
-                self.left_outdated = False
-                self.right_outdated = False
+                # self.left_outdated = False
+                # self.right_outdated = False
                 self.task_queue.task_done()
             elif self.work['trigger'] == 'filter_done':
-
-                print('figure done')
                 self.right_figure_ready = False
                 self.left_figure_ready = False
 
@@ -304,7 +294,6 @@ class FigureProcessing(Thread):
                 )
                 self.right_figure_ready = True
 
-                self.left_outdated = False
-                self.right_outdated = False
+                # self.left_outdated = False
+                # self.right_outdated = False
                 self.task_queue.task_done()
-
