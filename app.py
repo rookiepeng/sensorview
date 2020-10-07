@@ -1,3 +1,4 @@
+from logging import disable
 from threading import Thread, Event
 from queue import Queue
 from time import sleep
@@ -88,13 +89,13 @@ def gen_dropdowns(ui_config):
 
 
 slider_callback = [
-    dash.dependencies.Output('slider', 'min'),
-    dash.dependencies.Output('slider', 'max'),
-    dash.dependencies.Output('slider', 'value'),
+    Output('slider', 'min'),
+    Output('slider', 'max'),
+    Output('slider', 'value'),
 ]
 
 slider_input = [
-    dash.dependencies.Input('slider', 'value')
+    Input('slider', 'value')
 ]
 
 
@@ -107,13 +108,13 @@ picker_callback = []
 picker_input = []
 for idx, d_item in enumerate(ui_config['categorical']):
     picker_callback.append(
-        dash.dependencies.Output(d_item+'_picker', 'options')
+        Output(d_item+'_picker', 'options')
     )
     picker_callback.append(
-        dash.dependencies.Output(d_item+'_picker', 'value')
+        Output(d_item+'_picker', 'value')
     )
     picker_input.append(
-        dash.dependencies.Input(d_item+'_picker', 'value')
+        Input(d_item+'_picker', 'value')
     )
     key_list.append(ui_config['categorical'][d_item]['key'])
     key_values.append([])
@@ -125,16 +126,16 @@ filter_callback = []
 filter_input = []
 for idx, s_item in enumerate(ui_config['numerical']):
     filter_callback.append(
-        dash.dependencies.Output(s_item+'_filter', 'min')
+        Output(s_item+'_filter', 'min')
     )
     filter_callback.append(
-        dash.dependencies.Output(s_item+'_filter', 'max')
+        Output(s_item+'_filter', 'max')
     )
     filter_callback.append(
-        dash.dependencies.Output(s_item+'_filter', 'value')
+        Output(s_item+'_filter', 'value')
     )
     filter_input.append(
-        dash.dependencies.Input(s_item+'_filter', 'value')
+        Input(s_item+'_filter', 'value')
     )
 
     key_list.append(ui_config['numerical'][s_item]['key'])
@@ -155,10 +156,10 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
             data_files.append(file)
     break
 
-# det_list = pd.DataFrame()
+det_list = pd.DataFrame()
 frame_list = []
 filtered_det = pd.DataFrame()
-det_frames = []
+# det_frames = []
 fig_list = []
 fig_list_ready = False
 filter_trigger = False
@@ -351,7 +352,8 @@ app.layout = html.Div([
                             'value': f_item
                         }
                             for idx, f_item in enumerate(ui_config['numerical'])],
-                        value=ui_config['graph_2d_left']['default_x']
+                        value=ui_config['graph_2d_left']['default_x'],
+                        disabled=True
                     ),
                 ], className="one-third column"),
                 html.Div([
@@ -363,7 +365,8 @@ app.layout = html.Div([
                             'value': f_item
                         }
                             for idx, f_item in enumerate(ui_config['numerical'])],
-                        value=ui_config['graph_2d_left']['default_y']
+                        value=ui_config['graph_2d_left']['default_y'],
+                        disabled=True
                     ),
                 ], className="one-third column"),
                 html.Div([
@@ -375,7 +378,8 @@ app.layout = html.Div([
                             'value': f_item
                         }
                             for idx, f_item in enumerate(ui_config['numerical'])],
-                        value=ui_config['graph_2d_left']['default_color']
+                        value=ui_config['graph_2d_left']['default_color'],
+                        disabled=True
                     ),
                 ], className="one-third column"),
             ], className="row flex-display"),
@@ -430,7 +434,8 @@ app.layout = html.Div([
                             'value': f_item
                         }
                             for idx, f_item in enumerate(ui_config['numerical'])],
-                        value=ui_config['graph_2d_right']['default_x']
+                        value=ui_config['graph_2d_right']['default_x'],
+                        disabled=True
                     ),
                 ], className="one-third column"),
                 html.Div([
@@ -442,7 +447,8 @@ app.layout = html.Div([
                             'value': f_item
                         }
                             for idx, f_item in enumerate(ui_config['numerical'])],
-                        value=ui_config['graph_2d_right']['default_y']
+                        value=ui_config['graph_2d_right']['default_y'],
+                        disabled=True
                     ),
                 ], className="one-third column"),
                 html.Div([
@@ -454,7 +460,8 @@ app.layout = html.Div([
                             'value': f_item
                         }
                             for idx, f_item in enumerate(ui_config['numerical'])],
-                        value=ui_config['graph_2d_right']['default_color']
+                        value=ui_config['graph_2d_right']['default_color'],
+                        disabled=True
                     ),
                 ], className="one-third column"),
             ], className="row flex-display"),
@@ -494,11 +501,11 @@ app.layout = html.Div([
 
 @app.callback(
     [
-        dash.dependencies.Output('data_file_picker', 'value'),
-        dash.dependencies.Output('data_file_picker', 'options'),
+        Output('data_file_picker', 'value'),
+        Output('data_file_picker', 'options'),
     ],
     [
-        dash.dependencies.Input('test_case_picker', 'value')
+        Input('test_case_picker', 'value')
     ])
 def update_test_case(test_case):
     data_files = []
@@ -512,20 +519,20 @@ def update_test_case(test_case):
 
 
 @app.callback(
-    dash.dependencies.Output('det_grid', 'figure'),
+    Output('det_grid', 'figure'),
     slider_input + picker_input + filter_input+[
-        dash.dependencies.Input('color_main', 'value'),
+        Input('color_main', 'value'),
     ],
     [
-        dash.dependencies.State('det_grid', 'figure'),
-        dash.dependencies.State('trigger', 'children')
+        State('det_grid', 'figure'),
+        State('trigger', 'children')
     ])
 def update_filter(*args):
     global fig_list
     global frame_list
     global fig_list_ready
     global filter_trigger
-
+    global det_list
     global numerical_key_list
     global categorical_key_list
     global key_list
@@ -673,19 +680,25 @@ def update_filter(*args):
 
 @app.callback(
     [
-        dash.dependencies.Output('graph_2d_left', 'figure'),
-        dash.dependencies.Output('graph_2d_right', 'figure'),
-        Output('interval', 'disabled')
+        Output('graph_2d_left', 'figure'),
+        Output('graph_2d_right', 'figure'),
+        Output('interval', 'disabled'),
+        Output('x_left', 'disabled'),
+        Output('y_left', 'disabled'),
+        Output('color_left', 'disabled'),
+        Output('x_right', 'disabled'),
+        Output('y_right', 'disabled'),
+        Output('color_right', 'disabled'),
     ],
     picker_input+filter_input+[
         Input('left-switch', 'on'),
-        dash.dependencies.Input('x_left', 'value'),
-        dash.dependencies.Input('y_left', 'value'),
-        dash.dependencies.Input('color_left', 'value'),
+        Input('x_left', 'value'),
+        Input('y_left', 'value'),
+        Input('color_left', 'value'),
         Input('right-switch', 'on'),
-        dash.dependencies.Input('x_right', 'value'),
-        dash.dependencies.Input('y_right', 'value'),
-        dash.dependencies.Input('color_right', 'value'),
+        Input('x_right', 'value'),
+        Input('y_right', 'value'),
+        Input('color_right', 'value'),
         Input('interval', 'n_intervals')
     ],
     [
@@ -787,7 +800,7 @@ def update_2d_graphs(*args):
                 ctx.inputs['color_right.value']]['description']
         ]
 
-        fig_processing.set_right_figure_keys(keys)
+        fig_processing.set_right_figure_keys(right_figure_keys)
 
         fig_task_queue.put_nowait(
             {
@@ -824,26 +837,54 @@ def update_2d_graphs(*args):
 
         interval_flag = False
 
+    if args[-4]:
+        left_x_disabled = False
+        left_y_disabled = False
+        left_color_disabled = False
+    else:
+        left_x_disabled = True
+        left_y_disabled = True
+        left_color_disabled = True
+
+    if args[-3]:
+        right_x_disabled = False
+        right_y_disabled = False
+        right_color_disabled = False
+    else:
+        right_x_disabled = True
+        right_y_disabled = True
+        right_color_disabled = True
+
     return [
         left_fig,
         right_fig,
-        interval_flag
+        interval_flag,
+        left_x_disabled,
+        left_y_disabled,
+        left_color_disabled,
+        right_x_disabled,
+        right_y_disabled,
+        right_color_disabled,
     ]
 
 
 @app.callback(
     slider_callback+picker_callback+filter_callback +
-    [Output('color_main', 'value')],
     [
-        dash.dependencies.Input('data_file_picker', 'value')
+        Output('color_main', 'value'),
+        Output('left-switch', 'on'),
+        Output('right-switch', 'on'),
     ],
     [
-        dash.dependencies.State('test_case_picker', 'value')
+        Input('data_file_picker', 'value')
+    ],
+    [
+        State('test_case_picker', 'value')
     ])
 def update_data_file(data_file_name, test_case):
     global ui_config
-    global det_list
     global frame_list
+    global det_list
     global layout_params
     global key_list
     global key_values
@@ -876,16 +917,8 @@ def update_data_file(data_file_name, test_case):
             np.max(det_list[layout_params['color_key']])
         ]
 
-        # det_frames = []
         frame_list = det_list[ui_config['numerical']
                               [ui_config['slider']]['key']].unique()
-        # for frame_idx in frame_list:
-        #     filtered_list = det_list[
-        #         det_list[ui_config['numerical']
-        #                  [ui_config['slider']]['key']] == frame_idx
-        #     ]
-        #     filtered_list = filtered_list.reset_index()
-        #     det_frames.append(filtered_list)
 
         output = [0, len(frame_list)-1, 0]
 
@@ -916,6 +949,8 @@ def update_data_file(data_file_name, test_case):
             key_values.append([var_min, var_max])
 
         output.append(ui_config['graph_3d_detections']['default_color'])
+        output.append(False)
+        output.append(False)
 
         left_figure_keys = [ui_config['numerical'][ui_config['graph_2d_left']['default_x']]['key'],
                             ui_config['numerical'][ui_config['graph_2d_left']
