@@ -58,19 +58,6 @@ def get_figure_data(det_list,
             ),
         )
 
-        # vel_map = dict(
-        #     type='scatter3d',
-        #     x=[det_list['VehLat'][0]],
-        #     y=[det_list['VehLong'][0]],
-        #     z=[0],
-        #     hovertemplate='Lateral: %{x:.2f} m<br>' +
-        #     'Longitudinal: %{y:.2f} m<br>',
-        #     mode='markers',
-        #     name='Vehicle',
-        #     marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
-        #                 symbol='circle')
-        # )
-
         return det_map
     else:
         return {'mode': 'markers', 'type': 'scatter3d',
@@ -133,79 +120,6 @@ def get_figure_layout(
         legend=dict(x=0, y=0),
         uirevision='no_change',
     )
-
-
-# def get_figure(det_list,
-#                x_range,
-#                y_range,
-#                z_range=[-20, 20],
-#                color_key='Speed',
-#                c_range=[-30, 30],
-#                db=False,
-#                height=650):
-
-#     data = get_figure_data(
-#         det_list=det_list,
-#         x_key='Latitude',
-#         y_key='Longitude',
-#         z_key='Height',
-#         color_key=color_key,
-#         color_label=None,
-#         name=None,
-#         hover_dict={
-#             "frame": {
-#                 "key": "Frame",
-#                 "description": "Frame",
-#                 "format": "{:,.0f}"
-#             },
-#             "range": {
-#                 "key": "Range",
-#                 "description": "Range (m)",
-#                 "format": "{:,.2f}"
-#             },
-#             "speed": {
-#                 "key": "Speed",
-#                 "description": "Range rate (m/s)",
-#                 "format": "{:,.2f}"
-#             },
-#             "azimuth": {
-#                 "key": "Azimuth",
-#                 "description": "Azimuth (deg)",
-#                 "format": "{:,.2f}"
-#             },
-#             "elevation": {
-#                 "key": "Elevation",
-#                 "description": "Elevation (deg)",
-#                 "format": "{:,.2f}"
-#             },
-#             "longitude": {
-#                 "key": "Longitude",
-#                 "description": "Longitude (m)",
-#                 "format": "{:,.2f}"
-#             },
-#             "latitude": {
-#                 "key": "Latitude",
-#                 "description": "Latitude (m)",
-#                 "format": "{:,.2f}"
-#             },
-#             "height": {
-#                 "key": "Height",
-#                 "description": "Height (m)",
-#                 "format": "{:,.2f}"
-#             },
-#             "snr": {
-#                 "key": "SNR",
-#                 "description": "SNR (dB)",
-#                 "format": "{:,.2f}"
-#             }
-#         },
-#         c_range=c_range,
-#         db=db
-#     )
-#     layout = get_figure_layout(
-#         x_range=x_range, y_range=y_range, z_range=z_range, height=height)
-
-#     return dict(data=[data], layout=layout)
 
 
 def get_2d_scatter(det_list,

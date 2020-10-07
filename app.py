@@ -1,9 +1,5 @@
 from logging import disable
-from threading import Thread, Event
 from queue import Queue
-from time import sleep
-
-from pandas.core.frame import DataFrame
 
 from data_processing import DataProcessing, FigureProcessing
 
@@ -17,7 +13,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 from dash.exceptions import PreventUpdate
 import numpy as np
-from numpy.lib.function_base import append
 import pandas as pd
 import os
 import plotly.graph_objs as go
@@ -181,7 +176,9 @@ left_figure_keys = [
                            ['default_x']]['description'],
     ui_config['numerical'][ui_config['graph_2d_left']
                            ['default_y']]['description'],
-    ui_config['numerical'][ui_config['graph_2d_left']['default_color']]['description']]
+    ui_config['numerical'][
+        ui_config['graph_2d_left']['default_color']
+    ]['description']]
 right_figure = {
     'data': [{'mode': 'markers', 'type': 'scatter',
               'x': [], 'y': []}
@@ -285,10 +282,12 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_main',
                         options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['numerical'])],
+                            for idx, f_item in enumerate(
+                                ui_config['numerical'])],
                         value=ui_config['graph_3d_detections']['default_color']
                     ),
                 ], className="two columns"),
@@ -348,10 +347,12 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_left',
                         options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['numerical'])],
+                            for idx, f_item in enumerate(
+                                ui_config['numerical'])],
                         value=ui_config['graph_2d_left']['default_x'],
                         disabled=True
                     ),
@@ -361,10 +362,12 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_left',
                         options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['numerical'])],
+                            for idx, f_item in enumerate(
+                                ui_config['numerical'])],
                         value=ui_config['graph_2d_left']['default_y'],
                         disabled=True
                     ),
@@ -374,10 +377,12 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_left',
                         options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['numerical'])],
+                            for idx, f_item in enumerate(
+                                ui_config['numerical'])],
                         value=ui_config['graph_2d_left']['default_color'],
                         disabled=True
                     ),
@@ -430,10 +435,12 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_right',
                         options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['numerical'])],
+                            for idx, f_item in enumerate(
+                                ui_config['numerical'])],
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
@@ -443,10 +450,12 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_right',
                         options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['numerical'])],
+                            for idx, f_item in enumerate(
+                                ui_config['numerical'])],
                         value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
@@ -456,10 +465,12 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_right',
                         options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
                             'value': f_item
                         }
-                            for idx, f_item in enumerate(ui_config['numerical'])],
+                            for idx, f_item in enumerate(
+                                ui_config['numerical'])],
                         value=ui_config['graph_2d_right']['default_color'],
                         disabled=True
                     ),
@@ -553,7 +564,9 @@ def update_filter(*args):
     color_key = ui_config['numerical'][
         args[1 + len(categorical_key_list)+len(numerical_key_list)]]['key']
     color_label = ui_config['numerical'][
-        args[1 + len(categorical_key_list)+len(numerical_key_list)]]['description']
+        args[1 +
+             len(categorical_key_list) +
+             len(numerical_key_list)]]['description']
 
     if trigger_id == 'slider':
         if processing.get_frame_ready_index() > slider_arg:
@@ -561,8 +574,9 @@ def update_filter(*args):
         else:
 
             filterd_frame = det_list[
-                det_list[ui_config['numerical']
-                         [ui_config['slider']]['key']] == frame_list[slider_arg]
+                det_list[
+                    ui_config['numerical']
+                    [ui_config['slider']]['key']] == frame_list[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
@@ -601,16 +615,19 @@ def update_filter(*args):
     else:
         if None not in categorical_args:
             key_values = categorical_args+numerical_args
-            layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
-                                                np.min(det_list['HostLatitude'])]),
-                                        np.max([np.max(det_list['Latitude']),
-                                                np.max(det_list['HostLatitude'])])]
-            layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
-                                                np.min(det_list['HostLongitude'])]),
-                                        np.max([np.max(det_list['Longitude']),
-                                                np.max(det_list['HostLongitude'])])]
-            layout_params['z_range'] = [np.min(det_list['Height']),
-                                        np.max(det_list['Height'])]
+            layout_params['x_range'] = [
+                np.min([np.min(det_list['Latitude']),
+                        np.min(det_list['HostLatitude'])]),
+                np.max([np.max(det_list['Latitude']),
+                        np.max(det_list['HostLatitude'])])]
+            layout_params['y_range'] = [
+                np.min([np.min(det_list['Longitude']),
+                        np.min(det_list['HostLongitude'])]),
+                np.max([np.max(det_list['Longitude']),
+                        np.max(det_list['HostLongitude'])])]
+            layout_params['z_range'] = [
+                np.min(det_list['Height']),
+                np.max(det_list['Height'])]
             layout_params['color_key'] = color_key
             layout_params['color_label'] = color_label
             layout_params['c_range'] = [
@@ -638,8 +655,9 @@ def update_filter(*args):
             # filterd_frame = det_frames[slider_arg]
 
             filterd_frame = det_list[
-                det_list[ui_config['numerical']
-                         [ui_config['slider']]['key']] == frame_list[slider_arg]
+                det_list[
+                    ui_config['numerical']
+                    [ui_config['slider']]['key']] == frame_list[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
@@ -721,7 +739,9 @@ def update_2d_graphs(*args):
     right_fig = args[-1]
     interval_flag = False
 
-    if trigger_id == 'interval' or trigger_id == 'left-switch' or trigger_id == 'right-switch':
+    if trigger_id == 'interval' or \
+        trigger_id == 'left-switch' or \
+            trigger_id == 'right-switch':
         if args[-4] and fig_processing.is_left_figure_ready():
             left_fig = fig_processing.get_left_figure()
         else:
@@ -744,7 +764,8 @@ def update_2d_graphs(*args):
                     'uirevision': 'no_change'
                 }}
 
-        if fig_processing.is_left_figure_ready() and fig_processing.is_right_figure_ready():
+        if fig_processing.is_left_figure_ready() and \
+                fig_processing.is_right_figure_ready():
             interval_flag = True
         else:
             interval_flag = False
@@ -902,16 +923,19 @@ def update_data_file(data_file_name, test_case):
         ]['description']
 
         layout_params['db'] = False
-        layout_params['x_range'] = [np.min([np.min(det_list['Latitude']),
-                                            np.min(det_list['HostLatitude'])]),
-                                    np.max([np.max(det_list['Latitude']),
-                                            np.max(det_list['HostLatitude'])])]
-        layout_params['y_range'] = [np.min([np.min(det_list['Longitude']),
-                                            np.min(det_list['HostLongitude'])]),
-                                    np.max([np.max(det_list['Longitude']),
-                                            np.max(det_list['HostLongitude'])])]
-        layout_params['z_range'] = [np.min(det_list['Height']),
-                                    np.max(det_list['Height'])]
+        layout_params['x_range'] = [
+            np.min([np.min(det_list['Latitude']),
+                    np.min(det_list['HostLatitude'])]),
+            np.max([np.max(det_list['Latitude']),
+                    np.max(det_list['HostLatitude'])])]
+        layout_params['y_range'] = [
+            np.min([np.min(det_list['Longitude']),
+                    np.min(det_list['HostLongitude'])]),
+            np.max([np.max(det_list['Longitude']),
+                    np.max(det_list['HostLongitude'])])]
+        layout_params['z_range'] = [
+            np.min(det_list['Height']),
+            np.max(det_list['Height'])]
         layout_params['c_range'] = [
             np.min(det_list[layout_params['color_key']]),
             np.max(det_list[layout_params['color_key']])
@@ -952,29 +976,33 @@ def update_data_file(data_file_name, test_case):
         output.append(False)
         output.append(False)
 
-        left_figure_keys = [ui_config['numerical'][ui_config['graph_2d_left']['default_x']]['key'],
-                            ui_config['numerical'][ui_config['graph_2d_left']
-                                                   ['default_y']]['key'],
-                            ui_config['numerical'][ui_config['graph_2d_left']
-                                                   ['default_color']]['key'],
-                            ui_config['numerical'][ui_config['graph_2d_left']['default_x']
-                                                   ]['description'],
-                            ui_config['numerical'][ui_config['graph_2d_left']['default_y']
-                                                   ]['description'],
-                            ui_config['numerical'][ui_config['graph_2d_left']['default_color']
-                                                   ]['description']]
+        left_figure_keys = [
+            ui_config['numerical'][ui_config['graph_2d_left']
+                                   ['default_x']]['key'],
+            ui_config['numerical'][ui_config['graph_2d_left']
+                                   ['default_y']]['key'],
+            ui_config['numerical'][ui_config['graph_2d_left']
+                                   ['default_color']]['key'],
+            ui_config['numerical'][ui_config['graph_2d_left']['default_x']
+                                   ]['description'],
+            ui_config['numerical'][ui_config['graph_2d_left']['default_y']
+                                   ]['description'],
+            ui_config['numerical'][ui_config['graph_2d_left']['default_color']
+                                   ]['description']]
 
-        right_figure_keys = [ui_config['numerical'][ui_config['graph_2d_right']['default_x']]['key'],
-                             ui_config['numerical'][ui_config['graph_2d_right']
-                                                    ['default_y']]['key'],
-                             ui_config['numerical'][ui_config['graph_2d_right']
-                                                    ['default_color']]['key'],
-                             ui_config['numerical'][ui_config['graph_2d_right']['default_x']
-                                                    ]['description'],
-                             ui_config['numerical'][ui_config['graph_2d_right']['default_y']
-                                                    ]['description'],
-                             ui_config['numerical'][ui_config['graph_2d_right']['default_color']
-                                                    ]['description']]
+        right_figure_keys = [
+            ui_config['numerical'][ui_config['graph_2d_right']
+                                   ['default_x']]['key'],
+            ui_config['numerical'][ui_config['graph_2d_right']
+                                   ['default_y']]['key'],
+            ui_config['numerical'][ui_config['graph_2d_right']
+                                   ['default_color']]['key'],
+            ui_config['numerical'][ui_config['graph_2d_right']['default_x']
+                                   ]['description'],
+            ui_config['numerical'][ui_config['graph_2d_right']['default_y']
+                                   ]['description'],
+            ui_config['numerical'][ui_config['graph_2d_right']['default_color']
+                                   ]['description']]
 
         fig_processing.set_left_figure_keys(left_figure_keys)
         fig_processing.set_right_figure_keys(right_figure_keys)
