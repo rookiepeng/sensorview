@@ -1,5 +1,5 @@
 
-from re import L
+import numpy as np
 from threading import Thread, Event
 from queue import Queue
 
@@ -9,16 +9,26 @@ from viz import get_2d_scatter, get_figure_data, get_figure_layout, get_host_dat
 
 
 class DataProcessing(Thread):
-    def __init__(self, task_queue, fig_queue):
+    def __init__(self, config, task_queue, fig_queue):
         Thread.__init__(self)
 
+        self.config = config
+
+        self.categorical_key_list = []
+        self.categorical_key_values = []
+
+        self.numerical_key_list = []
+        self.numerical_key_values = []
+
+        self.data = pd.DataFrame()
+        self.frame_list = []
         self.task_queue = task_queue
         self.fig_queue = fig_queue
 
         self.filtering_ready = False
         self.frame_list_ready = False
 
-        self.frame_ready_index=0
+        self.frame_ready_index = 0
 
         self.filtered_table = pd.DataFrame()
         self.det_table = pd.DataFrame()
@@ -47,12 +57,47 @@ class DataProcessing(Thread):
             'trigger': 'none'
         }
 
+    def load_data(self, data):
+        self.data = data
+        self.frame_list = self.data[
+            self.config['numerical']
+            [self.config['slider']]['key']].unique()
+
+        self.categorical_key_list = []
+        self.categorical_key_values = []
+
+        self.numerical_key_list = []
+        self.numerical_key_values = []
+        for idx, d_item in enumerate(self.config['categorical']):
+            self.categorical_key_list.append(
+                self.config['categorical'][d_item]['key'])
+
+            var_list = self.data[self.config['categorical']
+                                 [d_item]['key']].unique()
+            self.categorical_key_values.append(var_list)
+
+        for idx, s_item in enumerate(self.config['numerical']):
+            self.numerical_key_list.append(
+                self.config['numerical'][s_item]['key'])
+            var_min = round(
+                np.min(self.data[self.config['numerical'][s_item]['key']]), 1)
+            var_max = round(
+                np.max(self.data[self.config['numerical'][s_item]['key']]), 1)
+
+            self.numerical_key_values.append([var_min, var_max])
+
+    def update_numerical_key_values(self, num_values):
+        self.numerical_key_values = num_values
+
+    def update_categorical_key_values(self, cat_values):
+        self.categorical_key_values = cat_values
+
     def is_filtering_ready(self):
         return self.filtering_ready
 
     def is_frame_list_ready(self):
         return self.frame_list_ready
-    
+
     def get_frame_ready_index(self):
         return self.frame_ready_index
 
@@ -62,16 +107,16 @@ class DataProcessing(Thread):
     def get_filtered_data(self):
         return self.filtered_table
 
-    def filter_data(self, data_frame, name, value):
-        if name in ['LookType', 'AFType', 'AzConf', 'ElConf']:
-            return data_frame[pd.DataFrame(
-                data_frame[name].tolist()
-            ).isin(value).any(1)].reset_index(drop=True)
-        else:
-            temp_frame = data_frame[data_frame[name] >= value[0]]
-            return temp_frame[
-                temp_frame[name] <= value[1]
-            ].reset_index(drop=True)
+    def filter_range(self, data_frame, name, value):
+        temp_frame = data_frame[data_frame[name] >= value[0]]
+        return temp_frame[
+            temp_frame[name] <= value[1]
+        ].reset_index(drop=True)
+
+    def filter_picker(self, data_frame, name, value):
+        return data_frame[pd.DataFrame(
+            data_frame[name].tolist()
+        ).isin(value).any(1)].reset_index(drop=True)
 
     def run(self):
         while True:
@@ -80,6 +125,12 @@ class DataProcessing(Thread):
                 self.work = self.task_queue.get()  # 3s timeout
 
             if self.work['trigger'] == 'filter':
+                if self.work['new_data']:
+                    self.load_data(self.work['data'])
+                else:
+                    self.categorical_key_values = self.work['cat_values']
+                    self.numerical_key_values = self.work['num_values']
+
                 self.skip_filter = False
 
                 self.filtering_ready = False
@@ -87,15 +138,28 @@ class DataProcessing(Thread):
                 self.frame_ready_index = 0
 
                 layout_params = self.work['layout']
-                ui_config = self.work['config']
+                # ui_config = self.work['config']
 
-                full_table = self.work['data']
-                self.filtered_table = self.work['data']
-                for filter_idx, filter_name in enumerate(self.work['key_list']):
-                    self.filtered_table = self.filter_data(
+                # full_table = self.work['data']
+                self.filtered_table = self.data
+                for filter_idx, filter_name in enumerate(self.numerical_key_list):
+                    self.filtered_table = self.filter_range(
                         self.filtered_table,
                         filter_name,
-                        self.work['key_values'][filter_idx])
+                        self.numerical_key_values[filter_idx])
+
+                    if not self.task_queue.empty():
+                        self.work = self.task_queue.get_nowait()
+                        if self.work['trigger'] == 'filter':
+                            self.skip_filter = True
+                            self.task_queue.task_done()
+                            break
+
+                for filter_idx, filter_name in enumerate(self.categorical_key_list):
+                    self.filtered_table = self.filter_picker(
+                        self.filtered_table,
+                        filter_name,
+                        self.categorical_key_values[filter_idx])
 
                     if not self.task_queue.empty():
                         self.work = self.task_queue.get_nowait()
@@ -115,7 +179,7 @@ class DataProcessing(Thread):
                     )
 
                     self.fig_list = []
-                    frame_list = full_table['Frame'].unique()
+                    frame_list = self.data['Frame'].unique()
                     for idx, frame_idx in enumerate(frame_list):
                         filtered_list = self.filtered_table[
                             self.filtered_table['Frame'] == frame_idx
@@ -134,11 +198,11 @@ class DataProcessing(Thread):
                                         color_label=layout_params['color_label'],
                                         name='Index: ' +
                                         str(idx) + ' (' +
-                                        ui_config['numerical'][ui_config['slider']
-                                                               ]['description']+')',
+                                        self.config['numerical'][self.config['slider']
+                                                                 ]['description']+')',
                                         hover_dict={
-                                            **ui_config['numerical'],
-                                            **ui_config['categorical']
+                                            **self.config['numerical'],
+                                            **self.config['categorical']
                                         },
                                         c_range=layout_params['c_range'],
                                         db=layout_params['db']
@@ -162,7 +226,7 @@ class DataProcessing(Thread):
                             self.work = self.task_queue.get_nowait()
                             if self.work['trigger'] == 'filter':
                                 self.skip_filter = True
-                                self.frame_ready_index=0
+                                self.frame_ready_index = 0
                                 self.task_queue.task_done()
                                 break
 

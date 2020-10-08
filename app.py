@@ -21,35 +21,17 @@ import plotly.io as pio
 from viz import get_figure_data, get_figure_layout, get_host_data
 
 
-def filter_data(data_frame, name, value):
-    if name in ['LookType', 'AFType', 'AzConf', 'ElConf']:
-        return data_frame[pd.DataFrame(
-            data_frame[name].tolist()
-        ).isin(value).any(1)].reset_index(drop=True)
-    else:
-        temp_frame = data_frame[data_frame[name] >= value[0]]
-        return temp_frame[
-            temp_frame[name] <= value[1]
-        ].reset_index(drop=True)
+def filter_range(data_frame, name, value):
+    temp_frame = data_frame[data_frame[name] >= value[0]]
+    return temp_frame[
+        temp_frame[name] <= value[1]
+    ].reset_index(drop=True)
 
 
-app = dash.Dash(__name__,
-                meta_tags=[{
-                    "name": "viewport",
-                    "content": "width=device-width,initial-scale=1"
-                }])
-app.scripts.config.serve_locally = True
-app.css.config.serve_locally = True
-app.title = 'SensorView'
-
-task_queue = Queue()
-fig_task_queue = Queue()
-
-processing = DataProcessing(task_queue, fig_task_queue)
-fig_processing = FigureProcessing(fig_task_queue)
-
-with open("ui.json", "r") as read_file:
-    ui_config = json.load(read_file)
+def filter_picker(data_frame, name, value):
+    return data_frame[pd.DataFrame(
+        data_frame[name].tolist()
+    ).isin(value).any(1)].reset_index(drop=True)
 
 
 def gen_rangesliders(ui_config):
@@ -83,61 +65,67 @@ def gen_dropdowns(ui_config):
     return d_list
 
 
-slider_callback = [
+def load_config(json_file):
+    with open(json_file, "r") as read_file:
+        return json.load(read_file)
+
+
+###############################################################
+app = dash.Dash(__name__,
+                meta_tags=[{
+                    "name": "viewport",
+                    "content": "width=device-width,initial-scale=1"
+                }])
+app.scripts.config.serve_locally = True
+app.css.config.serve_locally = True
+app.title = 'SensorView'
+
+ui_config = load_config('ui.json')
+
+task_queue = Queue()
+fig_task_queue = Queue()
+
+processing = DataProcessing(ui_config, task_queue, fig_task_queue)
+fig_processing = FigureProcessing(fig_task_queue)
+
+picker_callback_output = []
+picker_callback_input = []
+for idx, d_item in enumerate(ui_config['categorical']):
+    picker_callback_output.append(
+        Output(d_item+'_picker', 'options')
+    )
+    picker_callback_output.append(
+        Output(d_item+'_picker', 'value')
+    )
+    picker_callback_input.append(
+        Input(d_item+'_picker', 'value')
+    )
+
+slider_callback_output = []
+slider_callback_input = []
+for idx, s_item in enumerate(ui_config['numerical']):
+    slider_callback_output.append(
+        Output(s_item+'_filter', 'min')
+    )
+    slider_callback_output.append(
+        Output(s_item+'_filter', 'max')
+    )
+    slider_callback_output.append(
+        Output(s_item+'_filter', 'value')
+    )
+    slider_callback_input.append(
+        Input(s_item+'_filter', 'value')
+    )
+
+play_bar_callback_output = [
     Output('slider', 'min'),
     Output('slider', 'max'),
     Output('slider', 'value'),
 ]
 
-slider_input = [
+play_bar_callback_input = [
     Input('slider', 'value')
 ]
-
-
-categorical_key_list = []
-numerical_key_list = []
-key_list = []
-key_values = []
-
-picker_callback = []
-picker_input = []
-for idx, d_item in enumerate(ui_config['categorical']):
-    picker_callback.append(
-        Output(d_item+'_picker', 'options')
-    )
-    picker_callback.append(
-        Output(d_item+'_picker', 'value')
-    )
-    picker_input.append(
-        Input(d_item+'_picker', 'value')
-    )
-    key_list.append(ui_config['categorical'][d_item]['key'])
-    key_values.append([])
-
-    categorical_key_list.append(ui_config['categorical'][d_item]['key'])
-
-
-filter_callback = []
-filter_input = []
-for idx, s_item in enumerate(ui_config['numerical']):
-    filter_callback.append(
-        Output(s_item+'_filter', 'min')
-    )
-    filter_callback.append(
-        Output(s_item+'_filter', 'max')
-    )
-    filter_callback.append(
-        Output(s_item+'_filter', 'value')
-    )
-    filter_input.append(
-        Input(s_item+'_filter', 'value')
-    )
-
-    key_list.append(ui_config['numerical'][s_item]['key'])
-    key_values.append([0, 0])
-
-    numerical_key_list.append(ui_config['numerical'][s_item]['key'])
-
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
@@ -150,15 +138,6 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
         if '.pkl' in file:
             data_files.append(file)
     break
-
-det_list = pd.DataFrame()
-frame_list = []
-filtered_det = pd.DataFrame()
-# det_frames = []
-fig_list = []
-fig_list_ready = False
-filter_trigger = False
-filter_done = False
 
 
 left_figure = {
@@ -518,20 +497,23 @@ app.layout = html.Div([
     [
         Input('test_case_picker', 'value')
     ])
-def update_test_case(test_case):
-    data_files = []
-    for r, d, f in os.walk('./data/'+test_case):
-        for file in f:
-            if '.pkl' in file:
-                data_files.append(file)
-        break
+def test_case_selection(test_case):
+    if test_case is not None:
+        data_files = []
+        for r, d, f in os.walk('./data/'+test_case):
+            for file in f:
+                if '.pkl' in file:
+                    data_files.append(file)
+            break
 
-    return data_files[0], [{'label': i, 'value': i} for i in data_files]
+        return data_files[0], [{'label': i, 'value': i} for i in data_files]
+    else:
+        raise PreventUpdate()
 
 
 @app.callback(
     Output('det_grid', 'figure'),
-    slider_input + picker_input + filter_input+[
+    play_bar_callback_input + picker_callback_input + slider_callback_input+[
         Input('color_main', 'value'),
     ],
     [
@@ -539,15 +521,6 @@ def update_test_case(test_case):
         State('trigger', 'children')
     ])
 def update_filter(*args):
-    global fig_list
-    global frame_list
-    global fig_list_ready
-    global filter_trigger
-    global det_list
-    global numerical_key_list
-    global categorical_key_list
-    global key_list
-    global key_values
     global layout_params
 
     global ui_config
@@ -557,33 +530,36 @@ def update_filter(*args):
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     slider_arg = args[0]
-    categorical_args = args[1:(1+len(categorical_key_list))]
-    numerical_args = args[
-        (1+len(categorical_key_list)):
-        (1+len(categorical_key_list)+len(numerical_key_list))]
+    categorical_key_values = args[1:(1+len(processing.categorical_key_list))]
+    numerical_key_values = args[
+        (1+len(processing.categorical_key_list)):
+        (1+len(processing.categorical_key_list)+len(processing.numerical_key_list))]
     color_key = ui_config['numerical'][
-        args[1 + len(categorical_key_list)+len(numerical_key_list)]]['key']
+        args[1 + len(processing.categorical_key_list)+len(processing.numerical_key_list)]]['key']
     color_label = ui_config['numerical'][
         args[1 +
-             len(categorical_key_list) +
-             len(numerical_key_list)]]['description']
+             len(processing.categorical_key_list) +
+             len(processing.numerical_key_list)]]['description']
 
     if trigger_id == 'slider':
         if processing.get_frame_ready_index() > slider_arg:
             return processing.get_frame(slider_arg)
         else:
 
-            filterd_frame = det_list[
-                det_list[
+            filterd_frame = processing.data[
+                processing.data[
                     ui_config['numerical']
-                    [ui_config['slider']]['key']] == frame_list[slider_arg]
+                    [ui_config['slider']]['key']] == processing.frame_list[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
-            # filterd_frame = det_frames[slider_arg]
-            for filter_idx, filter_name in enumerate(key_list):
-                filterd_frame = filter_data(
-                    filterd_frame, filter_name, key_values[filter_idx])
+            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+                filterd_frame = filter_range(
+                    filterd_frame, filter_name, numerical_key_values[filter_idx])
+
+            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+                filterd_frame = filter_picker(
+                    filterd_frame, filter_name, categorical_key_values[filter_idx])
 
             return dict(
                 data=[get_figure_data(
@@ -613,57 +589,57 @@ def update_filter(*args):
                     z_range=layout_params['z_range'])
             )
     else:
-        if None not in categorical_args:
-            key_values = categorical_args+numerical_args
+        if None not in categorical_key_values:
             layout_params['x_range'] = [
-                np.min([np.min(det_list['Latitude']),
-                        np.min(det_list['HostLatitude'])]),
-                np.max([np.max(det_list['Latitude']),
-                        np.max(det_list['HostLatitude'])])]
+                np.min([np.min(processing.data['Latitude']),
+                        np.min(processing.data['HostLatitude'])]),
+                np.max([np.max(processing.data['Latitude']),
+                        np.max(processing.data['HostLatitude'])])]
             layout_params['y_range'] = [
-                np.min([np.min(det_list['Longitude']),
-                        np.min(det_list['HostLongitude'])]),
-                np.max([np.max(det_list['Longitude']),
-                        np.max(det_list['HostLongitude'])])]
+                np.min([np.min(processing.data['Longitude']),
+                        np.min(processing.data['HostLongitude'])]),
+                np.max([np.max(processing.data['Longitude']),
+                        np.max(processing.data['HostLongitude'])])]
             layout_params['z_range'] = [
-                np.min(det_list['Height']),
-                np.max(det_list['Height'])]
+                np.min(processing.data['Height']),
+                np.max(processing.data['Height'])]
             layout_params['color_key'] = color_key
             layout_params['color_label'] = color_label
             layout_params['c_range'] = [
-                np.min(det_list[color_key]),
-                np.max(det_list[color_key])
+                np.min(processing.data[color_key]),
+                np.max(processing.data[color_key])
             ]
-
-            filter_trigger = True
-            fig_list_ready = False
 
             fig_processing.set_left_outdated()
             fig_processing.set_right_outdated()
 
+            # processing.update_categorical_key_values(categorical_key_values)
+            # processing.update_numerical_key_values(numerical_key_values)
+
             task_queue.put_nowait(
                 {
                     'trigger': 'filter',
-                    'data': det_list,
-                    'key_list': key_list,
-                    'key_values': key_values,
+                    'new_data': False,
+                    'cat_values':categorical_key_values,
+                    'num_values':numerical_key_values,
                     'layout': layout_params,
-                    'config': ui_config
                 }
             )
 
-            # filterd_frame = det_frames[slider_arg]
-
-            filterd_frame = det_list[
-                det_list[
+            filterd_frame = processing.data[
+                processing.data[
                     ui_config['numerical']
-                    [ui_config['slider']]['key']] == frame_list[slider_arg]
+                    [ui_config['slider']]['key']] == processing.frame_list[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
-            for filter_idx, filter_name in enumerate(key_list):
-                filterd_frame = filter_data(
-                    filterd_frame, filter_name, key_values[filter_idx])
+            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+                filterd_frame = filter_range(
+                    filterd_frame, filter_name, numerical_key_values[filter_idx])
+
+            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+                filterd_frame = filter_picker(
+                    filterd_frame, filter_name, categorical_key_values[filter_idx])
 
             return dict(
                 data=[get_figure_data(
@@ -708,7 +684,9 @@ def update_filter(*args):
         Output('y_right', 'disabled'),
         Output('color_right', 'disabled'),
     ],
-    picker_input+filter_input+[
+    picker_callback_input +
+    slider_callback_input +
+    [
         Input('left-switch', 'on'),
         Input('x_left', 'value'),
         Input('y_left', 'value'),
@@ -890,7 +868,9 @@ def update_2d_graphs(*args):
 
 
 @app.callback(
-    slider_callback+picker_callback+filter_callback +
+    play_bar_callback_output +
+    picker_callback_output +
+    slider_callback_output +
     [
         Output('color_main', 'value'),
         Output('left-switch', 'on'),
@@ -902,17 +882,14 @@ def update_2d_graphs(*args):
     [
         State('test_case_picker', 'value')
     ])
-def update_data_file(data_file_name, test_case):
-    global ui_config
-    global frame_list
-    global det_list
-    global layout_params
-    global key_list
-    global key_values
+def data_file_selection(data_file_name, test_case):
     global ui_config
 
-    if data_file_name is not None:
-        det_list = pd.read_pickle('./data/'+test_case+'/'+data_file_name)
+    global layout_params
+
+    if data_file_name is not None and test_case is not None:
+        new_data = pd.read_pickle(
+            './data/'+test_case+'/'+data_file_name)
 
         layout_params['color_key'] = ui_config['numerical'][
             ui_config['graph_3d_detections']['default_color']
@@ -924,33 +901,31 @@ def update_data_file(data_file_name, test_case):
 
         layout_params['db'] = False
         layout_params['x_range'] = [
-            np.min([np.min(det_list['Latitude']),
-                    np.min(det_list['HostLatitude'])]),
-            np.max([np.max(det_list['Latitude']),
-                    np.max(det_list['HostLatitude'])])]
+            np.min([np.min(new_data['Latitude']),
+                    np.min(new_data['HostLatitude'])]),
+            np.max([np.max(new_data['Latitude']),
+                    np.max(new_data['HostLatitude'])])]
         layout_params['y_range'] = [
-            np.min([np.min(det_list['Longitude']),
-                    np.min(det_list['HostLongitude'])]),
-            np.max([np.max(det_list['Longitude']),
-                    np.max(det_list['HostLongitude'])])]
+            np.min([np.min(new_data['Longitude']),
+                    np.min(new_data['HostLongitude'])]),
+            np.max([np.max(new_data['Longitude']),
+                    np.max(new_data['HostLongitude'])])]
         layout_params['z_range'] = [
-            np.min(det_list['Height']),
-            np.max(det_list['Height'])]
+            np.min(new_data['Height']),
+            np.max(new_data['Height'])]
         layout_params['c_range'] = [
-            np.min(det_list[layout_params['color_key']]),
-            np.max(det_list[layout_params['color_key']])
+            np.min(new_data[layout_params['color_key']]),
+            np.max(new_data[layout_params['color_key']])
         ]
 
-        frame_list = det_list[ui_config['numerical']
-                              [ui_config['slider']]['key']].unique()
-
+        frame_list = new_data[
+            ui_config['numerical']
+            [ui_config['slider']]['key']].unique()
         output = [0, len(frame_list)-1, 0]
 
-        key_values = []
         for idx, d_item in enumerate(ui_config['categorical']):
-            var_list = det_list[ui_config['categorical']
+            var_list = new_data[ui_config['categorical']
                                 [d_item]['key']].unique()
-            key_values.append(var_list)
 
             options = []
             selection = []
@@ -962,15 +937,13 @@ def update_data_file(data_file_name, test_case):
 
         for idx, s_item in enumerate(ui_config['numerical']):
             var_min = round(
-                np.min(det_list[ui_config['numerical'][s_item]['key']]), 1)
+                np.min(new_data[ui_config['numerical'][s_item]['key']]), 1)
             var_max = round(
-                np.max(det_list[ui_config['numerical'][s_item]['key']]), 1)
+                np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
 
             output.append(var_min)
             output.append(var_max)
             output.append([var_min, var_max])
-
-            key_values.append([var_min, var_max])
 
         output.append(ui_config['graph_3d_detections']['default_color'])
         output.append(False)
@@ -1010,15 +983,15 @@ def update_data_file(data_file_name, test_case):
         task_queue.put_nowait(
             {
                 'trigger': 'filter',
-                'data': det_list,
-                'key_list': key_list,
-                'key_values': key_values,
+                'new_data': True,
+                'data': new_data,
                 'layout': layout_params,
-                'config': ui_config
             }
         )
 
         return output
+    else:
+        raise PreventUpdate()
 
 
 @app.callback(
