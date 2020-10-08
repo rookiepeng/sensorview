@@ -86,12 +86,6 @@ class DataProcessing(Thread):
 
             self.numerical_key_values.append([var_min, var_max])
 
-    def update_numerical_key_values(self, num_values):
-        self.numerical_key_values = num_values
-
-    def update_categorical_key_values(self, cat_values):
-        self.categorical_key_values = cat_values
-
     def is_filtering_ready(self):
         return self.filtering_ready
 
@@ -263,9 +257,6 @@ class FigureProcessing(Thread):
         self.right_figure_keys = []
         self.left_figure_ready = False
         self.right_figure_ready = False
-
-        # self.left_outdated = True
-        # self.right_outdated = True
 
         self.work = {
             'trigger': 'none'
