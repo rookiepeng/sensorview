@@ -521,9 +521,11 @@ def update_filter(*args):
     categorical_key_values = args[1:(1+len(processing.categorical_key_list))]
     numerical_key_values = args[
         (1+len(processing.categorical_key_list)):
-        (1+len(processing.categorical_key_list)+len(processing.numerical_key_list))]
+        (1+len(processing.categorical_key_list) +
+            len(processing.numerical_key_list))]
     color_key = ui_config['numerical'][
-        args[1 + len(processing.categorical_key_list)+len(processing.numerical_key_list)]]['key']
+        args[1 + len(processing.categorical_key_list) +
+             len(processing.numerical_key_list)]]['key']
     color_label = ui_config['numerical'][
         args[1 +
              len(processing.categorical_key_list) +
@@ -537,19 +539,27 @@ def update_filter(*args):
             filterd_frame = processing.data[
                 processing.data[
                     ui_config['numerical']
-                    [ui_config['slider']]['key']] == processing.frame_idx[slider_arg]
+                    [
+                        ui_config['slider']
+                    ]['key']] == processing.frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
-            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+            for filter_idx, filter_name in enumerate(
+                    processing.numerical_key_list):
                 if filter_name is not None:
                     filterd_frame = filter_range(
-                        filterd_frame, filter_name, numerical_key_values[filter_idx])
+                        filterd_frame,
+                        filter_name,
+                        numerical_key_values[filter_idx])
 
-            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+            for filter_idx, filter_name in enumerate(
+                    processing.categorical_key_list):
                 if filter_name is not None:
                     filterd_frame = filter_picker(
-                        filterd_frame, filter_name, categorical_key_values[filter_idx])
+                        filterd_frame,
+                        filter_name,
+                        categorical_key_values[filter_idx])
 
             return dict(
                 data=[get_figure_data(
@@ -642,19 +652,27 @@ def update_filter(*args):
             filterd_frame = processing.data[
                 processing.data[
                     ui_config['numerical']
-                    [ui_config['slider']]['key']] == processing.frame_idx[slider_arg]
+                    [
+                        ui_config['slider']
+                    ]['key']] == processing.frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
-            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+            for filter_idx, filter_name in enumerate(
+                    processing.numerical_key_list):
                 if filter_name is not None:
                     filterd_frame = filter_range(
-                        filterd_frame, filter_name, numerical_key_values[filter_idx])
+                        filterd_frame,
+                        filter_name,
+                        numerical_key_values[filter_idx])
 
-            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+            for filter_idx, filter_name in enumerate(
+                    processing.categorical_key_list):
                 if filter_name is not None:
                     filterd_frame = filter_picker(
-                        filterd_frame, filter_name, categorical_key_values[filter_idx])
+                        filterd_frame,
+                        filter_name,
+                        categorical_key_values[filter_idx])
 
             return dict(
                 data=[get_figure_data(
