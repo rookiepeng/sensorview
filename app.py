@@ -22,19 +22,6 @@ import plotly.io as pio
 from viz import get_figure_data, get_figure_layout, get_host_data
 
 
-# def filter_range(data_frame, name, value):
-#     temp_frame = data_frame[data_frame[name] >= value[0]]
-#     return temp_frame[
-#         temp_frame[name] <= value[1]
-#     ].reset_index(drop=True)
-
-
-# def filter_picker(data_frame, name, value):
-#     return data_frame[pd.DataFrame(
-#         data_frame[name].tolist()
-#     ).isin(value).any(1)].reset_index(drop=True)
-
-
 def gen_rangesliders(ui_config):
     s_list = []
     for idx, s_item in enumerate(ui_config['numerical']):
@@ -182,7 +169,17 @@ layout_params = {
 
 app.layout = html.Div([
     html.Div([
-        html.Div([], className="one-third column"),
+        html.Div([
+            html.Img(
+                src=app.get_asset_url("sensorview.svg"),
+                id="sensorview-image",
+                style={
+                    "height": "100px",
+                    "width": "auto",
+                    "margin-bottom": "0px",
+                },
+            )
+        ], className="one-third column"),
         html.Div([
             html.Div(
                 [
