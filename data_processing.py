@@ -193,9 +193,15 @@ class DataProcessing(Thread):
                                 data=[
                                     get_figure_data(
                                         det_list=filtered_list,
-                                        x_key='Latitude',
-                                        y_key='Longitude',
-                                        z_key='Height',
+                                        x_key=self.config['numerical'][
+                                            self.config['graph_3d_detections']['default_x']
+                                        ]['key'],
+                                        y_key=self.config['numerical'][
+                                            self.config['graph_3d_detections']['default_y']
+                                        ]['key'],
+                                        z_key=self.config['numerical'][
+                                            self.config['graph_3d_detections']['default_z']
+                                        ]['key'],
                                         color_key=layout_params['color_key'],
                                         color_label=layout_params['color_label'],
                                         name='Index: ' +
@@ -211,8 +217,12 @@ class DataProcessing(Thread):
                                     ),
                                     get_host_data(
                                         det_list=filtered_list,
-                                        x_key='HostLatitude',
-                                        y_key='HostLongitude',
+                                        x_key=self.config['host'][
+                                            self.config['graph_3d_host']['default_x']
+                                        ]['key'],
+                                        y_key=self.config['host'][
+                                            self.config['graph_3d_host']['default_y']
+                                        ]['key']
                                     )
                                 ],
                                 layout=get_figure_layout(

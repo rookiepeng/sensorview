@@ -586,10 +586,10 @@ def update_filter(*args):
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key=ui_config['numerical'][
+                    x_key=ui_config['host'][
                         ui_config['graph_3d_host']['default_x']
                     ]['key'],
-                    y_key=ui_config['numerical'][
+                    y_key=ui_config['host'][
                         ui_config['graph_3d_host']['default_y']
                     ]['key'],
                 )],
@@ -603,13 +603,13 @@ def update_filter(*args):
             x_det = ui_config['numerical'][
                 ui_config['graph_3d_detections']['default_x']
             ]['key']
-            x_host = ui_config['numerical'][
+            x_host = ui_config['host'][
                 ui_config['graph_3d_host']['default_x']
             ]['key']
             y_det = ui_config['numerical'][
                 ui_config['graph_3d_detections']['default_y']
             ]['key']
-            y_host = ui_config['numerical'][
+            y_host = ui_config['host'][
                 ui_config['graph_3d_host']['default_y']
             ]['key']
             z_det = ui_config['numerical'][
@@ -699,10 +699,10 @@ def update_filter(*args):
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key=ui_config['numerical'][
+                    x_key=ui_config['host'][
                         ui_config['graph_3d_host']['default_x']
                     ]['key'],
-                    y_key=ui_config['numerical'][
+                    y_key=ui_config['host'][
                         ui_config['graph_3d_host']['default_y']
                     ]['key'],
                 )],
@@ -947,13 +947,13 @@ def data_file_selection(data_file_name, test_case):
         x_det = ui_config['numerical'][
             ui_config['graph_3d_detections']['default_x']
         ]['key']
-        x_host = ui_config['numerical'][
+        x_host = ui_config['host'][
             ui_config['graph_3d_host']['default_x']
         ]['key']
         y_det = ui_config['numerical'][
             ui_config['graph_3d_detections']['default_y']
         ]['key']
-        y_host = ui_config['numerical'][
+        y_host = ui_config['host'][
             ui_config['graph_3d_host']['default_y']
         ]['key']
         z_det = ui_config['numerical'][
