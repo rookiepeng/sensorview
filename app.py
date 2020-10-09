@@ -140,13 +140,6 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
     break
 
 
-left_figure = {
-    'data': [{'mode': 'markers', 'type': 'scatter',
-              'x': [], 'y': []}
-             ],
-    'layout': {
-        'uirevision': 'no_change'
-    }}
 left_figure_keys = [
     ui_config['numerical'][ui_config['graph_2d_left']['default_x']]['key'],
     ui_config['numerical'][ui_config['graph_2d_left']['default_y']]['key'],
@@ -158,13 +151,7 @@ left_figure_keys = [
     ui_config['numerical'][
         ui_config['graph_2d_left']['default_color']
     ]['description']]
-right_figure = {
-    'data': [{'mode': 'markers', 'type': 'scatter',
-              'x': [], 'y': []}
-             ],
-    'layout': {
-        'uirevision': 'no_change'
-    }}
+
 right_figure_keys = [
     ui_config['numerical'][ui_config['graph_2d_right']['default_x']]['key'],
     ui_config['numerical'][ui_config['graph_2d_right']
@@ -177,8 +164,6 @@ right_figure_keys = [
                            ]['description'],
     ui_config['numerical'][ui_config['graph_2d_right']['default_color']
                            ]['description']]
-left_figure_ready = True
-right_figure_ready = True
 
 layout_params = {
     'x_range': [0, 0],
@@ -526,6 +511,9 @@ def update_filter(*args):
     global ui_config
     global task_queue
 
+    if processing.is_locked:
+        raise PreventUpdate()
+
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -549,24 +537,32 @@ def update_filter(*args):
             filterd_frame = processing.data[
                 processing.data[
                     ui_config['numerical']
-                    [ui_config['slider']]['key']] == processing.frame_list[slider_arg]
+                    [ui_config['slider']]['key']] == processing.frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
             for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-                filterd_frame = filter_range(
-                    filterd_frame, filter_name, numerical_key_values[filter_idx])
+                if filter_name is not None:
+                    filterd_frame = filter_range(
+                        filterd_frame, filter_name, numerical_key_values[filter_idx])
 
             for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-                filterd_frame = filter_picker(
-                    filterd_frame, filter_name, categorical_key_values[filter_idx])
+                if filter_name is not None:
+                    filterd_frame = filter_picker(
+                        filterd_frame, filter_name, categorical_key_values[filter_idx])
 
             return dict(
                 data=[get_figure_data(
                     det_list=filterd_frame,
-                    x_key='Latitude',
-                    y_key='Longitude',
-                    z_key='Height',
+                    x_key=ui_config['numerical'][
+                        ui_config['graph_3d_detections']['default_x']
+                    ]['key'],
+                    y_key=ui_config['numerical'][
+                        ui_config['graph_3d_detections']['default_y']
+                    ]['key'],
+                    z_key=ui_config['numerical'][
+                        ui_config['graph_3d_detections']['default_z']
+                    ]['key'],
                     color_key=layout_params['color_key'],
                     color_label=layout_params['color_label'],
                     name='Index: ' +
@@ -580,8 +576,12 @@ def update_filter(*args):
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key='HostLatitude',
-                    y_key='HostLongitude',
+                    x_key=ui_config['numerical'][
+                        ui_config['graph_3d_host']['default_x']
+                    ]['key'],
+                    y_key=ui_config['numerical'][
+                        ui_config['graph_3d_host']['default_y']
+                    ]['key'],
                 )],
                 layout=get_figure_layout(
                     x_range=layout_params['x_range'],
@@ -590,19 +590,35 @@ def update_filter(*args):
             )
     else:
         if None not in categorical_key_values:
+            x_det = ui_config['numerical'][
+                ui_config['graph_3d_detections']['default_x']
+            ]['key']
+            x_host = ui_config['numerical'][
+                ui_config['graph_3d_host']['default_x']
+            ]['key']
+            y_det = ui_config['numerical'][
+                ui_config['graph_3d_detections']['default_y']
+            ]['key']
+            y_host = ui_config['numerical'][
+                ui_config['graph_3d_host']['default_y']
+            ]['key']
+            z_det = ui_config['numerical'][
+                ui_config['graph_3d_detections']['default_z']
+            ]['key']
+
             layout_params['x_range'] = [
-                np.min([np.min(processing.data['Latitude']),
-                        np.min(processing.data['HostLatitude'])]),
-                np.max([np.max(processing.data['Latitude']),
-                        np.max(processing.data['HostLatitude'])])]
+                np.min([np.min(processing.data[x_det]),
+                        np.min(processing.data[x_host])]),
+                np.max([np.max(processing.data[x_det]),
+                        np.max(processing.data[x_host])])]
             layout_params['y_range'] = [
-                np.min([np.min(processing.data['Longitude']),
-                        np.min(processing.data['HostLongitude'])]),
-                np.max([np.max(processing.data['Longitude']),
-                        np.max(processing.data['HostLongitude'])])]
+                np.min([np.min(processing.data[y_det]),
+                        np.min(processing.data[y_host])]),
+                np.max([np.max(processing.data[y_det]),
+                        np.max(processing.data[y_host])])]
             layout_params['z_range'] = [
-                np.min(processing.data['Height']),
-                np.max(processing.data['Height'])]
+                np.min(processing.data[z_det]),
+                np.max(processing.data[z_det])]
             layout_params['color_key'] = color_key
             layout_params['color_label'] = color_label
             layout_params['c_range'] = [
@@ -613,15 +629,12 @@ def update_filter(*args):
             fig_processing.set_left_outdated()
             fig_processing.set_right_outdated()
 
-            # processing.update_categorical_key_values(categorical_key_values)
-            # processing.update_numerical_key_values(numerical_key_values)
-
             task_queue.put_nowait(
                 {
                     'trigger': 'filter',
                     'new_data': False,
-                    'cat_values':categorical_key_values,
-                    'num_values':numerical_key_values,
+                    'cat_values': categorical_key_values,
+                    'num_values': numerical_key_values,
                     'layout': layout_params,
                 }
             )
@@ -629,24 +642,32 @@ def update_filter(*args):
             filterd_frame = processing.data[
                 processing.data[
                     ui_config['numerical']
-                    [ui_config['slider']]['key']] == processing.frame_list[slider_arg]
+                    [ui_config['slider']]['key']] == processing.frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
             for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-                filterd_frame = filter_range(
-                    filterd_frame, filter_name, numerical_key_values[filter_idx])
+                if filter_name is not None:
+                    filterd_frame = filter_range(
+                        filterd_frame, filter_name, numerical_key_values[filter_idx])
 
             for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-                filterd_frame = filter_picker(
-                    filterd_frame, filter_name, categorical_key_values[filter_idx])
+                if filter_name is not None:
+                    filterd_frame = filter_picker(
+                        filterd_frame, filter_name, categorical_key_values[filter_idx])
 
             return dict(
                 data=[get_figure_data(
                     det_list=filterd_frame,
-                    x_key='Latitude',
-                    y_key='Longitude',
-                    z_key='Height',
+                    x_key=ui_config['numerical'][
+                        ui_config['graph_3d_detections']['default_x']
+                    ]['key'],
+                    y_key=ui_config['numerical'][
+                        ui_config['graph_3d_detections']['default_y']
+                    ]['key'],
+                    z_key=ui_config['numerical'][
+                        ui_config['graph_3d_detections']['default_z']
+                    ]['key'],
                     color_key=layout_params['color_key'],
                     color_label=layout_params['color_label'],
                     name='Index: ' +
@@ -660,8 +681,12 @@ def update_filter(*args):
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key='HostLatitude',
-                    y_key='HostLongitude',
+                    x_key=ui_config['numerical'][
+                        ui_config['graph_3d_host']['default_x']
+                    ]['key'],
+                    y_key=ui_config['numerical'][
+                        ui_config['graph_3d_host']['default_y']
+                    ]['key'],
                 )],
                 layout=get_figure_layout(
                     x_range=layout_params['x_range'],
@@ -900,28 +925,45 @@ def data_file_selection(data_file_name, test_case):
         ]['description']
 
         layout_params['db'] = False
+
+        x_det = ui_config['numerical'][
+            ui_config['graph_3d_detections']['default_x']
+        ]['key']
+        x_host = ui_config['numerical'][
+            ui_config['graph_3d_host']['default_x']
+        ]['key']
+        y_det = ui_config['numerical'][
+            ui_config['graph_3d_detections']['default_y']
+        ]['key']
+        y_host = ui_config['numerical'][
+            ui_config['graph_3d_host']['default_y']
+        ]['key']
+        z_det = ui_config['numerical'][
+            ui_config['graph_3d_detections']['default_z']
+        ]['key']
+
         layout_params['x_range'] = [
-            np.min([np.min(new_data['Latitude']),
-                    np.min(new_data['HostLatitude'])]),
-            np.max([np.max(new_data['Latitude']),
-                    np.max(new_data['HostLatitude'])])]
+            np.min([np.min(new_data[x_det]),
+                    np.min(new_data[x_host])]),
+            np.max([np.max(new_data[x_det]),
+                    np.max(new_data[x_host])])]
         layout_params['y_range'] = [
-            np.min([np.min(new_data['Longitude']),
-                    np.min(new_data['HostLongitude'])]),
-            np.max([np.max(new_data['Longitude']),
-                    np.max(new_data['HostLongitude'])])]
+            np.min([np.min(new_data[y_det]),
+                    np.min(new_data[y_host])]),
+            np.max([np.max(new_data[y_det]),
+                    np.max(new_data[y_host])])]
         layout_params['z_range'] = [
-            np.min(new_data['Height']),
-            np.max(new_data['Height'])]
+            np.min(new_data[z_det]),
+            np.max(new_data[z_det])]
         layout_params['c_range'] = [
             np.min(new_data[layout_params['color_key']]),
             np.max(new_data[layout_params['color_key']])
         ]
 
-        frame_list = new_data[
+        frame_idx = new_data[
             ui_config['numerical']
             [ui_config['slider']]['key']].unique()
-        output = [0, len(frame_list)-1, 0]
+        output = [0, len(frame_idx)-1, 0]
 
         for idx, d_item in enumerate(ui_config['categorical']):
             var_list = new_data[ui_config['categorical']
@@ -1000,8 +1042,9 @@ def data_file_selection(data_file_name, test_case):
     State('graph_2d_left', 'figure')
 )
 def export_left_fig(btn, fig):
-    temp_fig = go.Figure(fig)
-    temp_fig.write_image("images/fig_left.png", scale=2)
+    if btn > 0:
+        temp_fig = go.Figure(fig)
+        temp_fig.write_image("images/fig_left.png", scale=2)
     return 0
 
 
@@ -1011,8 +1054,9 @@ def export_left_fig(btn, fig):
     State('graph_2d_right', 'figure')
 )
 def export_right_fig(btn, fig):
-    temp_fig = go.Figure(fig)
-    temp_fig.write_image("images/fig_right.png", scale=2)
+    if btn > 0:
+        temp_fig = go.Figure(fig)
+        temp_fig.write_image("images/fig_right.png", scale=2)
     return 0
 
 

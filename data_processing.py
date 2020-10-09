@@ -14,14 +14,16 @@ class DataProcessing(Thread):
 
         self.config = config
 
+        self.data = pd.DataFrame()
+
         self.categorical_key_list = []
         self.categorical_key_values = []
 
         self.numerical_key_list = []
         self.numerical_key_values = []
 
-        self.data = pd.DataFrame()
-        self.frame_list = []
+        self.frame_idx = []
+
         self.task_queue = task_queue
         self.fig_queue = fig_queue
 
@@ -33,6 +35,8 @@ class DataProcessing(Thread):
         self.filtered_table = pd.DataFrame()
         self.det_table = pd.DataFrame()
         self.fig_list = []
+
+        self.is_locked = True
 
         self.left_figure = {
             'data': [{'mode': 'markers', 'type': 'scatter',
@@ -58,8 +62,9 @@ class DataProcessing(Thread):
         }
 
     def load_data(self, data):
+        self.is_locked = True
         self.data = data
-        self.frame_list = self.data[
+        self.frame_idx = self.data[
             self.config['numerical']
             [self.config['slider']]['key']].unique()
 
@@ -68,6 +73,7 @@ class DataProcessing(Thread):
 
         self.numerical_key_list = []
         self.numerical_key_values = []
+
         for idx, d_item in enumerate(self.config['categorical']):
             self.categorical_key_list.append(
                 self.config['categorical'][d_item]['key'])
@@ -85,6 +91,8 @@ class DataProcessing(Thread):
                 np.max(self.data[self.config['numerical'][s_item]['key']]), 1)
 
             self.numerical_key_values.append([var_min, var_max])
+
+        self.is_locked = False
 
     def is_filtering_ready(self):
         return self.filtering_ready
@@ -173,8 +181,8 @@ class DataProcessing(Thread):
                     )
 
                     self.fig_list = []
-                    frame_list = self.data['Frame'].unique()
-                    for idx, frame_idx in enumerate(frame_list):
+                    frame_idx = self.data['Frame'].unique()
+                    for idx, frame_idx in enumerate(frame_idx):
                         filtered_list = self.filtered_table[
                             self.filtered_table['Frame'] == frame_idx
                         ]
