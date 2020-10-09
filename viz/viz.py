@@ -178,25 +178,33 @@ def frame_args(duration):
 
 
 def get_animation_data(det_list,
-                       color_key='Speed',
+                       x_key,
+                       y_key,
+                       z_key,
+                       host_x_key,
+                       host_y_key,
+                       color_key=None,
+                       hover_dict=None,
+                       c_range=[-30, 30],
                        db=False,
                        colormap='Rainbow',
                        title=None,
                        height=650):
 
-    x_range = [np.min([np.min(det_list['Latitude']),
-                       np.min(det_list['VehLat'])]),
-               np.max([np.max(det_list['Latitude']),
-                       np.max(det_list['VehLat'])])]
-    y_range = [np.min([np.min(det_list['Longitude']),
-                       np.min(det_list['VehLong'])]),
-               np.max([np.max(det_list['Longitude']),
-                       np.max(det_list['VehLong'])])]
-    z_range = [np.min(det_list['Height']),
-               np.max(det_list['Height'])]
-    # layout_params['color_key'] = color_key
-    c_range = [np.min(det_list[color_key]),
-               np.max(det_list[color_key])]
+    x_range = [np.min([np.min(det_list[x_key]),
+                       np.min(det_list[host_x_key])]),
+               np.max([np.max(det_list[x_key]),
+                       np.max(det_list[host_x_key])])]
+    y_range = [np.min([np.min(det_list[y_key]),
+                       np.min(det_list[host_y_key])]),
+               np.max([np.max(det_list[y_key]),
+                       np.max(det_list[host_y_key])])]
+    z_range = [np.min(det_list[z_key]),
+               np.max(det_list[z_key])]
+
+    if color_key is not None:
+        c_range = [np.min(det_list[color_key]),
+                   np.max(det_list[color_key])]
 
     ani_frames = []
     frame_list = det_list['Frame'].unique()
@@ -207,12 +215,24 @@ def get_animation_data(det_list,
 
         ani_frames.append(
             dict(
-                data=get_figure_data(
-                    filtered_list,
-                    color_key=color_key,
-                    c_range=c_range,
-                    db=db, colormap=colormap
-                ),
+                data=[
+                    get_figure_data(
+                        filtered_list,
+                        x_key,
+                        y_key,
+                        z_key,
+                        color_key,
+                        color_label=color_key,
+                        name='Frame: '+str(frame_idx),
+                        hover_dict=hover_dict,
+                        c_range=c_range,
+                        db=db,
+                        colormap=colormap),
+                    get_host_data(
+                        filtered_list,
+                        host_x_key,
+                        host_y_key)
+                ],
                 # need to name the frame for the animation to behave properly
                 name=str(frame_idx)
             )
