@@ -1,6 +1,7 @@
 from logging import disable
 from queue import Queue
 
+from data_processing import filter_range, filter_picker
 from data_processing import DataProcessing, FigureProcessing
 
 import json
@@ -21,17 +22,17 @@ import plotly.io as pio
 from viz import get_figure_data, get_figure_layout, get_host_data
 
 
-def filter_range(data_frame, name, value):
-    temp_frame = data_frame[data_frame[name] >= value[0]]
-    return temp_frame[
-        temp_frame[name] <= value[1]
-    ].reset_index(drop=True)
+# def filter_range(data_frame, name, value):
+#     temp_frame = data_frame[data_frame[name] >= value[0]]
+#     return temp_frame[
+#         temp_frame[name] <= value[1]
+#     ].reset_index(drop=True)
 
 
-def filter_picker(data_frame, name, value):
-    return data_frame[pd.DataFrame(
-        data_frame[name].tolist()
-    ).isin(value).any(1)].reset_index(drop=True)
+# def filter_picker(data_frame, name, value):
+#     return data_frame[pd.DataFrame(
+#         data_frame[name].tolist()
+#     ).isin(value).any(1)].reset_index(drop=True)
 
 
 def gen_rangesliders(ui_config):

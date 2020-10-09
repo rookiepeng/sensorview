@@ -1,11 +1,25 @@
 
 import numpy as np
-from threading import Thread, Event
+from threading import Thread
 from queue import Queue
 
 import pandas as pd
 
-from viz import get_2d_scatter, get_figure_data, get_figure_layout, get_host_data
+from viz import get_figure_data, get_figure_layout, get_host_data
+from viz import get_2d_scatter
+
+
+def filter_range(data_frame, name, value):
+    temp_frame = data_frame[data_frame[name] >= value[0]]
+    return temp_frame[
+        temp_frame[name] <= value[1]
+    ].reset_index(drop=True)
+
+
+def filter_picker(data_frame, name, value):
+    return data_frame[pd.DataFrame(
+        data_frame[name].tolist()
+    ).isin(value).any(1)].reset_index(drop=True)
 
 
 class DataProcessing(Thread):
@@ -109,17 +123,6 @@ class DataProcessing(Thread):
     def get_filtered_data(self):
         return self.filtered_table
 
-    def filter_range(self, data_frame, name, value):
-        temp_frame = data_frame[data_frame[name] >= value[0]]
-        return temp_frame[
-            temp_frame[name] <= value[1]
-        ].reset_index(drop=True)
-
-    def filter_picker(self, data_frame, name, value):
-        return data_frame[pd.DataFrame(
-            data_frame[name].tolist()
-        ).isin(value).any(1)].reset_index(drop=True)
-
     def run(self):
         while True:
 
@@ -127,11 +130,14 @@ class DataProcessing(Thread):
                 self.work = self.task_queue.get()  # 3s timeout
 
             if self.work['trigger'] == 'filter':
-                if self.work['new_data']:
-                    self.load_data(self.work['data'])
-                else:
-                    self.categorical_key_values = self.work['cat_values']
-                    self.numerical_key_values = self.work['num_values']
+                new_data = self.work.get('data', None)
+                if new_data is not None:
+                    self.load_data(new_data)
+
+                self.categorical_key_values = self.work.get(
+                    'cat_values', self.categorical_key_values)
+                self.numerical_key_values = self.work.get(
+                    'num_values', self.numerical_key_values)
 
                 self.skip_filter = False
 
@@ -140,12 +146,10 @@ class DataProcessing(Thread):
                 self.frame_ready_index = 0
 
                 layout_params = self.work['layout']
-                # ui_config = self.work['config']
 
-                # full_table = self.work['data']
                 self.filtered_table = self.data
                 for filter_idx, filter_name in enumerate(self.numerical_key_list):
-                    self.filtered_table = self.filter_range(
+                    self.filtered_table = filter_range(
                         self.filtered_table,
                         filter_name,
                         self.numerical_key_values[filter_idx])
@@ -158,7 +162,7 @@ class DataProcessing(Thread):
                             break
 
                 for filter_idx, filter_name in enumerate(self.categorical_key_list):
-                    self.filtered_table = self.filter_picker(
+                    self.filtered_table = filter_picker(
                         self.filtered_table,
                         filter_name,
                         self.categorical_key_values[filter_idx])
@@ -245,10 +249,6 @@ class DataProcessing(Thread):
                     if not self.skip_filter:
                         self.frame_list_ready = True
                         self.task_queue.task_done()
-
-                    # if filter_trigger:
-                    #     skip_filter = True
-                    #     break
 
 
 class FigureProcessing(Thread):
