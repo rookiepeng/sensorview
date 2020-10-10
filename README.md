@@ -6,4 +6,4 @@ A lightweight sensor data visualization and analysis tool.
 
 ### Screenshot
 
-![](.\assets\screenshot.png)
+![](./assets/screenshot.png)
