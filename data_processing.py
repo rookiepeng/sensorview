@@ -5,8 +5,8 @@ from queue import Queue
 
 import pandas as pd
 
-from viz import get_figure_data, get_figure_layout, get_host_data
-from viz import get_2d_scatter
+from viz.viz import get_figure_data, get_figure_layout, get_host_data
+from viz.viz import get_2d_scatter
 
 
 def filter_range(data_frame, name, value):
