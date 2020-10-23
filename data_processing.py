@@ -23,7 +23,7 @@ def filter_picker(data_frame, name, value):
 
 
 class DataProcessing(Thread):
-    def __init__(self, config, task_queue, fig_queue):
+    def __init__(self, config, task_queue):
         Thread.__init__(self)
 
         self.config = config
@@ -39,7 +39,7 @@ class DataProcessing(Thread):
         self.frame_idx = []
 
         self.task_queue = task_queue
-        self.fig_queue = fig_queue
+        # self.fig_queue = fig_queue
 
         self.filtering_ready = False
         self.frame_list_ready = False
@@ -177,12 +177,12 @@ class DataProcessing(Thread):
                 if not self.skip_filter:
                     self.filtering_ready = True
 
-                    self.fig_queue.put_nowait(
-                        {
-                            'trigger': 'filter_done',
-                            'data': self.filtered_table
-                        }
-                    )
+                    # self.fig_queue.put_nowait(
+                    #     {
+                    #         'trigger': 'filter_done',
+                    #         'data': self.filtered_table
+                    #     }
+                    # )
 
                     self.fig_list = []
                     frame_idx = self.data['Frame'].unique()
@@ -251,134 +251,134 @@ class DataProcessing(Thread):
                         self.task_queue.task_done()
 
 
-class FigureProcessing(Thread):
-    def __init__(self, task_queue):
-        Thread.__init__(self)
+# class FigureProcessing(Thread):
+#     def __init__(self, task_queue):
+#         Thread.__init__(self)
 
-        self.task_queue = task_queue
+#         self.task_queue = task_queue
 
-        self.left_figure = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
-                     ],
-            'layout': {
-                'uirevision': 'no_change'
-            }}
-        self.left_figure_keys = []
-        self.right_figure = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
-                     ],
-            'layout': {
-                'uirevision': 'no_change'
-            }}
-        self.right_figure_keys = []
-        self.left_figure_ready = False
-        self.right_figure_ready = False
+#         self.left_figure = {
+#             'data': [{'mode': 'markers', 'type': 'scattergl',
+#                       'x': [], 'y': []}
+#                      ],
+#             'layout': {
+#                 'uirevision': 'no_change'
+#             }}
+#         self.left_figure_keys = []
+#         self.right_figure = {
+#             'data': [{'mode': 'markers', 'type': 'scattergl',
+#                       'x': [], 'y': []}
+#                      ],
+#             'layout': {
+#                 'uirevision': 'no_change'
+#             }}
+#         self.right_figure_keys = []
+#         self.left_figure_ready = False
+#         self.right_figure_ready = False
 
-        self.new_left_figure = False
-        self.new_right_figure = False
+#         self.new_left_figure = False
+#         self.new_right_figure = False
 
-        self.work = {
-            'trigger': 'none'
-        }
+#         self.work = {
+#             'trigger': 'none'
+#         }
 
-    def set_left_figure_keys(self, keys):
-        self.left_figure_keys = keys
+#     def set_left_figure_keys(self, keys):
+#         self.left_figure_keys = keys
 
-    def set_right_figure_keys(self, keys):
-        self.right_figure_keys = keys
+#     def set_right_figure_keys(self, keys):
+#         self.right_figure_keys = keys
 
-    def set_left_outdated(self):
-        self.left_figure_ready = False
+#     def set_left_outdated(self):
+#         self.left_figure_ready = False
 
-    def set_right_outdated(self):
-        self.right_figure_ready = False
+#     def set_right_outdated(self):
+#         self.right_figure_ready = False
 
-    def is_left_figure_ready(self):
-        return self.left_figure_ready
+#     def is_left_figure_ready(self):
+#         return self.left_figure_ready
 
-    def is_new_left_figure(self):
-        return self.new_left_figure
+#     def is_new_left_figure(self):
+#         return self.new_left_figure
 
-    def is_new_right_figure(self):
-        return self.new_right_figure
+#     def is_new_right_figure(self):
+#         return self.new_right_figure
 
-    def get_left_figure(self):
-        self.new_left_figure = False
-        return self.left_figure
+#     def get_left_figure(self):
+#         self.new_left_figure = False
+#         return self.left_figure
 
-    def is_right_figure_ready(self):
-        return self.right_figure_ready
+#     def is_right_figure_ready(self):
+#         return self.right_figure_ready
 
-    def get_right_figure(self):
-        self.new_right_figure = False
-        return self.right_figure
+#     def get_right_figure(self):
+#         self.new_right_figure = False
+#         return self.right_figure
 
-    def run(self):
-        while True:
-            self.work = self.task_queue.get()
+#     def run(self):
+#         while True:
+#             self.work = self.task_queue.get()
 
-            if self.work['trigger'] == 'left_figure':
-                self.left_figure_ready = False
+#             if self.work['trigger'] == 'left_figure':
+#                 self.left_figure_ready = False
 
-                self.left_figure = get_2d_scatter(
-                    self.work['data'],
-                    self.left_figure_keys[0],
-                    self.left_figure_keys[1],
-                    self.left_figure_keys[2],
-                    self.left_figure_keys[3],
-                    self.left_figure_keys[4],
-                    self.left_figure_keys[5]
-                )
-                self.left_figure_ready = True
-                self.new_left_figure = True
+#                 self.left_figure = get_2d_scatter(
+#                     self.work['data'],
+#                     self.left_figure_keys[0],
+#                     self.left_figure_keys[1],
+#                     self.left_figure_keys[2],
+#                     self.left_figure_keys[3],
+#                     self.left_figure_keys[4],
+#                     self.left_figure_keys[5]
+#                 )
+#                 self.left_figure_ready = True
+#                 self.new_left_figure = True
 
-                self.task_queue.task_done()
+#                 self.task_queue.task_done()
 
-            elif self.work['trigger'] == 'right_figure':
-                self.right_figure_ready = False
+#             elif self.work['trigger'] == 'right_figure':
+#                 self.right_figure_ready = False
 
-                self.right_figure = get_2d_scatter(
-                    self.work['data'],
-                    self.right_figure_keys[0],
-                    self.right_figure_keys[1],
-                    self.right_figure_keys[2],
-                    self.right_figure_keys[3],
-                    self.right_figure_keys[4],
-                    self.right_figure_keys[5]
-                )
-                self.right_figure_ready = True
-                self.new_right_figure = True
+#                 self.right_figure = get_2d_scatter(
+#                     self.work['data'],
+#                     self.right_figure_keys[0],
+#                     self.right_figure_keys[1],
+#                     self.right_figure_keys[2],
+#                     self.right_figure_keys[3],
+#                     self.right_figure_keys[4],
+#                     self.right_figure_keys[5]
+#                 )
+#                 self.right_figure_ready = True
+#                 self.new_right_figure = True
 
-                self.task_queue.task_done()
-            elif self.work['trigger'] == 'filter_done':
-                print('filter done trigger')
-                self.right_figure_ready = False
-                self.left_figure_ready = False
+#                 self.task_queue.task_done()
+#             elif self.work['trigger'] == 'filter_done':
+#                 print('filter done trigger')
+#                 self.right_figure_ready = False
+#                 self.left_figure_ready = False
 
-                self.left_figure = get_2d_scatter(
-                    self.work['data'],
-                    self.left_figure_keys[0],
-                    self.left_figure_keys[1],
-                    self.left_figure_keys[2],
-                    self.left_figure_keys[3],
-                    self.left_figure_keys[4],
-                    self.left_figure_keys[5]
-                )
-                self.left_figure_ready = True
-                self.new_left_figure = True
+#                 self.left_figure = get_2d_scatter(
+#                     self.work['data'],
+#                     self.left_figure_keys[0],
+#                     self.left_figure_keys[1],
+#                     self.left_figure_keys[2],
+#                     self.left_figure_keys[3],
+#                     self.left_figure_keys[4],
+#                     self.left_figure_keys[5]
+#                 )
+#                 self.left_figure_ready = True
+#                 self.new_left_figure = True
 
-                self.right_figure = get_2d_scatter(
-                    self.work['data'],
-                    self.right_figure_keys[0],
-                    self.right_figure_keys[1],
-                    self.right_figure_keys[2],
-                    self.right_figure_keys[3],
-                    self.right_figure_keys[4],
-                    self.right_figure_keys[5]
-                )
-                self.right_figure_ready = True
-                self.new_right_figure = True
+#                 self.right_figure = get_2d_scatter(
+#                     self.work['data'],
+#                     self.right_figure_keys[0],
+#                     self.right_figure_keys[1],
+#                     self.right_figure_keys[2],
+#                     self.right_figure_keys[3],
+#                     self.right_figure_keys[4],
+#                     self.right_figure_keys[5]
+#                 )
+#                 self.right_figure_ready = True
+#                 self.new_right_figure = True
 
-                self.task_queue.task_done()
+#                 self.task_queue.task_done()

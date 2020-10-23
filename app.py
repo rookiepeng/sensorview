@@ -2,7 +2,7 @@ from logging import disable
 from queue import Queue
 
 from data_processing import filter_range, filter_picker
-from data_processing import DataProcessing, FigureProcessing
+from data_processing import DataProcessing
 
 import json
 import os
@@ -19,7 +19,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz.viz import get_figure_data, get_figure_layout, get_host_data
+from viz.viz import get_figure_data, get_figure_layout, get_host_data, get_2d_scatter
 
 
 def gen_rangesliders(ui_config):
@@ -71,10 +71,9 @@ app.title = 'SensorView'
 ui_config = load_config('ui.json')
 
 task_queue = Queue()
-fig_task_queue = Queue()
 
-processing = DataProcessing(ui_config, task_queue, fig_task_queue)
-fig_processing = FigureProcessing(fig_task_queue)
+processing = DataProcessing(ui_config, task_queue)
+
 
 picker_callback_output = []
 picker_callback_input = []
@@ -468,7 +467,6 @@ app.layout = html.Div([
     # Hidden div inside the app that stores the intermediate value
     html.Div(id='trigger', style={'display': 'none'}),
     html.Div(id='dummy', style={'display': 'none'}),
-    dcc.Interval(id='interval', interval=500),
 ], style={"display": "flex", "flex-direction": "column"},)
 
 
@@ -491,7 +489,7 @@ def test_case_selection(test_case):
 
         return data_files[0], [{'label': i, 'value': i} for i in data_files]
     else:
-        raise PreventUpdate()
+        raise PreventUpdate
 
 
 @app.callback(
@@ -510,7 +508,7 @@ def update_filter(*args):
     global task_queue
 
     if processing.is_locked:
-        raise PreventUpdate()
+        raise PreventUpdate
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -634,9 +632,6 @@ def update_filter(*args):
                 np.max(processing.data[color_key])
             ]
 
-            fig_processing.set_left_outdated()
-            fig_processing.set_right_outdated()
-
             task_queue.put_nowait(
                 {
                     'trigger': 'filter',
@@ -716,14 +711,9 @@ def update_filter(*args):
 @app.callback(
     [
         Output('graph_2d_left', 'figure'),
-        Output('graph_2d_right', 'figure'),
-        Output('interval', 'disabled'),
         Output('x_left', 'disabled'),
         Output('y_left', 'disabled'),
         Output('color_left', 'disabled'),
-        Output('x_right', 'disabled'),
-        Output('y_right', 'disabled'),
-        Output('color_right', 'disabled'),
     ],
     picker_callback_input +
     slider_callback_input +
@@ -732,42 +722,35 @@ def update_filter(*args):
         Input('x_left', 'value'),
         Input('y_left', 'value'),
         Input('color_left', 'value'),
-        Input('right-switch', 'on'),
-        Input('x_right', 'value'),
-        Input('y_right', 'value'),
-        Input('color_right', 'value'),
-        Input('interval', 'n_intervals')
     ],
     [
         State('left-switch', 'on'),
-        State('right-switch', 'on'),
         State('graph_2d_left', 'figure'),
-        State('graph_2d_right', 'figure'),
     ]
 )
 def update_2d_graphs(*args):
     global left_figure_keys
-    global right_figure_keys
 
     global ui_config
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    left_fig = args[-2]
-    right_fig = args[-1]
-    interval_flag = False
+    left_fig = args[-1]
+    left_sw = args[-2]
 
-    print(args[-5])
+    if trigger_id == 'left-switch':
+        if left_sw:
+            left_fig = get_2d_scatter(
+                processing.data,
+                left_figure_keys[0],
+                left_figure_keys[1],
+                left_figure_keys[2],
+                left_figure_keys[3],
+                left_figure_keys[4],
+                left_figure_keys[5]
+            )
 
-    if trigger_id == 'interval' or \
-        trigger_id == 'left-switch' or \
-            trigger_id == 'right-switch':
-        if args[-4] and fig_processing.is_left_figure_ready():
-            if fig_processing.is_new_left_figure():
-                left_fig = fig_processing.get_left_figure()
-            else:
-                raise PreventUpdate()
         else:
             left_fig = {
                 'data': [{'mode': 'markers', 'type': 'scattergl',
@@ -777,27 +760,7 @@ def update_2d_graphs(*args):
                     'uirevision': 'no_change'
                 }}
 
-        if args[-3] and fig_processing.is_right_figure_ready():
-            print('right figure ready')
-            right_fig = fig_processing.get_right_figure()
-        else:
-            right_fig = {
-                'data': [{'mode': 'markers', 'type': 'scattergl',
-                          'x': [], 'y': []}
-                         ],
-                'layout': {
-                    'uirevision': 'no_change'
-                }}
-
-        if fig_processing.is_left_figure_ready() and \
-                fig_processing.is_right_figure_ready():
-            interval_flag = True
-        else:
-            print('interval trigger')
-            interval_flag = False
-
-    elif (trigger_id in ['x_left', 'y_left', 'color_left']) and args[-4]:
-        fig_processing.set_left_outdated()
+    elif (trigger_id in ['x_left', 'y_left', 'color_left']) and left_sw:
 
         left_figure_keys = [
             ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
@@ -810,81 +773,17 @@ def update_2d_graphs(*args):
             ui_config['numerical'][ctx.inputs['color_left.value']
                                    ]['description']]
 
-        fig_processing.set_left_figure_keys(left_figure_keys)
-
-        fig_task_queue.put_nowait(
-            {
-                'trigger': 'left_figure',
-                'data': processing.get_filtered_data()
-            }
+        left_fig = get_2d_scatter(
+            processing.data,
+            left_figure_keys[0],
+            left_figure_keys[1],
+            left_figure_keys[2],
+            left_figure_keys[3],
+            left_figure_keys[4],
+            left_figure_keys[5]
         )
 
-        left_fig = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
-                     ],
-            'layout': {
-                'uirevision': 'no_change'
-            }}
-
-        interval_flag = False
-
-    elif (trigger_id in ['x_right', 'y_right', 'color_right']) and args[-3]:
-        fig_processing.set_right_outdated()
-
-        right_figure_keys = [
-            ui_config['numerical'][
-                ctx.inputs['x_right.value']]['key'],
-            ui_config['numerical'][
-                ctx.inputs['y_right.value']]['key'],
-            ui_config['numerical'][
-                ctx.inputs['color_right.value']]['key'],
-            ui_config['numerical'][
-                ctx.inputs['x_right.value']]['description'],
-            ui_config['numerical'][
-                ctx.inputs['y_right.value']]['description'],
-            ui_config['numerical'][
-                ctx.inputs['color_right.value']]['description']
-        ]
-
-        fig_processing.set_right_figure_keys(right_figure_keys)
-
-        fig_task_queue.put_nowait(
-            {
-                'trigger': 'right_figure',
-                'data': processing.get_filtered_data()
-            }
-        )
-        right_fig = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
-                     ],
-            'layout': {
-                'uirevision': 'no_change'
-            }}
-
-        interval_flag = False
-
-    else:
-
-        left_fig = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
-                     ],
-            'layout': {
-                'uirevision': 'no_change'
-            }}
-        right_fig = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
-                     ],
-            'layout': {
-                'uirevision': 'no_change'
-            }}
-
-        interval_flag = False
-
-    if args[-4]:
+    if left_sw:
         left_x_disabled = False
         left_y_disabled = False
         left_color_disabled = False
@@ -893,26 +792,11 @@ def update_2d_graphs(*args):
         left_y_disabled = True
         left_color_disabled = True
 
-    if args[-3]:
-        right_x_disabled = False
-        right_y_disabled = False
-        right_color_disabled = False
-    else:
-        right_x_disabled = True
-        right_y_disabled = True
-        right_color_disabled = True
-
-    print(interval_flag)
     return [
         left_fig,
-        right_fig,
-        interval_flag,
         left_x_disabled,
         left_y_disabled,
         left_color_disabled,
-        right_x_disabled,
-        right_y_disabled,
-        right_color_disabled,
     ]
 
 
@@ -1043,9 +927,6 @@ def data_file_selection(data_file_name, test_case):
             ui_config['numerical'][ui_config['graph_2d_right']['default_color']
                                    ]['description']]
 
-        fig_processing.set_left_figure_keys(left_figure_keys)
-        fig_processing.set_right_figure_keys(right_figure_keys)
-
         task_queue.put_nowait(
             {
                 'trigger': 'filter',
@@ -1057,7 +938,7 @@ def data_file_selection(data_file_name, test_case):
 
         return output
     else:
-        raise PreventUpdate()
+        raise PreventUpdate
 
 
 @app.callback(
@@ -1087,5 +968,4 @@ def export_right_fig(btn, fig):
 if __name__ == '__main__':
 
     processing.start()
-    fig_processing.start()
     app.run_server(debug=True, threaded=True, processes=1)
