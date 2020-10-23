@@ -143,7 +143,7 @@ def get_2d_scatter(det_list,
 
     return dict(
         data=[dict(
-            type='scatter',
+            type='scattergl',
             x=det_list[x_key],
             y=det_list[y_key],
             mode='markers',

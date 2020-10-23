@@ -258,7 +258,7 @@ class FigureProcessing(Thread):
         self.task_queue = task_queue
 
         self.left_figure = {
-            'data': [{'mode': 'markers', 'type': 'scatter',
+            'data': [{'mode': 'markers', 'type': 'scattergl',
                       'x': [], 'y': []}
                      ],
             'layout': {
@@ -266,7 +266,7 @@ class FigureProcessing(Thread):
             }}
         self.left_figure_keys = []
         self.right_figure = {
-            'data': [{'mode': 'markers', 'type': 'scatter',
+            'data': [{'mode': 'markers', 'type': 'scattergl',
                       'x': [], 'y': []}
                      ],
             'layout': {
@@ -275,6 +275,9 @@ class FigureProcessing(Thread):
         self.right_figure_keys = []
         self.left_figure_ready = False
         self.right_figure_ready = False
+
+        self.new_left_figure = False
+        self.new_right_figure = False
 
         self.work = {
             'trigger': 'none'
@@ -295,13 +298,21 @@ class FigureProcessing(Thread):
     def is_left_figure_ready(self):
         return self.left_figure_ready
 
+    def is_new_left_figure(self):
+        return self.new_left_figure
+
+    def is_new_right_figure(self):
+        return self.new_right_figure
+
     def get_left_figure(self):
+        self.new_left_figure = False
         return self.left_figure
 
     def is_right_figure_ready(self):
         return self.right_figure_ready
 
     def get_right_figure(self):
+        self.new_right_figure = False
         return self.right_figure
 
     def run(self):
@@ -321,8 +332,8 @@ class FigureProcessing(Thread):
                     self.left_figure_keys[5]
                 )
                 self.left_figure_ready = True
-                # self.left_outdated = False
-                # self.right_outdated = False
+                self.new_left_figure = True
+
                 self.task_queue.task_done()
 
             elif self.work['trigger'] == 'right_figure':
@@ -338,10 +349,11 @@ class FigureProcessing(Thread):
                     self.right_figure_keys[5]
                 )
                 self.right_figure_ready = True
-                # self.left_outdated = False
-                # self.right_outdated = False
+                self.new_right_figure = True
+
                 self.task_queue.task_done()
             elif self.work['trigger'] == 'filter_done':
+                print('filter done trigger')
                 self.right_figure_ready = False
                 self.left_figure_ready = False
 
@@ -355,6 +367,7 @@ class FigureProcessing(Thread):
                     self.left_figure_keys[5]
                 )
                 self.left_figure_ready = True
+                self.new_left_figure = True
 
                 self.right_figure = get_2d_scatter(
                     self.work['data'],
@@ -366,7 +379,6 @@ class FigureProcessing(Thread):
                     self.right_figure_keys[5]
                 )
                 self.right_figure_ready = True
+                self.new_right_figure = True
 
-                # self.left_outdated = False
-                # self.right_outdated = False
                 self.task_queue.task_done()

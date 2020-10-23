@@ -356,7 +356,7 @@ app.layout = html.Div([
                     "displaylogo": False
                 },
                 figure={
-                    'data': [{'mode': 'markers', 'type': 'scatter',
+                    'data': [{'mode': 'markers', 'type': 'scattergl',
                                       'x': [], 'y': []}
                              ],
                     'layout': {
@@ -444,7 +444,7 @@ app.layout = html.Div([
                     "displaylogo": False
                 },
                 figure={
-                    'data': [{'mode': 'markers', 'type': 'scatter',
+                    'data': [{'mode': 'markers', 'type': 'scattergl',
                                       'x': [], 'y': []}
                              ],
                     'layout': {
@@ -758,14 +758,19 @@ def update_2d_graphs(*args):
     right_fig = args[-1]
     interval_flag = False
 
+    print(args[-5])
+
     if trigger_id == 'interval' or \
         trigger_id == 'left-switch' or \
             trigger_id == 'right-switch':
         if args[-4] and fig_processing.is_left_figure_ready():
-            left_fig = fig_processing.get_left_figure()
+            if fig_processing.is_new_left_figure():
+                left_fig = fig_processing.get_left_figure()
+            else:
+                raise PreventUpdate()
         else:
             left_fig = {
-                'data': [{'mode': 'markers', 'type': 'scatter',
+                'data': [{'mode': 'markers', 'type': 'scattergl',
                           'x': [], 'y': []}
                          ],
                 'layout': {
@@ -773,10 +778,11 @@ def update_2d_graphs(*args):
                 }}
 
         if args[-3] and fig_processing.is_right_figure_ready():
+            print('right figure ready')
             right_fig = fig_processing.get_right_figure()
         else:
             right_fig = {
-                'data': [{'mode': 'markers', 'type': 'scatter',
+                'data': [{'mode': 'markers', 'type': 'scattergl',
                           'x': [], 'y': []}
                          ],
                 'layout': {
@@ -787,6 +793,7 @@ def update_2d_graphs(*args):
                 fig_processing.is_right_figure_ready():
             interval_flag = True
         else:
+            print('interval trigger')
             interval_flag = False
 
     elif (trigger_id in ['x_left', 'y_left', 'color_left']) and args[-4]:
@@ -813,7 +820,7 @@ def update_2d_graphs(*args):
         )
 
         left_fig = {
-            'data': [{'mode': 'markers', 'type': 'scatter',
+            'data': [{'mode': 'markers', 'type': 'scattergl',
                       'x': [], 'y': []}
                      ],
             'layout': {
@@ -849,7 +856,7 @@ def update_2d_graphs(*args):
             }
         )
         right_fig = {
-            'data': [{'mode': 'markers', 'type': 'scatter',
+            'data': [{'mode': 'markers', 'type': 'scattergl',
                       'x': [], 'y': []}
                      ],
             'layout': {
@@ -861,14 +868,14 @@ def update_2d_graphs(*args):
     else:
 
         left_fig = {
-            'data': [{'mode': 'markers', 'type': 'scatter',
+            'data': [{'mode': 'markers', 'type': 'scattergl',
                       'x': [], 'y': []}
                      ],
             'layout': {
                 'uirevision': 'no_change'
             }}
         right_fig = {
-            'data': [{'mode': 'markers', 'type': 'scatter',
+            'data': [{'mode': 'markers', 'type': 'scattergl',
                       'x': [], 'y': []}
                      ],
             'layout': {
@@ -895,6 +902,7 @@ def update_2d_graphs(*args):
         right_y_disabled = True
         right_color_disabled = True
 
+    print(interval_flag)
     return [
         left_fig,
         right_fig,
