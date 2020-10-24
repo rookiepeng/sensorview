@@ -1024,6 +1024,140 @@ def update_left_graph(*args):
         left_color_disabled,
     ]
 
+@ app.callback(
+    [
+        Output('graph_2d_right', 'figure'),
+        Output('x_right', 'disabled'),
+        Output('y_right', 'disabled'),
+        Output('color_right', 'disabled'),
+    ],
+    picker_callback_input +
+    slider_callback_input +
+    [
+        Input('right-switch', 'on'),
+        Input('x_right', 'value'),
+        Input('y_right', 'value'),
+        Input('color_right', 'value'),
+    ],
+    [
+        State('right-switch', 'on'),
+        State('graph_2d_right', 'figure'),
+    ]
+)
+def update_right_graph(*args):
+    global right_figure_keys
+
+    global ui_config
+
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    right_fig = args[-1]
+    right_sw = args[-2]
+
+    right_figure_keys = [
+        ui_config['numerical'][ctx.inputs['x_right.value']]['key'],
+        ui_config['numerical'][ctx.inputs['y_right.value']]['key'],
+        ui_config['numerical'][ctx.inputs['color_right.value']]['key'],
+        ui_config['numerical'][ctx.inputs['x_right.value']
+                               ]['description'],
+        ui_config['numerical'][ctx.inputs['y_right.value']
+                               ]['description'],
+        ui_config['numerical'][ctx.inputs['color_right.value']
+                               ]['description']]
+
+    if right_sw and (trigger_id in ['right-switch', 'x_right', 'y_right', 'color_right']):
+        if processing.is_filtering_ready:
+            right_fig = get_2d_scatter(
+                processing.get_filtered_data(),
+                right_figure_keys[0],
+                right_figure_keys[1],
+                right_figure_keys[2],
+                right_figure_keys[3],
+                right_figure_keys[4],
+                right_figure_keys[5]
+            )
+        else:
+            categorical_key_values = args[0:(
+                len(processing.categorical_key_list))]
+            numerical_key_values = args[
+                (len(processing.categorical_key_list)):
+                (len(processing.categorical_key_list) +
+                    len(processing.numerical_key_list))]
+            filtered_table = processing.data
+            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+                filtered_table = filter_range(
+                    filtered_table,
+                    filter_name,
+                    numerical_key_values[filter_idx])
+
+            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+                filtered_table = filter_picker(
+                    filtered_table,
+                    filter_name,
+                    categorical_key_values[filter_idx])
+            right_fig = get_2d_scatter(
+                filtered_table,
+                right_figure_keys[0],
+                right_figure_keys[1],
+                right_figure_keys[2],
+                right_figure_keys[3],
+                right_figure_keys[4],
+                right_figure_keys[5]
+            )
+    elif right_sw:
+        categorical_key_values = args[0:(len(processing.categorical_key_list))]
+        numerical_key_values = args[
+            (len(processing.categorical_key_list)):
+            (len(processing.categorical_key_list) +
+                len(processing.numerical_key_list))]
+        filtered_table = processing.data
+        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+            filtered_table = filter_range(
+                filtered_table,
+                filter_name,
+                numerical_key_values[filter_idx])
+
+        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+            filtered_table = filter_picker(
+                filtered_table,
+                filter_name,
+                categorical_key_values[filter_idx])
+        right_fig = get_2d_scatter(
+            filtered_table,
+            right_figure_keys[0],
+            right_figure_keys[1],
+            right_figure_keys[2],
+            right_figure_keys[3],
+            right_figure_keys[4],
+            right_figure_keys[5]
+        )
+
+    else:
+        right_fig = {
+            'data': [{'mode': 'markers', 'type': 'scattergl',
+                      'x': [], 'y': []}
+                     ],
+            'layout': {
+                'uirevision': 'no_change'
+            }}
+
+    if right_sw:
+        right_x_disabled = False
+        right_y_disabled = False
+        right_color_disabled = False
+    else:
+        right_x_disabled = True
+        right_y_disabled = True
+        right_color_disabled = True
+
+    return [
+        right_fig,
+        right_x_disabled,
+        right_y_disabled,
+        right_color_disabled,
+    ]
+
 
 @ app.callback(
     [
