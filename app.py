@@ -349,30 +349,38 @@ app.layout = html.Div([
                     ),
                 ], className="one-third column"),
             ], className="row flex-display"),
-            dcc.Graph(
-                id='graph_2d_left',
-                config={
-                    "displaylogo": False
-                },
-                figure={
-                    'data': [{'mode': 'markers', 'type': 'scattergl',
-                                      'x': [], 'y': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }
-                },
-            ),
 
-            html.Div([
-                html.Div([
-                ], className="ten columns"),
-                html.Div([
-                    html.Button('Export', id='export_left', n_clicks=0),
-                    html.Div(id="hidden_export_left",
-                             style={"display": "none"}),
-                ], className="two columns"),
-            ], className="row flex-display"),
+            dcc.Loading(
+                id="loading_left",
+                children=[
+                    dcc.Graph(
+                        id='graph_2d_left',
+                        config={
+                            "displaylogo": False
+                        },
+                        figure={
+                            'data': [{'mode': 'markers', 'type': 'scattergl',
+                                      'x': [], 'y': []}
+                                     ],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+                    html.Div([
+                        html.Div([
+                        ], className="ten columns"),
+                        html.Div([
+                            html.Button(
+                                'Export', id='export_left', n_clicks=0),
+                            html.Div(id="hidden_export_left",
+                                     style={"display": "none"}),
+                        ], className="two columns"),
+                    ], className="row flex-display"),
+                ],
+                type="default",
+                # style={"height": "400px"},
+            ),
 
         ], className="pretty_container six columns"),
 
