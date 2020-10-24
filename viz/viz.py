@@ -130,7 +130,6 @@ def get_stat_plot(det_list,
     if x_label is None:
         x_label = x_key
 
-
     if histnorm == 'probability':
         y_label = 'Probability'
     else:
@@ -145,6 +144,35 @@ def get_stat_plot(det_list,
         )],
         layout=dict(
             barmode='overlay',
+            xaxis=dict(title=x_label),
+            yaxis=dict(title=y_label),
+            # xaxis_title_text=x_label,  # xaxis label
+            # yaxis_title_text=y_label,  # yaxis label
+            uirevision='no_change',
+        )
+    )
+
+
+def get_heatmap(det_list,
+                x_key,
+                y_key,
+                x_label=None,
+                y_label=None,
+                ):
+    if x_label is None:
+        x_label = x_key
+
+    if y_label is None:
+        y_label = y_key
+
+    return dict(
+        data=[dict(
+            type='histogram2dcontour',
+            x=det_list[x_key],
+            y=det_list[y_key],
+            colorscale='Jet'
+        )],
+        layout=dict(
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
             # xaxis_title_text=x_label,  # xaxis label

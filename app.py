@@ -19,7 +19,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz.viz import get_figure_data, get_figure_layout, get_host_data, get_2d_scatter, get_stat_plot
+from viz.viz import get_figure_data, get_figure_layout, get_host_data, get_2d_scatter, get_stat_plot, get_heatmap
 
 
 def gen_rangesliders(ui_config):
