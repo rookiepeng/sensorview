@@ -122,6 +122,38 @@ def get_figure_layout(
     )
 
 
+def get_stat_plot(det_list,
+                  x_key,
+                  x_label=None,
+                  histnorm='probability'
+                  ):
+    if x_label is None:
+        x_label = x_key
+
+
+    if histnorm == 'probability':
+        y_label = 'Probability'
+    else:
+        y_label = 'Count'
+
+    return dict(
+        data=[dict(
+            type='histogram',
+            x=det_list[x_key],
+            histnorm=histnorm,
+            opacity=0.75,
+        )],
+        layout=dict(
+            barmode='overlay',
+            xaxis=dict(title=x_label),
+            yaxis=dict(title=y_label),
+            # xaxis_title_text=x_label,  # xaxis label
+            # yaxis_title_text=y_label,  # yaxis label
+            uirevision='no_change',
+        )
+    )
+
+
 def get_2d_scatter(det_list,
                    x_key,
                    y_key,

@@ -19,7 +19,7 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz.viz import get_figure_data, get_figure_layout, get_host_data, get_2d_scatter
+from viz.viz import get_figure_data, get_figure_layout, get_host_data, get_2d_scatter, get_stat_plot
 
 
 def gen_rangesliders(ui_config):
@@ -369,7 +369,7 @@ app.layout = html.Div([
                     ),
                     html.Div([
                         html.Div([
-                        ], className="ten columns"),
+                        ], className="nine columns"),
                         html.Div([
                             html.Button(
                                 'Export', id='export_left', n_clicks=0),
@@ -462,10 +462,174 @@ app.layout = html.Div([
 
             html.Div([
                 html.Div([
-                ], className="ten columns"),
+                ], className="nine columns"),
                 html.Div([
                     html.Button('Export', id='export_right', n_clicks=0),
                     html.Div(id="hidden_export_right",
+                             style={"display": "none"}),
+                ], className="two columns"),
+            ], className="row flex-display"),
+        ], className="pretty_container six columns"),
+    ], className="row flex-display"),
+
+
+    html.Div([
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.H6('Histogram'),
+                ], className="ten columns"),
+                html.Div([
+                    daq.BooleanSwitch(
+                        id='stat-switch',
+                        on=False
+                    ),
+                ], className="two columns",
+                    style={"margin-top": "10px"}),
+            ], className="row flex-display"),
+
+            html.Div([
+                html.Div([
+                    html.Label('x-axis'),
+                    dcc.Dropdown(
+                        id='x_stat',
+                        options=[{
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
+                            'value': f_item
+                        }
+                            for idx, f_item in enumerate(
+                            ui_config['numerical'])],
+                        value=ui_config['graph_2d_right']['default_x'],
+                        disabled=True
+                    ),
+                ], className="one-third column"),
+                html.Div([
+                    html.Label('y-axis'),
+                    dcc.Dropdown(
+                        id='y_stat',
+                        options=[{
+                            'label': 'Probability',
+                            'value': 'probability'
+                        },
+                            {
+                            'label': 'Density',
+                            'value': 'density'
+                        },
+                        ],
+                        value='probability',
+                        disabled=True
+                    ),
+                ], className="one-third column"),
+            ], className="row flex-display"),
+            dcc.Graph(
+                id='graph_stat',
+                config={
+                    "displaylogo": False
+                },
+                figure={
+                    'data': [{'mode': 'markers', 'type': 'scattergl',
+                              'x': [], 'y': []}
+                             ],
+                    'layout': {
+                        'uirevision': 'no_change'
+                    }
+                },
+            ),
+
+            html.Div([
+                html.Div([
+                ], className="nine columns"),
+                html.Div([
+                    html.Button('Export', id='export_stat', n_clicks=0),
+                    html.Div(id="hidden_export_stat",
+                             style={"display": "none"}),
+                ], className="two columns"),
+            ], className="row flex-display"),
+        ], className="pretty_container six columns"),
+
+        html.Div([
+            html.Div([
+                html.Div([
+                    html.H6('Heatmap'),
+                ], className="ten columns"),
+                html.Div([
+                    daq.BooleanSwitch(
+                        id='heat-switch',
+                        on=False
+                    ),
+                ], className="two columns",
+                    style={"margin-top": "10px"}),
+            ], className="row flex-display"),
+
+            html.Div([
+                html.Div([
+                    html.Label('x-axis'),
+                    dcc.Dropdown(
+                        id='x_heat',
+                        options=[{
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
+                            'value': f_item
+                        }
+                            for idx, f_item in enumerate(
+                            ui_config['numerical'])],
+                        value=ui_config['graph_2d_right']['default_x'],
+                        disabled=True
+                    ),
+                ], className="one-third column"),
+                html.Div([
+                    html.Label('y-axis'),
+                    dcc.Dropdown(
+                        id='y_heat',
+                        options=[{
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
+                            'value': f_item
+                        }
+                            for idx, f_item in enumerate(
+                            ui_config['numerical'])],
+                        value=ui_config['graph_2d_right']['default_y'],
+                        disabled=True
+                    ),
+                ], className="one-third column"),
+                html.Div([
+                    html.Label('color'),
+                    dcc.Dropdown(
+                        id='color_heat',
+                        options=[{
+                            'label': ui_config[
+                                'numerical'][f_item]['description'],
+                            'value': f_item
+                        }
+                            for idx, f_item in enumerate(
+                            ui_config['numerical'])],
+                        value=ui_config['graph_2d_right']['default_color'],
+                        disabled=True
+                    ),
+                ], className="one-third column"),
+            ], className="row flex-display"),
+            dcc.Graph(
+                id='graph_heat',
+                config={
+                    "displaylogo": False
+                },
+                figure={
+                    'data': [{'type': 'histogram',
+                              'x': []}
+                             ],
+                    'layout': {
+                        'uirevision': 'no_change'
+                    }
+                },
+            ),
+
+            html.Div([
+                html.Div([
+                ], className="nine columns"),
+                html.Div([
+                    html.Button('Export', id='export_heat', n_clicks=0),
+                    html.Div(id="hidden_export_heat",
                              style={"display": "none"}),
                 ], className="two columns"),
             ], className="row flex-display"),
@@ -736,7 +900,7 @@ def update_filter(*args):
         State('graph_2d_left', 'figure'),
     ]
 )
-def update_2d_graphs(*args):
+def update_left_graph(*args):
     global left_figure_keys
 
     global ui_config
@@ -758,7 +922,7 @@ def update_2d_graphs(*args):
         ui_config['numerical'][ctx.inputs['color_left.value']
                                ]['description']]
 
-    if left_sw and (trigger_id in ['left-switch', 'x_left','y_left','color_left']):
+    if left_sw and (trigger_id in ['left-switch', 'x_left', 'y_left', 'color_left']):
         if processing.is_filtering_ready:
             left_fig = get_2d_scatter(
                 processing.get_filtered_data(),
@@ -770,7 +934,8 @@ def update_2d_graphs(*args):
                 left_figure_keys[5]
             )
         else:
-            categorical_key_values = args[0:(len(processing.categorical_key_list))]
+            categorical_key_values = args[0:(
+                len(processing.categorical_key_list))]
             numerical_key_values = args[
                 (len(processing.categorical_key_list)):
                 (len(processing.categorical_key_list) +
@@ -847,6 +1012,117 @@ def update_2d_graphs(*args):
         left_x_disabled,
         left_y_disabled,
         left_color_disabled,
+    ]
+
+
+@app.callback(
+    [
+        Output('graph_stat', 'figure'),
+        Output('x_stat', 'disabled'),
+        Output('y_stat', 'disabled'),
+    ],
+    picker_callback_input +
+    slider_callback_input +
+    [
+        Input('stat-switch', 'on'),
+        Input('x_stat', 'value'),
+        Input('y_stat', 'value'),
+    ],
+    [
+        State('stat-switch', 'on'),
+    ]
+)
+def update_stat_graph(*args):
+    global ui_config
+
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    stat_sw = args[-1]
+
+    x_key = ui_config['numerical'][ctx.inputs['x_stat.value']]['key']
+    x_label = ui_config['numerical'][ctx.inputs['x_stat.value']
+                                     ]['description']
+    y_key = ctx.inputs['y_stat.value']
+
+    if stat_sw and (trigger_id in ['stat-switch', 'x_stat', 'y_stat']):
+        if processing.is_filtering_ready:
+            stat_fig = get_stat_plot(
+                processing.get_filtered_data(),
+                x_key,
+                x_label,
+                y_key
+            )
+        else:
+            categorical_key_values = args[0:(
+                len(processing.categorical_key_list))]
+            numerical_key_values = args[
+                (len(processing.categorical_key_list)):
+                (len(processing.categorical_key_list) +
+                    len(processing.numerical_key_list))]
+            filtered_table = processing.data
+            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+                filtered_table = filter_range(
+                    filtered_table,
+                    filter_name,
+                    numerical_key_values[filter_idx])
+
+            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+                filtered_table = filter_picker(
+                    filtered_table,
+                    filter_name,
+                    categorical_key_values[filter_idx])
+            stat_fig = get_stat_plot(
+                filtered_table,
+                x_key,
+                x_label,
+                y_key
+            )
+    elif stat_sw:
+        categorical_key_values = args[0:(len(processing.categorical_key_list))]
+        numerical_key_values = args[
+            (len(processing.categorical_key_list)):
+            (len(processing.categorical_key_list) +
+                len(processing.numerical_key_list))]
+        filtered_table = processing.data
+        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+            filtered_table = filter_range(
+                filtered_table,
+                filter_name,
+                numerical_key_values[filter_idx])
+
+        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+            filtered_table = filter_picker(
+                filtered_table,
+                filter_name,
+                categorical_key_values[filter_idx])
+        stat_fig = get_stat_plot(
+            filtered_table,
+            x_key,
+            x_label,
+            y_key
+        )
+
+    else:
+        stat_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+                'uirevision': 'no_change'
+            }}
+
+    if stat_sw:
+        stat_x_disabled = False
+        stat_y_disabled = False
+    else:
+        stat_x_disabled = True
+        stat_y_disabled = True
+
+    return [
+        stat_fig,
+        stat_x_disabled,
+        stat_y_disabled,
     ]
 
 
