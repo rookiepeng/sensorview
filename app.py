@@ -445,30 +445,38 @@ app.layout = html.Div([
                     ),
                 ], className="one-third column"),
             ], className="row flex-display"),
-            dcc.Graph(
-                id='graph_2d_right',
-                config={
-                    "displaylogo": False
-                },
-                figure={
-                    'data': [{'mode': 'markers', 'type': 'scattergl',
-                                      'x': [], 'y': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }
-                },
-            ),
 
-            html.Div([
-                html.Div([
-                ], className="nine columns"),
-                html.Div([
-                    html.Button('Export', id='export_right', n_clicks=0),
-                    html.Div(id="hidden_export_right",
-                             style={"display": "none"}),
-                ], className="two columns"),
-            ], className="row flex-display"),
+            dcc.Loading(
+                id="loading_right",
+                children=[
+                    dcc.Graph(
+                        id='graph_2d_right',
+                        config={
+                            "displaylogo": False
+                        },
+                        figure={
+                            'data': [{'mode': 'markers', 'type': 'scattergl',
+                                      'x': [], 'y': []}
+                                     ],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+
+                    html.Div([
+                        html.Div([
+                        ], className="nine columns"),
+                        html.Div([
+                            html.Button(
+                                'Export', id='export_right', n_clicks=0),
+                            html.Div(id="hidden_export_right",
+                                     style={"display": "none"}),
+                        ], className="two columns"),
+                    ], className="row flex-display"),
+                ],
+                type="default",
+            ),
         ], className="pretty_container six columns"),
     ], className="row flex-display"),
 
@@ -522,30 +530,39 @@ app.layout = html.Div([
                     ),
                 ], className="one-third column"),
             ], className="row flex-display"),
-            dcc.Graph(
-                id='graph_stat',
-                config={
-                    "displaylogo": False
-                },
-                figure={
-                    'data': [{'mode': 'markers', 'type': 'scattergl',
-                              'x': [], 'y': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }
-                },
+
+            dcc.Loading(
+                id="loading_histogram",
+                children=[
+                    dcc.Graph(
+                        id='graph_stat',
+                        config={
+                            "displaylogo": False
+                        },
+                        figure={
+                            'data': [{'type': 'histogram',
+                                      'x': []}
+                                     ],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+
+                    html.Div([
+                        html.Div([
+                        ], className="nine columns"),
+                        html.Div([
+                            html.Button(
+                                'Export', id='export_stat', n_clicks=0),
+                            html.Div(id="hidden_export_stat",
+                                     style={"display": "none"}),
+                        ], className="two columns"),
+                    ], className="row flex-display"),
+                ],
+                type="default",
             ),
 
-            html.Div([
-                html.Div([
-                ], className="nine columns"),
-                html.Div([
-                    html.Button('Export', id='export_stat', n_clicks=0),
-                    html.Div(id="hidden_export_stat",
-                             style={"display": "none"}),
-                ], className="two columns"),
-            ], className="row flex-display"),
         ], className="pretty_container six columns"),
 
         html.Div([
@@ -593,46 +610,39 @@ app.layout = html.Div([
                         disabled=True
                     ),
                 ], className="one-third column"),
-                html.Div([
-                    html.Label('color'),
-                    dcc.Dropdown(
-                        id='color_heat',
-                        options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                            ui_config['numerical'])],
-                        value=ui_config['graph_2d_right']['default_color'],
-                        disabled=True
-                    ),
-                ], className="one-third column"),
             ], className="row flex-display"),
-            dcc.Graph(
-                id='graph_heat',
-                config={
-                    "displaylogo": False
-                },
-                figure={
-                    'data': [{'type': 'histogram',
-                              'x': []}
-                             ],
-                    'layout': {
-                        'uirevision': 'no_change'
-                    }
-                },
-            ),
 
-            html.Div([
-                html.Div([
-                ], className="nine columns"),
-                html.Div([
-                    html.Button('Export', id='export_heat', n_clicks=0),
-                    html.Div(id="hidden_export_heat",
-                             style={"display": "none"}),
-                ], className="two columns"),
-            ], className="row flex-display"),
+            dcc.Loading(
+                id="loading_heat",
+                children=[
+                    dcc.Graph(
+                        id='graph_heat',
+                        config={
+                            "displaylogo": False
+                        },
+                        figure={
+                            'data': [{'type': 'histogram2dcontour',
+                                      'x': []}
+                                     ],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+
+                    html.Div([
+                        html.Div([
+                        ], className="nine columns"),
+                        html.Div([
+                            html.Button(
+                                'Export', id='export_heat', n_clicks=0),
+                            html.Div(id="hidden_export_heat",
+                                     style={"display": "none"}),
+                        ], className="two columns"),
+                    ], className="row flex-display"),
+                ],
+                type="default",
+            ),
         ], className="pretty_container six columns"),
     ], className="row flex-display"),
 
@@ -642,7 +652,7 @@ app.layout = html.Div([
 ], style={"display": "flex", "flex-direction": "column"},)
 
 
-@app.callback(
+@ app.callback(
     [
         Output('data_file_picker', 'value'),
         Output('data_file_picker', 'options'),
@@ -664,7 +674,7 @@ def test_case_selection(test_case):
         raise PreventUpdate
 
 
-@app.callback(
+@ app.callback(
     Output('det_grid', 'figure'),
     play_bar_callback_input + picker_callback_input + slider_callback_input+[
         Input('color_main', 'value'),
@@ -880,7 +890,7 @@ def update_filter(*args):
             return args[-2]
 
 
-@app.callback(
+@ app.callback(
     [
         Output('graph_2d_left', 'figure'),
         Output('x_left', 'disabled'),
@@ -1015,7 +1025,7 @@ def update_left_graph(*args):
     ]
 
 
-@app.callback(
+@ app.callback(
     [
         Output('graph_stat', 'figure'),
         Output('x_stat', 'disabled'),
@@ -1126,7 +1136,123 @@ def update_stat_graph(*args):
     ]
 
 
-@app.callback(
+@ app.callback(
+    [
+        Output('graph_heat', 'figure'),
+        Output('x_heat', 'disabled'),
+        Output('y_heat', 'disabled'),
+    ],
+    picker_callback_input +
+    slider_callback_input +
+    [
+        Input('heat-switch', 'on'),
+        Input('x_heat', 'value'),
+        Input('y_heat', 'value'),
+    ],
+    [
+        State('heat-switch', 'on'),
+    ]
+)
+def update_heatmap(*args):
+    global ui_config
+
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    heat_sw = args[-1]
+
+    x_key = ui_config['numerical'][ctx.inputs['x_heat.value']]['key']
+    x_label = ui_config['numerical'][ctx.inputs['x_heat.value']
+                                     ]['description']
+    y_key = ui_config['numerical'][ctx.inputs['y_heat.value']]['key']
+    y_label = ui_config['numerical'][ctx.inputs['y_heat.value']
+                                     ]['description']
+
+    if heat_sw and (trigger_id in ['heat-switch', 'x_heat', 'y_heat']):
+        if processing.is_filtering_ready:
+            heat_fig = get_heatmap(
+                processing.get_filtered_data(),
+                x_key,
+                y_key,
+                x_label,
+                y_label,
+            )
+        else:
+            categorical_key_values = args[0:(
+                len(processing.categorical_key_list))]
+            numerical_key_values = args[
+                (len(processing.categorical_key_list)):
+                (len(processing.categorical_key_list) +
+                    len(processing.numerical_key_list))]
+            filtered_table = processing.data
+            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+                filtered_table = filter_range(
+                    filtered_table,
+                    filter_name,
+                    numerical_key_values[filter_idx])
+
+            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+                filtered_table = filter_picker(
+                    filtered_table,
+                    filter_name,
+                    categorical_key_values[filter_idx])
+            heat_fig = get_heatmap(
+                filtered_table,
+                x_key,
+                y_key,
+                x_label,
+                y_label,
+            )
+    elif heat_sw:
+        categorical_key_values = args[0:(len(processing.categorical_key_list))]
+        numerical_key_values = args[
+            (len(processing.categorical_key_list)):
+            (len(processing.categorical_key_list) +
+                len(processing.numerical_key_list))]
+        filtered_table = processing.data
+        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+            filtered_table = filter_range(
+                filtered_table,
+                filter_name,
+                numerical_key_values[filter_idx])
+
+        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+            filtered_table = filter_picker(
+                filtered_table,
+                filter_name,
+                categorical_key_values[filter_idx])
+        heat_fig = get_heatmap(
+            filtered_table,
+            x_key,
+            y_key,
+            x_label,
+            y_label,
+        )
+
+    else:
+        heat_fig = {
+            'data': [{'type': 'histogram2dcontour',
+                      'x': []}
+                     ],
+            'layout': {
+                'uirevision': 'no_change'
+            }}
+
+    if heat_sw:
+        heat_x_disabled = False
+        heat_y_disabled = False
+    else:
+        heat_x_disabled = True
+        heat_y_disabled = True
+
+    return [
+        heat_fig,
+        heat_x_disabled,
+        heat_y_disabled,
+    ]
+
+
+@ app.callback(
     play_bar_callback_output +
     picker_callback_output +
     slider_callback_output +
@@ -1225,34 +1351,6 @@ def data_file_selection(data_file_name, test_case):
         output.append(False)
         output.append(False)
 
-        left_figure_keys = [
-            ui_config['numerical'][ui_config['graph_2d_left']
-                                   ['default_x']]['key'],
-            ui_config['numerical'][ui_config['graph_2d_left']
-                                   ['default_y']]['key'],
-            ui_config['numerical'][ui_config['graph_2d_left']
-                                   ['default_color']]['key'],
-            ui_config['numerical'][ui_config['graph_2d_left']['default_x']
-                                   ]['description'],
-            ui_config['numerical'][ui_config['graph_2d_left']['default_y']
-                                   ]['description'],
-            ui_config['numerical'][ui_config['graph_2d_left']['default_color']
-                                   ]['description']]
-
-        right_figure_keys = [
-            ui_config['numerical'][ui_config['graph_2d_right']
-                                   ['default_x']]['key'],
-            ui_config['numerical'][ui_config['graph_2d_right']
-                                   ['default_y']]['key'],
-            ui_config['numerical'][ui_config['graph_2d_right']
-                                   ['default_color']]['key'],
-            ui_config['numerical'][ui_config['graph_2d_right']['default_x']
-                                   ]['description'],
-            ui_config['numerical'][ui_config['graph_2d_right']['default_y']
-                                   ]['description'],
-            ui_config['numerical'][ui_config['graph_2d_right']['default_color']
-                                   ]['description']]
-
         task_queue.put_nowait(
             {
                 'trigger': 'filter',
@@ -1267,7 +1365,7 @@ def data_file_selection(data_file_name, test_case):
         raise PreventUpdate
 
 
-@app.callback(
+@ app.callback(
     Output('hidden_export_left', 'children'),
     Input('export_left', 'n_clicks'),
     State('graph_2d_left', 'figure')
@@ -1279,7 +1377,7 @@ def export_left_fig(btn, fig):
     return 0
 
 
-@app.callback(
+@ app.callback(
     Output('hidden_export_right', 'children'),
     Input('export_right', 'n_clicks'),
     State('graph_2d_right', 'figure')
