@@ -747,10 +747,21 @@ def update_2d_graphs(*args):
     left_fig = args[-1]
     left_sw = args[-2]
 
-    if trigger_id == 'left-switch':
-        if left_sw:
+    left_figure_keys = [
+        ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
+        ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
+        ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
+        ui_config['numerical'][ctx.inputs['x_left.value']
+                               ]['description'],
+        ui_config['numerical'][ctx.inputs['y_left.value']
+                               ]['description'],
+        ui_config['numerical'][ctx.inputs['color_left.value']
+                               ]['description']]
+
+    if left_sw and (trigger_id in ['left-switch', 'x_left','y_left','color_left']):
+        if processing.is_filtering_ready:
             left_fig = get_2d_scatter(
-                processing.data,
+                processing.get_filtered_data(),
                 left_figure_keys[0],
                 left_figure_keys[1],
                 left_figure_keys[2],
@@ -758,31 +769,53 @@ def update_2d_graphs(*args):
                 left_figure_keys[4],
                 left_figure_keys[5]
             )
-
         else:
-            left_fig = {
-                'data': [{'mode': 'markers', 'type': 'scattergl',
-                          'x': [], 'y': []}
-                         ],
-                'layout': {
-                    'uirevision': 'no_change'
-                }}
+            categorical_key_values = args[0:(len(processing.categorical_key_list))]
+            numerical_key_values = args[
+                (len(processing.categorical_key_list)):
+                (len(processing.categorical_key_list) +
+                    len(processing.numerical_key_list))]
+            filtered_table = processing.data
+            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+                filtered_table = filter_range(
+                    filtered_table,
+                    filter_name,
+                    numerical_key_values[filter_idx])
 
-    elif (trigger_id in ['x_left', 'y_left', 'color_left']) and left_sw:
+            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+                filtered_table = filter_picker(
+                    filtered_table,
+                    filter_name,
+                    categorical_key_values[filter_idx])
+            left_fig = get_2d_scatter(
+                filtered_table,
+                left_figure_keys[0],
+                left_figure_keys[1],
+                left_figure_keys[2],
+                left_figure_keys[3],
+                left_figure_keys[4],
+                left_figure_keys[5]
+            )
+    elif left_sw:
+        categorical_key_values = args[0:(len(processing.categorical_key_list))]
+        numerical_key_values = args[
+            (len(processing.categorical_key_list)):
+            (len(processing.categorical_key_list) +
+                len(processing.numerical_key_list))]
+        filtered_table = processing.data
+        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
+            filtered_table = filter_range(
+                filtered_table,
+                filter_name,
+                numerical_key_values[filter_idx])
 
-        left_figure_keys = [
-            ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
-            ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
-            ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
-            ui_config['numerical'][ctx.inputs['x_left.value']
-                                   ]['description'],
-            ui_config['numerical'][ctx.inputs['y_left.value']
-                                   ]['description'],
-            ui_config['numerical'][ctx.inputs['color_left.value']
-                                   ]['description']]
-
+        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
+            filtered_table = filter_picker(
+                filtered_table,
+                filter_name,
+                categorical_key_values[filter_idx])
         left_fig = get_2d_scatter(
-            processing.data,
+            filtered_table,
             left_figure_keys[0],
             left_figure_keys[1],
             left_figure_keys[2],
@@ -790,6 +823,15 @@ def update_2d_graphs(*args):
             left_figure_keys[4],
             left_figure_keys[5]
         )
+
+    else:
+        left_fig = {
+            'data': [{'mode': 'markers', 'type': 'scattergl',
+                      'x': [], 'y': []}
+                     ],
+            'layout': {
+                'uirevision': 'no_change'
+            }}
 
     if left_sw:
         left_x_disabled = False
