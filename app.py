@@ -1,7 +1,37 @@
+"""
+
+    Copyright (C) 2018 - 2020  Zhengyu Peng
+    E-mail: zpeng.me@gmail.com
+    Website: https://zpeng.me
+
+    `                      `
+    -:.                  -#:
+    -//:.              -###:
+    -////:.          -#####:
+    -/:.://:.      -###++##:
+    ..   `://:-  -###+. :##:
+           `:/+####+.   :##:
+    .::::::::/+###.     :##:
+    .////-----+##:    `:###:
+     `-//:.   :##:  `:###/.
+       `-//:. :##:`:###/.
+         `-//:+######/.
+           `-/+####/.
+             `+##+.
+              :##:
+              :##:
+              :##:
+              :##:
+              :##:
+               .+:
+
+"""
+
+
 from logging import disable
 from queue import Queue
 
-from data_processing import filter_range, filter_picker, filter_all
+from data_processing import filter_all
 from data_processing import DataProcessing
 
 import json
@@ -19,7 +49,8 @@ import os
 import plotly.graph_objs as go
 import plotly.io as pio
 
-from viz.viz import get_figure_data, get_figure_layout, get_host_data, get_2d_scatter, get_stat_plot, get_heatmap
+from viz.viz import get_figure_data, get_figure_layout, get_host_data
+from viz.viz import get_2d_scatter, get_stat_plot, get_heatmap
 
 
 def gen_rangesliders(ui_config):
@@ -126,7 +157,22 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
             data_files.append(file)
     break
 
-layout_params = {
+graph_3d_params = {
+    'x_det_key': all_keys[
+        ui_config['graph_3d_detections']['default_x']
+    ]['key'],
+    'y_det_key': all_keys[
+        ui_config['graph_3d_detections']['default_y']
+    ]['key'],
+    'z_det_key': all_keys[
+        ui_config['graph_3d_detections']['default_z']
+    ]['key'],
+    'x_host_key': ui_config['host'][
+        ui_config['graph_3d_host']['default_x']
+    ]['key'],
+    'y_host_key': ui_config['host'][
+        ui_config['graph_3d_host']['default_y']
+    ]['key'],
     'x_range': [0, 0],
     'y_range': [0, 0],
     'z_range': [0, 0],
@@ -141,8 +187,9 @@ layout_params = {
 }
 
 app.layout = html.Div([
-    dcc.Store(id='all_keys',
-              data=all_keys),
+    dcc.Store(id='config', data=ui_config),
+    dcc.Store(id='all_keys', data=all_keys),
+    dcc.Store(id='graph_3d_params', data=graph_3d_params),
     dcc.Store(id='categorical_key_values'),
     dcc.Store(id='numerical_key_values'),
     html.Div([
@@ -652,13 +699,11 @@ def test_case_selection(test_case):
         Input('color_main', 'value'),
     ],
     [
-        State('det_grid', 'figure'),
-        State('filter-trigger', 'children')
+        State('filter-trigger', 'children'),
+        State('config', 'data'),
+        State('graph_3d_params', 'data'),
     ])
 def update_filter(*args):
-    global layout_params
-
-    global ui_config
     global task_queue
 
     # if processing.is_locked:
@@ -668,7 +713,10 @@ def update_filter(*args):
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     slider_arg = args[0]
-    trigger_idx = args[-1]
+    graph_3d_params = args[-1]
+    ui_config = args[-2]
+    trigger_idx = args[-3]
+
     categorical_key_values = args[1:(1+len(processing.categorical_key_list))]
     numerical_key_values = args[
         (1+len(processing.categorical_key_list)):
@@ -710,77 +758,57 @@ def update_filter(*args):
             return [dict(
                 data=[get_figure_data(
                     det_list=filterd_frame,
-                    x_key=ui_config['numerical'][
-                        ui_config['graph_3d_detections']['default_x']
-                    ]['key'],
-                    y_key=ui_config['numerical'][
-                        ui_config['graph_3d_detections']['default_y']
-                    ]['key'],
-                    z_key=ui_config['numerical'][
-                        ui_config['graph_3d_detections']['default_z']
-                    ]['key'],
-                    color_key=layout_params['color_key'],
-                    color_label=layout_params['color_label'],
+                    x_key=graph_3d_params['x_det_key'],
+                    y_key=graph_3d_params['y_det_key'],
+                    z_key=graph_3d_params['z_det_key'],
+                    color_key=graph_3d_params['color_key'],
+                    color_label=graph_3d_params['color_label'],
                     name='Index: ' +
                     str(slider_arg) + ' (' +
                     ui_config['numerical'][ui_config['slider']
                                            ]['description']+')',
                     hover_dict={
                         **ui_config['numerical'], **ui_config['categorical']},
-                    c_range=layout_params['c_range'],
-                    db=layout_params['db']
+                    c_range=graph_3d_params['c_range'],
+                    db=graph_3d_params['db']
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key=ui_config['host'][
-                        ui_config['graph_3d_host']['default_x']
-                    ]['key'],
-                    y_key=ui_config['host'][
-                        ui_config['graph_3d_host']['default_y']
-                    ]['key'],
+                    x_key=graph_3d_params['x_host_key'],
+                    y_key=graph_3d_params['y_host_key'],
                 )],
                 layout=get_figure_layout(
-                    x_range=layout_params['x_range'],
-                    y_range=layout_params['y_range'],
-                    z_range=layout_params['z_range'])
+                    x_range=graph_3d_params['x_range'],
+                    y_range=graph_3d_params['y_range'],
+                    z_range=graph_3d_params['z_range'])
             ),
                 trigger_idx+1,
                 categorical_key_values,
                 numerical_key_values]
     else:
         if None not in categorical_key_values:
-            x_det = ui_config['numerical'][
-                ui_config['graph_3d_detections']['default_x']
-            ]['key']
-            x_host = ui_config['host'][
-                ui_config['graph_3d_host']['default_x']
-            ]['key']
-            y_det = ui_config['numerical'][
-                ui_config['graph_3d_detections']['default_y']
-            ]['key']
-            y_host = ui_config['host'][
-                ui_config['graph_3d_host']['default_y']
-            ]['key']
-            z_det = ui_config['numerical'][
-                ui_config['graph_3d_detections']['default_z']
-            ]['key']
+            x_det = graph_3d_params['x_det_key']
+            x_host = graph_3d_params['x_host_key']
+            y_det = graph_3d_params['y_det_key']
+            y_host = graph_3d_params['y_host_key']
+            z_det = graph_3d_params['z_det_key']
 
-            layout_params['x_range'] = [
+            graph_3d_params['x_range'] = [
                 np.min([np.min(processing.data[x_det]),
                         np.min(processing.data[x_host])]),
                 np.max([np.max(processing.data[x_det]),
                         np.max(processing.data[x_host])])]
-            layout_params['y_range'] = [
+            graph_3d_params['y_range'] = [
                 np.min([np.min(processing.data[y_det]),
                         np.min(processing.data[y_host])]),
                 np.max([np.max(processing.data[y_det]),
                         np.max(processing.data[y_host])])]
-            layout_params['z_range'] = [
+            graph_3d_params['z_range'] = [
                 np.min(processing.data[z_det]),
                 np.max(processing.data[z_det])]
-            layout_params['color_key'] = color_key
-            layout_params['color_label'] = color_label
-            layout_params['c_range'] = [
+            graph_3d_params['color_key'] = color_key
+            graph_3d_params['color_label'] = color_label
+            graph_3d_params['c_range'] = [
                 np.min(processing.data[color_key]),
                 np.max(processing.data[color_key])
             ]
@@ -788,10 +816,9 @@ def update_filter(*args):
             task_queue.put_nowait(
                 {
                     'trigger': 'filter',
-                    'new_data': False,
                     'cat_values': categorical_key_values,
                     'num_values': numerical_key_values,
-                    'layout': layout_params,
+                    'layout': graph_3d_params,
                 }
             )
 
@@ -815,39 +842,29 @@ def update_filter(*args):
             return [dict(
                 data=[get_figure_data(
                     det_list=filterd_frame,
-                    x_key=ui_config['numerical'][
-                        ui_config['graph_3d_detections']['default_x']
-                    ]['key'],
-                    y_key=ui_config['numerical'][
-                        ui_config['graph_3d_detections']['default_y']
-                    ]['key'],
-                    z_key=ui_config['numerical'][
-                        ui_config['graph_3d_detections']['default_z']
-                    ]['key'],
-                    color_key=layout_params['color_key'],
-                    color_label=layout_params['color_label'],
+                    x_key=graph_3d_params['x_det_key'],
+                    y_key=graph_3d_params['y_det_key'],
+                    z_key=graph_3d_params['z_det_key'],
+                    color_key=graph_3d_params['color_key'],
+                    color_label=graph_3d_params['color_label'],
                     name='Index: ' +
                     str(slider_arg) + ' (' +
                     ui_config['numerical'][ui_config['slider']
                                            ]['description']+')',
                     hover_dict={
                         **ui_config['numerical'], **ui_config['categorical']},
-                    c_range=layout_params['c_range'],
-                    db=layout_params['db']
+                    c_range=graph_3d_params['c_range'],
+                    db=graph_3d_params['db']
                 ),
                     get_host_data(
                     det_list=filterd_frame,
-                    x_key=ui_config['host'][
-                        ui_config['graph_3d_host']['default_x']
-                    ]['key'],
-                    y_key=ui_config['host'][
-                        ui_config['graph_3d_host']['default_y']
-                    ]['key'],
+                    x_key=graph_3d_params['x_host_key'],
+                    y_key=graph_3d_params['y_host_key'],
                 )],
                 layout=get_figure_layout(
-                    x_range=layout_params['x_range'],
-                    y_range=layout_params['y_range'],
-                    z_range=layout_params['z_range'])
+                    x_range=graph_3d_params['x_range'],
+                    y_range=graph_3d_params['y_range'],
+                    z_range=graph_3d_params['z_range'])
             ),
                 trigger_idx+1,
                 categorical_key_values,
@@ -1198,69 +1215,51 @@ def update_heatmap(
         Output('right-switch', 'on'),
         Output('stat-switch', 'on'),
         Output('heat-switch', 'on'),
+        Output('graph_3d_params', 'data'),
     ],
     [
         Input('data_file_picker', 'value')
     ],
     [
         State('test_case_picker', 'value'),
+        State('config', 'data'),
         State('all_keys', 'data'),
+        State('graph_3d_params', 'data'),
     ])
 def data_file_selection(
         data_file_name,
         test_case,
-        all_keys
+        ui_config,
+        all_keys,
+        graph_3d_params,
 ):
-    global ui_config
-
-    global layout_params
-
     if data_file_name is not None and test_case is not None:
         new_data = pd.read_pickle(
             './data/'+test_case+'/'+data_file_name)
 
-        layout_params['color_key'] = all_keys[
-            ui_config['graph_3d_detections']['default_color']
-        ]['key']
+        x_det = graph_3d_params['x_det_key']
+        x_host = graph_3d_params['x_host_key']
+        y_det = graph_3d_params['y_det_key']
+        y_host = graph_3d_params['y_host_key']
+        z_det = graph_3d_params['z_det_key']
+        color_key = graph_3d_params['color_key']
 
-        layout_params['color_label'] = all_keys[
-            ui_config['graph_3d_detections']['default_color']
-        ]['description']
-
-        layout_params['db'] = False
-
-        x_det = all_keys[
-            ui_config['graph_3d_detections']['default_x']
-        ]['key']
-        x_host = ui_config['host'][
-            ui_config['graph_3d_host']['default_x']
-        ]['key']
-        y_det = all_keys[
-            ui_config['graph_3d_detections']['default_y']
-        ]['key']
-        y_host = ui_config['host'][
-            ui_config['graph_3d_host']['default_y']
-        ]['key']
-        z_det = all_keys[
-            ui_config['graph_3d_detections']['default_z']
-        ]['key']
-
-        layout_params['x_range'] = [
+        graph_3d_params['x_range'] = [
             np.min([np.min(new_data[x_det]),
                     np.min(new_data[x_host])]),
             np.max([np.max(new_data[x_det]),
                     np.max(new_data[x_host])])]
-        layout_params['y_range'] = [
+        graph_3d_params['y_range'] = [
             np.min([np.min(new_data[y_det]),
                     np.min(new_data[y_host])]),
             np.max([np.max(new_data[y_det]),
                     np.max(new_data[y_host])])]
-        layout_params['z_range'] = [
+        graph_3d_params['z_range'] = [
             np.min(new_data[z_det]),
             np.max(new_data[z_det])]
-        layout_params['c_range'] = [
-            np.min(new_data[layout_params['color_key']]),
-            np.max(new_data[layout_params['color_key']])
+        graph_3d_params['c_range'] = [
+            np.min(new_data[color_key]),
+            np.max(new_data[color_key])
         ]
 
         frame_idx = new_data[
@@ -1296,12 +1295,14 @@ def data_file_selection(
         output.append(False)
         output.append(False)
 
+        output.append(graph_3d_params)
+
         task_queue.put_nowait(
             {
                 'trigger': 'filter',
                 'new_data': True,
                 'data': new_data,
-                'layout': layout_params,
+                'layout': graph_3d_params,
             }
         )
 
