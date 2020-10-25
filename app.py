@@ -279,6 +279,19 @@ app.layout = html.Div([
                     html.H6('3D View'),
                 ], className="ten columns"),
                 html.Div([
+                    html.Div([
+                        html.Label('Overlay: '),
+                        daq.BooleanSwitch(
+                            id='overlay-switch',
+                            on=False
+                        ),
+                    ], className="column flex-display"
+                    ),
+                ], className="two columns"),
+            ], className="row flex-display"),
+            html.Div([
+                html.Div([], className="ten columns"),
+                html.Div([
                     dcc.Dropdown(
                         id='color_main',
                         options=[{
@@ -289,7 +302,8 @@ app.layout = html.Div([
                                 all_keys)],
                         value=ui_config['graph_3d_detections']['default_color']
                     ),
-                ], className="two columns"),
+                ], className="two columns",
+                    style={"margin-bottom": "10px"}),
             ], className="row flex-display"),
             dcc.Graph(
                 id='det_grid',
