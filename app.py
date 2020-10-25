@@ -1,7 +1,7 @@
 from logging import disable
 from queue import Queue
 
-from data_processing import filter_range, filter_picker
+from data_processing import filter_range, filter_picker, filter_all
 from data_processing import DataProcessing
 
 import json
@@ -69,9 +69,9 @@ app.css.config.serve_locally = True
 app.title = 'SensorView'
 
 ui_config = load_config('ui.json')
+all_keys = {**ui_config['categorical'], **ui_config['numerical']}
 
 task_queue = Queue()
-
 processing = DataProcessing(ui_config, task_queue)
 
 
@@ -128,39 +128,39 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
 
 
 left_figure_keys = [
-    ui_config['numerical'][ui_config['graph_2d_left']['default_x']]['key'],
-    ui_config['numerical'][ui_config['graph_2d_left']['default_y']]['key'],
-    ui_config['numerical'][ui_config['graph_2d_left']['default_color']]['key'],
-    ui_config['numerical'][ui_config['graph_2d_left']
-                           ['default_x']]['description'],
-    ui_config['numerical'][ui_config['graph_2d_left']
-                           ['default_y']]['description'],
-    ui_config['numerical'][
+    all_keys[ui_config['graph_2d_left']['default_x']]['key'],
+    all_keys[ui_config['graph_2d_left']['default_y']]['key'],
+    all_keys[ui_config['graph_2d_left']['default_color']]['key'],
+    all_keys[ui_config['graph_2d_left']
+             ['default_x']]['description'],
+    all_keys[ui_config['graph_2d_left']
+             ['default_y']]['description'],
+    all_keys[
         ui_config['graph_2d_left']['default_color']
     ]['description']]
 
 right_figure_keys = [
-    ui_config['numerical'][ui_config['graph_2d_right']['default_x']]['key'],
-    ui_config['numerical'][ui_config['graph_2d_right']
-                           ['default_y']]['key'],
-    ui_config['numerical'][ui_config['graph_2d_right']
-                           ['default_color']]['key'],
-    ui_config['numerical'][ui_config['graph_2d_right']['default_x']
-                           ]['description'],
-    ui_config['numerical'][ui_config['graph_2d_right']['default_y']
-                           ]['description'],
-    ui_config['numerical'][ui_config['graph_2d_right']['default_color']
-                           ]['description']]
+    all_keys[ui_config['graph_2d_right']['default_x']]['key'],
+    all_keys[ui_config['graph_2d_right']
+             ['default_y']]['key'],
+    all_keys[ui_config['graph_2d_right']
+             ['default_color']]['key'],
+    all_keys[ui_config['graph_2d_right']['default_x']
+             ]['description'],
+    all_keys[ui_config['graph_2d_right']['default_y']
+             ]['description'],
+    all_keys[ui_config['graph_2d_right']['default_color']
+             ]['description']]
 
 layout_params = {
     'x_range': [0, 0],
     'y_range': [0, 0],
     'z_range': [0, 0],
     'c_range': [0, 0],
-    'color_key': ui_config['numerical'][
+    'color_key': all_keys[
         ui_config['graph_3d_detections']['default_color']
     ]['key'],
-    'color_label': ui_config['numerical'][
+    'color_label': all_keys[
         ui_config['graph_3d_detections']['default_color']
     ]['description'],
     'db': False,
@@ -243,12 +243,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_main',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                ui_config['numerical'])],
+                                all_keys)],
                         value=ui_config['graph_3d_detections']['default_color']
                     ),
                 ], className="two columns"),
@@ -283,8 +282,6 @@ app.layout = html.Div([
         ], className="pretty_container nine columns"),
 
     ], className="row flex-display rows",
-        # style={'min-height': '100vh',
-        #        'max-height': '100vh'}
     ),
 
     html.Div([
@@ -308,12 +305,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_left',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                ui_config['numerical'])],
+                                all_keys)],
                         value=ui_config['graph_2d_left']['default_x'],
                         disabled=True
                     ),
@@ -323,12 +319,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_left',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                ui_config['numerical'])],
+                                all_keys)],
                         value=ui_config['graph_2d_left']['default_y'],
                         disabled=True
                     ),
@@ -338,12 +333,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_left',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                ui_config['numerical'])],
+                                all_keys)],
                         value=ui_config['graph_2d_left']['default_color'],
                         disabled=True
                     ),
@@ -379,9 +373,7 @@ app.layout = html.Div([
                     ], className="row flex-display"),
                 ],
                 type="default",
-                # style={"height": "400px"},
             ),
-
         ], className="pretty_container six columns"),
 
         html.Div([
@@ -404,12 +396,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_right',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                ui_config['numerical'])],
+                                all_keys)],
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
@@ -419,12 +410,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_right',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                ui_config['numerical'])],
+                                all_keys)],
                         value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
@@ -434,12 +424,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_right',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                ui_config['numerical'])],
+                                all_keys)],
                         value=ui_config['graph_2d_right']['default_color'],
                         disabled=True
                     ),
@@ -480,7 +469,6 @@ app.layout = html.Div([
         ], className="pretty_container six columns"),
     ], className="row flex-display"),
 
-
     html.Div([
         html.Div([
             html.Div([
@@ -502,12 +490,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_stat',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                            ui_config['numerical'])],
+                            all_keys)],
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
@@ -585,12 +572,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_heat',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                            ui_config['numerical'])],
+                            all_keys)],
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
@@ -600,12 +586,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_heat',
                         options=[{
-                            'label': ui_config[
-                                'numerical'][f_item]['description'],
+                            'label': all_keys[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                            ui_config['numerical'])],
+                            all_keys)],
                         value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
@@ -689,8 +674,8 @@ def update_filter(*args):
     global ui_config
     global task_queue
 
-    if processing.is_locked:
-        raise PreventUpdate
+    # if processing.is_locked:
+    #     raise PreventUpdate
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -723,21 +708,13 @@ def update_filter(*args):
             ]
             filterd_frame = filterd_frame.reset_index()
 
-            for filter_idx, filter_name in enumerate(
-                    processing.numerical_key_list):
-                if filter_name is not None:
-                    filterd_frame = filter_range(
-                        filterd_frame,
-                        filter_name,
-                        numerical_key_values[filter_idx])
-
-            for filter_idx, filter_name in enumerate(
-                    processing.categorical_key_list):
-                if filter_name is not None:
-                    filterd_frame = filter_picker(
-                        filterd_frame,
-                        filter_name,
-                        categorical_key_values[filter_idx])
+            filterd_frame = filter_all(
+                filterd_frame,
+                processing.numerical_key_list,
+                numerical_key_values,
+                processing.categorical_key_list,
+                categorical_key_values
+            )
 
             return dict(
                 data=[get_figure_data(
@@ -833,21 +810,13 @@ def update_filter(*args):
             ]
             filterd_frame = filterd_frame.reset_index()
 
-            for filter_idx, filter_name in enumerate(
-                    processing.numerical_key_list):
-                if filter_name is not None:
-                    filterd_frame = filter_range(
-                        filterd_frame,
-                        filter_name,
-                        numerical_key_values[filter_idx])
-
-            for filter_idx, filter_name in enumerate(
-                    processing.categorical_key_list):
-                if filter_name is not None:
-                    filterd_frame = filter_picker(
-                        filterd_frame,
-                        filter_name,
-                        categorical_key_values[filter_idx])
+            filterd_frame = filter_all(
+                filterd_frame,
+                processing.numerical_key_list,
+                numerical_key_values,
+                processing.categorical_key_list,
+                categorical_key_values
+            )
 
             return dict(
                 data=[get_figure_data(
@@ -887,7 +856,7 @@ def update_filter(*args):
                     z_range=layout_params['z_range'])
             )
         else:
-            return args[-2]
+            raise PreventUpdate
 
 
 @ app.callback(
@@ -913,7 +882,8 @@ def update_filter(*args):
 def update_left_graph(*args):
     global left_figure_keys
 
-    global ui_config
+    # global ui_config
+    global all_keys
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -922,15 +892,15 @@ def update_left_graph(*args):
     left_sw = args[-2]
 
     left_figure_keys = [
-        ui_config['numerical'][ctx.inputs['x_left.value']]['key'],
-        ui_config['numerical'][ctx.inputs['y_left.value']]['key'],
-        ui_config['numerical'][ctx.inputs['color_left.value']]['key'],
-        ui_config['numerical'][ctx.inputs['x_left.value']
-                               ]['description'],
-        ui_config['numerical'][ctx.inputs['y_left.value']
-                               ]['description'],
-        ui_config['numerical'][ctx.inputs['color_left.value']
-                               ]['description']]
+        all_keys[ctx.inputs['x_left.value']]['key'],
+        all_keys[ctx.inputs['y_left.value']]['key'],
+        all_keys[ctx.inputs['color_left.value']]['key'],
+        all_keys[ctx.inputs['x_left.value']
+                 ]['description'],
+        all_keys[ctx.inputs['y_left.value']
+                 ]['description'],
+        all_keys[ctx.inputs['color_left.value']
+                 ]['description']]
 
     if left_sw and (trigger_id in ['left-switch', 'x_left', 'y_left', 'color_left']):
         if processing.is_filtering_ready:
@@ -950,18 +920,15 @@ def update_left_graph(*args):
                 (len(processing.categorical_key_list)):
                 (len(processing.categorical_key_list) +
                     len(processing.numerical_key_list))]
-            filtered_table = processing.data
-            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-                filtered_table = filter_range(
-                    filtered_table,
-                    filter_name,
-                    numerical_key_values[filter_idx])
 
-            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-                filtered_table = filter_picker(
-                    filtered_table,
-                    filter_name,
-                    categorical_key_values[filter_idx])
+            filtered_table = filter_all(
+                processing.data,
+                processing.numerical_key_list,
+                numerical_key_values,
+                processing.categorical_key_list,
+                categorical_key_values
+            )
+
             left_fig = get_2d_scatter(
                 filtered_table,
                 left_figure_keys[0],
@@ -977,18 +944,15 @@ def update_left_graph(*args):
             (len(processing.categorical_key_list)):
             (len(processing.categorical_key_list) +
                 len(processing.numerical_key_list))]
-        filtered_table = processing.data
-        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-            filtered_table = filter_range(
-                filtered_table,
-                filter_name,
-                numerical_key_values[filter_idx])
 
-        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-            filtered_table = filter_picker(
-                filtered_table,
-                filter_name,
-                categorical_key_values[filter_idx])
+        filtered_table = filter_all(
+            processing.data,
+            processing.numerical_key_list,
+            numerical_key_values,
+            processing.categorical_key_list,
+            categorical_key_values
+        )
+
         left_fig = get_2d_scatter(
             filtered_table,
             left_figure_keys[0],
@@ -1024,6 +988,7 @@ def update_left_graph(*args):
         left_color_disabled,
     ]
 
+
 @ app.callback(
     [
         Output('graph_2d_right', 'figure'),
@@ -1047,7 +1012,8 @@ def update_left_graph(*args):
 def update_right_graph(*args):
     global right_figure_keys
 
-    global ui_config
+    # global ui_config
+    global all_keys
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -1056,15 +1022,15 @@ def update_right_graph(*args):
     right_sw = args[-2]
 
     right_figure_keys = [
-        ui_config['numerical'][ctx.inputs['x_right.value']]['key'],
-        ui_config['numerical'][ctx.inputs['y_right.value']]['key'],
-        ui_config['numerical'][ctx.inputs['color_right.value']]['key'],
-        ui_config['numerical'][ctx.inputs['x_right.value']
-                               ]['description'],
-        ui_config['numerical'][ctx.inputs['y_right.value']
-                               ]['description'],
-        ui_config['numerical'][ctx.inputs['color_right.value']
-                               ]['description']]
+        all_keys[ctx.inputs['x_right.value']]['key'],
+        all_keys[ctx.inputs['y_right.value']]['key'],
+        all_keys[ctx.inputs['color_right.value']]['key'],
+        all_keys[ctx.inputs['x_right.value']
+                 ]['description'],
+        all_keys[ctx.inputs['y_right.value']
+                 ]['description'],
+        all_keys[ctx.inputs['color_right.value']
+                 ]['description']]
 
     if right_sw and (trigger_id in ['right-switch', 'x_right', 'y_right', 'color_right']):
         if processing.is_filtering_ready:
@@ -1084,18 +1050,15 @@ def update_right_graph(*args):
                 (len(processing.categorical_key_list)):
                 (len(processing.categorical_key_list) +
                     len(processing.numerical_key_list))]
-            filtered_table = processing.data
-            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-                filtered_table = filter_range(
-                    filtered_table,
-                    filter_name,
-                    numerical_key_values[filter_idx])
 
-            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-                filtered_table = filter_picker(
-                    filtered_table,
-                    filter_name,
-                    categorical_key_values[filter_idx])
+            filtered_table = filter_all(
+                processing.data,
+                processing.numerical_key_list,
+                numerical_key_values,
+                processing.categorical_key_list,
+                categorical_key_values
+            )
+
             right_fig = get_2d_scatter(
                 filtered_table,
                 right_figure_keys[0],
@@ -1111,18 +1074,15 @@ def update_right_graph(*args):
             (len(processing.categorical_key_list)):
             (len(processing.categorical_key_list) +
                 len(processing.numerical_key_list))]
-        filtered_table = processing.data
-        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-            filtered_table = filter_range(
-                filtered_table,
-                filter_name,
-                numerical_key_values[filter_idx])
 
-        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-            filtered_table = filter_picker(
-                filtered_table,
-                filter_name,
-                categorical_key_values[filter_idx])
+        filtered_table = filter_all(
+            processing.data,
+            processing.numerical_key_list,
+            numerical_key_values,
+            processing.categorical_key_list,
+            categorical_key_values
+        )
+
         right_fig = get_2d_scatter(
             filtered_table,
             right_figure_keys[0],
@@ -1177,16 +1137,16 @@ def update_right_graph(*args):
     ]
 )
 def update_stat_graph(*args):
-    global ui_config
+    global all_keys
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     stat_sw = args[-1]
 
-    x_key = ui_config['numerical'][ctx.inputs['x_stat.value']]['key']
-    x_label = ui_config['numerical'][ctx.inputs['x_stat.value']
-                                     ]['description']
+    x_key = all_keys[ctx.inputs['x_stat.value']]['key']
+    x_label = all_keys[ctx.inputs['x_stat.value']
+                       ]['description']
     y_key = ctx.inputs['y_stat.value']
 
     if stat_sw and (trigger_id in ['stat-switch', 'x_stat', 'y_stat']):
@@ -1204,18 +1164,15 @@ def update_stat_graph(*args):
                 (len(processing.categorical_key_list)):
                 (len(processing.categorical_key_list) +
                     len(processing.numerical_key_list))]
-            filtered_table = processing.data
-            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-                filtered_table = filter_range(
-                    filtered_table,
-                    filter_name,
-                    numerical_key_values[filter_idx])
 
-            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-                filtered_table = filter_picker(
-                    filtered_table,
-                    filter_name,
-                    categorical_key_values[filter_idx])
+            filtered_table = filter_all(
+                processing.data,
+                processing.numerical_key_list,
+                numerical_key_values,
+                processing.categorical_key_list,
+                categorical_key_values
+            )
+
             stat_fig = get_stat_plot(
                 filtered_table,
                 x_key,
@@ -1228,18 +1185,15 @@ def update_stat_graph(*args):
             (len(processing.categorical_key_list)):
             (len(processing.categorical_key_list) +
                 len(processing.numerical_key_list))]
-        filtered_table = processing.data
-        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-            filtered_table = filter_range(
-                filtered_table,
-                filter_name,
-                numerical_key_values[filter_idx])
 
-        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-            filtered_table = filter_picker(
-                filtered_table,
-                filter_name,
-                categorical_key_values[filter_idx])
+        filtered_table = filter_all(
+            processing.data,
+            processing.numerical_key_list,
+            numerical_key_values,
+            processing.categorical_key_list,
+            categorical_key_values
+        )
+
         stat_fig = get_stat_plot(
             filtered_table,
             x_key,
@@ -1288,19 +1242,20 @@ def update_stat_graph(*args):
     ]
 )
 def update_heatmap(*args):
-    global ui_config
+    # global ui_config
+    global all_keys
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     heat_sw = args[-1]
 
-    x_key = ui_config['numerical'][ctx.inputs['x_heat.value']]['key']
-    x_label = ui_config['numerical'][ctx.inputs['x_heat.value']
-                                     ]['description']
-    y_key = ui_config['numerical'][ctx.inputs['y_heat.value']]['key']
-    y_label = ui_config['numerical'][ctx.inputs['y_heat.value']
-                                     ]['description']
+    x_key = all_keys[ctx.inputs['x_heat.value']]['key']
+    x_label = all_keys[ctx.inputs['x_heat.value']
+                       ]['description']
+    y_key = all_keys[ctx.inputs['y_heat.value']]['key']
+    y_label = all_keys[ctx.inputs['y_heat.value']
+                       ]['description']
 
     if heat_sw and (trigger_id in ['heat-switch', 'x_heat', 'y_heat']):
         if processing.is_filtering_ready:
@@ -1318,18 +1273,15 @@ def update_heatmap(*args):
                 (len(processing.categorical_key_list)):
                 (len(processing.categorical_key_list) +
                     len(processing.numerical_key_list))]
-            filtered_table = processing.data
-            for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-                filtered_table = filter_range(
-                    filtered_table,
-                    filter_name,
-                    numerical_key_values[filter_idx])
 
-            for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-                filtered_table = filter_picker(
-                    filtered_table,
-                    filter_name,
-                    categorical_key_values[filter_idx])
+            filtered_table = filter_all(
+                processing.data,
+                processing.numerical_key_list,
+                numerical_key_values,
+                processing.categorical_key_list,
+                categorical_key_values
+            )
+
             heat_fig = get_heatmap(
                 filtered_table,
                 x_key,
@@ -1343,18 +1295,15 @@ def update_heatmap(*args):
             (len(processing.categorical_key_list)):
             (len(processing.categorical_key_list) +
                 len(processing.numerical_key_list))]
-        filtered_table = processing.data
-        for filter_idx, filter_name in enumerate(processing.numerical_key_list):
-            filtered_table = filter_range(
-                filtered_table,
-                filter_name,
-                numerical_key_values[filter_idx])
 
-        for filter_idx, filter_name in enumerate(processing.categorical_key_list):
-            filtered_table = filter_picker(
-                filtered_table,
-                filter_name,
-                categorical_key_values[filter_idx])
+        filtered_table = filter_all(
+            processing.data,
+            processing.numerical_key_list,
+            numerical_key_values,
+            processing.categorical_key_list,
+            categorical_key_values
+        )
+
         heat_fig = get_heatmap(
             filtered_table,
             x_key,
