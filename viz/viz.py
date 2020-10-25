@@ -125,7 +125,8 @@ def get_figure_layout(
 def get_stat_plot(det_list,
                   x_key,
                   x_label=None,
-                  histnorm='probability'
+                  histnorm='probability',
+                  margin=dict(l=40, r=40, b=40, t=60)
                   ):
     if x_label is None:
         x_label = x_key
@@ -146,6 +147,7 @@ def get_stat_plot(det_list,
             barmode='overlay',
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
+            margin=margin,
             # xaxis_title_text=x_label,  # xaxis label
             # yaxis_title_text=y_label,  # yaxis label
             uirevision='no_change',
@@ -158,6 +160,7 @@ def get_heatmap(det_list,
                 y_key,
                 x_label=None,
                 y_label=None,
+                margin=dict(l=40, r=40, b=40, t=60)
                 ):
     if x_label is None:
         x_label = x_key
@@ -175,6 +178,7 @@ def get_heatmap(det_list,
         layout=dict(
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
+            margin=margin,
             # xaxis_title_text=x_label,  # xaxis label
             # yaxis_title_text=y_label,  # yaxis label
             uirevision='no_change',

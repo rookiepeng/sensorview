@@ -126,32 +126,6 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
             data_files.append(file)
     break
 
-
-left_figure_keys = [
-    all_keys[ui_config['graph_2d_left']['default_x']]['key'],
-    all_keys[ui_config['graph_2d_left']['default_y']]['key'],
-    all_keys[ui_config['graph_2d_left']['default_color']]['key'],
-    all_keys[ui_config['graph_2d_left']
-             ['default_x']]['description'],
-    all_keys[ui_config['graph_2d_left']
-             ['default_y']]['description'],
-    all_keys[
-        ui_config['graph_2d_left']['default_color']
-    ]['description']]
-
-right_figure_keys = [
-    all_keys[ui_config['graph_2d_right']['default_x']]['key'],
-    all_keys[ui_config['graph_2d_right']
-             ['default_y']]['key'],
-    all_keys[ui_config['graph_2d_right']
-             ['default_color']]['key'],
-    all_keys[ui_config['graph_2d_right']['default_x']
-             ]['description'],
-    all_keys[ui_config['graph_2d_right']['default_y']
-             ]['description'],
-    all_keys[ui_config['graph_2d_right']['default_color']
-             ]['description']]
-
 layout_params = {
     'x_range': [0, 0],
     'y_range': [0, 0],
@@ -169,6 +143,8 @@ layout_params = {
 app.layout = html.Div([
     dcc.Store(id='all_keys',
               data=all_keys),
+    dcc.Store(id='categorical_key_values'),
+    dcc.Store(id='numerical_key_values'),
     html.Div([
         html.Div([
             html.Img(
@@ -514,7 +490,7 @@ app.layout = html.Div([
                             'value': 'density'
                         },
                         ],
-                        value='probability',
+                        value='density',
                         disabled=True
                     ),
                 ], className="one-third column"),
@@ -634,6 +610,7 @@ app.layout = html.Div([
     ], className="row flex-display"),
 
     # Hidden div inside the app that stores the intermediate value
+    html.Div(id='filter-trigger', children=0, style={'display': 'none'}),
     html.Div(id='trigger', style={'display': 'none'}),
     html.Div(id='dummy', style={'display': 'none'}),
 ], style={"display": "flex", "flex-direction": "column"},)
@@ -662,13 +639,21 @@ def test_case_selection(test_case):
 
 
 @ app.callback(
-    Output('det_grid', 'figure'),
-    play_bar_callback_input + picker_callback_input + slider_callback_input+[
+    [
+        Output('det_grid', 'figure'),
+        Output('filter-trigger', 'children'),
+        Output('categorical_key_values', 'data'),
+        Output('numerical_key_values', 'data'),
+    ],
+    play_bar_callback_input +
+    picker_callback_input +
+    slider_callback_input +
+    [
         Input('color_main', 'value'),
     ],
     [
         State('det_grid', 'figure'),
-        State('trigger', 'children')
+        State('filter-trigger', 'children')
     ])
 def update_filter(*args):
     global layout_params
@@ -683,6 +668,7 @@ def update_filter(*args):
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     slider_arg = args[0]
+    trigger_idx = args[-1]
     categorical_key_values = args[1:(1+len(processing.categorical_key_list))]
     numerical_key_values = args[
         (1+len(processing.categorical_key_list)):
@@ -698,7 +684,10 @@ def update_filter(*args):
 
     if trigger_id == 'slider':
         if processing.get_frame_ready_index() > slider_arg:
-            return processing.get_frame(slider_arg)
+            return [processing.get_frame(slider_arg),
+                    trigger_idx+1,
+                    categorical_key_values,
+                    numerical_key_values]
         else:
 
             filterd_frame = processing.data[
@@ -718,7 +707,7 @@ def update_filter(*args):
                 categorical_key_values
             )
 
-            return dict(
+            return [dict(
                 data=[get_figure_data(
                     det_list=filterd_frame,
                     x_key=ui_config['numerical'][
@@ -754,7 +743,10 @@ def update_filter(*args):
                     x_range=layout_params['x_range'],
                     y_range=layout_params['y_range'],
                     z_range=layout_params['z_range'])
-            )
+            ),
+                trigger_idx+1,
+                categorical_key_values,
+                numerical_key_values]
     else:
         if None not in categorical_key_values:
             x_det = ui_config['numerical'][
@@ -820,7 +812,7 @@ def update_filter(*args):
                 categorical_key_values
             )
 
-            return dict(
+            return [dict(
                 data=[get_figure_data(
                     det_list=filterd_frame,
                     x_key=ui_config['numerical'][
@@ -856,7 +848,10 @@ def update_filter(*args):
                     x_range=layout_params['x_range'],
                     y_range=layout_params['y_range'],
                     z_range=layout_params['z_range'])
-            )
+            ),
+                trigger_idx+1,
+                categorical_key_values,
+                numerical_key_values]
         else:
             raise PreventUpdate
 
@@ -868,59 +863,48 @@ def update_filter(*args):
         Output('y_left', 'disabled'),
         Output('color_left', 'disabled'),
     ],
-    picker_callback_input +
-    slider_callback_input +
     [
+        Input('filter-trigger', 'children'),
         Input('left-switch', 'on'),
         Input('x_left', 'value'),
         Input('y_left', 'value'),
         Input('color_left', 'value'),
     ],
     [
-        State('left-switch', 'on'),
         State('all_keys', 'data'),
+        State('categorical_key_values', 'data'),
+        State('numerical_key_values', 'data'),
     ]
 )
-def update_left_graph(*args):
-    global left_figure_keys
+def update_left_graph(
+    trigger_idx,
+    left_sw,
+    x_left,
+    y_left,
+    color_left,
+    all_keys,
+    categorical_key_values,
+    numerical_key_values
+):
+    x_key = all_keys[x_left]['key']
+    y_key = all_keys[y_left]['key']
+    color_key = all_keys[color_left]['key']
+    x_label = all_keys[x_left]['description']
+    y_label = all_keys[y_left]['description']
+    color_label = all_keys[color_left]['description']
 
-    all_keys = args[-1]
-
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    left_sw = args[-2]
-
-    left_figure_keys = [
-        all_keys[ctx.inputs['x_left.value']]['key'],
-        all_keys[ctx.inputs['y_left.value']]['key'],
-        all_keys[ctx.inputs['color_left.value']]['key'],
-        all_keys[ctx.inputs['x_left.value']
-                 ]['description'],
-        all_keys[ctx.inputs['y_left.value']
-                 ]['description'],
-        all_keys[ctx.inputs['color_left.value']
-                 ]['description']]
-
-    if left_sw and (trigger_id in ['left-switch', 'x_left', 'y_left', 'color_left']):
+    if left_sw:
         if processing.is_filtering_ready:
             left_fig = get_2d_scatter(
                 processing.get_filtered_data(),
-                left_figure_keys[0],
-                left_figure_keys[1],
-                left_figure_keys[2],
-                left_figure_keys[3],
-                left_figure_keys[4],
-                left_figure_keys[5]
+                x_key,
+                y_key,
+                color_key,
+                x_label,
+                y_label,
+                color_label
             )
         else:
-            categorical_key_values = args[0:(
-                len(processing.categorical_key_list))]
-            numerical_key_values = args[
-                (len(processing.categorical_key_list)):
-                (len(processing.categorical_key_list) +
-                    len(processing.numerical_key_list))]
-
             filtered_table = filter_all(
                 processing.data,
                 processing.numerical_key_list,
@@ -931,37 +915,16 @@ def update_left_graph(*args):
 
             left_fig = get_2d_scatter(
                 filtered_table,
-                left_figure_keys[0],
-                left_figure_keys[1],
-                left_figure_keys[2],
-                left_figure_keys[3],
-                left_figure_keys[4],
-                left_figure_keys[5]
+                x_key,
+                y_key,
+                color_key,
+                x_label,
+                y_label,
+                color_label
             )
-    elif left_sw:
-        categorical_key_values = args[0:(len(processing.categorical_key_list))]
-        numerical_key_values = args[
-            (len(processing.categorical_key_list)):
-            (len(processing.categorical_key_list) +
-                len(processing.numerical_key_list))]
-
-        filtered_table = filter_all(
-            processing.data,
-            processing.numerical_key_list,
-            numerical_key_values,
-            processing.categorical_key_list,
-            categorical_key_values
-        )
-
-        left_fig = get_2d_scatter(
-            filtered_table,
-            left_figure_keys[0],
-            left_figure_keys[1],
-            left_figure_keys[2],
-            left_figure_keys[3],
-            left_figure_keys[4],
-            left_figure_keys[5]
-        )
+        left_x_disabled = False
+        left_y_disabled = False
+        left_color_disabled = False
 
     else:
         left_fig = {
@@ -971,12 +934,6 @@ def update_left_graph(*args):
             'layout': {
                 'uirevision': 'no_change'
             }}
-
-    if left_sw:
-        left_x_disabled = False
-        left_y_disabled = False
-        left_color_disabled = False
-    else:
         left_x_disabled = True
         left_y_disabled = True
         left_color_disabled = True
@@ -996,61 +953,48 @@ def update_left_graph(*args):
         Output('y_right', 'disabled'),
         Output('color_right', 'disabled'),
     ],
-    picker_callback_input +
-    slider_callback_input +
     [
+        Input('filter-trigger', 'children'),
         Input('right-switch', 'on'),
         Input('x_right', 'value'),
         Input('y_right', 'value'),
         Input('color_right', 'value'),
     ],
     [
-        State('right-switch', 'on'),
         State('all_keys', 'data'),
+        State('categorical_key_values', 'data'),
+        State('numerical_key_values', 'data'),
     ]
 )
-def update_right_graph(*args):
-    global right_figure_keys
+def update_right_graph(
+    trigger_idx,
+    right_sw,
+    x_right,
+    y_right,
+    color_right,
+    all_keys,
+    categorical_key_values,
+    numerical_key_values
+):
+    x_key = all_keys[x_right]['key']
+    y_key = all_keys[y_right]['key']
+    color_key = all_keys[color_right]['key']
+    x_label = all_keys[x_right]['description']
+    y_label = all_keys[y_right]['description']
+    color_label = all_keys[color_right]['description']
 
-    # global ui_config
-    all_keys = args[-1]
-
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    # right_fig = args[-1]
-    right_sw = args[-2]
-
-    right_figure_keys = [
-        all_keys[ctx.inputs['x_right.value']]['key'],
-        all_keys[ctx.inputs['y_right.value']]['key'],
-        all_keys[ctx.inputs['color_right.value']]['key'],
-        all_keys[ctx.inputs['x_right.value']
-                 ]['description'],
-        all_keys[ctx.inputs['y_right.value']
-                 ]['description'],
-        all_keys[ctx.inputs['color_right.value']
-                 ]['description']]
-
-    if right_sw and (trigger_id in ['right-switch', 'x_right', 'y_right', 'color_right']):
+    if right_sw:
         if processing.is_filtering_ready:
             right_fig = get_2d_scatter(
                 processing.get_filtered_data(),
-                right_figure_keys[0],
-                right_figure_keys[1],
-                right_figure_keys[2],
-                right_figure_keys[3],
-                right_figure_keys[4],
-                right_figure_keys[5]
+                x_key,
+                y_key,
+                color_key,
+                x_label,
+                y_label,
+                color_label
             )
         else:
-            categorical_key_values = args[0:(
-                len(processing.categorical_key_list))]
-            numerical_key_values = args[
-                (len(processing.categorical_key_list)):
-                (len(processing.categorical_key_list) +
-                    len(processing.numerical_key_list))]
-
             filtered_table = filter_all(
                 processing.data,
                 processing.numerical_key_list,
@@ -1061,37 +1005,16 @@ def update_right_graph(*args):
 
             right_fig = get_2d_scatter(
                 filtered_table,
-                right_figure_keys[0],
-                right_figure_keys[1],
-                right_figure_keys[2],
-                right_figure_keys[3],
-                right_figure_keys[4],
-                right_figure_keys[5]
+                x_key,
+                y_key,
+                color_key,
+                x_label,
+                y_label,
+                color_label
             )
-    elif right_sw:
-        categorical_key_values = args[0:(len(processing.categorical_key_list))]
-        numerical_key_values = args[
-            (len(processing.categorical_key_list)):
-            (len(processing.categorical_key_list) +
-                len(processing.numerical_key_list))]
-
-        filtered_table = filter_all(
-            processing.data,
-            processing.numerical_key_list,
-            numerical_key_values,
-            processing.categorical_key_list,
-            categorical_key_values
-        )
-
-        right_fig = get_2d_scatter(
-            filtered_table,
-            right_figure_keys[0],
-            right_figure_keys[1],
-            right_figure_keys[2],
-            right_figure_keys[3],
-            right_figure_keys[4],
-            right_figure_keys[5]
-        )
+        right_x_disabled = False
+        right_y_disabled = False
+        right_color_disabled = False
 
     else:
         right_fig = {
@@ -1102,11 +1025,6 @@ def update_right_graph(*args):
                 'uirevision': 'no_change'
             }}
 
-    if right_sw:
-        right_x_disabled = False
-        right_y_disabled = False
-        right_color_disabled = False
-    else:
         right_x_disabled = True
         right_y_disabled = True
         right_color_disabled = True
@@ -1125,32 +1043,32 @@ def update_right_graph(*args):
         Output('x_stat', 'disabled'),
         Output('y_stat', 'disabled'),
     ],
-    picker_callback_input +
-    slider_callback_input +
     [
+        Input('filter-trigger', 'children'),
         Input('stat-switch', 'on'),
         Input('x_stat', 'value'),
         Input('y_stat', 'value'),
     ],
     [
-        State('stat-switch', 'on'),
         State('all_keys', 'data'),
+        State('categorical_key_values', 'data'),
+        State('numerical_key_values', 'data'),
     ]
 )
-def update_stat_graph(*args):
-    all_keys = args[-1]
+def update_stat_graph(
+    trigger_idx,
+    stat_sw,
+    x_stat,
+    y_stat,
+    all_keys,
+    categorical_key_values,
+    numerical_key_values
+):
+    x_key = all_keys[x_stat]['key']
+    x_label = all_keys[x_stat]['description']
+    y_key = y_stat
 
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    stat_sw = args[-2]
-
-    x_key = all_keys[ctx.inputs['x_stat.value']]['key']
-    x_label = all_keys[ctx.inputs['x_stat.value']
-                       ]['description']
-    y_key = ctx.inputs['y_stat.value']
-
-    if stat_sw and (trigger_id in ['stat-switch', 'x_stat', 'y_stat']):
+    if stat_sw:
         if processing.is_filtering_ready:
             stat_fig = get_stat_plot(
                 processing.get_filtered_data(),
@@ -1159,13 +1077,6 @@ def update_stat_graph(*args):
                 y_key
             )
         else:
-            categorical_key_values = args[0:(
-                len(processing.categorical_key_list))]
-            numerical_key_values = args[
-                (len(processing.categorical_key_list)):
-                (len(processing.categorical_key_list) +
-                    len(processing.numerical_key_list))]
-
             filtered_table = filter_all(
                 processing.data,
                 processing.numerical_key_list,
@@ -1180,28 +1091,8 @@ def update_stat_graph(*args):
                 x_label,
                 y_key
             )
-    elif stat_sw:
-        categorical_key_values = args[0:(len(processing.categorical_key_list))]
-        numerical_key_values = args[
-            (len(processing.categorical_key_list)):
-            (len(processing.categorical_key_list) +
-                len(processing.numerical_key_list))]
-
-        filtered_table = filter_all(
-            processing.data,
-            processing.numerical_key_list,
-            numerical_key_values,
-            processing.categorical_key_list,
-            categorical_key_values
-        )
-
-        stat_fig = get_stat_plot(
-            filtered_table,
-            x_key,
-            x_label,
-            y_key
-        )
-
+        stat_x_disabled = False
+        stat_y_disabled = False
     else:
         stat_fig = {
             'data': [{'type': 'histogram',
@@ -1210,11 +1101,6 @@ def update_stat_graph(*args):
             'layout': {
                 'uirevision': 'no_change'
             }}
-
-    if stat_sw:
-        stat_x_disabled = False
-        stat_y_disabled = False
-    else:
         stat_x_disabled = True
         stat_y_disabled = True
 
@@ -1231,35 +1117,33 @@ def update_stat_graph(*args):
         Output('x_heat', 'disabled'),
         Output('y_heat', 'disabled'),
     ],
-    picker_callback_input +
-    slider_callback_input +
     [
+        Input('filter-trigger', 'children'),
         Input('heat-switch', 'on'),
         Input('x_heat', 'value'),
         Input('y_heat', 'value'),
     ],
     [
-        State('heat-switch', 'on'),
-        State('all_keys', 'data'),  
+        State('all_keys', 'data'),
+        State('categorical_key_values', 'data'),
+        State('numerical_key_values', 'data'),
     ]
 )
-def update_heatmap(*args):
-    # global ui_config
-    all_keys = args[-1]
+def update_heatmap(
+    trigger_idx,
+    heat_sw,
+    x_heat,
+    y_heat,
+    all_keys,
+    categorical_key_values,
+    numerical_key_values
+):
+    x_key = all_keys[x_heat]['key']
+    x_label = all_keys[x_heat]['description']
+    y_key = all_keys[y_heat]['key']
+    y_label = all_keys[y_heat]['description']
 
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    heat_sw = args[-2]
-
-    x_key = all_keys[ctx.inputs['x_heat.value']]['key']
-    x_label = all_keys[ctx.inputs['x_heat.value']
-                       ]['description']
-    y_key = all_keys[ctx.inputs['y_heat.value']]['key']
-    y_label = all_keys[ctx.inputs['y_heat.value']
-                       ]['description']
-
-    if heat_sw and (trigger_id in ['heat-switch', 'x_heat', 'y_heat']):
+    if heat_sw:
         if processing.is_filtering_ready:
             heat_fig = get_heatmap(
                 processing.get_filtered_data(),
@@ -1269,13 +1153,6 @@ def update_heatmap(*args):
                 y_label,
             )
         else:
-            categorical_key_values = args[0:(
-                len(processing.categorical_key_list))]
-            numerical_key_values = args[
-                (len(processing.categorical_key_list)):
-                (len(processing.categorical_key_list) +
-                    len(processing.numerical_key_list))]
-
             filtered_table = filter_all(
                 processing.data,
                 processing.numerical_key_list,
@@ -1291,29 +1168,8 @@ def update_heatmap(*args):
                 x_label,
                 y_label,
             )
-    elif heat_sw:
-        categorical_key_values = args[0:(len(processing.categorical_key_list))]
-        numerical_key_values = args[
-            (len(processing.categorical_key_list)):
-            (len(processing.categorical_key_list) +
-                len(processing.numerical_key_list))]
-
-        filtered_table = filter_all(
-            processing.data,
-            processing.numerical_key_list,
-            numerical_key_values,
-            processing.categorical_key_list,
-            categorical_key_values
-        )
-
-        heat_fig = get_heatmap(
-            filtered_table,
-            x_key,
-            y_key,
-            x_label,
-            y_label,
-        )
-
+        heat_x_disabled = False
+        heat_y_disabled = False
     else:
         heat_fig = {
             'data': [{'type': 'histogram2dcontour',
@@ -1322,11 +1178,6 @@ def update_heatmap(*args):
             'layout': {
                 'uirevision': 'no_change'
             }}
-
-    if heat_sw:
-        heat_x_disabled = False
-        heat_y_disabled = False
-    else:
         heat_x_disabled = True
         heat_y_disabled = True
 
@@ -1345,14 +1196,21 @@ def update_heatmap(*args):
         Output('color_main', 'value'),
         Output('left-switch', 'on'),
         Output('right-switch', 'on'),
+        Output('stat-switch', 'on'),
+        Output('heat-switch', 'on'),
     ],
     [
         Input('data_file_picker', 'value')
     ],
     [
-        State('test_case_picker', 'value')
+        State('test_case_picker', 'value'),
+        State('all_keys', 'data'),
     ])
-def data_file_selection(data_file_name, test_case):
+def data_file_selection(
+        data_file_name,
+        test_case,
+        all_keys
+):
     global ui_config
 
     global layout_params
@@ -1361,29 +1219,29 @@ def data_file_selection(data_file_name, test_case):
         new_data = pd.read_pickle(
             './data/'+test_case+'/'+data_file_name)
 
-        layout_params['color_key'] = ui_config['numerical'][
+        layout_params['color_key'] = all_keys[
             ui_config['graph_3d_detections']['default_color']
         ]['key']
 
-        layout_params['color_label'] = ui_config['numerical'][
+        layout_params['color_label'] = all_keys[
             ui_config['graph_3d_detections']['default_color']
         ]['description']
 
         layout_params['db'] = False
 
-        x_det = ui_config['numerical'][
+        x_det = all_keys[
             ui_config['graph_3d_detections']['default_x']
         ]['key']
         x_host = ui_config['host'][
             ui_config['graph_3d_host']['default_x']
         ]['key']
-        y_det = ui_config['numerical'][
+        y_det = all_keys[
             ui_config['graph_3d_detections']['default_y']
         ]['key']
         y_host = ui_config['host'][
             ui_config['graph_3d_host']['default_y']
         ]['key']
-        z_det = ui_config['numerical'][
+        z_det = all_keys[
             ui_config['graph_3d_detections']['default_z']
         ]['key']
 
@@ -1406,7 +1264,7 @@ def data_file_selection(data_file_name, test_case):
         ]
 
         frame_idx = new_data[
-            ui_config['numerical']
+            all_keys
             [ui_config['slider']]['key']].unique()
         output = [0, len(frame_idx)-1, 0]
 
@@ -1433,6 +1291,8 @@ def data_file_selection(data_file_name, test_case):
             output.append([var_min, var_max])
 
         output.append(ui_config['graph_3d_detections']['default_color'])
+        output.append(False)
+        output.append(False)
         output.append(False)
         output.append(False)
 
