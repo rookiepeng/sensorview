@@ -1,6 +1,6 @@
 """
 
-    Copyright (C) 2018 - 2020  Zhengyu Peng
+    Copyright (C) 2019 - 2020  Zhengyu Peng
     E-mail: zpeng.me@gmail.com
     Website: https://zpeng.me
 
@@ -100,6 +100,18 @@ app.css.config.serve_locally = True
 app.title = 'SensorView'
 
 ui_config = load_config('ui.json')
+
+num_keys = []
+for idx, s_item in enumerate(ui_config['numerical']):
+    num_keys.append(
+        ui_config['numerical'][s_item]['key'])
+
+cat_keys = []
+for idx, d_item in enumerate(ui_config['categorical']):
+    cat_keys.append(
+        ui_config['categorical'][d_item]['key'])
+
+
 all_keys = {**ui_config['categorical'], **ui_config['numerical']}
 
 task_queue = Queue()
@@ -190,6 +202,8 @@ app.layout = html.Div([
     dcc.Store(id='config', data=ui_config),
     dcc.Store(id='all_keys', data=all_keys),
     dcc.Store(id='graph_3d_params', data=graph_3d_params),
+    dcc.Store(id='numerical_keys', data=num_keys),
+    dcc.Store(id='categorical_keys', data=cat_keys),
     dcc.Store(id='categorical_key_values'),
     dcc.Store(id='numerical_key_values'),
     html.Div([
@@ -699,6 +713,8 @@ def test_case_selection(test_case):
         Input('color_main', 'value'),
     ],
     [
+        State('numerical_keys', 'data'),
+        State('categorical_keys', 'data'),
         State('filter-trigger', 'children'),
         State('config', 'data'),
         State('graph_3d_params', 'data'),
@@ -716,19 +732,16 @@ def update_filter(*args):
     graph_3d_params = args[-1]
     ui_config = args[-2]
     trigger_idx = args[-3]
+    cat_keys = args[-4]
+    num_keys = args[-5]
 
-    categorical_key_values = args[1:(1+len(processing.categorical_key_list))]
-    numerical_key_values = args[
-        (1+len(processing.categorical_key_list)):
-        (1+len(processing.categorical_key_list) +
-            len(processing.numerical_key_list))]
+    categorical_key_values = args[1:(1+len(cat_keys))]
+    numerical_key_values = args[(1+len(cat_keys)):
+                                (1+len(cat_keys) + len(num_keys))]
     color_key = ui_config['numerical'][
-        args[1 + len(processing.categorical_key_list) +
-             len(processing.numerical_key_list)]]['key']
+        args[1 + len(cat_keys) + len(num_keys)]]['key']
     color_label = ui_config['numerical'][
-        args[1 +
-             len(processing.categorical_key_list) +
-             len(processing.numerical_key_list)]]['description']
+        args[1 + len(cat_keys) + len(num_keys)]]['description']
 
     if trigger_id == 'slider':
         if processing.get_frame_ready_index() > slider_arg:
@@ -743,15 +756,16 @@ def update_filter(*args):
                     ui_config['numerical']
                     [
                         ui_config['slider']
-                    ]['key']] == processing.frame_idx[slider_arg]
+                    ]['key']
+                ] == processing.frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
             filterd_frame = filter_all(
                 filterd_frame,
-                processing.numerical_key_list,
+                num_keys,
                 numerical_key_values,
-                processing.categorical_key_list,
+                cat_keys,
                 categorical_key_values
             )
 
@@ -816,9 +830,11 @@ def update_filter(*args):
             task_queue.put_nowait(
                 {
                     'trigger': 'filter',
+                    'cat_keys': cat_keys,
+                    'num_keys': num_keys,
                     'cat_values': categorical_key_values,
                     'num_values': numerical_key_values,
-                    'layout': graph_3d_params,
+                    'graph_params': graph_3d_params,
                 }
             )
 
@@ -833,9 +849,9 @@ def update_filter(*args):
 
             filterd_frame = filter_all(
                 filterd_frame,
-                processing.numerical_key_list,
+                num_keys,
                 numerical_key_values,
-                processing.categorical_key_list,
+                cat_keys,
                 categorical_key_values
             )
 
@@ -924,9 +940,9 @@ def update_left_graph(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.numerical_key_list,
+                processing.num_keys,
                 numerical_key_values,
-                processing.categorical_key_list,
+                processing.cat_keys,
                 categorical_key_values
             )
 
@@ -1014,9 +1030,9 @@ def update_right_graph(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.numerical_key_list,
+                processing.num_keys,
                 numerical_key_values,
-                processing.categorical_key_list,
+                processing.cat_keys,
                 categorical_key_values
             )
 
@@ -1096,9 +1112,9 @@ def update_stat_graph(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.numerical_key_list,
+                processing.num_keys,
                 numerical_key_values,
-                processing.categorical_key_list,
+                processing.cat_keys,
                 categorical_key_values
             )
 
@@ -1172,9 +1188,9 @@ def update_heatmap(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.numerical_key_list,
+                processing.num_keys,
                 numerical_key_values,
-                processing.categorical_key_list,
+                processing.cat_keys,
                 categorical_key_values
             )
 
@@ -1223,6 +1239,8 @@ def update_heatmap(
     [
         State('test_case_picker', 'value'),
         State('config', 'data'),
+        State('numerical_keys', 'data'),
+        State('categorical_keys', 'data'),
         State('all_keys', 'data'),
         State('graph_3d_params', 'data'),
     ])
@@ -1230,6 +1248,8 @@ def data_file_selection(
         data_file_name,
         test_case,
         ui_config,
+        num_keys,
+        cat_keys,
         all_keys,
         graph_3d_params,
 ):
@@ -1267,9 +1287,11 @@ def data_file_selection(
             [ui_config['slider']]['key']].unique()
         output = [0, len(frame_idx)-1, 0]
 
+        cat_values = []
         for idx, d_item in enumerate(ui_config['categorical']):
             var_list = new_data[ui_config['categorical']
                                 [d_item]['key']].unique()
+            cat_values.append(var_list)
 
             options = []
             selection = []
@@ -1279,11 +1301,14 @@ def data_file_selection(
             output.append(options)
             output.append(selection)
 
+        num_values = []
         for idx, s_item in enumerate(ui_config['numerical']):
             var_min = round(
                 np.min(new_data[ui_config['numerical'][s_item]['key']]), 1)
             var_max = round(
                 np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
+
+            num_values.append([var_min, var_max])
 
             output.append(var_min)
             output.append(var_max)
@@ -1300,9 +1325,12 @@ def data_file_selection(
         task_queue.put_nowait(
             {
                 'trigger': 'filter',
-                'new_data': True,
                 'data': new_data,
-                'layout': graph_3d_params,
+                'num_keys': num_keys,
+                'num_values': num_values,
+                'cat_keys': cat_keys,
+                'cat_values': cat_values,
+                'graph_params': graph_3d_params,
             }
         )
 

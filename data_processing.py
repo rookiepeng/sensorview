@@ -1,3 +1,31 @@
+"""
+
+    Copyright (C) 2019 - 2020  Zhengyu Peng
+    E-mail: zpeng.me@gmail.com
+    Website: https://zpeng.me
+
+    `                      `
+    -:.                  -#:
+    -//:.              -###:
+    -////:.          -#####:
+    -/:.://:.      -###++##:
+    ..   `://:-  -###+. :##:
+           `:/+####+.   :##:
+    .::::::::/+###.     :##:
+    .////-----+##:    `:###:
+     `-//:.   :##:  `:###/.
+       `-//:. :##:`:###/.
+         `-//:+######/.
+           `-/+####/.
+             `+##+.
+              :##:
+              :##:
+              :##:
+              :##:
+              :##:
+               .+:
+
+"""
 
 import numpy as np
 from threading import Thread
@@ -53,12 +81,6 @@ class DataProcessing(Thread):
 
         self.data = pd.DataFrame()
 
-        self.cat_keys = []
-        self.cat_values = []
-
-        self.num_keys = []
-        self.num_values = []
-
         self.frame_idx = []
 
         self.task_queue = task_queue
@@ -80,30 +102,6 @@ class DataProcessing(Thread):
         self.frame_idx = self.data[
             self.config['numerical']
             [self.config['slider']]['key']].unique()
-
-        self.cat_keys = []
-        self.cat_values = []
-
-        self.num_keys = []
-        self.num_values = []
-
-        for idx, d_item in enumerate(self.config['categorical']):
-            self.cat_keys.append(
-                self.config['categorical'][d_item]['key'])
-
-            var_list = self.data[self.config['categorical']
-                                 [d_item]['key']].unique()
-            self.cat_values.append(var_list)
-
-        for idx, s_item in enumerate(self.config['numerical']):
-            self.num_keys.append(
-                self.config['numerical'][s_item]['key'])
-            var_min = round(
-                np.min(self.data[self.config['numerical'][s_item]['key']]), 1)
-            var_max = round(
-                np.max(self.data[self.config['numerical'][s_item]['key']]), 1)
-
-            self.num_values.append([var_min, var_max])
 
         self.is_locked = False
 
@@ -132,10 +130,10 @@ class DataProcessing(Thread):
                 if new_data is not None:
                     self.load_data(new_data)
 
-                self.cat_values = work.get(
-                    'cat_values', self.cat_values)
-                self.num_values = work.get(
-                    'num_values', self.num_values)
+                cat_values = work['cat_values']
+                num_values = work['num_values']
+                cat_keys = work['cat_keys']
+                num_keys = work['num_keys']
 
                 skip_filter = False
 
@@ -143,25 +141,25 @@ class DataProcessing(Thread):
                 self.frame_list_ready = False
                 self.frame_ready_index = 0
 
-                graph_params = work['layout']
+                graph_params = work['graph_params']
 
                 self.filtered_table = self.data
-                for filter_idx, filter_name in enumerate(self.num_keys):
+                for filter_idx, filter_name in enumerate(num_keys):
                     self.filtered_table = filter_range(
                         self.filtered_table,
                         filter_name,
-                        self.num_values[filter_idx])
+                        num_values[filter_idx])
 
                     if not self.task_queue.empty():
                         skip_filter = True
                         self.task_queue.task_done()
                         break
 
-                for filter_idx, filter_name in enumerate(self.cat_keys):
+                for filter_idx, filter_name in enumerate(cat_keys):
                     self.filtered_table = filter_picker(
                         self.filtered_table,
                         filter_name,
-                        self.cat_values[filter_idx])
+                        cat_values[filter_idx])
 
                     if not self.task_queue.empty():
                         skip_filter = True
@@ -172,10 +170,10 @@ class DataProcessing(Thread):
                     self.filtering_ready = True
 
                     self.fig_list = []
-                    frame_idx = self.data['Frame'].unique()
-                    for idx, frame_idx in enumerate(frame_idx):
+                    # frame_idx = self.data['Frame'].unique()
+                    for idx, frame in enumerate(self.frame_idx):
                         filtered_list = self.filtered_table[
-                            self.filtered_table['Frame'] == frame_idx
+                            self.filtered_table['Frame'] == frame
                         ]
                         filtered_list = filtered_list.reset_index()
 
