@@ -167,6 +167,8 @@ layout_params = {
 }
 
 app.layout = html.Div([
+    dcc.Store(id='all_keys',
+              data=all_keys),
     html.Div([
         html.Div([
             html.Img(
@@ -876,19 +878,17 @@ def update_filter(*args):
     ],
     [
         State('left-switch', 'on'),
-        State('graph_2d_left', 'figure'),
+        State('all_keys', 'data'),
     ]
 )
 def update_left_graph(*args):
     global left_figure_keys
 
-    # global ui_config
-    global all_keys
+    all_keys = args[-1]
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    left_fig = args[-1]
     left_sw = args[-2]
 
     left_figure_keys = [
@@ -1006,19 +1006,19 @@ def update_left_graph(*args):
     ],
     [
         State('right-switch', 'on'),
-        State('graph_2d_right', 'figure'),
+        State('all_keys', 'data'),
     ]
 )
 def update_right_graph(*args):
     global right_figure_keys
 
     # global ui_config
-    global all_keys
+    all_keys = args[-1]
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    right_fig = args[-1]
+    # right_fig = args[-1]
     right_sw = args[-2]
 
     right_figure_keys = [
@@ -1134,15 +1134,16 @@ def update_right_graph(*args):
     ],
     [
         State('stat-switch', 'on'),
+        State('all_keys', 'data'),
     ]
 )
 def update_stat_graph(*args):
-    global all_keys
+    all_keys = args[-1]
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    stat_sw = args[-1]
+    stat_sw = args[-2]
 
     x_key = all_keys[ctx.inputs['x_stat.value']]['key']
     x_label = all_keys[ctx.inputs['x_stat.value']
@@ -1239,16 +1240,17 @@ def update_stat_graph(*args):
     ],
     [
         State('heat-switch', 'on'),
+        State('all_keys', 'data'),  
     ]
 )
 def update_heatmap(*args):
     # global ui_config
-    global all_keys
+    all_keys = args[-1]
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    heat_sw = args[-1]
+    heat_sw = args[-2]
 
     x_key = all_keys[ctx.inputs['x_heat.value']]['key']
     x_label = all_keys[ctx.inputs['x_heat.value']
