@@ -30,6 +30,7 @@
 
 from logging import disable
 from queue import Queue
+from typing import overload
 
 from data_processing import filter_all
 from data_processing import DataProcessing
@@ -725,6 +726,7 @@ def test_case_selection(test_case):
     slider_callback_input +
     [
         Input('color_main', 'value'),
+        Input('overlay-switch', 'on'),
     ],
     [
         State('numerical_keys', 'data'),
@@ -757,7 +759,9 @@ def update_filter(*args):
     color_label = ui_config['numerical'][
         args[1 + len(cat_keys) + len(num_keys)]]['description']
 
-    if trigger_id == 'slider':
+    overlay_sw = args[2 + len(cat_keys) + len(num_keys)]
+
+    if trigger_id == 'slider' and not overlay_sw:
         if processing.get_frame_ready_index() > slider_arg:
             return [processing.get_frame(slider_arg),
                     trigger_idx+1,
@@ -813,6 +817,8 @@ def update_filter(*args):
                 trigger_idx+1,
                 categorical_key_values,
                 numerical_key_values]
+    # elif trigger_id == 'slider' and overlay_sw:
+    #     raise PreventUpdate
     else:
         if None not in categorical_key_values:
             x_det = graph_3d_params['x_det_key']
@@ -852,22 +858,31 @@ def update_filter(*args):
                 }
             )
 
-            filterd_frame = processing.data[
-                processing.data[
-                    ui_config['numerical']
-                    [
-                        ui_config['slider']
-                    ]['key']] == processing.frame_idx[slider_arg]
-            ]
-            filterd_frame = filterd_frame.reset_index()
+            if overlay_sw:
+                filterd_frame = filter_all(
+                    processing.data,
+                    num_keys,
+                    numerical_key_values,
+                    cat_keys,
+                    categorical_key_values
+                )
+            else:
+                filterd_frame = processing.data[
+                    processing.data[
+                        ui_config['numerical']
+                        [
+                            ui_config['slider']
+                        ]['key']] == processing.frame_idx[slider_arg]
+                ]
+                filterd_frame = filterd_frame.reset_index()
 
-            filterd_frame = filter_all(
-                filterd_frame,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values
-            )
+                filterd_frame = filter_all(
+                    filterd_frame,
+                    num_keys,
+                    numerical_key_values,
+                    cat_keys,
+                    categorical_key_values
+                )
 
             return [dict(
                 data=[get_figure_data(
