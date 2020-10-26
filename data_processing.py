@@ -153,7 +153,6 @@ class DataProcessing(Thread):
 
                     if not self.task_queue.empty():
                         skip_filter = True
-                        # self.task_queue.task_done()
                         break
 
                 for filter_idx, filter_name in enumerate(cat_keys):
@@ -164,7 +163,6 @@ class DataProcessing(Thread):
 
                     if not self.task_queue.empty():
                         skip_filter = True
-                        # self.task_queue.task_done()
                         break
 
                 if not skip_filter:
@@ -218,11 +216,9 @@ class DataProcessing(Thread):
 
                             skip_filter = True
                             self.frame_ready_index = 0
-                            # self.task_queue.task_done()
                             break
 
                     if not skip_filter:
                         self.frame_list_ready = True
-                        # self.task_queue.task_done()
                     
                     self.task_queue.task_done()

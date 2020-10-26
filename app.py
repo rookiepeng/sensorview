@@ -817,8 +817,6 @@ def update_filter(*args):
                 trigger_idx+1,
                 categorical_key_values,
                 numerical_key_values]
-    # elif trigger_id == 'slider' and overlay_sw:
-    #     raise PreventUpdate
     else:
         if None not in categorical_key_values:
             x_det = graph_3d_params['x_det_key']
