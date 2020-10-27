@@ -949,6 +949,8 @@ def update_left_graph(
     y_left,
     color_left,
     keys_dict,
+    num_keys,
+    cat_keys,
     categorical_key_values,
     numerical_key_values
 ):
@@ -973,9 +975,9 @@ def update_left_graph(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.num_keys,
+                num_keys,
                 numerical_key_values,
-                processing.cat_keys,
+                cat_keys,
                 categorical_key_values
             )
 
@@ -1014,20 +1016,22 @@ def update_left_graph(
 
 @ app.callback(
     [
-        Output('graph_2d_right', 'figure'),
-        Output('x_right', 'disabled'),
-        Output('y_right', 'disabled'),
-        Output('color_right', 'disabled'),
+        Output('scatter2d-right', 'figure'),
+        Output('x-scatter2d-right', 'disabled'),
+        Output('y-scatter2d-right', 'disabled'),
+        Output('color-scatter2d-right', 'disabled'),
     ],
     [
         Input('filter-trigger', 'children'),
         Input('right-switch', 'on'),
-        Input('x_right', 'value'),
-        Input('y_right', 'value'),
-        Input('color_right', 'value'),
+        Input('x-scatter2d-right', 'value'),
+        Input('y-scatter2d-right', 'value'),
+        Input('color-scatter2d-right', 'value'),
     ],
     [
         State('keys-dict', 'data'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
     ]
@@ -1039,6 +1043,8 @@ def update_right_graph(
     y_right,
     color_right,
     keys_dict,
+    num_keys,
+    cat_keys,
     categorical_key_values,
     numerical_key_values
 ):
@@ -1063,9 +1069,9 @@ def update_right_graph(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.num_keys,
+                num_keys,
                 numerical_key_values,
-                processing.cat_keys,
+                cat_keys,
                 categorical_key_values
             )
 
@@ -1105,18 +1111,20 @@ def update_right_graph(
 
 @ app.callback(
     [
-        Output('graph_histogram', 'figure'),
-        Output('x_histogram', 'disabled'),
-        Output('y_histogram', 'disabled'),
+        Output('histogram', 'figure'),
+        Output('x-histogram', 'disabled'),
+        Output('y-histogram', 'disabled'),
     ],
     [
         Input('filter-trigger', 'children'),
         Input('histogram-switch', 'on'),
-        Input('x_histogram', 'value'),
-        Input('y_histogram', 'value'),
+        Input('x-histogram', 'value'),
+        Input('y-histogram', 'value'),
     ],
     [
         State('keys-dict', 'data'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
     ]
@@ -1127,6 +1135,8 @@ def update_histogram(
     x_histogram,
     y_histogram,
     keys_dict,
+    num_keys,
+    cat_keys,
     categorical_key_values,
     numerical_key_values
 ):
@@ -1145,9 +1155,9 @@ def update_histogram(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.num_keys,
+                num_keys,
                 numerical_key_values,
-                processing.cat_keys,
+                cat_keys,
                 categorical_key_values
             )
 
@@ -1179,18 +1189,20 @@ def update_histogram(
 
 @ app.callback(
     [
-        Output('graph_heat', 'figure'),
-        Output('x_heat', 'disabled'),
-        Output('y_heat', 'disabled'),
+        Output('heatmap', 'figure'),
+        Output('x-heatmap', 'disabled'),
+        Output('y-heatmap', 'disabled'),
     ],
     [
         Input('filter-trigger', 'children'),
         Input('heat-switch', 'on'),
-        Input('x_heat', 'value'),
-        Input('y_heat', 'value'),
+        Input('x-heatmap', 'value'),
+        Input('y-heatmap', 'value'),
     ],
     [
         State('keys-dict', 'data'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
     ]
@@ -1201,6 +1213,8 @@ def update_heatmap(
     x_heat,
     y_heat,
     keys_dict,
+    num_keys,
+    cat_keys,
     categorical_key_values,
     numerical_key_values
 ):
@@ -1221,9 +1235,9 @@ def update_heatmap(
         else:
             filtered_table = filter_all(
                 processing.data,
-                processing.num_keys,
+                num_keys,
                 numerical_key_values,
-                processing.cat_keys,
+                cat_keys,
                 categorical_key_values
             )
 
