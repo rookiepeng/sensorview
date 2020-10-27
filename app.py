@@ -31,6 +31,8 @@
 from logging import disable
 from queue import Queue
 
+import datetime
+
 from data_processing import filter_all
 from data_processing import DataProcessing
 
@@ -1372,8 +1374,10 @@ def data_file_selection(
 )
 def export_left_fig(btn, fig):
     if btn > 0:
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
         temp_fig = go.Figure(fig)
-        temp_fig.write_image("images/fig_left.png", scale=2)
+        temp_fig.write_image('images/'+timestamp+'_fig_left.png', scale=2)
     return 0
 
 
@@ -1384,8 +1388,38 @@ def export_left_fig(btn, fig):
 )
 def export_right_fig(btn, fig):
     if btn > 0:
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
         temp_fig = go.Figure(fig)
-        temp_fig.write_image("images/fig_right.png", scale=2)
+        temp_fig.write_image('images/'+timestamp+'_fig_right.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('hidden_export_stat', 'children'),
+    Input('export_stat', 'n_clicks'),
+    State('graph_stat', 'figure')
+)
+def export_stat_fig(btn, fig):
+    if btn > 0:
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        temp_fig = go.Figure(fig)
+        temp_fig.write_image('images/'+timestamp+'_histogram.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('hidden_export_heat', 'children'),
+    Input('export_heat', 'n_clicks'),
+    State('graph_heat', 'figure')
+)
+def export_heatmap(btn, fig):
+    if btn > 0:
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        temp_fig = go.Figure(fig)
+        temp_fig.write_image('images/'+timestamp+'_heatmap.png', scale=2)
     return 0
 
 
