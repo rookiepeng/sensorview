@@ -55,7 +55,7 @@ def get_figure_data(det_list,
         hover = np.full(rows, '', dtype=object)
 
         for idx, key in enumerate(hover_dict):
-            if "format" in hover_dict[key]:
+            if 'format' in hover_dict[key]:
                 hover = hover + hover_dict[key]['description'] + ': ' + \
                     det_list[hover_dict[key]['key']].map(
                         hover_dict[key]['format'].format)+'<br>'
@@ -263,10 +263,10 @@ def get_2d_scatter(det_list,
 
 def frame_args(duration):
     return {
-        "frame": {"duration": duration},
-        "mode": "immediate",
-        "fromcurrent": True,
-        "transition": {"duration": duration, "easing": "quadratic-in-out"},
+        'frame': {'duration': duration},
+        'mode': 'immediate',
+        'fromcurrent': True,
+        'transition': {'duration': duration, 'easing': 'quadratic-in-out'},
     }
 
 
@@ -333,15 +333,15 @@ def get_animation_data(det_list,
 
     sliders = [
         {
-            "pad": {"b": 10, "t": 40},
-            "len": 0.9,
-            "x": 0.1,
-            "y": 0,
-            "steps": [
+            'pad': {'b': 10, 't': 40},
+            'len': 0.9,
+            'x': 0.1,
+            'y': 0,
+            'steps': [
                 {
-                    "args": [[f['name']], frame_args(0)],
-                    "label": str(k),
-                    "method": "animate",
+                    'args': [[f['name']], frame_args(0)],
+                    'label': str(k),
+                    'method': 'animate',
                 }
                 for k, f in enumerate(ani_frames)
             ],
@@ -367,25 +367,25 @@ def get_animation_data(det_list,
         {
             'bgcolor': '#9E9E9E',
             'font': {'size': 10, 'color': '#455A64'},
-            "buttons": [
+            'buttons': [
                 {
-                    "args": [None, frame_args(50)],
-                    "label": "&#9654;",  # play symbol
-                    "method": "animate",
+                    'args': [None, frame_args(50)],
+                    'label': '&#9654;',  # play symbol
+                    'method': 'animate',
                 },
                 {
-                    "args": [[None], frame_args(0)],
-                    "label": "&#9208;",  # pause symbol
-                    "method": "animate",
+                    'args': [[None], frame_args(0)],
+                    'label': '&#9208;',  # pause symbol
+                    'method': 'animate',
                 },
             ],
-            "direction": "left",
-            "pad": {"r": 10, "t": 50, "l": 20},
-            "type": "buttons",
-            "x": 0.1,
-            "xanchor": "right",
-            "y": 0,
-            "yanchor": "top"
+            'direction': 'left',
+            'pad': {'r': 10, 't': 50, 'l': 20},
+            'type': 'buttons',
+            'x': 0.1,
+            'xanchor': 'right',
+            'y': 0,
+            'yanchor': 'top'
         }
     ]
     figure_layout['sliders'] = sliders
