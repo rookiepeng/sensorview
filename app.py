@@ -86,15 +86,15 @@ def gen_dropdowns(ui_config):
 
 
 def load_config(json_file):
-    with open(json_file, "r") as read_file:
+    with open(json_file, 'r') as read_file:
         return json.load(read_file)
 
 
 ###############################################################
 app = dash.Dash(__name__,
                 meta_tags=[{
-                    "name": "viewport",
-                    "content": "width=device-width,initial-scale=1"
+                    'name': 'viewport',
+                    'content': 'width=device-width,initial-scale=1'
                 }])
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
@@ -202,7 +202,7 @@ graph_3d_params = {
 app.layout = html.Div([
     dcc.Store(id='config', data=ui_config),
     dcc.Store(id='keys-dict', data=keys_dict),
-    dcc.Store(id='graph-3d-params', data=graph_3d_params),
+    dcc.Store(id='scatter3d-params', data=graph_3d_params),
     dcc.Store(id='num-key-list', data=num_keys),
     dcc.Store(id='cat-key-list', data=cat_keys),
     dcc.Store(id='cat-key-values'),
@@ -210,55 +210,55 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             html.Img(
-                src=app.get_asset_url("sensorview.svg"),
-                id="sensorview-image",
+                src=app.get_asset_url('sensorview.svg'),
+                id='sensorview-image',
                 style={
-                    "height": "100px",
-                    "width": "auto",
-                    "margin-bottom": "0px",
+                    'height': '100px',
+                    'width': 'auto',
+                    'margin-bottom': '0px',
                 },
             )
-        ], className="one-third column"),
+        ], className='one-third column'),
         html.Div([
             html.Div(
                 [
                     html.H3(
-                        "SensorView",
-                        style={"margin-bottom": "0px"},
+                        'SensorView',
+                        style={'margin-bottom': '0px'},
                     ),
                     html.H5(
-                        "Sensor Data Visualization",
-                        style={"margin-top": "0px"}),
+                        'Sensor Data Visualization',
+                        style={'margin-top': '0px'}),
                 ]
             ),
         ],
-            className="one-half columns",
-            id="title",
+            className='one-half columns',
+            id='title',
         ),
 
-        html.Div([], className="one-third column"),
-    ], className="row flex-display",
-        style={"margin-bottomm": "25px"}),
+        html.Div([], className='one-third column'),
+    ], className='row flex-display',
+        style={'margin-bottomm': '25px'}),
 
     html.Div([
         html.Div([
             html.H6('Test Case'),
             dcc.Dropdown(
-                id='test_case_picker',
+                id='test-case',
                 options=[{'label': i, 'value': i} for i in test_cases],
                 value=test_cases[0]
             ),
-        ], className="pretty_container six column"),
+        ], className='pretty_container six column'),
 
         html.Div([
             html.H6('Data File'),
             dcc.Dropdown(
-                id='data_file_picker',
+                id='data-file',
                 options=[{'label': i, 'value': i} for i in data_files],
                 value=data_files[0]
             ),
-        ], className="pretty_container rix column"),
-    ], className="row flex-display"),
+        ], className='pretty_container rix column'),
+    ], className='row flex-display'),
 
     html.Div([
         html.Div([
@@ -271,14 +271,14 @@ app.layout = html.Div([
                 gen_rangesliders(ui_config)
             ),
         ],
-            className="pretty_container three columns",
+            className='pretty_container three columns',
         ),
 
         html.Div([
             html.Div([
                 html.Div([
                     html.H6('3D View'),
-                ], className="ten columns"),
+                ], className='ten columns'),
                 html.Div([
                     html.Div([
                         html.Label('Overlay: '),
@@ -286,12 +286,12 @@ app.layout = html.Div([
                             id='overlay-switch',
                             on=False
                         ),
-                    ], className="column flex-display"
+                    ], className='column flex-display'
                     ),
-                ], className="two columns"),
-            ], className="row flex-display"),
+                ], className='two columns'),
+            ], className='row flex-display'),
             html.Div([
-                html.Div([], className="ten columns"),
+                html.Div([], className='ten columns'),
                 html.Div([
                     dcc.Dropdown(
                         id='color-picker-3d',
@@ -303,13 +303,13 @@ app.layout = html.Div([
                                 keys_dict)],
                         value=ui_config['graph_3d_detections']['default_color']
                     ),
-                ], className="two columns",
-                    style={"margin-bottom": "10px"}),
-            ], className="row flex-display"),
+                ], className='two columns',
+                    style={'margin-bottom': '10px'}),
+            ], className='row flex-display'),
             dcc.Graph(
-                id='graph-3d',
+                id='scatter3d',
                 config={
-                    "displaylogo": False,
+                    'displaylogo': False,
                     'modeBarButtonsToRemove': ['resetCameraDefault3d',
                                                'resetCameraLastSave3d'],
                 },
@@ -333,9 +333,9 @@ app.layout = html.Div([
                            'width': '100%',
                            'display': 'inline-block',
                            'padding': '2rem 0rem'})
-        ], className="pretty_container nine columns"),
+        ], className='pretty_container nine columns'),
 
-    ], className="row flex-display rows",
+    ], className='row flex-display rows',
     ),
 
     html.Div([
@@ -343,21 +343,21 @@ app.layout = html.Div([
             html.Div([
                 html.Div([
                     html.H6('2D View'),
-                ], className="ten columns"),
+                ], className='ten columns'),
                 html.Div([
                     daq.BooleanSwitch(
                         id='left-switch',
                         on=False
                     ),
-                ], className="two columns",
-                    style={"margin-top": "10px"}),
-            ], className="row flex-display"),
+                ], className='two columns',
+                    style={'margin-top': '10px'}),
+            ], className='row flex-display'),
 
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
-                        id='x_left',
+                        id='x-scatter2d-left',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -367,11 +367,11 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_left']['default_x'],
                         disabled=True
                     ),
-                ], className="one-third column"),
+                ], className='one-third column'),
                 html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
-                        id='y_left',
+                        id='y-scatter2d-left',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -381,11 +381,11 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_left']['default_y'],
                         disabled=True
                     ),
-                ], className="one-third column"),
+                ], className='one-third column'),
                 html.Div([
                     html.Label('color'),
                     dcc.Dropdown(
-                        id='color_left',
+                        id='color-scatter2d-left',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -395,16 +395,16 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_left']['default_color'],
                         disabled=True
                     ),
-                ], className="one-third column"),
-            ], className="row flex-display"),
+                ], className='one-third column'),
+            ], className='row flex-display'),
 
             dcc.Loading(
-                id="loading_left",
+                id='loading_left',
                 children=[
                     dcc.Graph(
-                        id='graph_2d_left',
+                        id='scatter2d-left',
                         config={
-                            "displaylogo": False
+                            'displaylogo': False
                         },
                         figure={
                             'data': [{'mode': 'markers', 'type': 'scattergl',
@@ -417,38 +417,40 @@ app.layout = html.Div([
                     ),
                     html.Div([
                         html.Div([
-                        ], className="nine columns"),
+                        ], className='nine columns'),
                         html.Div([
                             html.Button(
-                                'Export', id='export_left', n_clicks=0),
-                            html.Div(id="hidden_export_left",
-                                     style={"display": "none"}),
-                        ], className="two columns"),
-                    ], className="row flex-display"),
+                                'Export',
+                                id='export-scatter2d-left',
+                                n_clicks=0),
+                            html.Div(id='hidden-scatter2d-left',
+                                     style={'display': 'none'}),
+                        ], className='two columns'),
+                    ], className='row flex-display'),
                 ],
-                type="default",
+                type='default',
             ),
-        ], className="pretty_container six columns"),
+        ], className='pretty_container six columns'),
 
         html.Div([
             html.Div([
                 html.Div([
                     html.H6('2D View'),
-                ], className="ten columns"),
+                ], className='ten columns'),
                 html.Div([
                     daq.BooleanSwitch(
                         id='right-switch',
                         on=False
                     ),
-                ], className="two columns",
-                    style={"margin-top": "10px"}),
-            ], className="row flex-display"),
+                ], className='two columns',
+                    style={'margin-top': '10px'}),
+            ], className='row flex-display'),
 
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
-                        id='x_right',
+                        id='x-scatter2d-right',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -458,11 +460,11 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
-                ], className="one-third column"),
+                ], className='one-third column'),
                 html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
-                        id='y_right',
+                        id='y-scatter2d-right',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -472,11 +474,11 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
-                ], className="one-third column"),
+                ], className='one-third column'),
                 html.Div([
                     html.Label('color'),
                     dcc.Dropdown(
-                        id='color_right',
+                        id='color-scatter2d-right',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -486,16 +488,16 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_right']['default_color'],
                         disabled=True
                     ),
-                ], className="one-third column"),
-            ], className="row flex-display"),
+                ], className='one-third column'),
+            ], className='row flex-display'),
 
             dcc.Loading(
-                id="loading_right",
+                id='loading_right',
                 children=[
                     dcc.Graph(
-                        id='graph_2d_right',
+                        id='scatter2d-right',
                         config={
-                            "displaylogo": False
+                            'displaylogo': False
                         },
                         figure={
                             'data': [{'mode': 'markers', 'type': 'scattergl',
@@ -509,40 +511,42 @@ app.layout = html.Div([
 
                     html.Div([
                         html.Div([
-                        ], className="nine columns"),
+                        ], className='nine columns'),
                         html.Div([
                             html.Button(
-                                'Export', id='export_right', n_clicks=0),
-                            html.Div(id="hidden_export_right",
-                                     style={"display": "none"}),
-                        ], className="two columns"),
-                    ], className="row flex-display"),
+                                'Export',
+                                id='export-scatter2d-right',
+                                n_clicks=0),
+                            html.Div(id='hidden-scatter2d-right',
+                                     style={'display': 'none'}),
+                        ], className='two columns'),
+                    ], className='row flex-display'),
                 ],
-                type="default",
+                type='default',
             ),
-        ], className="pretty_container six columns"),
-    ], className="row flex-display"),
+        ], className='pretty_container six columns'),
+    ], className='row flex-display'),
 
     html.Div([
         html.Div([
             html.Div([
                 html.Div([
                     html.H6('Histogram'),
-                ], className="ten columns"),
+                ], className='ten columns'),
                 html.Div([
                     daq.BooleanSwitch(
                         id='histogram-switch',
                         on=False
                     ),
-                ], className="two columns",
-                    style={"margin-top": "10px"}),
-            ], className="row flex-display"),
+                ], className='two columns',
+                    style={'margin-top': '10px'}),
+            ], className='row flex-display'),
 
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
-                        id='x_histogram',
+                        id='x-histogram',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -552,11 +556,11 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
-                ], className="one-third column"),
+                ], className='one-third column'),
                 html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
-                        id='y_histogram',
+                        id='y-histogram',
                         options=[{
                             'label': 'Probability',
                             'value': 'probability'
@@ -569,16 +573,16 @@ app.layout = html.Div([
                         value='density',
                         disabled=True
                     ),
-                ], className="one-third column"),
-            ], className="row flex-display"),
+                ], className='one-third column'),
+            ], className='row flex-display'),
 
             dcc.Loading(
-                id="loading_histogram",
+                id='loading_histogram',
                 children=[
                     dcc.Graph(
-                        id='graph_histogram',
+                        id='histogram',
                         config={
-                            "displaylogo": False
+                            'displaylogo': False
                         },
                         figure={
                             'data': [{'type': 'histogram',
@@ -592,39 +596,39 @@ app.layout = html.Div([
 
                     html.Div([
                         html.Div([
-                        ], className="nine columns"),
+                        ], className='nine columns'),
                         html.Div([
                             html.Button(
-                                'Export', id='export_histogram', n_clicks=0),
-                            html.Div(id="hidden_export_histogram",
-                                     style={"display": "none"}),
-                        ], className="two columns"),
-                    ], className="row flex-display"),
+                                'Export', id='export-histogram', n_clicks=0),
+                            html.Div(id='hidden-histogram',
+                                     style={'display': 'none'}),
+                        ], className='two columns'),
+                    ], className='row flex-display'),
                 ],
-                type="default",
+                type='default',
             ),
 
-        ], className="pretty_container six columns"),
+        ], className='pretty_container six columns'),
 
         html.Div([
             html.Div([
                 html.Div([
                     html.H6('Heatmap'),
-                ], className="ten columns"),
+                ], className='ten columns'),
                 html.Div([
                     daq.BooleanSwitch(
                         id='heat-switch',
                         on=False
                     ),
-                ], className="two columns",
-                    style={"margin-top": "10px"}),
-            ], className="row flex-display"),
+                ], className='two columns',
+                    style={'margin-top': '10px'}),
+            ], className='row flex-display'),
 
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
-                        id='x_heat',
+                        id='x-heatmap',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -634,11 +638,11 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
-                ], className="one-third column"),
+                ], className='one-third column'),
                 html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
-                        id='y_heat',
+                        id='y-heatmap',
                         options=[{
                             'label': keys_dict[f_item]['description'],
                             'value': f_item
@@ -648,16 +652,16 @@ app.layout = html.Div([
                         value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
-                ], className="one-third column"),
-            ], className="row flex-display"),
+                ], className='one-third column'),
+            ], className='row flex-display'),
 
             dcc.Loading(
-                id="loading_heat",
+                id='loading_heat',
                 children=[
                     dcc.Graph(
-                        id='graph_heat',
+                        id='heatmap',
                         config={
-                            "displaylogo": False
+                            'displaylogo': False
                         },
                         figure={
                             'data': [{'type': 'histogram2dcontour',
@@ -671,34 +675,34 @@ app.layout = html.Div([
 
                     html.Div([
                         html.Div([
-                        ], className="nine columns"),
+                        ], className='nine columns'),
                         html.Div([
                             html.Button(
-                                'Export', id='export_heat', n_clicks=0),
-                            html.Div(id="hidden_export_heat",
-                                     style={"display": "none"}),
-                        ], className="two columns"),
-                    ], className="row flex-display"),
+                                'Export', id='export-heatmap', n_clicks=0),
+                            html.Div(id='hidden-heatmap',
+                                     style={'display': 'none'}),
+                        ], className='two columns'),
+                    ], className='row flex-display'),
                 ],
-                type="default",
+                type='default',
             ),
-        ], className="pretty_container six columns"),
-    ], className="row flex-display"),
+        ], className='pretty_container six columns'),
+    ], className='row flex-display'),
 
     # Hidden div inside the app that stores the intermediate value
     html.Div(id='filter-trigger', children=0, style={'display': 'none'}),
     html.Div(id='trigger', style={'display': 'none'}),
     html.Div(id='dummy', style={'display': 'none'}),
-], style={"display": "flex", "flex-direction": "column"},)
+], style={'display': 'flex', 'flex-direction': 'column'},)
 
 
 @ app.callback(
     [
-        Output('data_file_picker', 'value'),
-        Output('data_file_picker', 'options'),
+        Output('data-file', 'value'),
+        Output('data-file', 'options'),
     ],
     [
-        Input('test_case_picker', 'value')
+        Input('test-case', 'value')
     ])
 def test_case_selection(test_case):
     if test_case is not None:
@@ -716,7 +720,7 @@ def test_case_selection(test_case):
 
 @ app.callback(
     [
-        Output('graph-3d', 'figure'),
+        Output('scatter3d', 'figure'),
         Output('filter-trigger', 'children'),
         Output('cat-key-values', 'data'),
         Output('num-key-values', 'data'),
@@ -733,7 +737,7 @@ def test_case_selection(test_case):
         State('cat-key-list', 'data'),
         State('filter-trigger', 'children'),
         State('config', 'data'),
-        State('graph-3d-params', 'data'),
+        State('scatter3d-params', 'data'),
     ])
 def update_filter(*args):
     global task_queue
@@ -918,20 +922,22 @@ def update_filter(*args):
 
 @ app.callback(
     [
-        Output('graph_2d_left', 'figure'),
-        Output('x_left', 'disabled'),
-        Output('y_left', 'disabled'),
-        Output('color_left', 'disabled'),
+        Output('scatter2d-left', 'figure'),
+        Output('x-scatter2d-left', 'disabled'),
+        Output('y-scatter2d-left', 'disabled'),
+        Output('color-scatter2d-left', 'disabled'),
     ],
     [
         Input('filter-trigger', 'children'),
         Input('left-switch', 'on'),
-        Input('x_left', 'value'),
-        Input('y_left', 'value'),
-        Input('color_left', 'value'),
+        Input('x-scatter2d-left', 'value'),
+        Input('y-scatter2d-left', 'value'),
+        Input('color-scatter2d-left', 'value'),
     ],
     [
         State('keys-dict', 'data'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
     ]
@@ -1258,18 +1264,18 @@ def update_heatmap(
         Output('right-switch', 'on'),
         Output('histogram-switch', 'on'),
         Output('heat-switch', 'on'),
-        Output('graph-3d-params', 'data'),
+        Output('scatter3d-params', 'data'),
     ],
     [
-        Input('data_file_picker', 'value')
+        Input('data-file', 'value')
     ],
     [
-        State('test_case_picker', 'value'),
+        State('test-case', 'value'),
         State('config', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State('keys-dict', 'data'),
-        State('graph-3d-params', 'data'),
+        State('scatter3d-params', 'data'),
     ])
 def data_file_selection(
         data_file_name,
@@ -1367,56 +1373,56 @@ def data_file_selection(
 
 
 @ app.callback(
-    Output('hidden_export_left', 'children'),
-    Input('export_left', 'n_clicks'),
-    State('graph_2d_left', 'figure')
+    Output('hidden-scatter2d-left', 'children'),
+    Input('export-scatter2d-left', 'n_clicks'),
+    State('scatter2d-left', 'figure')
 )
-def export_left_fig(btn, fig):
+def export_left_scatter_2d(btn, fig):
     if btn > 0:
         now = datetime.datetime.now()
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
         temp_fig.write_image('images/'+timestamp+'_fig_left.png', scale=2)
     return 0
 
 
 @ app.callback(
-    Output('hidden_export_right', 'children'),
-    Input('export_right', 'n_clicks'),
-    State('graph_2d_right', 'figure')
+    Output('hidden-scatter2d-right', 'children'),
+    Input('export-scatter2d-right', 'n_clicks'),
+    State('scatter2d-right', 'figure')
 )
-def export_right_fig(btn, fig):
+def export_right_scatter_2d(btn, fig):
     if btn > 0:
         now = datetime.datetime.now()
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
         temp_fig.write_image('images/'+timestamp+'_fig_right.png', scale=2)
     return 0
 
 
 @ app.callback(
-    Output('hidden_export_histogram', 'children'),
-    Input('export_histogram', 'n_clicks'),
-    State('graph_histogram', 'figure')
+    Output('hidden-histogram', 'children'),
+    Input('export-histogram', 'n_clicks'),
+    State('histogram', 'figure')
 )
 def export_histogram(btn, fig):
     if btn > 0:
         now = datetime.datetime.now()
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
         temp_fig.write_image('images/'+timestamp+'_histogram.png', scale=2)
     return 0
 
 
 @ app.callback(
-    Output('hidden_export_heat', 'children'),
-    Input('export_heat', 'n_clicks'),
-    State('graph_heat', 'figure')
+    Output('hidden-heatmap', 'children'),
+    Input('export-heatmap', 'n_clicks'),
+    State('heatmap', 'figure')
 )
 def export_heatmap(btn, fig):
     if btn > 0:
         now = datetime.datetime.now()
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
+        timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
         temp_fig.write_image('images/'+timestamp+'_heatmap.png', scale=2)
     return 0
