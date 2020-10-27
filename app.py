@@ -52,7 +52,7 @@ import plotly.graph_objs as go
 import plotly.io as pio
 
 from viz.viz import get_figure_data, get_figure_layout, get_host_data
-from viz.viz import get_2d_scatter, get_stat_plot, get_heatmap
+from viz.viz import get_2d_scatter, get_histogram, get_heatmap
 
 
 def gen_rangesliders(ui_config):
@@ -114,7 +114,7 @@ for idx, d_item in enumerate(ui_config['categorical']):
         ui_config['categorical'][d_item]['key'])
 
 
-all_keys = {**ui_config['categorical'], **ui_config['numerical']}
+keys_dict = {**ui_config['categorical'], **ui_config['numerical']}
 
 task_queue = Queue()
 processing = DataProcessing(ui_config, task_queue)
@@ -150,13 +150,13 @@ for idx, s_item in enumerate(ui_config['numerical']):
     )
 
 play_bar_callback_output = [
-    Output('slider', 'min'),
-    Output('slider', 'max'),
-    Output('slider', 'value'),
+    Output('slider-frame', 'min'),
+    Output('slider-frame', 'max'),
+    Output('slider-frame', 'value'),
 ]
 
 play_bar_callback_input = [
-    Input('slider', 'value')
+    Input('slider-frame', 'value')
 ]
 
 test_cases = []
@@ -172,13 +172,13 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
     break
 
 graph_3d_params = {
-    'x_det_key': all_keys[
+    'x_det_key': keys_dict[
         ui_config['graph_3d_detections']['default_x']
     ]['key'],
-    'y_det_key': all_keys[
+    'y_det_key': keys_dict[
         ui_config['graph_3d_detections']['default_y']
     ]['key'],
-    'z_det_key': all_keys[
+    'z_det_key': keys_dict[
         ui_config['graph_3d_detections']['default_z']
     ]['key'],
     'x_host_key': ui_config['host'][
@@ -191,10 +191,10 @@ graph_3d_params = {
     'y_range': [0, 0],
     'z_range': [0, 0],
     'c_range': [0, 0],
-    'color_key': all_keys[
+    'color_key': keys_dict[
         ui_config['graph_3d_detections']['default_color']
     ]['key'],
-    'color_label': all_keys[
+    'color_label': keys_dict[
         ui_config['graph_3d_detections']['default_color']
     ]['description'],
     'db': False,
@@ -202,12 +202,12 @@ graph_3d_params = {
 
 app.layout = html.Div([
     dcc.Store(id='config', data=ui_config),
-    dcc.Store(id='all_keys', data=all_keys),
-    dcc.Store(id='graph_3d_params', data=graph_3d_params),
-    dcc.Store(id='numerical_keys', data=num_keys),
-    dcc.Store(id='categorical_keys', data=cat_keys),
-    dcc.Store(id='categorical_key_values'),
-    dcc.Store(id='numerical_key_values'),
+    dcc.Store(id='keys-dict', data=keys_dict),
+    dcc.Store(id='graph-3d-params', data=graph_3d_params),
+    dcc.Store(id='num-key-list', data=num_keys),
+    dcc.Store(id='cat-key-list', data=cat_keys),
+    dcc.Store(id='cat-key-values'),
+    dcc.Store(id='num-key-values'),
     html.Div([
         html.Div([
             html.Img(
@@ -295,20 +295,20 @@ app.layout = html.Div([
                 html.Div([], className="ten columns"),
                 html.Div([
                     dcc.Dropdown(
-                        id='color_main',
+                        id='color-picker-3d',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                all_keys)],
+                                keys_dict)],
                         value=ui_config['graph_3d_detections']['default_color']
                     ),
                 ], className="two columns",
                     style={"margin-bottom": "10px"}),
             ], className="row flex-display"),
             dcc.Graph(
-                id='det_grid',
+                id='graph-3d',
                 config={
                     "displaylogo": False,
                     'modeBarButtonsToRemove': ['resetCameraDefault3d',
@@ -326,7 +326,7 @@ app.layout = html.Div([
             ),
             html.Div([
                 dcc.Slider(
-                    id='slider',
+                    id='slider-frame',
                     step=1,
                     value=0,
                     updatemode='drag',
@@ -360,11 +360,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_left',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                all_keys)],
+                                keys_dict)],
                         value=ui_config['graph_2d_left']['default_x'],
                         disabled=True
                     ),
@@ -374,11 +374,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_left',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                all_keys)],
+                                keys_dict)],
                         value=ui_config['graph_2d_left']['default_y'],
                         disabled=True
                     ),
@@ -388,11 +388,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_left',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                all_keys)],
+                                keys_dict)],
                         value=ui_config['graph_2d_left']['default_color'],
                         disabled=True
                     ),
@@ -451,11 +451,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_right',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                all_keys)],
+                                keys_dict)],
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
@@ -465,11 +465,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_right',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                all_keys)],
+                                keys_dict)],
                         value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
@@ -479,11 +479,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color_right',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                all_keys)],
+                                keys_dict)],
                         value=ui_config['graph_2d_right']['default_color'],
                         disabled=True
                     ),
@@ -532,7 +532,7 @@ app.layout = html.Div([
                 ], className="ten columns"),
                 html.Div([
                     daq.BooleanSwitch(
-                        id='stat-switch',
+                        id='histogram-switch',
                         on=False
                     ),
                 ], className="two columns",
@@ -543,13 +543,13 @@ app.layout = html.Div([
                 html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
-                        id='x_stat',
+                        id='x_histogram',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                            all_keys)],
+                            keys_dict)],
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
@@ -557,7 +557,7 @@ app.layout = html.Div([
                 html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
-                        id='y_stat',
+                        id='y_histogram',
                         options=[{
                             'label': 'Probability',
                             'value': 'probability'
@@ -577,7 +577,7 @@ app.layout = html.Div([
                 id="loading_histogram",
                 children=[
                     dcc.Graph(
-                        id='graph_stat',
+                        id='graph_histogram',
                         config={
                             "displaylogo": False
                         },
@@ -596,8 +596,8 @@ app.layout = html.Div([
                         ], className="nine columns"),
                         html.Div([
                             html.Button(
-                                'Export', id='export_stat', n_clicks=0),
-                            html.Div(id="hidden_export_stat",
+                                'Export', id='export_histogram', n_clicks=0),
+                            html.Div(id="hidden_export_histogram",
                                      style={"display": "none"}),
                         ], className="two columns"),
                     ], className="row flex-display"),
@@ -627,11 +627,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='x_heat',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                            all_keys)],
+                            keys_dict)],
                         value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
@@ -641,11 +641,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='y_heat',
                         options=[{
-                            'label': all_keys[f_item]['description'],
+                            'label': keys_dict[f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                            all_keys)],
+                            keys_dict)],
                         value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
@@ -717,24 +717,24 @@ def test_case_selection(test_case):
 
 @ app.callback(
     [
-        Output('det_grid', 'figure'),
+        Output('graph-3d', 'figure'),
         Output('filter-trigger', 'children'),
-        Output('categorical_key_values', 'data'),
-        Output('numerical_key_values', 'data'),
+        Output('cat-key-values', 'data'),
+        Output('num-key-values', 'data'),
     ],
     play_bar_callback_input +
     picker_callback_input +
     slider_callback_input +
     [
-        Input('color_main', 'value'),
+        Input('color-picker-3d', 'value'),
         Input('overlay-switch', 'on'),
     ],
     [
-        State('numerical_keys', 'data'),
-        State('categorical_keys', 'data'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
         State('filter-trigger', 'children'),
         State('config', 'data'),
-        State('graph_3d_params', 'data'),
+        State('graph-3d-params', 'data'),
     ])
 def update_filter(*args):
     global task_queue
@@ -762,7 +762,7 @@ def update_filter(*args):
 
     overlay_sw = args[2 + len(cat_keys) + len(num_keys)]
 
-    if trigger_id == 'slider' and not overlay_sw:
+    if trigger_id == 'slider-frame' and not overlay_sw:
         if processing.get_frame_ready_index() >= slider_arg:
             return [processing.get_frame(slider_arg),
                     dash.no_update,
@@ -932,9 +932,9 @@ def update_filter(*args):
         Input('color_left', 'value'),
     ],
     [
-        State('all_keys', 'data'),
-        State('categorical_key_values', 'data'),
-        State('numerical_key_values', 'data'),
+        State('keys-dict', 'data'),
+        State('cat-key-values', 'data'),
+        State('num-key-values', 'data'),
     ]
 )
 def update_left_graph(
@@ -943,16 +943,16 @@ def update_left_graph(
     x_left,
     y_left,
     color_left,
-    all_keys,
+    keys_dict,
     categorical_key_values,
     numerical_key_values
 ):
-    x_key = all_keys[x_left]['key']
-    y_key = all_keys[y_left]['key']
-    color_key = all_keys[color_left]['key']
-    x_label = all_keys[x_left]['description']
-    y_label = all_keys[y_left]['description']
-    color_label = all_keys[color_left]['description']
+    x_key = keys_dict[x_left]['key']
+    y_key = keys_dict[y_left]['key']
+    color_key = keys_dict[color_left]['key']
+    x_label = keys_dict[x_left]['description']
+    y_label = keys_dict[y_left]['description']
+    color_label = keys_dict[color_left]['description']
 
     if left_sw:
         if processing.is_filtering_ready:
@@ -1022,9 +1022,9 @@ def update_left_graph(
         Input('color_right', 'value'),
     ],
     [
-        State('all_keys', 'data'),
-        State('categorical_key_values', 'data'),
-        State('numerical_key_values', 'data'),
+        State('keys-dict', 'data'),
+        State('cat-key-values', 'data'),
+        State('num-key-values', 'data'),
     ]
 )
 def update_right_graph(
@@ -1033,16 +1033,16 @@ def update_right_graph(
     x_right,
     y_right,
     color_right,
-    all_keys,
+    keys_dict,
     categorical_key_values,
     numerical_key_values
 ):
-    x_key = all_keys[x_right]['key']
-    y_key = all_keys[y_right]['key']
-    color_key = all_keys[color_right]['key']
-    x_label = all_keys[x_right]['description']
-    y_label = all_keys[y_right]['description']
-    color_label = all_keys[color_right]['description']
+    x_key = keys_dict[x_right]['key']
+    y_key = keys_dict[y_right]['key']
+    color_key = keys_dict[color_right]['key']
+    x_label = keys_dict[x_right]['description']
+    y_label = keys_dict[y_right]['description']
+    color_label = keys_dict[color_right]['description']
 
     if right_sw:
         if processing.is_filtering_ready:
@@ -1100,38 +1100,38 @@ def update_right_graph(
 
 @ app.callback(
     [
-        Output('graph_stat', 'figure'),
-        Output('x_stat', 'disabled'),
-        Output('y_stat', 'disabled'),
+        Output('graph_histogram', 'figure'),
+        Output('x_histogram', 'disabled'),
+        Output('y_histogram', 'disabled'),
     ],
     [
         Input('filter-trigger', 'children'),
-        Input('stat-switch', 'on'),
-        Input('x_stat', 'value'),
-        Input('y_stat', 'value'),
+        Input('histogram-switch', 'on'),
+        Input('x_histogram', 'value'),
+        Input('y_histogram', 'value'),
     ],
     [
-        State('all_keys', 'data'),
-        State('categorical_key_values', 'data'),
-        State('numerical_key_values', 'data'),
+        State('keys-dict', 'data'),
+        State('cat-key-values', 'data'),
+        State('num-key-values', 'data'),
     ]
 )
-def update_stat_graph(
+def update_histogram(
     trigger_idx,
-    stat_sw,
-    x_stat,
-    y_stat,
-    all_keys,
+    histogram_sw,
+    x_histogram,
+    y_histogram,
+    keys_dict,
     categorical_key_values,
     numerical_key_values
 ):
-    x_key = all_keys[x_stat]['key']
-    x_label = all_keys[x_stat]['description']
-    y_key = y_stat
+    x_key = keys_dict[x_histogram]['key']
+    x_label = keys_dict[x_histogram]['description']
+    y_key = y_histogram
 
-    if stat_sw:
+    if histogram_sw:
         if processing.is_filtering_ready:
-            stat_fig = get_stat_plot(
+            histogram_fig = get_histogram(
                 processing.get_filtered_data(),
                 x_key,
                 x_label,
@@ -1146,29 +1146,29 @@ def update_stat_graph(
                 categorical_key_values
             )
 
-            stat_fig = get_stat_plot(
+            histogram_fig = get_histogram(
                 filtered_table,
                 x_key,
                 x_label,
                 y_key
             )
-        stat_x_disabled = False
-        stat_y_disabled = False
+        histogram_x_disabled = False
+        histogram_y_disabled = False
     else:
-        stat_fig = {
+        histogram_fig = {
             'data': [{'type': 'histogram',
                       'x': []}
                      ],
             'layout': {
                 'uirevision': 'no_change'
             }}
-        stat_x_disabled = True
-        stat_y_disabled = True
+        histogram_x_disabled = True
+        histogram_y_disabled = True
 
     return [
-        stat_fig,
-        stat_x_disabled,
-        stat_y_disabled,
+        histogram_fig,
+        histogram_x_disabled,
+        histogram_y_disabled,
     ]
 
 
@@ -1185,9 +1185,9 @@ def update_stat_graph(
         Input('y_heat', 'value'),
     ],
     [
-        State('all_keys', 'data'),
-        State('categorical_key_values', 'data'),
-        State('numerical_key_values', 'data'),
+        State('keys-dict', 'data'),
+        State('cat-key-values', 'data'),
+        State('num-key-values', 'data'),
     ]
 )
 def update_heatmap(
@@ -1195,14 +1195,14 @@ def update_heatmap(
     heat_sw,
     x_heat,
     y_heat,
-    all_keys,
+    keys_dict,
     categorical_key_values,
     numerical_key_values
 ):
-    x_key = all_keys[x_heat]['key']
-    x_label = all_keys[x_heat]['description']
-    y_key = all_keys[y_heat]['key']
-    y_label = all_keys[y_heat]['description']
+    x_key = keys_dict[x_heat]['key']
+    x_label = keys_dict[x_heat]['description']
+    y_key = keys_dict[y_heat]['key']
+    y_label = keys_dict[y_heat]['description']
 
     if heat_sw:
         if processing.is_filtering_ready:
@@ -1254,12 +1254,12 @@ def update_heatmap(
     picker_callback_output +
     slider_callback_output +
     [
-        Output('color_main', 'value'),
+        Output('color-picker-3d', 'value'),
         Output('left-switch', 'on'),
         Output('right-switch', 'on'),
-        Output('stat-switch', 'on'),
+        Output('histogram-switch', 'on'),
         Output('heat-switch', 'on'),
-        Output('graph_3d_params', 'data'),
+        Output('graph-3d-params', 'data'),
     ],
     [
         Input('data_file_picker', 'value')
@@ -1267,10 +1267,10 @@ def update_heatmap(
     [
         State('test_case_picker', 'value'),
         State('config', 'data'),
-        State('numerical_keys', 'data'),
-        State('categorical_keys', 'data'),
-        State('all_keys', 'data'),
-        State('graph_3d_params', 'data'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
+        State('keys-dict', 'data'),
+        State('graph-3d-params', 'data'),
     ])
 def data_file_selection(
         data_file_name,
@@ -1278,7 +1278,7 @@ def data_file_selection(
         ui_config,
         num_keys,
         cat_keys,
-        all_keys,
+        keys_dict,
         graph_3d_params,
 ):
     if data_file_name is not None and test_case is not None:
@@ -1311,7 +1311,7 @@ def data_file_selection(
         ]
 
         frame_idx = new_data[
-            all_keys
+            keys_dict
             [ui_config['slider']]['key']].unique()
         output = [0, len(frame_idx)-1, 0]
 
@@ -1396,11 +1396,11 @@ def export_right_fig(btn, fig):
 
 
 @ app.callback(
-    Output('hidden_export_stat', 'children'),
-    Input('export_stat', 'n_clicks'),
-    State('graph_stat', 'figure')
+    Output('hidden_export_histogram', 'children'),
+    Input('export_histogram', 'n_clicks'),
+    State('graph_histogram', 'figure')
 )
-def export_stat_fig(btn, fig):
+def export_histogram(btn, fig):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")

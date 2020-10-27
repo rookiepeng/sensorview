@@ -151,7 +151,7 @@ def get_figure_layout(
     )
 
 
-def get_stat_plot(det_list,
+def get_histogram(det_list,
                   x_key,
                   x_label=None,
                   histnorm='probability',
