@@ -87,7 +87,7 @@ class DataProcessing(Thread):
         self.filtering_ready = False
         self.frame_list_ready = False
 
-        self.frame_ready_index = 0
+        self.frame_ready_index = -1
 
         self.filtered_table = pd.DataFrame()
 
@@ -138,7 +138,7 @@ class DataProcessing(Thread):
 
                 self.filtering_ready = False
                 self.frame_list_ready = False
-                self.frame_ready_index = 0
+                self.frame_ready_index = -1
 
                 graph_params = work['graph_params']
 
@@ -212,7 +212,7 @@ class DataProcessing(Thread):
                         if not self.task_queue.empty():
 
                             skip_filter = True
-                            self.frame_ready_index = 0
+                            self.frame_ready_index = -1
                             break
 
                     if not skip_filter:
