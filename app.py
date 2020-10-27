@@ -30,7 +30,6 @@
 
 from logging import disable
 from queue import Queue
-from typing import overload
 
 from data_processing import filter_all
 from data_processing import DataProcessing
@@ -762,9 +761,9 @@ def update_filter(*args):
     overlay_sw = args[2 + len(cat_keys) + len(num_keys)]
 
     if trigger_id == 'slider' and not overlay_sw:
-        if processing.get_frame_ready_index() > slider_arg:
+        if processing.get_frame_ready_index() >= slider_arg:
             return [processing.get_frame(slider_arg),
-                    trigger_idx+1,
+                    dash.no_update,
                     categorical_key_values,
                     numerical_key_values]
         else:
@@ -793,8 +792,8 @@ def update_filter(*args):
                     x_key=graph_3d_params['x_det_key'],
                     y_key=graph_3d_params['y_det_key'],
                     z_key=graph_3d_params['z_det_key'],
-                    color_key=graph_3d_params['color_key'],
-                    color_label=graph_3d_params['color_label'],
+                    color_key=color_key,
+                    color_label=color_label,
                     name='Index: ' +
                     str(slider_arg) + ' (' +
                     ui_config['numerical'][ui_config['slider']
@@ -814,7 +813,7 @@ def update_filter(*args):
                     y_range=graph_3d_params['y_range'],
                     z_range=graph_3d_params['z_range'])
             ),
-                trigger_idx+1,
+                dash.no_update,
                 categorical_key_values,
                 numerical_key_values]
     else:
@@ -888,8 +887,8 @@ def update_filter(*args):
                     x_key=graph_3d_params['x_det_key'],
                     y_key=graph_3d_params['y_det_key'],
                     z_key=graph_3d_params['z_det_key'],
-                    color_key=graph_3d_params['color_key'],
-                    color_label=graph_3d_params['color_label'],
+                    color_key=color_key,
+                    color_label=color_label,
                     name='Index: ' +
                     str(slider_arg) + ' (' +
                     ui_config['numerical'][ui_config['slider']

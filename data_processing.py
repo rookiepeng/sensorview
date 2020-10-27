@@ -34,7 +34,6 @@ from queue import Queue
 import pandas as pd
 
 from viz.viz import get_figure_data, get_figure_layout, get_host_data
-from viz.viz import get_2d_scatter
 
 
 def filter_range(data_frame, name, value):
@@ -124,7 +123,6 @@ class DataProcessing(Thread):
         skip_filter = False
         while True:
             work = self.task_queue.get()
-            # self.task_queue.task_done()
 
             if work['trigger'] == 'filter':
                 new_data = work.get('data', None)
@@ -169,7 +167,6 @@ class DataProcessing(Thread):
                     self.filtering_ready = True
 
                     self.fig_list = []
-                    # frame_idx = self.data['Frame'].unique()
                     for idx, frame in enumerate(self.frame_idx):
                         filtered_list = self.filtered_table[
                             self.filtered_table['Frame'] == frame
@@ -220,5 +217,5 @@ class DataProcessing(Thread):
 
                     if not skip_filter:
                         self.frame_list_ready = True
-                    
+
                     self.task_queue.task_done()

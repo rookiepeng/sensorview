@@ -44,11 +44,6 @@
             "key":"SNR",
             "description":"SNR (dB)",
             "format": "{:,.2f}"
-        },
-        "rcs": {
-            "key":"RCS",
-            "description":"RCS (dB)",
-            "format": "{:,.2f}"
         }
     },
     "categorical": {
