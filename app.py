@@ -28,7 +28,6 @@
 """
 
 
-from logging import disable
 from queue import Queue
 
 import datetime
