@@ -210,7 +210,7 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             html.Img(
-                src=app.get_asset_url('sensorview.svg'),
+                src=app.get_asset_url('sensorview_logo.svg'),
                 id='sensorview-image',
                 style={
                     'height': '100px',
