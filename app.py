@@ -772,6 +772,31 @@ def update_filter(*args):
                     categorical_key_values,
                     numerical_key_values]
         else:
+            x_det = graph_3d_params['x_det_key']
+            x_host = graph_3d_params['x_host_key']
+            y_det = graph_3d_params['y_det_key']
+            y_host = graph_3d_params['y_host_key']
+            z_det = graph_3d_params['z_det_key']
+
+            graph_3d_params['x_range'] = [
+                np.min([np.min(processing.data[x_det]),
+                        np.min(processing.data[x_host])]),
+                np.max([np.max(processing.data[x_det]),
+                        np.max(processing.data[x_host])])]
+            graph_3d_params['y_range'] = [
+                np.min([np.min(processing.data[y_det]),
+                        np.min(processing.data[y_host])]),
+                np.max([np.max(processing.data[y_det]),
+                        np.max(processing.data[y_host])])]
+            graph_3d_params['z_range'] = [
+                np.min(processing.data[z_det]),
+                np.max(processing.data[z_det])]
+            graph_3d_params['color_key'] = color_key
+            graph_3d_params['color_label'] = color_label
+            graph_3d_params['c_range'] = [
+                np.min(processing.data[color_key]),
+                np.max(processing.data[color_key])
+            ]
 
             filterd_frame = processing.data[
                 processing.data[
@@ -848,6 +873,7 @@ def update_filter(*args):
                 np.min(processing.data[color_key]),
                 np.max(processing.data[color_key])
             ]
+            # print(graph_3d_params['c_range'])
 
             task_queue.put_nowait(
                 {
