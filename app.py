@@ -262,6 +262,28 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
+            html.H6('Control'),
+
+            html.Div([
+                daq.BooleanSwitch(
+                    id='overlay-switch',
+                    on=False
+                ),
+                html.Label('Overlay all frames'),
+            ], className='column flex-display',
+                style={'margin-bottom': '10px'}
+            ),
+
+            html.Div([
+                daq.BooleanSwitch(
+                    id='visible-switch',
+                    on=False
+                ),
+                html.Label('Click to change visibility'),
+            ], className='column flex-display',
+                style={'margin-bottom': '20px'}
+            ),
+
             html.H6('Filter'),
 
             html.Div(
@@ -279,16 +301,16 @@ app.layout = html.Div([
                 html.Div([
                     html.H6('3D View'),
                 ], className='ten columns'),
-                html.Div([
-                    html.Div([
-                        html.Label('Overlay: '),
-                        daq.BooleanSwitch(
-                            id='overlay-switch',
-                            on=False
-                        ),
-                    ], className='column flex-display'
-                    ),
-                ], className='two columns'),
+                # html.Div([
+                #     html.Div([
+                #         html.Label('Overlay: '),
+                #         daq.BooleanSwitch(
+                #             id='overlay-switch',
+                #             on=False
+                #         ),
+                #     ], className='column flex-display'
+                #     ),
+                # ], className='two columns'),
             ], className='row flex-display'),
             html.Div([
                 html.Div([], className='ten columns'),
@@ -731,8 +753,10 @@ def test_case_selection(test_case):
     [
         Input('color-picker-3d', 'value'),
         Input('overlay-switch', 'on'),
+        Input('scatter3d', 'clickData'),
     ],
     [
+        State('visible-switch', 'on'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State('filter-trigger', 'children'),
@@ -754,6 +778,7 @@ def update_filter(*args):
     trigger_idx = args[-3]
     cat_keys = args[-4]
     num_keys = args[-5]
+    visible_sw = args[-6]
 
     categorical_key_values = args[1:(1+len(cat_keys))]
     numerical_key_values = args[(1+len(cat_keys)):
@@ -764,6 +789,7 @@ def update_filter(*args):
         args[1 + len(cat_keys) + len(num_keys)]]['description']
 
     overlay_sw = args[2 + len(cat_keys) + len(num_keys)]
+    click_data = args[3 + len(cat_keys) + len(num_keys)]
 
     if trigger_id == 'slider-frame' and not overlay_sw:
         if processing.get_frame_ready_index() >= slider_arg:
@@ -846,6 +872,117 @@ def update_filter(*args):
                 dash.no_update,
                 categorical_key_values,
                 numerical_key_values]
+    elif trigger_id == 'scatter3d':
+        # print(click_data['points'][0]['id'])
+        if visible_sw and click_data['points'][0]['curveNumber'] == 0:
+            if processing.data['Visibility'][click_data['points'][0]['id']] == 'visible':
+                processing.data.at[click_data['points']
+                                   [0]['id'], 'Visibility'] = 'hidden'
+            else:
+                processing.data.at[click_data['points']
+                                   [0]['id'], 'Visibility'] = 'visible'
+
+            if overlay_sw:
+                filterd_frame = filter_all(
+                    processing.data,
+                    num_keys,
+                    numerical_key_values,
+                    cat_keys,
+                    categorical_key_values
+                )
+
+                task_queue.put_nowait(
+                    {
+                        'trigger': 'filter',
+                        'cat_keys': cat_keys,
+                        'num_keys': num_keys,
+                        'cat_values': categorical_key_values,
+                        'num_values': numerical_key_values,
+                        'graph_params': graph_3d_params,
+                    }
+                )
+
+                return [dict(
+                        data=[get_figure_data(
+                            det_list=filterd_frame,
+                            x_key=graph_3d_params['x_det_key'],
+                            y_key=graph_3d_params['y_det_key'],
+                            z_key=graph_3d_params['z_det_key'],
+                            color_key=color_key,
+                            color_label=color_label,
+                            name='Index: ' +
+                            str(slider_arg) + ' (' +
+                            ui_config['numerical'][ui_config['slider']
+                                                   ]['description']+')',
+                            hover_dict={
+                                **ui_config['numerical'], **ui_config['categorical']},
+                            c_range=graph_3d_params['c_range'],
+                            db=graph_3d_params['db']
+                        ),
+                            get_host_data(
+                            det_list=filterd_frame,
+                            x_key=graph_3d_params['x_host_key'],
+                            y_key=graph_3d_params['y_host_key'],
+                        )],
+                        layout=get_figure_layout(
+                            x_range=graph_3d_params['x_range'],
+                            y_range=graph_3d_params['y_range'],
+                            z_range=graph_3d_params['z_range'])
+                        ),
+                        trigger_idx+1,
+                        categorical_key_values,
+                        numerical_key_values]
+            else:
+                filterd_frame = processing.data[
+                    processing.data[
+                        ui_config['numerical']
+                        [
+                            ui_config['slider']
+                        ]['key']] == processing.frame_idx[slider_arg]
+                ]
+                filterd_frame = filterd_frame.reset_index()
+
+                filterd_frame = filter_all(
+                    filterd_frame,
+                    num_keys,
+                    numerical_key_values,
+                    cat_keys,
+                    categorical_key_values
+                )
+
+                processing.fig_list[slider_arg] = dict(
+                    data=[get_figure_data(
+                        det_list=filterd_frame,
+                        x_key=graph_3d_params['x_det_key'],
+                        y_key=graph_3d_params['y_det_key'],
+                        z_key=graph_3d_params['z_det_key'],
+                        color_key=color_key,
+                        color_label=color_label,
+                        name='Index: ' +
+                        str(slider_arg) + ' (' +
+                        ui_config['numerical'][ui_config['slider']
+                                               ]['description']+')',
+                        hover_dict={
+                            **ui_config['numerical'], **ui_config['categorical']},
+                        c_range=graph_3d_params['c_range'],
+                        db=graph_3d_params['db']
+                    ),
+                        get_host_data(
+                        det_list=filterd_frame,
+                        x_key=graph_3d_params['x_host_key'],
+                        y_key=graph_3d_params['y_host_key'],
+                    )],
+                    layout=get_figure_layout(
+                        x_range=graph_3d_params['x_range'],
+                        y_range=graph_3d_params['y_range'],
+                        z_range=graph_3d_params['z_range'])
+                )
+                return [processing.fig_list[slider_arg],
+                        dash.no_update,
+                        categorical_key_values,
+                        numerical_key_values]
+        else:
+            raise PreventUpdate
     else:
         if None not in categorical_key_values:
             x_det = graph_3d_params['x_det_key']
@@ -1330,6 +1467,9 @@ def data_file_selection(
         new_data = pd.read_pickle(
             './data/'+test_case+'/'+data_file_name)
 
+        new_data['_IDS_'] = new_data.index
+        new_data['Visibility'] = 'visible'
+
         x_det = graph_3d_params['x_det_key']
         x_host = graph_3d_params['x_host_key']
         y_det = graph_3d_params['y_det_key']
@@ -1364,13 +1504,23 @@ def data_file_selection(
         for idx, d_item in enumerate(ui_config['categorical']):
             var_list = new_data[ui_config['categorical']
                                 [d_item]['key']].unique()
+
+            if ui_config['categorical'][d_item]['key'] == 'Visibility':
+                var_list = np.append(var_list, 'hidden')
+
             cat_values.append(var_list)
 
             options = []
             selection = []
-            for var in var_list:
-                options.append({'label': var, 'value': var})
-                selection.append(var)
+
+            if ui_config['categorical'][d_item]['key'] == 'Visibility':
+                for var in var_list:
+                    options.append({'label': var, 'value': var})
+                selection.append(np.array('visible'))
+            else:
+                for var in var_list:
+                    options.append({'label': var, 'value': var})
+                    selection.append(var)
             output.append(options)
             output.append(selection)
 
@@ -1466,6 +1616,15 @@ def export_heatmap(btn, fig):
         temp_fig = go.Figure(fig)
         temp_fig.write_image('images/'+timestamp+'_heatmap.png', scale=2)
     return 0
+
+
+# @app.callback(
+#     Output('dummy', 'children'),
+#     [Input('scatter3d', 'clickData')])
+# def display_click_data(clickData):
+
+#     print(clickData)
+#     return 0
 
 
 if __name__ == '__main__':

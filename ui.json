@@ -47,6 +47,10 @@
         }
     },
     "categorical": {
+        "Visibility": {
+            "key":"Visibility",
+            "description":"Visibility"
+        },
         "look_type": {
             "key":"LookType",
             "description":"Look type",

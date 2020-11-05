@@ -65,6 +65,7 @@ def get_figure_data(det_list,
 
         det_map = dict(
             type='scatter3d',
+            ids=det_list['_IDS_'],
             x=det_list[x_key],
             y=det_list[y_key],
             z=det_list[z_key],
