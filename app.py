@@ -334,11 +334,11 @@ app.layout = html.Div([
                     dcc.Dropdown(
                         id='color-picker-3d',
                         options=[{
-                            'label': keys_dict[f_item]['description'],
+                            'label': ui_config['numerical'][f_item]['description'],
                             'value': f_item
                         }
                             for idx, f_item in enumerate(
-                                keys_dict)],
+                                ui_config['numerical'])],
                         value=ui_config['graph_3d_detections']['default_color']
                     ),
                 ], className='two columns',
@@ -805,14 +805,14 @@ def update_filter(*args):
     categorical_key_values = args[1:(1+len(cat_keys))]
     numerical_key_values = args[(1+len(cat_keys)):
                                 (1+len(cat_keys) + len(num_keys))]
-    color_key = ui_config['numerical'][
+    color_key = keys_dict[
         args[1 + len(cat_keys) + len(num_keys)]]['key']
-    color_label = ui_config['numerical'][
+    color_label = keys_dict[
         args[1 + len(cat_keys) + len(num_keys)]]['description']
 
-    slider_key = ui_config['numerical'][ui_config['slider']]['key']
-    slider_label = ui_config['numerical'][ui_config['slider']
-                                          ]['description']
+    slider_key = keys_dict[ui_config['slider']]['key']
+    slider_label = keys_dict[ui_config['slider']
+                             ]['description']
 
     overlay_sw = args[2 + len(cat_keys) + len(num_keys)]
     click_data = args[3 + len(cat_keys) + len(num_keys)]
@@ -824,18 +824,16 @@ def update_filter(*args):
     z_det = graph_3d_params['z_det_key']
 
     x_range = [
-        np.min([np.min(processing.data[x_det]),
+        np.min([numerical_key_values[num_keys.index(x_det)][0],
                 np.min(processing.data[x_host])]),
-        np.max([np.max(processing.data[x_det]),
+        np.max([numerical_key_values[num_keys.index(x_det)][1],
                 np.max(processing.data[x_host])])]
     y_range = [
-        np.min([np.min(processing.data[y_det]),
+        np.min([numerical_key_values[num_keys.index(y_det)][0],
                 np.min(processing.data[y_host])]),
-        np.max([np.max(processing.data[y_det]),
+        np.max([numerical_key_values[num_keys.index(y_det)][1],
                 np.max(processing.data[y_host])])]
-    z_range = [
-        np.min(processing.data[z_det]),
-        np.max(processing.data[z_det])]
+    z_range = numerical_key_values[num_keys.index(z_det)]
     c_range = [
         np.min(processing.data[color_key]),
         np.max(processing.data[color_key])
@@ -1144,6 +1142,7 @@ def update_left_graph(
     ],
     [
         Input('filter-trigger', 'children'),
+        Input('left-hide-trigger', 'children'),
         Input('right-switch', 'on'),
         Input('x-scatter2d-right', 'value'),
         Input('y-scatter2d-right', 'value'),
@@ -1159,6 +1158,7 @@ def update_left_graph(
 )
 def update_right_graph(
     trigger_idx,
+    left_hide_trigger,
     right_sw,
     x_right,
     y_right,
@@ -1215,7 +1215,6 @@ def update_right_graph(
                       'x': [], 'y': []}
                      ],
             'layout': {
-                'uirevision': 'no_change'
             }}
 
         right_x_disabled = True
@@ -1238,6 +1237,7 @@ def update_right_graph(
     ],
     [
         Input('filter-trigger', 'children'),
+        Input('left-hide-trigger', 'children'),
         Input('histogram-switch', 'on'),
         Input('x-histogram', 'value'),
         Input('y-histogram', 'value'),
@@ -1252,6 +1252,7 @@ def update_right_graph(
 )
 def update_histogram(
     trigger_idx,
+    left_hide_trigger,
     histogram_sw,
     x_histogram,
     y_histogram,
@@ -1296,7 +1297,6 @@ def update_histogram(
                       'x': []}
                      ],
             'layout': {
-                'uirevision': 'no_change'
             }}
         histogram_x_disabled = True
         histogram_y_disabled = True
@@ -1316,6 +1316,7 @@ def update_histogram(
     ],
     [
         Input('filter-trigger', 'children'),
+        Input('left-hide-trigger', 'children'),
         Input('heat-switch', 'on'),
         Input('x-heatmap', 'value'),
         Input('y-heatmap', 'value'),
@@ -1330,6 +1331,7 @@ def update_histogram(
 )
 def update_heatmap(
     trigger_idx,
+    left_hide_trigger,
     heat_sw,
     x_heat,
     y_heat,
@@ -1377,7 +1379,6 @@ def update_heatmap(
                       'x': []}
                      ],
             'layout': {
-                'uirevision': 'no_change'
             }}
         heat_x_disabled = True
         heat_y_disabled = True
