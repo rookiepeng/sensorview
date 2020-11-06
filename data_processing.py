@@ -119,7 +119,7 @@ class DataProcessing(Thread):
         return self.fig_list[idx]
 
     def get_filtered_data(self):
-        print(self.filtered_table['Visibility'])
+        # print(self.filtered_table['Visibility'])
         return self.filtered_table
 
     def run(self):
@@ -128,7 +128,7 @@ class DataProcessing(Thread):
             work = self.task_queue.get()
 
             if work['trigger'] == 'filter':
-                print('start filtering')
+                # print('start filtering')
                 self.filtering_ready = False
                 new_data = work.get('data', None)
                 if new_data is not None:
@@ -170,7 +170,7 @@ class DataProcessing(Thread):
                         break
 
                 if not skip_filter:
-                    print('filtering done')
+                    # print('filtering done')
                     self.filtering_ready = True
 
                     self.fig_list = []
