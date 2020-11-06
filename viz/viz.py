@@ -223,6 +223,7 @@ def get_2d_scatter(det_list,
                    x_label=None,
                    y_label=None,
                    color_label=None,
+                   uirevision='no_change',
                    colormap='Rainbow',
                    margin=dict(l=40, r=40, b=40, t=60)):
 
@@ -238,11 +239,12 @@ def get_2d_scatter(det_list,
     return dict(
         data=[dict(
             type='scattergl',
+            ids=det_list['_IDS_'],
             x=det_list[x_key],
             y=det_list[y_key],
             mode='markers',
             marker=dict(
-                size=3,
+                size=5,
                 color=det_list[color_key],
                 colorscale=colormap,
                 opacity=0.8,
@@ -257,7 +259,7 @@ def get_2d_scatter(det_list,
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
             margin=margin,
-            uirevision='no_change',
+            uirevision=uirevision,
         )
     )
 

@@ -95,6 +95,8 @@ class DataProcessing(Thread):
 
         self.is_locked = True
 
+        self.graph_params = dict()
+
     def load_data(self, data):
         self.is_locked = True
         self.data = data
@@ -117,6 +119,7 @@ class DataProcessing(Thread):
         return self.fig_list[idx]
 
     def get_filtered_data(self):
+        print(self.filtered_table['Visibility'])
         return self.filtered_table
 
     def run(self):
@@ -125,6 +128,8 @@ class DataProcessing(Thread):
             work = self.task_queue.get()
 
             if work['trigger'] == 'filter':
+                print('start filtering')
+                self.filtering_ready = False
                 new_data = work.get('data', None)
                 if new_data is not None:
                     self.load_data(new_data)
@@ -136,11 +141,10 @@ class DataProcessing(Thread):
 
                 skip_filter = False
 
-                self.filtering_ready = False
                 self.frame_list_ready = False
                 self.frame_ready_index = -1
 
-                graph_params = work['graph_params']
+                self.graph_params = work.get('graph_params', self.graph_params)
 
                 self.filtered_table = self.data
                 for filter_idx, filter_name in enumerate(num_keys):
@@ -150,6 +154,7 @@ class DataProcessing(Thread):
                         num_values[filter_idx])
 
                     if not self.task_queue.empty():
+                        self.filtering_ready = False
                         skip_filter = True
                         break
 
@@ -160,10 +165,12 @@ class DataProcessing(Thread):
                         cat_values[filter_idx])
 
                     if not self.task_queue.empty():
+                        self.filtering_ready = False
                         skip_filter = True
                         break
 
                 if not skip_filter:
+                    print('filtering done')
                     self.filtering_ready = True
 
                     self.fig_list = []
@@ -177,11 +184,11 @@ class DataProcessing(Thread):
                             data=[
                                 get_figure_data(
                                     det_list=filtered_list,
-                                    x_key=graph_params['x_det_key'],
-                                    y_key=graph_params['y_det_key'],
-                                    z_key=graph_params['z_det_key'],
-                                    color_key=graph_params['color_key'],
-                                    color_label=graph_params['color_label'],
+                                    x_key=self.graph_params['x_det_key'],
+                                    y_key=self.graph_params['y_det_key'],
+                                    z_key=self.graph_params['z_det_key'],
+                                    color_key=self.graph_params['color_key'],
+                                    color_label=self.graph_params['color_label'],
                                     name='Index: ' +
                                     str(idx) + ' (' +
                                     self.config['numerical'][
@@ -191,19 +198,19 @@ class DataProcessing(Thread):
                                         **self.config['numerical'],
                                         **self.config['categorical']
                                     },
-                                    c_range=graph_params['c_range'],
-                                    db=graph_params['db']
+                                    c_range=self.graph_params['c_range'],
+                                    db=self.graph_params['db']
                                 ),
                                 get_host_data(
                                     det_list=filtered_list,
-                                    x_key=graph_params['x_host_key'],
-                                    y_key=graph_params['y_host_key'],
+                                    x_key=self.graph_params['x_host_key'],
+                                    y_key=self.graph_params['y_host_key'],
                                 )
                             ],
                             layout=get_figure_layout(
-                                x_range=graph_params['x_range'],
-                                y_range=graph_params['y_range'],
-                                z_range=graph_params['z_range'])
+                                x_range=self.graph_params['x_range'],
+                                y_range=self.graph_params['y_range'],
+                                z_range=self.graph_params['z_range'])
                         )
                         )
 
@@ -212,6 +219,7 @@ class DataProcessing(Thread):
                         if not self.task_queue.empty():
 
                             skip_filter = True
+                            self.filtering_ready = False
                             self.frame_ready_index = -1
                             break
 
