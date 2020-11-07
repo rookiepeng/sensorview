@@ -15,6 +15,11 @@
             "description":"Range rate (m/s)",
             "format": "{:,.2f}"
         },
+        "range_rate_un":{
+            "key":"RangeRateUn",
+            "description":"Range rate unfold (m/s)",
+            "format": "{:,.2f}"
+        },
         "azimuth":{
             "key":"Azimuth",
             "description":"Azimuth (deg)",
@@ -44,6 +49,11 @@
             "key":"SNR",
             "description":"SNR (dB)",
             "format": "{:,.2f}"
+        },
+        "amp": {
+            "key":"AMP",
+            "description":"Amplitude (dB)",
+            "format": "{:,.2f}"
         }
     },
     "categorical": {
@@ -54,6 +64,41 @@
         "look_type": {
             "key":"LookType",
             "description":"Look type",
+            "format": "{:,.0f}"
+        },
+        "az_conf": {
+            "key":"AzConf",
+            "description":"Az Conf",
+            "format": "{:,.0f}"
+        },
+        "el_conf": {
+            "key":"ElConf",
+            "description":"El Conf",
+            "format": "{:,.0f}"
+        },
+        "bf_type_az": {
+            "key":"BfTypeAz",
+            "description":"Az bf type",
+            "format": "{:,.0f}"
+        },
+        "bf_type_el": {
+            "key":"BfTypeEl",
+            "description":"El bf type",
+            "format": "{:,.0f}"
+        },
+        "doppler_interval": {
+            "key":"DopplerInterval",
+            "description":"Doppler interval",
+            "format": "{:,.0f}"
+        },
+        "valid_unfolding": {
+            "key":"ValidUnfolding",
+            "description":"Valid Doppler unfolding",
+            "format": "{:,.0f}"
+        },
+        "bistatic": {
+            "key":"Bistatic",
+            "description":"Bistatic",
             "format": "{:,.0f}"
         }
     },
