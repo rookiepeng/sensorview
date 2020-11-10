@@ -190,12 +190,11 @@ for (dirpath, dirnames, filenames) in os.walk('./data'):
     break
 
 data_files = []
-if not test_cases:
-    for r, d, f in os.walk('./data/'+test_cases[0]):
-        for file in f:
-            if '.pkl' in file:
-                data_files.append(file)
-        break
+for r, d, f in os.walk('./data/'+test_cases[0]):
+    for file in f:
+        if '.pkl' in file:
+            data_files.append(file)
+    break
 
 graph_3d_params = {
     'x_det_key': keys_dict[
