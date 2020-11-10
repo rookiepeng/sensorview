@@ -122,6 +122,7 @@ app = dash.Dash(__name__,
                     'name': 'viewport',
                     'content': 'width=device-width,initial-scale=1'
                 }])
+server = app.server
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
