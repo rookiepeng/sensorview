@@ -1,11 +1,11 @@
 FROM python:3.8.6-slim-buster
 
 # Create a working directory.
-# RUN mkdir wd
-# WORKDIR wd
+RUN mkdir app
+WORKDIR app
 
 # Install Python dependencies.
-# COPY requirements.txt .
+COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
 # Copy the rest of the codebase into the image
