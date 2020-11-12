@@ -1639,4 +1639,4 @@ def left_hide_button(
 if __name__ == '__main__':
 
     processing.start()
-    app.run_server(debug=True, threaded=True, processes=1)
+    app.run_server(debug=True, threaded=True, processes=1, host='0.0.0.0')
