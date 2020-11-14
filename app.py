@@ -166,11 +166,11 @@ graph_3d_params = {
 }
 
 app.layout = html.Div([
-    dcc.Store(id='config', data=ui_config),
-    dcc.Store(id='keys-dict', data=keys_dict),
+    dcc.Store(id='config'),
+    dcc.Store(id='keys-dict'),
     dcc.Store(id='scatter3d-params', data=graph_3d_params),
-    dcc.Store(id='num-key-list', data=num_keys),
-    dcc.Store(id='cat-key-list', data=cat_keys),
+    dcc.Store(id='num-key-list'),
+    dcc.Store(id='cat-key-list'),
     dcc.Store(id='cat-key-values'),
     dcc.Store(id='num-key-values'),
     dcc.Store(id='selected-data-left'),
@@ -269,14 +269,7 @@ app.layout = html.Div([
 
                 html.Div([
                     dcc.Dropdown(
-                        id='color-picker-3d',
-                        options=[{
-                            'label': ui_config['numerical'][f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                                ui_config['numerical'])],
-                        value=ui_config['graph_3d_detections']['default_color']
+                        id='color-picker-3d'
                     ),
                 ], className='two columns',
                     style={'margin-bottom': '10px'}),
@@ -680,6 +673,10 @@ app.layout = html.Div([
     [
         Output('data-file', 'value'),
         Output('data-file', 'options'),
+        Output('config', 'data'),
+        Output('keys-dict', 'data'),
+        Output('num-key-list', 'data'),
+        Output('cat-key-list', 'data'),
     ],
     [
         Input('test-case', 'value')
@@ -693,7 +690,211 @@ def test_case_selection(test_case):
                     data_files.append(file)
             break
 
-        return data_files[0], [{'label': i, 'value': i} for i in data_files]
+        if os.path.exists('./data/'+test_case+'/config.json'):
+            ui_config = load_config('./data/'+test_case+'/config.json')
+        else:
+            ui_config = load_config('ui.json')
+
+        num_keys = []
+        for idx, s_item in enumerate(ui_config['numerical']):
+            num_keys.append(
+                ui_config['numerical'][s_item]['key'])
+
+        cat_keys = []
+        for idx, d_item in enumerate(ui_config['categorical']):
+            cat_keys.append(
+                ui_config['categorical'][d_item]['key'])
+
+        keys_dict = {**ui_config['categorical'], **ui_config['numerical']}
+
+        return [
+            data_files[0],
+            [{'label': i, 'value': i} for i in data_files],
+            ui_config,
+            keys_dict,
+            num_keys,
+            cat_keys
+        ]
+    else:
+        raise PreventUpdate
+
+
+@ app.callback(
+    play_bar_callback_output +
+    [
+        Output('color-picker-3d', 'value'),
+        Output('left-switch', 'on'),
+        Output('right-switch', 'on'),
+        Output('histogram-switch', 'on'),
+        Output('heat-switch', 'on'),
+        Output('dropdown-container', 'children'),
+        Output('slider-container', 'children'),
+        Output('color-picker-3d', 'options'),
+    ],
+    [
+        Input('data-file', 'value')
+    ],
+    [
+        State('test-case', 'value'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
+        State('keys-dict', 'data'),
+        State('scatter3d-params', 'data'),
+        State('config', 'data'),
+    ])
+def data_file_selection(
+        data_file_name,
+        test_case,
+        num_keys,
+        cat_keys,
+        keys_dict,
+        graph_3d_params,
+        ui_config,
+):
+    if data_file_name is not None and test_case is not None:
+        new_data = pd.read_pickle(
+            './data/'+test_case+'/'+data_file_name)
+
+        new_data['_IDS_'] = new_data.index
+        new_data['Visibility'] = 'visible'
+
+        x_det = graph_3d_params['x_det_key']
+        x_host = graph_3d_params['x_host_key']
+        y_det = graph_3d_params['y_det_key']
+        y_host = graph_3d_params['y_host_key']
+        z_det = graph_3d_params['z_det_key']
+        color_key = graph_3d_params['color_key']
+
+        graph_3d_params['x_range'] = [
+            np.min([np.min(new_data[x_det]),
+                    np.min(new_data[x_host])]),
+            np.max([np.max(new_data[x_det]),
+                    np.max(new_data[x_host])])]
+        graph_3d_params['y_range'] = [
+            np.min([np.min(new_data[y_det]),
+                    np.min(new_data[y_host])]),
+            np.max([np.max(new_data[y_det]),
+                    np.max(new_data[y_host])])]
+        graph_3d_params['z_range'] = [
+            np.min(new_data[z_det]),
+            np.max(new_data[z_det])]
+        graph_3d_params['c_range'] = [
+            np.min(new_data[color_key]),
+            np.max(new_data[color_key])
+        ]
+
+        frame_idx = new_data[
+            keys_dict
+            [ui_config['slider']]['key']].unique()
+        output = [0, len(frame_idx)-1, 0]
+
+        cat_values = []
+        for idx, d_item in enumerate(ui_config['categorical']):
+            var_list = new_data[ui_config['categorical']
+                                [d_item]['key']].unique()
+
+            if ui_config['categorical'][d_item]['key'] == 'Visibility':
+                var_list = np.append(var_list, 'hidden')
+
+            cat_values.append(var_list)
+
+            options = []
+            selection = []
+
+            if ui_config['categorical'][d_item]['key'] == 'Visibility':
+                for var in var_list:
+                    options.append({'label': var, 'value': var})
+                selection.append(np.array('visible'))
+            else:
+                for var in var_list:
+                    options.append({'label': var, 'value': var})
+                    selection.append(var)
+
+        num_values = []
+        for idx, s_item in enumerate(ui_config['numerical']):
+            var_min = round(
+                np.min(new_data[ui_config['numerical'][s_item]['key']]), 1)
+            var_max = round(
+                np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
+
+            num_values.append([var_min, var_max])
+
+        output.append(ui_config['graph_3d_detections']['default_color'])
+        output.append(False)
+        output.append(False)
+        output.append(False)
+        output.append(False)
+
+        new_dropdown = []
+        for idx, d_item in enumerate(ui_config['categorical']):
+            var_list = new_data[ui_config['categorical']
+                                [d_item]['key']].unique()
+            if ui_config['categorical'][d_item]['key'] == 'Visibility':
+                var_list = np.append(var_list, 'hidden')
+
+            new_dropdown.append(
+                html.Label(
+                    ui_config['categorical'][d_item]['description'])
+            )
+            new_dropdown.append(
+                dcc.Dropdown(
+                    id={
+                        'type': 'filter-dropdown',
+                        'index': idx
+                    },
+                    options=[{'label': i, 'value': i}
+                             for i in var_list],
+                    value=var_list,
+                    multi=True
+                ))
+
+        output.append(new_dropdown)
+
+        new_slider = []
+        for idx, s_item in enumerate(ui_config['numerical']):
+            var_min = round(
+                np.min(new_data[ui_config['numerical'][s_item]['key']])-0.1, 1)
+            var_max = round(
+                np.max(new_data[ui_config['numerical'][s_item]['key']])+0.1, 1)
+
+            new_slider.append(
+                html.Div(id=s_item+'_value',
+                         children=ui_config['numerical'][s_item]['description']))
+            new_slider.append(dcc.RangeSlider(
+                id={
+                    'type': 'filter-slider',
+                    'index': idx
+                },
+                min=var_min,
+                max=var_max,
+                step=round((var_max-var_min)/100, 3),
+                value=[var_min, var_max],
+                tooltip={'always_visible': False}
+            ))
+        output.append(new_slider)
+
+        output.append(
+            [{
+                'label': keys_dict[f_item]['description'],
+                'value': f_item
+            }
+                for idx, f_item in enumerate(
+                keys_dict)]
+        )
+
+        task_queue.put_nowait(
+            {
+                'trigger': 'filter',
+                'data': new_data,
+                'num_keys': num_keys,
+                'num_values': num_values,
+                'cat_keys': cat_keys,
+                'cat_values': cat_values,
+                'graph_params': graph_3d_params,
+            }
+        )
+
+        return output
     else:
         raise PreventUpdate
 
@@ -1323,181 +1524,6 @@ def update_heatmap(
         heat_x_disabled,
         heat_y_disabled,
     ]
-
-
-@ app.callback(
-    play_bar_callback_output +
-    [
-        Output('color-picker-3d', 'value'),
-        Output('left-switch', 'on'),
-        Output('right-switch', 'on'),
-        Output('histogram-switch', 'on'),
-        Output('heat-switch', 'on'),
-        Output('dropdown-container', 'children'),
-        Output('slider-container', 'children')
-    ],
-    [
-        Input('data-file', 'value')
-    ],
-    [
-        State('test-case', 'value'),
-        State('config', 'data'),
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
-        State('keys-dict', 'data'),
-        State('scatter3d-params', 'data'),
-    ])
-def data_file_selection(
-        data_file_name,
-        test_case,
-        ui_config,
-        num_keys,
-        cat_keys,
-        keys_dict,
-        graph_3d_params,
-):
-    if data_file_name is not None and test_case is not None:
-        new_data = pd.read_pickle(
-            './data/'+test_case+'/'+data_file_name)
-
-        new_data['_IDS_'] = new_data.index
-        new_data['Visibility'] = 'visible'
-
-        if os.path.exists('./data/'+test_case+'/config.json'):
-            ui_config = load_config('./data/'+test_case+'/config.json')
-        else:
-            ui_config = load_config('ui.json')
-
-        x_det = graph_3d_params['x_det_key']
-        x_host = graph_3d_params['x_host_key']
-        y_det = graph_3d_params['y_det_key']
-        y_host = graph_3d_params['y_host_key']
-        z_det = graph_3d_params['z_det_key']
-        color_key = graph_3d_params['color_key']
-
-        graph_3d_params['x_range'] = [
-            np.min([np.min(new_data[x_det]),
-                    np.min(new_data[x_host])]),
-            np.max([np.max(new_data[x_det]),
-                    np.max(new_data[x_host])])]
-        graph_3d_params['y_range'] = [
-            np.min([np.min(new_data[y_det]),
-                    np.min(new_data[y_host])]),
-            np.max([np.max(new_data[y_det]),
-                    np.max(new_data[y_host])])]
-        graph_3d_params['z_range'] = [
-            np.min(new_data[z_det]),
-            np.max(new_data[z_det])]
-        graph_3d_params['c_range'] = [
-            np.min(new_data[color_key]),
-            np.max(new_data[color_key])
-        ]
-
-        frame_idx = new_data[
-            keys_dict
-            [ui_config['slider']]['key']].unique()
-        output = [0, len(frame_idx)-1, 0]
-
-        cat_values = []
-        for idx, d_item in enumerate(ui_config['categorical']):
-            var_list = new_data[ui_config['categorical']
-                                [d_item]['key']].unique()
-
-            if ui_config['categorical'][d_item]['key'] == 'Visibility':
-                var_list = np.append(var_list, 'hidden')
-
-            cat_values.append(var_list)
-
-            options = []
-            selection = []
-
-            if ui_config['categorical'][d_item]['key'] == 'Visibility':
-                for var in var_list:
-                    options.append({'label': var, 'value': var})
-                selection.append(np.array('visible'))
-            else:
-                for var in var_list:
-                    options.append({'label': var, 'value': var})
-                    selection.append(var)
-
-        num_values = []
-        for idx, s_item in enumerate(ui_config['numerical']):
-            var_min = round(
-                np.min(new_data[ui_config['numerical'][s_item]['key']]), 1)
-            var_max = round(
-                np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
-
-            num_values.append([var_min, var_max])
-
-        output.append(ui_config['graph_3d_detections']['default_color'])
-        output.append(False)
-        output.append(False)
-        output.append(False)
-        output.append(False)
-
-        new_dropdown = []
-        for idx, d_item in enumerate(ui_config['categorical']):
-            var_list = new_data[ui_config['categorical']
-                                [d_item]['key']].unique()
-            if ui_config['categorical'][d_item]['key'] == 'Visibility':
-                var_list = np.append(var_list, 'hidden')
-
-            new_dropdown.append(
-                html.Label(
-                    ui_config['categorical'][d_item]['description'])
-            )
-            new_dropdown.append(
-                dcc.Dropdown(
-                    id={
-                        'type': 'filter-dropdown',
-                        'index': idx
-                    },
-                    options=[{'label': i, 'value': i}
-                             for i in var_list],
-                    value=var_list,
-                    multi=True
-                ))
-
-        output.append(new_dropdown)
-
-        new_slider = []
-        for idx, s_item in enumerate(ui_config['numerical']):
-            var_min = round(
-                np.min(new_data[ui_config['numerical'][s_item]['key']])-0.1, 1)
-            var_max = round(
-                np.max(new_data[ui_config['numerical'][s_item]['key']])+0.1, 1)
-
-            new_slider.append(
-                html.Div(id=s_item+'_value',
-                         children=ui_config['numerical'][s_item]['description']))
-            new_slider.append(dcc.RangeSlider(
-                id={
-                    'type': 'filter-slider',
-                    'index': idx
-                },
-                min=var_min,
-                max=var_max,
-                step=round((var_max-var_min)/100, 3),
-                value=[var_min, var_max],
-                tooltip={'always_visible': False}
-            ))
-        output.append(new_slider)
-
-        task_queue.put_nowait(
-            {
-                'trigger': 'filter',
-                'data': new_data,
-                'num_keys': num_keys,
-                'num_values': num_values,
-                'cat_keys': cat_keys,
-                'cat_values': cat_values,
-                'graph_params': graph_3d_params,
-            }
-        )
-
-        return output
-    else:
-        raise PreventUpdate
 
 
 @ app.callback(
