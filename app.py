@@ -789,48 +789,16 @@ def data_file_selection(
         output = [0, len(frame_idx)-1, 0]
 
         cat_values = []
-        for idx, d_item in enumerate(ui_config['categorical']):
-            var_list = new_data[ui_config['categorical']
-                                [d_item]['key']].unique()
-
-            if ui_config['categorical'][d_item]['key'] == 'Visibility':
-                var_list = np.append(var_list, 'hidden')
-
-            cat_values.append(var_list)
-
-            options = []
-            selection = []
-
-            if ui_config['categorical'][d_item]['key'] == 'Visibility':
-                for var in var_list:
-                    options.append({'label': var, 'value': var})
-                selection.append(np.array('visible'))
-            else:
-                for var in var_list:
-                    options.append({'label': var, 'value': var})
-                    selection.append(var)
-
-        num_values = []
-        for idx, s_item in enumerate(ui_config['numerical']):
-            var_min = round(
-                np.min(new_data[ui_config['numerical'][s_item]['key']]), 1)
-            var_max = round(
-                np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
-
-            num_values.append([var_min, var_max])
-
-        output.append(ui_config['graph_3d_detections']['default_color'])
-        output.append(False)
-        output.append(False)
-        output.append(False)
-        output.append(False)
-
         new_dropdown = []
         for idx, d_item in enumerate(ui_config['categorical']):
             var_list = new_data[ui_config['categorical']
                                 [d_item]['key']].unique()
+
             if ui_config['categorical'][d_item]['key'] == 'Visibility':
                 var_list = np.append(var_list, 'hidden')
+                value_list = [np.array('visible')]
+            else:
+                value_list = var_list
 
             new_dropdown.append(
                 html.Label(
@@ -844,18 +812,19 @@ def data_file_selection(
                     },
                     options=[{'label': i, 'value': i}
                              for i in var_list],
-                    value=var_list,
+                    value=value_list,
                     multi=True
                 ))
 
-        output.append(new_dropdown)
+            cat_values.append(value_list)
 
+        num_values = []
         new_slider = []
         for idx, s_item in enumerate(ui_config['numerical']):
             var_min = round(
-                np.min(new_data[ui_config['numerical'][s_item]['key']])-0.1, 1)
+                np.min(new_data[ui_config['numerical'][s_item]['key']]), 1)
             var_max = round(
-                np.max(new_data[ui_config['numerical'][s_item]['key']])+0.1, 1)
+                np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
 
             new_slider.append(
                 html.Div(id=s_item+'_value',
@@ -871,6 +840,16 @@ def data_file_selection(
                 value=[var_min, var_max],
                 tooltip={'always_visible': False}
             ))
+
+            num_values.append([var_min, var_max])
+
+        output.append(ui_config['graph_3d_detections']['default_color'])
+        output.append(False)
+        output.append(False)
+        output.append(False)
+        output.append(False)
+
+        output.append(new_dropdown)
         output.append(new_slider)
 
         output.append(
