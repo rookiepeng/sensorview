@@ -40,7 +40,7 @@ import os
 
 import dash
 import dash_daq as daq
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output, State, MATCH, ALL
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.exceptions import PreventUpdate
@@ -80,37 +80,6 @@ def scatter3d_data(det_list, params, keys_dict, name):
     )
 
 
-def gen_rangesliders(ui_config):
-    s_list = []
-    for idx, s_item in enumerate(ui_config['numerical']):
-        s_list.append(
-            html.Div(id=s_item+'_value',
-                     children=ui_config['numerical'][s_item]['description']))
-        s_list.append(dcc.RangeSlider(
-            id=s_item+'_filter',
-            count=1,
-            min=0,
-            max=10,
-            step=0.5,
-            value=[0, 10],
-            tooltip={'always_visible': False}
-        ))
-    return s_list
-
-
-def gen_dropdowns(ui_config):
-    d_list = []
-    for idx, d_item in enumerate(ui_config['categorical']):
-        d_list.append(html.Label(
-            ui_config['categorical'][d_item]['description']))
-        d_list.append(dcc.Dropdown(
-            id=d_item+'_picker',
-            multi=True
-        ))
-
-    return d_list
-
-
 def load_config(json_file):
     with open(json_file, 'r') as read_file:
         return json.load(read_file)
@@ -144,36 +113,6 @@ keys_dict = {**ui_config['categorical'], **ui_config['numerical']}
 
 task_queue = Queue()
 processing = DataProcessing(ui_config, task_queue)
-
-
-picker_callback_output = []
-picker_callback_input = []
-for idx, d_item in enumerate(ui_config['categorical']):
-    picker_callback_output.append(
-        Output(d_item+'_picker', 'options')
-    )
-    picker_callback_output.append(
-        Output(d_item+'_picker', 'value')
-    )
-    picker_callback_input.append(
-        Input(d_item+'_picker', 'value')
-    )
-
-slider_callback_output = []
-slider_callback_input = []
-for idx, s_item in enumerate(ui_config['numerical']):
-    slider_callback_output.append(
-        Output(s_item+'_filter', 'min')
-    )
-    slider_callback_output.append(
-        Output(s_item+'_filter', 'max')
-    )
-    slider_callback_output.append(
-        Output(s_item+'_filter', 'value')
-    )
-    slider_callback_input.append(
-        Input(s_item+'_filter', 'value')
-    )
 
 play_bar_callback_output = [
     Output('slider-frame', 'min'),
@@ -318,13 +257,6 @@ app.layout = html.Div([
             html.Div(id='dropdown-container', children=[]),
 
             html.Div(id='slider-container', children=[]),
-
-            html.Div(
-                gen_dropdowns(ui_config)
-            ),
-            html.Div(
-                gen_rangesliders(ui_config)
-            ),
         ],
             className='pretty_container three columns',
         ),
@@ -774,10 +706,10 @@ def test_case_selection(test_case):
         Output('num-key-values', 'data'),
         Output('scatter3d-params', 'data'),
     ],
-    play_bar_callback_input +
-    picker_callback_input +
-    slider_callback_input +
     [
+        Input('slider-frame', 'value'),
+        Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         Input('color-picker-3d', 'value'),
         Input('overlay-switch', 'on'),
         Input('scatter3d', 'clickData'),
@@ -792,35 +724,33 @@ def test_case_selection(test_case):
         State('config', 'data'),
         State('scatter3d-params', 'data'),
     ])
-def update_filter(*args):
+def update_filter(
+    slider_arg,
+    categorical_key_values,
+    numerical_key_values,
+    color_picker,
+    overlay_sw,
+    click_data,
+    left_hide_trigger,
+    keys_dict,
+    visible_sw,
+    num_keys,
+    cat_keys,
+    trigger_idx,
+    ui_config,
+    graph_3d_params
+):
     global task_queue
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    slider_arg = args[0]
-    graph_3d_params = args[-1]
-    ui_config = args[-2]
-    trigger_idx = args[-3]
-    cat_keys = args[-4]
-    num_keys = args[-5]
-    visible_sw = args[-6]
-    keys_dict = args[-7]
-
-    categorical_key_values = args[1:(1+len(cat_keys))]
-    numerical_key_values = args[(1+len(cat_keys)):
-                                (1+len(cat_keys) + len(num_keys))]
-    color_key = keys_dict[
-        args[1 + len(cat_keys) + len(num_keys)]]['key']
-    color_label = keys_dict[
-        args[1 + len(cat_keys) + len(num_keys)]]['description']
+    color_key = keys_dict[color_picker]['key']
+    color_label = keys_dict[color_picker]['description']
 
     slider_key = keys_dict[ui_config['slider']]['key']
     slider_label = keys_dict[ui_config['slider']
                              ]['description']
-
-    overlay_sw = args[2 + len(cat_keys) + len(num_keys)]
-    click_data = args[3 + len(cat_keys) + len(num_keys)]
 
     x_det = graph_3d_params['x_det_key']
     x_host = graph_3d_params['x_host_key']
@@ -1432,6 +1362,11 @@ def data_file_selection(
 
         new_data['_IDS_'] = new_data.index
         new_data['Visibility'] = 'visible'
+
+        if os.path.exists('./data/'+test_case+'/config.json'):
+            ui_config = load_config('./data/'+test_case+'/config.json')
+        else:
+            ui_config = load_config('ui.json')
 
         x_det = graph_3d_params['x_det_key']
         x_host = graph_3d_params['x_host_key']
