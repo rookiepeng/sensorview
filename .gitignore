@@ -38,3 +38,7 @@ data/
 *.mat
 
 figures/
+
+cache/
+
+images/

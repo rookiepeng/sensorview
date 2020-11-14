@@ -315,6 +315,10 @@ app.layout = html.Div([
 
             html.H6('Filter'),
 
+            html.Div(id='dropdown-container', children=[]),
+
+            html.Div(id='slider-container', children=[]),
+
             html.Div(
                 gen_dropdowns(ui_config)
             ),
@@ -1393,14 +1397,14 @@ def update_heatmap(
 
 @ app.callback(
     play_bar_callback_output +
-    picker_callback_output +
-    slider_callback_output +
     [
         Output('color-picker-3d', 'value'),
         Output('left-switch', 'on'),
         Output('right-switch', 'on'),
         Output('histogram-switch', 'on'),
         Output('heat-switch', 'on'),
+        Output('dropdown-container', 'children'),
+        Output('slider-container', 'children')
     ],
     [
         Input('data-file', 'value')
@@ -1480,8 +1484,6 @@ def data_file_selection(
                 for var in var_list:
                     options.append({'label': var, 'value': var})
                     selection.append(var)
-            output.append(options)
-            output.append(selection)
 
         num_values = []
         for idx, s_item in enumerate(ui_config['numerical']):
@@ -1492,15 +1494,59 @@ def data_file_selection(
 
             num_values.append([var_min, var_max])
 
-            output.append(var_min)
-            output.append(var_max)
-            output.append([var_min, var_max])
-
         output.append(ui_config['graph_3d_detections']['default_color'])
         output.append(False)
         output.append(False)
         output.append(False)
         output.append(False)
+
+        new_dropdown = []
+        for idx, d_item in enumerate(ui_config['categorical']):
+            var_list = new_data[ui_config['categorical']
+                                [d_item]['key']].unique()
+            if ui_config['categorical'][d_item]['key'] == 'Visibility':
+                var_list = np.append(var_list, 'hidden')
+
+            new_dropdown.append(
+                html.Label(
+                    ui_config['categorical'][d_item]['description'])
+            )
+            new_dropdown.append(
+                dcc.Dropdown(
+                    id={
+                        'type': 'filter-dropdown',
+                        'index': idx
+                    },
+                    options=[{'label': i, 'value': i}
+                             for i in var_list],
+                    value=var_list,
+                    multi=True
+                ))
+
+        output.append(new_dropdown)
+
+        new_slider = []
+        for idx, s_item in enumerate(ui_config['numerical']):
+            var_min = round(
+                np.min(new_data[ui_config['numerical'][s_item]['key']])-0.1, 1)
+            var_max = round(
+                np.max(new_data[ui_config['numerical'][s_item]['key']])+0.1, 1)
+
+            new_slider.append(
+                html.Div(id=s_item+'_value',
+                         children=ui_config['numerical'][s_item]['description']))
+            new_slider.append(dcc.RangeSlider(
+                id={
+                    'type': 'filter-slider',
+                    'index': idx
+                },
+                min=var_min,
+                max=var_max,
+                step=round((var_max-var_min)/100, 3),
+                value=[var_min, var_max],
+                tooltip={'always_visible': False}
+            ))
+        output.append(new_slider)
 
         task_queue.put_nowait(
             {
