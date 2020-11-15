@@ -101,16 +101,6 @@ ui_config = load_config('ui.json')
 task_queue = Queue()
 processing = DataProcessing(ui_config, task_queue)
 
-play_bar_callback_output = [
-    Output('slider-frame', 'min'),
-    Output('slider-frame', 'max'),
-    Output('slider-frame', 'value'),
-]
-
-play_bar_callback_input = [
-    Input('slider-frame', 'value')
-]
-
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
     test_cases.extend(dirnames)
@@ -161,7 +151,6 @@ app.layout = html.Div([
             className='one-half columns',
             id='title',
         ),
-
         html.Div([], className='one-third column'),
     ], className='row flex-display',
         style={'margin-bottomm': '25px'}),
@@ -175,7 +164,6 @@ app.layout = html.Div([
                 value=test_cases[0]
             ),
         ], className='pretty_container six column'),
-
         html.Div([
             html.H6('Data File'),
             dcc.Dropdown(
@@ -189,7 +177,6 @@ app.layout = html.Div([
     html.Div([
         html.Div([
             html.H6('Control'),
-
             html.Div([
                 daq.BooleanSwitch(
                     id='overlay-switch',
@@ -199,7 +186,6 @@ app.layout = html.Div([
             ], className='column flex-display',
                 style={'margin-bottom': '10px'}
             ),
-
             html.Div([
                 daq.BooleanSwitch(
                     id='visible-switch',
@@ -209,11 +195,8 @@ app.layout = html.Div([
             ], className='column flex-display',
                 style={'margin-bottom': '20px'}
             ),
-
             html.H6('Filter'),
-
             html.Div(id='dropdown-container', children=[]),
-
             html.Div(id='slider-container', children=[]),
         ],
             className='pretty_container three columns',
@@ -260,7 +243,6 @@ app.layout = html.Div([
                            'display': 'inline-block',
                            'padding': '2rem 0rem'})
         ], className='pretty_container nine columns'),
-
     ], className='row flex-display rows',
     ),
 
@@ -278,7 +260,6 @@ app.layout = html.Div([
                 ], className='two columns',
                     style={'margin-top': '10px'}),
             ], className='row flex-display'),
-
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
@@ -302,7 +283,6 @@ app.layout = html.Div([
                     ),
                 ], className='one-third column'),
             ], className='row flex-display'),
-
             dcc.Loading(
                 id='loading_left',
                 children=[
@@ -396,7 +376,6 @@ app.layout = html.Div([
                             }
                         },
                     ),
-
                     html.Div([
                         html.Div([
                         ], className='nine columns'),
@@ -429,7 +408,6 @@ app.layout = html.Div([
                 ], className='two columns',
                     style={'margin-top': '10px'}),
             ], className='row flex-display'),
-
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
@@ -456,7 +434,6 @@ app.layout = html.Div([
                     ),
                 ], className='one-third column'),
             ], className='row flex-display'),
-
             dcc.Loading(
                 id='loading_histogram',
                 children=[
@@ -474,7 +451,6 @@ app.layout = html.Div([
                             }
                         },
                     ),
-
                     html.Div([
                         html.Div([
                         ], className='nine columns'),
@@ -488,7 +464,6 @@ app.layout = html.Div([
                 ],
                 type='default',
             ),
-
         ], className='pretty_container six columns'),
 
         html.Div([
@@ -504,7 +479,6 @@ app.layout = html.Div([
                 ], className='two columns',
                     style={'margin-top': '10px'}),
             ], className='row flex-display'),
-
             html.Div([
                 html.Div([
                     html.Label('x-axis'),
@@ -521,7 +495,6 @@ app.layout = html.Div([
                     ),
                 ], className='one-third column'),
             ], className='row flex-display'),
-
             dcc.Loading(
                 id='loading_heat',
                 children=[
@@ -539,7 +512,6 @@ app.layout = html.Div([
                             }
                         },
                     ),
-
                     html.Div([
                         html.Div([
                         ], className='nine columns'),
@@ -641,25 +613,13 @@ def test_case_selection(test_case):
             ]['key'],
         }
 
-        options = [{
-            'label': keys_dict[f_item]['description'],
-            'value': f_item
-        }
-            for idx, f_item in enumerate(
-            keys_dict)]
-
-        x_left_value = ui_config['graph_2d_left']['default_x']
-        y_left_value = ui_config['graph_2d_left']['default_y']
-        color_left_value = ui_config['graph_2d_left']['default_color']
-
-        x_right_value = ui_config['graph_2d_right']['default_x']
-        y_right_value = ui_config['graph_2d_right']['default_y']
-        color_right_value = ui_config['graph_2d_right']['default_color']
-
-        x_histogram = ui_config['histogram']['default_x']
-
-        x_heatmap = ui_config['heatmap']['default_x']
-        y_heatmap = ui_config['heatmap']['default_y']
+        options = [
+            {
+                'label': keys_dict[f_item]['description'],
+                'value': f_item
+            }
+            for idx, f_item in enumerate(keys_dict)
+        ]
 
         return [
             data_files[0],
@@ -672,38 +632,39 @@ def test_case_selection(test_case):
             options,
             ui_config['graph_3d_detections']['default_color'],
             options,
-            x_left_value,
+            ui_config['graph_2d_left']['default_x'],
             options,
-            y_left_value,
+            ui_config['graph_2d_left']['default_y'],
             options,
-            color_left_value,
+            ui_config['graph_2d_left']['default_color'],
             options,
-            x_right_value,
+            ui_config['graph_2d_right']['default_x'],
             options,
-            y_right_value,
+            ui_config['graph_2d_right']['default_y'],
             options,
-            color_right_value,
+            ui_config['graph_2d_right']['default_color'],
             options,
-            x_histogram,
+            ui_config['histogram']['default_x'],
             options,
-            x_heatmap,
+            ui_config['heatmap']['default_x'],
             options,
-            y_heatmap
+            ui_config['heatmap']['default_y']
         ]
     else:
         raise PreventUpdate
 
 
 @ app.callback(
-    play_bar_callback_output +
     [
+        Output('slider-frame', 'min'),
+        Output('slider-frame', 'max'),
+        Output('slider-frame', 'value'),
         Output('left-switch', 'on'),
         Output('right-switch', 'on'),
         Output('histogram-switch', 'on'),
         Output('heat-switch', 'on'),
         Output('dropdown-container', 'children'),
         Output('slider-container', 'children'),
-        # Output('scatter3d-layout', 'data'),
     ],
     [
         Input('data-file', 'value')
@@ -790,7 +751,8 @@ def data_file_selection(
 
             new_dropdown.append(
                 html.Label(
-                    ui_config['categorical'][d_item]['description'])
+                    ui_config['categorical'][d_item]['description']
+                )
             )
             new_dropdown.append(
                 dcc.Dropdown(
@@ -815,8 +777,10 @@ def data_file_selection(
                 np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
 
             new_slider.append(
-                html.Div(id=s_item+'_value',
-                         children=ui_config['numerical'][s_item]['description']))
+                html.Label(
+                    ui_config['numerical'][s_item]['description']
+                )
+            )
             new_slider.append(dcc.RangeSlider(
                 id={
                     'type': 'filter-slider',
@@ -838,7 +802,6 @@ def data_file_selection(
 
         output.append(new_dropdown)
         output.append(new_slider)
-        # output.append(scatter3d_layout)
 
         task_queue.put_nowait(
             {
@@ -969,7 +932,8 @@ def update_filter(
 
             filter_trig = dash.no_update
 
-    elif trigger_id == 'scatter3d' and visible_sw and click_data['points'][0]['curveNumber'] == 0:
+    elif trigger_id == 'scatter3d' and visible_sw and \
+            click_data['points'][0]['curveNumber'] == 0:
         if processing.data['Visibility'][
             click_data['points'][0]['id']
         ] == 'visible':
@@ -1135,7 +1099,6 @@ def update_filter(
             filter_trig,
             categorical_key_values,
             numerical_key_values,
-            # scatter3d_params
             ]
 
 
@@ -1186,7 +1149,9 @@ def update_left_graph(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if left_sw:
-        if processing.is_filtering_ready() and trigger_id != 'filter-trigger' and trigger_id != 'left-hide-trigger':
+        if processing.is_filtering_ready() and \
+            trigger_id != 'filter-trigger' and \
+                trigger_id != 'left-hide-trigger':
             left_fig = get_2d_scatter(
                 processing.get_filtered_data(),
                 x_key,
