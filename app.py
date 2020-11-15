@@ -54,7 +54,7 @@ from viz.viz import get_figure_data, get_figure_layout, get_host_data
 from viz.viz import get_2d_scatter, get_histogram, get_heatmap
 
 
-def scatter3d_data(det_list, params, keys_dict, name):
+def scatter3d_data(det_list, params, layout, keys_dict, name):
 
     return dict(
         data=[get_figure_data(
@@ -62,11 +62,11 @@ def scatter3d_data(det_list, params, keys_dict, name):
             x_key=params['x_det_key'],
             y_key=params['y_det_key'],
             z_key=params['z_det_key'],
-            color_key=params['color_key'],
-            color_label=params['color_label'],
+            color_key=layout['color_key'],
+            color_label=layout['color_label'],
             name=name,
             hover_dict=keys_dict,
-            c_range=params['c_range']
+            c_range=layout['c_range']
         ),
             get_host_data(
             det_list=det_list,
@@ -74,9 +74,9 @@ def scatter3d_data(det_list, params, keys_dict, name):
             y_key=params['y_host_key'],
         )],
         layout=get_figure_layout(
-            x_range=params['x_range'],
-            y_range=params['y_range'],
-            z_range=params['z_range'])
+            x_range=layout['x_range'],
+            y_range=layout['y_range'],
+            z_range=layout['z_range'])
     )
 
 
@@ -97,19 +97,6 @@ app.css.config.serve_locally = True
 app.title = 'SensorView'
 
 ui_config = load_config('ui.json')
-
-num_keys = []
-for idx, s_item in enumerate(ui_config['numerical']):
-    num_keys.append(
-        ui_config['numerical'][s_item]['key'])
-
-cat_keys = []
-for idx, d_item in enumerate(ui_config['categorical']):
-    cat_keys.append(
-        ui_config['categorical'][d_item]['key'])
-
-
-keys_dict = {**ui_config['categorical'], **ui_config['numerical']}
 
 task_queue = Queue()
 processing = DataProcessing(ui_config, task_queue)
@@ -136,39 +123,10 @@ for r, d, f in os.walk('./data/'+test_cases[0]):
             data_files.append(file)
     break
 
-graph_3d_params = {
-    'x_det_key': keys_dict[
-        ui_config['graph_3d_detections']['default_x']
-    ]['key'],
-    'y_det_key': keys_dict[
-        ui_config['graph_3d_detections']['default_y']
-    ]['key'],
-    'z_det_key': keys_dict[
-        ui_config['graph_3d_detections']['default_z']
-    ]['key'],
-    'x_host_key': ui_config['host'][
-        ui_config['graph_3d_host']['default_x']
-    ]['key'],
-    'y_host_key': ui_config['host'][
-        ui_config['graph_3d_host']['default_y']
-    ]['key'],
-    'x_range': [0, 0],
-    'y_range': [0, 0],
-    'z_range': [0, 0],
-    'c_range': [0, 0],
-    'color_key': keys_dict[
-        ui_config['graph_3d_detections']['default_color']
-    ]['key'],
-    'color_label': keys_dict[
-        ui_config['graph_3d_detections']['default_color']
-    ]['description'],
-    'db': False,
-}
-
 app.layout = html.Div([
     dcc.Store(id='config'),
     dcc.Store(id='keys-dict'),
-    dcc.Store(id='scatter3d-params', data=graph_3d_params),
+    dcc.Store(id='scatter3d-params'),
     dcc.Store(id='num-key-list'),
     dcc.Store(id='cat-key-list'),
     dcc.Store(id='cat-key-values'),
@@ -326,13 +284,6 @@ app.layout = html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
                         id='x-scatter2d-left',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                                keys_dict)],
-                        value=ui_config['graph_2d_left']['default_x'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -340,13 +291,6 @@ app.layout = html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
                         id='y-scatter2d-left',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                                keys_dict)],
-                        value=ui_config['graph_2d_left']['default_y'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -354,13 +298,6 @@ app.layout = html.Div([
                     html.Label('color'),
                     dcc.Dropdown(
                         id='color-scatter2d-left',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                                keys_dict)],
-                        value=ui_config['graph_2d_left']['default_color'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -423,13 +360,6 @@ app.layout = html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
                         id='x-scatter2d-right',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                                keys_dict)],
-                        value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -437,13 +367,6 @@ app.layout = html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
                         id='y-scatter2d-right',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                                keys_dict)],
-                        value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -451,13 +374,6 @@ app.layout = html.Div([
                     html.Label('color'),
                     dcc.Dropdown(
                         id='color-scatter2d-right',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                                keys_dict)],
-                        value=ui_config['graph_2d_right']['default_color'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -519,13 +435,6 @@ app.layout = html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
                         id='x-histogram',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                            keys_dict)],
-                        value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -601,13 +510,6 @@ app.layout = html.Div([
                     html.Label('x-axis'),
                     dcc.Dropdown(
                         id='x-heatmap',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                            keys_dict)],
-                        value=ui_config['graph_2d_right']['default_x'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -615,13 +517,6 @@ app.layout = html.Div([
                     html.Label('y-axis'),
                     dcc.Dropdown(
                         id='y-heatmap',
-                        options=[{
-                            'label': keys_dict[f_item]['description'],
-                            'value': f_item
-                        }
-                            for idx, f_item in enumerate(
-                            keys_dict)],
-                        value=ui_config['graph_2d_right']['default_y'],
                         disabled=True
                     ),
                 ], className='one-third column'),
@@ -677,6 +572,27 @@ app.layout = html.Div([
         Output('keys-dict', 'data'),
         Output('num-key-list', 'data'),
         Output('cat-key-list', 'data'),
+        Output('scatter3d-params', 'data'),
+        Output('color-picker-3d', 'options'),
+        Output('color-picker-3d', 'value'),
+        Output('x-scatter2d-left', 'options'),
+        Output('x-scatter2d-left', 'value'),
+        Output('y-scatter2d-left', 'options'),
+        Output('y-scatter2d-left', 'value'),
+        Output('color-scatter2d-left', 'options'),
+        Output('color-scatter2d-left', 'value'),
+        Output('x-scatter2d-right', 'options'),
+        Output('x-scatter2d-right', 'value'),
+        Output('y-scatter2d-right', 'options'),
+        Output('y-scatter2d-right', 'value'),
+        Output('color-scatter2d-right', 'options'),
+        Output('color-scatter2d-right', 'value'),
+        Output('x-histogram', 'options'),
+        Output('x-histogram', 'value'),
+        Output('x-heatmap', 'options'),
+        Output('x-heatmap', 'value'),
+        Output('y-heatmap', 'options'),
+        Output('y-heatmap', 'value'),
     ],
     [
         Input('test-case', 'value')
@@ -707,13 +623,72 @@ def test_case_selection(test_case):
 
         keys_dict = {**ui_config['categorical'], **ui_config['numerical']}
 
+        scatter3d_params = {
+            'x_det_key': keys_dict[
+                ui_config['graph_3d_detections']['default_x']
+            ]['key'],
+            'y_det_key': keys_dict[
+                ui_config['graph_3d_detections']['default_y']
+            ]['key'],
+            'z_det_key': keys_dict[
+                ui_config['graph_3d_detections']['default_z']
+            ]['key'],
+            'x_host_key': ui_config['host'][
+                ui_config['graph_3d_host']['default_x']
+            ]['key'],
+            'y_host_key': ui_config['host'][
+                ui_config['graph_3d_host']['default_y']
+            ]['key'],
+        }
+
+        options = [{
+            'label': keys_dict[f_item]['description'],
+            'value': f_item
+        }
+            for idx, f_item in enumerate(
+            keys_dict)]
+
+        x_left_value = ui_config['graph_2d_left']['default_x']
+        y_left_value = ui_config['graph_2d_left']['default_y']
+        color_left_value = ui_config['graph_2d_left']['default_color']
+
+        x_right_value = ui_config['graph_2d_right']['default_x']
+        y_right_value = ui_config['graph_2d_right']['default_y']
+        color_right_value = ui_config['graph_2d_right']['default_color']
+
+        x_histogram = ui_config['histogram']['default_x']
+
+        x_heatmap = ui_config['heatmap']['default_x']
+        y_heatmap = ui_config['heatmap']['default_y']
+
         return [
             data_files[0],
             [{'label': i, 'value': i} for i in data_files],
             ui_config,
             keys_dict,
             num_keys,
-            cat_keys
+            cat_keys,
+            scatter3d_params,
+            options,
+            ui_config['graph_3d_detections']['default_color'],
+            options,
+            x_left_value,
+            options,
+            y_left_value,
+            options,
+            color_left_value,
+            options,
+            x_right_value,
+            options,
+            y_right_value,
+            options,
+            color_right_value,
+            options,
+            x_histogram,
+            options,
+            x_heatmap,
+            options,
+            y_heatmap
         ]
     else:
         raise PreventUpdate
@@ -722,14 +697,13 @@ def test_case_selection(test_case):
 @ app.callback(
     play_bar_callback_output +
     [
-        Output('color-picker-3d', 'value'),
         Output('left-switch', 'on'),
         Output('right-switch', 'on'),
         Output('histogram-switch', 'on'),
         Output('heat-switch', 'on'),
         Output('dropdown-container', 'children'),
         Output('slider-container', 'children'),
-        Output('color-picker-3d', 'options'),
+        # Output('scatter3d-layout', 'data'),
     ],
     [
         Input('data-file', 'value')
@@ -748,7 +722,7 @@ def data_file_selection(
         num_keys,
         cat_keys,
         keys_dict,
-        graph_3d_params,
+        scatter3d_params,
         ui_config,
 ):
     if data_file_name is not None and test_case is not None:
@@ -758,30 +732,44 @@ def data_file_selection(
         new_data['_IDS_'] = new_data.index
         new_data['Visibility'] = 'visible'
 
-        x_det = graph_3d_params['x_det_key']
-        x_host = graph_3d_params['x_host_key']
-        y_det = graph_3d_params['y_det_key']
-        y_host = graph_3d_params['y_host_key']
-        z_det = graph_3d_params['z_det_key']
-        color_key = graph_3d_params['color_key']
+        x_det = scatter3d_params['x_det_key']
+        x_host = scatter3d_params['x_host_key']
+        y_det = scatter3d_params['y_det_key']
+        y_host = scatter3d_params['y_host_key']
+        z_det = scatter3d_params['z_det_key']
 
-        graph_3d_params['x_range'] = [
-            np.min([np.min(new_data[x_det]),
-                    np.min(new_data[x_host])]),
-            np.max([np.max(new_data[x_det]),
-                    np.max(new_data[x_host])])]
-        graph_3d_params['y_range'] = [
-            np.min([np.min(new_data[y_det]),
-                    np.min(new_data[y_host])]),
-            np.max([np.max(new_data[y_det]),
-                    np.max(new_data[y_host])])]
-        graph_3d_params['z_range'] = [
-            np.min(new_data[z_det]),
-            np.max(new_data[z_det])]
-        graph_3d_params['c_range'] = [
-            np.min(new_data[color_key]),
-            np.max(new_data[color_key])
-        ]
+        color_key = keys_dict[
+            ui_config['graph_3d_detections']['default_color']
+        ]['key']
+        color_label = keys_dict[
+            ui_config['graph_3d_detections']['default_color']
+        ]['description']
+
+        scatter3d_layout = dict(
+            x_range=[
+                np.min([np.min(new_data[x_det]),
+                        np.min(new_data[x_host])]),
+                np.max([np.max(new_data[x_det]),
+                        np.max(new_data[x_host])])],
+            y_range=[
+                np.min([np.min(new_data[y_det]),
+                        np.min(new_data[y_host])]),
+                np.max([np.max(new_data[y_det]),
+                        np.max(new_data[y_host])])],
+            z_range=[
+                np.min(new_data[z_det]),
+                np.max(new_data[z_det])],
+            c_range=[
+                np.min(new_data[color_key]),
+                np.max(new_data[color_key])
+            ],
+            color_key=keys_dict[
+                ui_config['graph_3d_detections']['default_color']
+            ]['key'],
+            color_label=keys_dict[
+                ui_config['graph_3d_detections']['default_color']
+            ]['description'],
+        )
 
         frame_idx = new_data[
             keys_dict
@@ -843,7 +831,6 @@ def data_file_selection(
 
             num_values.append([var_min, var_max])
 
-        output.append(ui_config['graph_3d_detections']['default_color'])
         output.append(False)
         output.append(False)
         output.append(False)
@@ -851,15 +838,7 @@ def data_file_selection(
 
         output.append(new_dropdown)
         output.append(new_slider)
-
-        output.append(
-            [{
-                'label': keys_dict[f_item]['description'],
-                'value': f_item
-            }
-                for idx, f_item in enumerate(
-                keys_dict)]
-        )
+        # output.append(scatter3d_layout)
 
         task_queue.put_nowait(
             {
@@ -869,7 +848,8 @@ def data_file_selection(
                 'num_values': num_values,
                 'cat_keys': cat_keys,
                 'cat_values': cat_values,
-                'graph_params': graph_3d_params,
+                'graph_params': scatter3d_params,
+                'graph_layout': scatter3d_layout,
             }
         )
 
@@ -884,7 +864,6 @@ def data_file_selection(
         Output('filter-trigger', 'children'),
         Output('cat-key-values', 'data'),
         Output('num-key-values', 'data'),
-        Output('scatter3d-params', 'data'),
     ],
     [
         Input('slider-frame', 'value'),
@@ -918,7 +897,7 @@ def update_filter(
     cat_keys,
     trigger_idx,
     ui_config,
-    graph_3d_params
+    scatter3d_params
 ):
     global task_queue
 
@@ -932,11 +911,11 @@ def update_filter(
     slider_label = keys_dict[ui_config['slider']
                              ]['description']
 
-    x_det = graph_3d_params['x_det_key']
-    x_host = graph_3d_params['x_host_key']
-    y_det = graph_3d_params['y_det_key']
-    y_host = graph_3d_params['y_host_key']
-    z_det = graph_3d_params['z_det_key']
+    x_det = scatter3d_params['x_det_key']
+    x_host = scatter3d_params['x_host_key']
+    y_det = scatter3d_params['y_det_key']
+    y_host = scatter3d_params['y_host_key']
+    z_det = scatter3d_params['z_det_key']
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
@@ -954,12 +933,14 @@ def update_filter(
         np.max(processing.data[color_key])
     ]
 
-    graph_3d_params['x_range'] = x_range
-    graph_3d_params['y_range'] = y_range
-    graph_3d_params['z_range'] = z_range
-    graph_3d_params['color_key'] = color_key
-    graph_3d_params['color_label'] = color_label
-    graph_3d_params['c_range'] = c_range
+    scatter3d_layout = dict(
+        x_range=x_range,
+        y_range=y_range,
+        z_range=z_range,
+        c_range=c_range,
+        color_key=color_key,
+        color_label=color_label,
+    )
 
     if trigger_id == 'slider-frame' and not overlay_sw:
         if processing.get_frame_ready_index() >= slider_arg:
@@ -980,7 +961,8 @@ def update_filter(
             )
             fig = scatter3d_data(
                 filterd_frame,
-                graph_3d_params,
+                scatter3d_params,
+                scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
@@ -1013,13 +995,14 @@ def update_filter(
                     'num_keys': num_keys,
                     'cat_values': categorical_key_values,
                     'num_values': numerical_key_values,
-                    'graph_params': graph_3d_params,
+                    'graph_params': scatter3d_params,
                 }
             )
 
             fig = fig = scatter3d_data(
                 filterd_frame,
-                graph_3d_params,
+                scatter3d_params,
+                scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
@@ -1041,7 +1024,8 @@ def update_filter(
 
             processing.fig_list[slider_arg] = scatter3d_data(
                 filterd_frame,
-                graph_3d_params,
+                scatter3d_params,
+                scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
@@ -1061,7 +1045,8 @@ def update_filter(
 
             fig = scatter3d_data(
                 filterd_frame,
-                graph_3d_params,
+                scatter3d_params,
+                scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
@@ -1087,7 +1072,8 @@ def update_filter(
 
             fig = scatter3d_data(
                 filterd_frame,
-                graph_3d_params,
+                scatter3d_params,
+                scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
@@ -1104,7 +1090,8 @@ def update_filter(
                     'num_keys': num_keys,
                     'cat_values': categorical_key_values,
                     'num_values': numerical_key_values,
-                    'graph_params': graph_3d_params,
+                    'graph_params': scatter3d_params,
+                    'graph_layout': scatter3d_layout,
                 }
             )
 
@@ -1135,7 +1122,8 @@ def update_filter(
                 )
             fig = scatter3d_data(
                 filterd_frame,
-                graph_3d_params,
+                scatter3d_params,
+                scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
@@ -1147,7 +1135,8 @@ def update_filter(
             filter_trig,
             categorical_key_values,
             numerical_key_values,
-            graph_3d_params]
+            # scatter3d_params
+            ]
 
 
 @ app.callback(
@@ -1456,12 +1445,11 @@ def update_heatmap(
     categorical_key_values,
     numerical_key_values
 ):
-    x_key = keys_dict[x_heat]['key']
-    x_label = keys_dict[x_heat]['description']
-    y_key = keys_dict[y_heat]['key']
-    y_label = keys_dict[y_heat]['description']
-
     if heat_sw:
+        x_key = keys_dict[x_heat]['key']
+        x_label = keys_dict[x_heat]['description']
+        y_key = keys_dict[y_heat]['key']
+        y_label = keys_dict[y_heat]['description']
         if processing.is_filtering_ready():
             heat_fig = get_heatmap(
                 processing.get_filtered_data(),
@@ -1592,7 +1580,7 @@ def left_hide_button(
     numerical_key_values,
     selectedData,
     trigger_idx,
-    graph_3d_params
+    scatter3d_params
 ):
     if btn > 0 and selectedData is not None:
         s_data = pd.DataFrame(selectedData['points'])

@@ -134,5 +134,12 @@
         "default_x": "range",
         "default_y": "elevation",
         "default_color": "frame"
+    },
+    "histogram":{
+        "default_x": "range"
+    },
+    "heatmap":{
+        "default_x": "range",
+        "default_y": "elevation"
     }
 }

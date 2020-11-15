@@ -96,6 +96,7 @@ class DataProcessing(Thread):
         self.is_locked = True
 
         self.graph_params = dict()
+        self.graph_layout = dict()
 
     def load_data(self, data):
         self.is_locked = True
@@ -145,6 +146,7 @@ class DataProcessing(Thread):
                 self.frame_ready_index = -1
 
                 self.graph_params = work.get('graph_params', self.graph_params)
+                self.graph_layout = work.get('graph_layout', self.graph_layout)
 
                 self.filtered_table = self.data
                 for filter_idx, filter_name in enumerate(num_keys):
@@ -187,8 +189,8 @@ class DataProcessing(Thread):
                                     x_key=self.graph_params['x_det_key'],
                                     y_key=self.graph_params['y_det_key'],
                                     z_key=self.graph_params['z_det_key'],
-                                    color_key=self.graph_params['color_key'],
-                                    color_label=self.graph_params['color_label'],
+                                    color_key=self.graph_layout['color_key'],
+                                    color_label=self.graph_layout['color_label'],
                                     name='Index: ' +
                                     str(idx) + ' (' +
                                     self.config['numerical'][
@@ -198,8 +200,7 @@ class DataProcessing(Thread):
                                         **self.config['numerical'],
                                         **self.config['categorical']
                                     },
-                                    c_range=self.graph_params['c_range'],
-                                    db=self.graph_params['db']
+                                    c_range=self.graph_layout['c_range']
                                 ),
                                 get_host_data(
                                     det_list=filtered_list,
@@ -208,9 +209,9 @@ class DataProcessing(Thread):
                                 )
                             ],
                             layout=get_figure_layout(
-                                x_range=self.graph_params['x_range'],
-                                y_range=self.graph_params['y_range'],
-                                z_range=self.graph_params['z_range'])
+                                x_range=self.graph_layout['x_range'],
+                                y_range=self.graph_layout['y_range'],
+                                z_range=self.graph_layout['z_range'])
                         )
                         )
 
