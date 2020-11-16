@@ -96,10 +96,8 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
 
-ui_config = load_config('ui.json')
-
 task_queue = Queue()
-processing = DataProcessing(ui_config, task_queue)
+processing = DataProcessing(task_queue)
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
@@ -581,7 +579,7 @@ def test_case_selection(test_case):
         if os.path.exists('./data/'+test_case+'/config.json'):
             ui_config = load_config('./data/'+test_case+'/config.json')
         else:
-            ui_config = load_config('ui.json')
+            ui_config = load_config('config.json')
 
         num_keys = []
         for idx, s_item in enumerate(ui_config['numerical']):
@@ -813,6 +811,7 @@ def data_file_selection(
                 'cat_values': cat_values,
                 'graph_params': scatter3d_params,
                 'graph_layout': scatter3d_layout,
+                'config': ui_config
             }
         )
 
@@ -960,6 +959,7 @@ def update_filter(
                     'cat_values': categorical_key_values,
                     'num_values': numerical_key_values,
                     'graph_params': scatter3d_params,
+                    'config': ui_config
                 }
             )
 
@@ -1056,6 +1056,7 @@ def update_filter(
                     'num_values': numerical_key_values,
                     'graph_params': scatter3d_params,
                     'graph_layout': scatter3d_layout,
+                    'config': ui_config
                 }
             )
 
@@ -1534,6 +1535,7 @@ def select_left_figure(selectedData):
         State('selected-data-left', 'data'),
         State('left-hide-trigger', 'children'),
         State('scatter3d-params', 'data'),
+        State('config', 'data'),
     ]
 )
 def left_hide_button(
@@ -1545,7 +1547,8 @@ def left_hide_button(
     numerical_key_values,
     selectedData,
     trigger_idx,
-    scatter3d_params
+    scatter3d_params,
+    ui_config
 ):
     if btn > 0 and selectedData is not None:
         s_data = pd.DataFrame(selectedData['points'])
@@ -1566,6 +1569,7 @@ def left_hide_button(
                 'num_keys': num_keys,
                 'cat_values': categorical_key_values,
                 'num_values': numerical_key_values,
+                'config': ui_config
             }
         )
 

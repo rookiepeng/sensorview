@@ -73,10 +73,10 @@ def filter_all(
 
 
 class DataProcessing(Thread):
-    def __init__(self, config, task_queue):
+    def __init__(self, task_queue):
         Thread.__init__(self)
 
-        self.config = config
+        self.config = dict()
 
         self.data = pd.DataFrame()
 
@@ -131,6 +131,9 @@ class DataProcessing(Thread):
             if work['trigger'] == 'filter':
                 # print('start filtering')
                 self.filtering_ready = False
+
+                self.config = work['config']
+
                 new_data = work.get('data', None)
                 if new_data is not None:
                     self.load_data(new_data)
