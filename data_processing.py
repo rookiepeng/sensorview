@@ -104,7 +104,6 @@ class DataProcessing(Thread):
         self.frame_idx = self.data[
             self.config['numerical']
             [self.config['slider']]['key']].unique()
-
         self.is_locked = False
 
     def is_filtering_ready(self):
