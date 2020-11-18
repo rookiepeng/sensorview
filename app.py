@@ -848,7 +848,7 @@ def update_filter(
     ui_config,
     scatter3d_params
 ):
-    global task_queue
+    global processing
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -867,8 +867,8 @@ def update_filter(
     z_det = scatter3d_params['z_det_key']
 
     data = processing.get_data()
-    if data is None:
-        print('data is None')
+
+    print(data)
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
