@@ -906,6 +906,7 @@ def update_filter(
 
     if trigger_id == 'slider-frame' and not overlay_sw:
         if processing.get_frame_ready_index() >= slider_arg:
+            # print('from processing')
             fig = processing.get_frame(slider_arg)
             filter_trig = dash.no_update
         else:
@@ -1582,4 +1583,5 @@ def left_hide_button(
 if __name__ == '__main__':
 
     processing.start()
-    app.run_server(debug=True, threaded=True, processes=1, host='0.0.0.0')
+    # app.run_server(debug=False, threaded=True, processes=1, host='0.0.0.0')
+    app.run_server(debug=False, threaded=True, processes=2, host='0.0.0.0', port=8000)
