@@ -801,20 +801,10 @@ def data_file_selection(
         output.append(new_dropdown)
         output.append(new_slider)
 
-        processing.frame_ready_index = -1
-        task_queue.put_nowait(
-            {
-                'trigger': 'filter',
-                'data': new_data,
-                'num_keys': num_keys,
-                'num_values': num_values,
-                'cat_keys': cat_keys,
-                'cat_values': cat_values,
-                'graph_params': scatter3d_params,
-                'graph_layout': scatter3d_layout,
-                'config': ui_config
-            }
-        )
+        processing.data = new_data
+        processing.frame_idx = new_data[
+            ui_config['numerical']
+            [ui_config['slider']]['key']].unique()
 
         return output
     else:
@@ -906,32 +896,27 @@ def update_filter(
     )
 
     if trigger_id == 'slider-frame' and not overlay_sw:
-        if processing.get_frame_ready_index() >= slider_arg:
-            print('from processing')
-            fig = processing.get_frame(slider_arg)
-            filter_trig = dash.no_update
-        else:
-            filterd_frame = processing.data[
-                processing.data[slider_key] == processing.frame_idx[slider_arg]
-            ]
-            filterd_frame = filterd_frame.reset_index()
+        filterd_frame = processing.data[
+            processing.data[slider_key] == processing.frame_idx[slider_arg]
+        ]
+        filterd_frame = filterd_frame.reset_index()
 
-            filterd_frame = filter_all(
-                filterd_frame,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values
-            )
-            fig = scatter3d_data(
-                filterd_frame,
-                scatter3d_params,
-                scatter3d_layout,
-                keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
-            )
+        filterd_frame = filter_all(
+            filterd_frame,
+            num_keys,
+            numerical_key_values,
+            cat_keys,
+            categorical_key_values
+        )
+        fig = scatter3d_data(
+            filterd_frame,
+            scatter3d_params,
+            scatter3d_layout,
+            keys_dict,
+            'Index: ' + str(slider_arg) + ' (' + slider_label+')'
+        )
 
-            filter_trig = dash.no_update
+        filter_trig = dash.no_update
 
     elif trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
@@ -951,18 +936,6 @@ def update_filter(
                 numerical_key_values,
                 cat_keys,
                 categorical_key_values
-            )
-
-            task_queue.put_nowait(
-                {
-                    'trigger': 'filter',
-                    'cat_keys': cat_keys,
-                    'num_keys': num_keys,
-                    'cat_values': categorical_key_values,
-                    'num_values': numerical_key_values,
-                    'graph_params': scatter3d_params,
-                    'config': ui_config
-                }
             )
 
             fig = scatter3d_data(
@@ -988,14 +961,13 @@ def update_filter(
                 categorical_key_values
             )
 
-            processing.fig_list[slider_arg] = scatter3d_data(
+            fig = scatter3d_data(
                 filterd_frame,
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
-            fig = processing.fig_list[slider_arg]
             filter_trig = trigger_idx+1
 
     elif trigger_id == 'left-hide-trigger':
@@ -1047,20 +1019,6 @@ def update_filter(
 
     else:
         if None not in categorical_key_values:
-
-            processing.filtering_ready = False
-            task_queue.put_nowait(
-                {
-                    'trigger': 'filter',
-                    'cat_keys': cat_keys,
-                    'num_keys': num_keys,
-                    'cat_values': categorical_key_values,
-                    'num_values': numerical_key_values,
-                    'graph_params': scatter3d_params,
-                    'graph_layout': scatter3d_layout,
-                    'config': ui_config
-                }
-            )
 
             if overlay_sw:
                 filterd_frame = filter_all(
@@ -1152,36 +1110,24 @@ def update_left_graph(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if left_sw:
-        if processing.is_filtering_ready() and \
-            trigger_id != 'filter-trigger' and \
-                trigger_id != 'left-hide-trigger':
-            left_fig = get_2d_scatter(
-                processing.get_filtered_data(),
-                x_key,
-                y_key,
-                color_key,
-                x_label,
-                y_label,
-                color_label
-            )
-        else:
-            filtered_table = filter_all(
-                processing.data,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values
-            )
 
-            left_fig = get_2d_scatter(
-                filtered_table,
-                x_key,
-                y_key,
-                color_key,
-                x_label,
-                y_label,
-                color_label
-            )
+        filtered_table = filter_all(
+            processing.data,
+            num_keys,
+            numerical_key_values,
+            cat_keys,
+            categorical_key_values
+        )
+
+        left_fig = get_2d_scatter(
+            filtered_table,
+            x_key,
+            y_key,
+            color_key,
+            x_label,
+            y_label,
+            color_label
+        )
         left_x_disabled = False
         left_y_disabled = False
         left_color_disabled = False
@@ -1249,34 +1195,23 @@ def update_right_graph(
     color_label = keys_dict[color_right]['description']
 
     if right_sw:
-        if processing.is_filtering_ready():
-            right_fig = get_2d_scatter(
-                processing.get_filtered_data(),
-                x_key,
-                y_key,
-                color_key,
-                x_label,
-                y_label,
-                color_label
-            )
-        else:
-            filtered_table = filter_all(
-                processing.data,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values
-            )
+        filtered_table = filter_all(
+            processing.data,
+            num_keys,
+            numerical_key_values,
+            cat_keys,
+            categorical_key_values
+        )
 
-            right_fig = get_2d_scatter(
-                filtered_table,
-                x_key,
-                y_key,
-                color_key,
-                x_label,
-                y_label,
-                color_label
-            )
+        right_fig = get_2d_scatter(
+            filtered_table,
+            x_key,
+            y_key,
+            color_key,
+            x_label,
+            y_label,
+            color_label
+        )
         right_x_disabled = False
         right_y_disabled = False
         right_color_disabled = False
@@ -1339,28 +1274,20 @@ def update_histogram(
     y_key = y_histogram
 
     if histogram_sw:
-        if processing.is_filtering_ready():
-            histogram_fig = get_histogram(
-                processing.get_filtered_data(),
-                x_key,
-                x_label,
-                y_key
-            )
-        else:
-            filtered_table = filter_all(
-                processing.data,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values
-            )
+        filtered_table = filter_all(
+            processing.data,
+            num_keys,
+            numerical_key_values,
+            cat_keys,
+            categorical_key_values
+        )
 
-            histogram_fig = get_histogram(
-                filtered_table,
-                x_key,
-                x_label,
-                y_key
-            )
+        histogram_fig = get_histogram(
+            filtered_table,
+            x_key,
+            x_label,
+            y_key
+        )
         histogram_x_disabled = False
         histogram_y_disabled = False
     else:
@@ -1418,30 +1345,23 @@ def update_heatmap(
         x_label = keys_dict[x_heat]['description']
         y_key = keys_dict[y_heat]['key']
         y_label = keys_dict[y_heat]['description']
-        if processing.is_filtering_ready():
-            heat_fig = get_heatmap(
-                processing.get_filtered_data(),
-                x_key,
-                y_key,
-                x_label,
-                y_label,
-            )
-        else:
-            filtered_table = filter_all(
-                processing.data,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values
-            )
+        # if processing.is_filtering_ready():
 
-            heat_fig = get_heatmap(
-                filtered_table,
-                x_key,
-                y_key,
-                x_label,
-                y_label,
-            )
+        filtered_table = filter_all(
+            processing.data,
+            num_keys,
+            numerical_key_values,
+            cat_keys,
+            categorical_key_values
+        )
+
+        heat_fig = get_heatmap(
+            filtered_table,
+            x_key,
+            y_key,
+            x_label,
+            y_label,
+        )
         heat_x_disabled = False
         heat_y_disabled = False
     else:
@@ -1563,18 +1483,6 @@ def left_hide_button(
         processing.data.loc[vis_idx, 'Visibility'] = 'hidden'
         processing.data.loc[hid_idx, 'Visibility'] = 'visible'
 
-        processing.filtering_ready = False
-        task_queue.put_nowait(
-            {
-                'trigger': 'filter',
-                'cat_keys': cat_keys,
-                'num_keys': num_keys,
-                'cat_values': categorical_key_values,
-                'num_values': numerical_key_values,
-                'config': ui_config
-            }
-        )
-
         return trigger_idx+1
 
     else:
@@ -1583,6 +1491,4 @@ def left_hide_button(
 
 if __name__ == '__main__':
 
-    processing.start()
     app.run_server(debug=True, threaded=True, processes=1, host='0.0.0.0')
-    # app.run_server(debug=False, threaded=True, processes=1, host='0.0.0.0', port=8000)
