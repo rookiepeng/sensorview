@@ -152,7 +152,6 @@ class DataProcessing(Thread):
 
                 self.filtered_table = self.data
 
-                
                 for filter_idx, filter_name in enumerate(num_keys):
                     self.filtered_table = filter_range(
                         self.filtered_table,
@@ -164,7 +163,7 @@ class DataProcessing(Thread):
                         skip_filter = True
                         self.frame_ready_index = -1
                         break
-                
+
                 for filter_idx, filter_name in enumerate(cat_keys):
                     self.filtered_table = filter_picker(
                         self.filtered_table,
