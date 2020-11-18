@@ -867,6 +867,8 @@ def update_filter(
     z_det = scatter3d_params['z_det_key']
 
     data = processing.data
+    if data is None:
+        print('data is None')
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
