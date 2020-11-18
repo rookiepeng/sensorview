@@ -1584,4 +1584,4 @@ if __name__ == '__main__':
 
     processing.start()
     # app.run_server(debug=False, threaded=True, processes=1, host='0.0.0.0')
-    app.run_server(debug=False, threaded=True, processes=2, host='0.0.0.0', port=8000)
+    app.run_server(debug=False, threaded=False, processes=2, host='0.0.0.0', port=8000)
