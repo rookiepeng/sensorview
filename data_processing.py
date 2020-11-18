@@ -128,7 +128,7 @@ class DataProcessing(Thread):
             work = self.task_queue.get()
 
             if work['trigger'] == 'filter':
-                # print('start filtering')
+                print('start filtering')
                 self.filtering_ready = False
 
                 self.config = work['config']
@@ -151,6 +151,8 @@ class DataProcessing(Thread):
                 self.graph_layout = work.get('graph_layout', self.graph_layout)
 
                 self.filtered_table = self.data
+
+                
                 for filter_idx, filter_name in enumerate(num_keys):
                     self.filtered_table = filter_range(
                         self.filtered_table,
@@ -162,7 +164,7 @@ class DataProcessing(Thread):
                         skip_filter = True
                         self.frame_ready_index = -1
                         break
-
+                
                 for filter_idx, filter_name in enumerate(cat_keys):
                     self.filtered_table = filter_picker(
                         self.filtered_table,
@@ -174,7 +176,7 @@ class DataProcessing(Thread):
                         skip_filter = True
                         self.frame_ready_index = -1
                         break
-
+                # print(self.filtered_table)
                 if not skip_filter:
                     # print('filtering done')
                     self.filtering_ready = True
@@ -185,6 +187,7 @@ class DataProcessing(Thread):
                             self.filtered_table['Frame'] == frame
                         ]
                         filtered_list = filtered_list.reset_index()
+                        # print(self.filtered_table)
 
                         self.fig_list.append(dict(
                             data=[
@@ -220,6 +223,7 @@ class DataProcessing(Thread):
                         )
 
                         self.frame_ready_index = idx
+                        # print(idx)
 
                         if not self.task_queue.empty():
 

@@ -801,6 +801,7 @@ def data_file_selection(
         output.append(new_dropdown)
         output.append(new_slider)
 
+        processing.frame_ready_index = -1
         task_queue.put_nowait(
             {
                 'trigger': 'filter',
@@ -906,7 +907,7 @@ def update_filter(
 
     if trigger_id == 'slider-frame' and not overlay_sw:
         if processing.get_frame_ready_index() >= slider_arg:
-            # print('from processing')
+            print('from processing')
             fig = processing.get_frame(slider_arg)
             filter_trig = dash.no_update
         else:
@@ -964,7 +965,7 @@ def update_filter(
                 }
             )
 
-            fig = fig = scatter3d_data(
+            fig = scatter3d_data(
                 filterd_frame,
                 scatter3d_params,
                 scatter3d_layout,
@@ -1583,5 +1584,5 @@ def left_hide_button(
 if __name__ == '__main__':
 
     processing.start()
-    # app.run_server(debug=False, threaded=True, processes=1, host='0.0.0.0')
-    app.run_server(debug=False, threaded=True, processes=1, host='0.0.0.0', port=8000)
+    app.run_server(debug=True, threaded=True, processes=1, host='0.0.0.0')
+    # app.run_server(debug=False, threaded=True, processes=1, host='0.0.0.0', port=8000)
