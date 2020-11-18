@@ -866,20 +866,22 @@ def update_filter(
     y_host = scatter3d_params['y_host_key']
     z_det = scatter3d_params['z_det_key']
 
+    data = processing.data
+
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
-                np.min(processing.data[x_host])]),
+                np.min(data[x_host])]),
         np.max([numerical_key_values[num_keys.index(x_det)][1],
-                np.max(processing.data[x_host])])]
+                np.max(data[x_host])])]
     y_range = [
         np.min([numerical_key_values[num_keys.index(y_det)][0],
-                np.min(processing.data[y_host])]),
+                np.min(data[y_host])]),
         np.max([numerical_key_values[num_keys.index(y_det)][1],
-                np.max(processing.data[y_host])])]
+                np.max(data[y_host])])]
     z_range = numerical_key_values[num_keys.index(z_det)]
     c_range = [
-        np.min(processing.data[color_key]),
-        np.max(processing.data[color_key])
+        np.min(data[color_key]),
+        np.max(data[color_key])
     ]
 
     scatter3d_layout = dict(
@@ -892,8 +894,8 @@ def update_filter(
     )
 
     if trigger_id == 'slider-frame' and not overlay_sw:
-        filterd_frame = processing.data[
-            processing.data[slider_key] == processing.frame_idx[slider_arg]
+        filterd_frame = data[
+            data[slider_key] == processing.frame_idx[slider_arg]
         ]
         filterd_frame = filterd_frame.reset_index()
 
@@ -916,7 +918,7 @@ def update_filter(
 
     elif trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
-        if processing.data['Visibility'][
+        if data['Visibility'][
             click_data['points'][0]['id']
         ] == 'visible':
             processing.data.at[click_data['points']
