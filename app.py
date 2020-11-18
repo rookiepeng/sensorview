@@ -669,8 +669,6 @@ def test_case_selection(test_case):
     ],
     [
         State('test-case', 'value'),
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State('keys-dict', 'data'),
         State('scatter3d-params', 'data'),
         State('config', 'data'),
@@ -678,8 +676,6 @@ def test_case_selection(test_case):
 def data_file_selection(
         data_file_name,
         test_case,
-        num_keys,
-        cat_keys,
         keys_dict,
         scatter3d_params,
         ui_config,
@@ -1449,28 +1445,14 @@ def select_left_figure(selectedData):
     Output('left-hide-trigger', 'children'),
     [Input('hide-left', 'n_clicks')],
     [
-        State('keys-dict', 'data'),
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
-        State('cat-key-values', 'data'),
-        State('num-key-values', 'data'),
         State('selected-data-left', 'data'),
         State('left-hide-trigger', 'children'),
-        State('scatter3d-params', 'data'),
-        State('config', 'data'),
     ]
 )
 def left_hide_button(
     btn,
-    keys_dict,
-    num_keys,
-    cat_keys,
-    categorical_key_values,
-    numerical_key_values,
     selectedData,
     trigger_idx,
-    scatter3d_params,
-    ui_config
 ):
     if btn > 0 and selectedData is not None:
         s_data = pd.DataFrame(selectedData['points'])
