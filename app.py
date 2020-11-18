@@ -866,7 +866,7 @@ def update_filter(
     y_host = scatter3d_params['y_host_key']
     z_det = scatter3d_params['z_det_key']
 
-    data = processing.data
+    data = processing.get_data()
     if data is None:
         print('data is None')
 

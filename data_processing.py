@@ -121,6 +121,9 @@ class DataProcessing(Thread):
     def get_filtered_data(self):
         # print(self.filtered_table['Visibility'])
         return self.filtered_table
+    
+    def get_data(self):
+        return self.data
 
     def run(self):
         skip_filter = False
