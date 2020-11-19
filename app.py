@@ -1416,8 +1416,13 @@ def export_left_scatter_2d(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+        if not os.path.exists('data/test_case/images'):
+            os.makedirs('data/test_case/images')
+
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/test_case/images/'+timestamp+'_fig_left.png', scale=2)
+        temp_fig.write_image('data/test_case/images/' +
+                             timestamp+'_fig_left.png', scale=2)
     return 0
 
 
@@ -1433,8 +1438,13 @@ def export_right_scatter_2d(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+        if not os.path.exists('data/test_case/images'):
+            os.makedirs('data/test_case/images')
+
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/test_case/images/'+timestamp+'_fig_right.png', scale=2)
+        temp_fig.write_image('data/test_case/images/' +
+                             timestamp+'_fig_right.png', scale=2)
     return 0
 
 
@@ -1450,8 +1460,13 @@ def export_histogram(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+        if not os.path.exists('data/test_case/images'):
+            os.makedirs('data/test_case/images')
+
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/test_case/images/'+timestamp+'_histogram.png', scale=2)
+        temp_fig.write_image('data/test_case/images/' +
+                             timestamp+'_histogram.png', scale=2)
     return 0
 
 
@@ -1467,8 +1482,13 @@ def export_heatmap(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+        if not os.path.exists('data/test_case/images'):
+            os.makedirs('data/test_case/images')
+
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/test_case/images/'+timestamp+'_heatmap.png', scale=2)
+        temp_fig.write_image('data/test_case/images/' +
+                             timestamp+'_heatmap.png', scale=2)
     return 0
 
 
