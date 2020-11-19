@@ -103,7 +103,7 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
 
-redis_instance = redis.StrictRedis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
+redis_instance = redis.StrictRedis.from_url(os.environ.get('REDIS_URL', 'redis://redis:6379'))
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
 REDIS_KEYS = {"DATASET": "DATASET", "FRAME_IDX":"FRAME_IDX"}
