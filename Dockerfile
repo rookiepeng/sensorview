@@ -11,5 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . ./
 
 # Finally, run gunicorn.
-CMD [ "gunicorn", "--workers=5", "--threads=2", "-b 0.0.0.0:8000", "app:server"]
+CMD [ "redis-server", "&&", "gunicorn", "--workers=5", "--threads=2", "-b 0.0.0.0:8000", "app:server"]
 # CMD [ "python", "app.py"]

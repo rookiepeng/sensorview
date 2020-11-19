@@ -31,6 +31,10 @@
 from queue import Queue
 
 import datetime
+import time
+
+import redis
+import pyarrow as pa
 
 from data_processing import filter_all
 from data_processing import DataProcessing
@@ -49,9 +53,12 @@ import pandas as pd
 import os
 import plotly.graph_objs as go
 import plotly.io as pio
+import plotly
 
 from viz.viz import get_figure_data, get_figure_layout, get_host_data
 from viz.viz import get_2d_scatter, get_histogram, get_heatmap
+
+# from flask_caching import Cache
 
 
 def scatter3d_data(det_list, params, layout, keys_dict, name):
@@ -95,6 +102,19 @@ server = app.server
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
+
+# CACHE_CONFIG = {
+#     # try 'filesystem' if you don't want to setup redis
+#     'CACHE_TYPE': 'redis',
+#     'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
+# }
+# cache = Cache()
+# cache.init_app(app.server, config=CACHE_CONFIG)
+
+redis_instance = redis.StrictRedis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
+
+REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
+REDIS_KEYS = {"DATASET": "DATASET", "FRAME_IDX":"FRAME_IDX"}
 
 task_queue = Queue()
 processing = DataProcessing(task_queue)
@@ -534,6 +554,25 @@ app.layout = html.Div([
 ], style={'display': 'flex', 'flex-direction': 'column'},)
 
 
+# @cache.memoize()
+# def global_store(test_case, data_file_name, selectedData=None):
+#     new_data = pd.read_pickle(
+#             './data/'+test_case+'/'+data_file_name)
+
+#     new_data['_IDS_'] = new_data.index
+#     new_data['Visibility'] = 'visible'
+#     # simulate expensive query
+#     print('New data stored')
+#     # time.sleep(5)
+#     return new_data
+
+# @cache.memoize()
+# def global_store(data):
+#     # simulate expensive query
+#     print('Computing value with {}'.format(value))
+#     time.sleep(5)
+#     return data
+
 @ app.callback(
     [
         Output('data-file', 'value'),
@@ -687,6 +726,19 @@ def data_file_selection(
         new_data['_IDS_'] = new_data.index
         new_data['Visibility'] = 'visible'
 
+        context = pa.default_serialization_context()
+        redis_instance.set(
+            REDIS_KEYS["DATASET"],
+            context.serialize(new_data).to_buffer().to_pybytes()
+        )
+        frame_idx = new_data[
+            ui_config['numerical']
+            [ui_config['slider']]['key']].unique()
+        redis_instance.set(
+            REDIS_KEYS["FRAME_IDX"],
+            context.serialize(frame_idx).to_buffer().to_pybytes()
+        )
+
         x_det = scatter3d_params['x_det_key']
         x_host = scatter3d_params['x_host_key']
         y_det = scatter3d_params['y_det_key']
@@ -797,6 +849,7 @@ def data_file_selection(
         output.append(new_dropdown)
         output.append(new_slider)
 
+        
         processing.data = new_data
         processing.frame_idx = new_data[
             ui_config['numerical']
@@ -866,9 +919,16 @@ def update_filter(
     y_host = scatter3d_params['y_host_key']
     z_det = scatter3d_params['z_det_key']
 
-    data = processing.get_data()
+    # data = processing.get_data()
 
-    print(data)
+    print('read dataset')
+    context = pa.default_serialization_context()
+    data = context.deserialize(redis_instance.get("DATASET"))
+    frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"))
+    # print(frame_idx)
+    print('read dataset done')
+
+    # print(data)
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
@@ -897,7 +957,7 @@ def update_filter(
 
     if trigger_id == 'slider-frame' and not overlay_sw:
         filterd_frame = data[
-            data[slider_key] == processing.frame_idx[slider_arg]
+            data[slider_key] == frame_idx[slider_arg]
         ]
         filterd_frame = filterd_frame.reset_index()
 
@@ -948,8 +1008,8 @@ def update_filter(
             filter_trig = trigger_idx+1
 
         else:
-            filterd_frame = processing.data[
-                processing.data[slider_key] == processing.frame_idx[slider_arg]
+            filterd_frame = data[
+                data[slider_key] == frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
@@ -974,7 +1034,7 @@ def update_filter(
 
         if overlay_sw:
             filterd_frame = filter_all(
-                processing.data,
+                data,
                 num_keys,
                 numerical_key_values,
                 cat_keys,
@@ -991,12 +1051,12 @@ def update_filter(
             filter_trig = dash.no_update
 
         else:
-            filterd_frame = processing.data[
-                processing.data[
+            filterd_frame = data[
+                data[
                     ui_config['numerical']
                     [
                         ui_config['slider']
-                    ]['key']] == processing.frame_idx[slider_arg]
+                    ]['key']] == frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
@@ -1022,19 +1082,19 @@ def update_filter(
 
             if overlay_sw:
                 filterd_frame = filter_all(
-                    processing.data,
+                    data,
                     num_keys,
                     numerical_key_values,
                     cat_keys,
                     categorical_key_values
                 )
             else:
-                filterd_frame = processing.data[
-                    processing.data[
+                filterd_frame = data[
+                    data[
                         ui_config['numerical']
                         [
                             ui_config['slider']
-                        ]['key']] == processing.frame_idx[slider_arg]
+                        ]['key']] == frame_idx[slider_arg]
                 ]
                 filterd_frame = filterd_frame.reset_index()
 
