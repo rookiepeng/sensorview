@@ -103,21 +103,13 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
 
-# CACHE_CONFIG = {
-#     # try 'filesystem' if you don't want to setup redis
-#     'CACHE_TYPE': 'redis',
-#     'CACHE_REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379')
-# }
-# cache = Cache()
-# cache.init_app(app.server, config=CACHE_CONFIG)
-
 redis_instance = redis.StrictRedis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
 REDIS_KEYS = {"DATASET": "DATASET", "FRAME_IDX":"FRAME_IDX"}
 
-task_queue = Queue()
-processing = DataProcessing(task_queue)
+# task_queue = Queue()
+# processing = DataProcessing(task_queue)
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
@@ -850,10 +842,10 @@ def data_file_selection(
         output.append(new_slider)
 
         
-        processing.data = new_data
-        processing.frame_idx = new_data[
-            ui_config['numerical']
-            [ui_config['slider']]['key']].unique()
+        # processing.data = new_data
+        # processing.frame_idx = new_data[
+        #     ui_config['numerical']
+        #     [ui_config['slider']]['key']].unique()
 
         return output
     else:
@@ -901,7 +893,7 @@ def update_filter(
     ui_config,
     scatter3d_params
 ):
-    global processing
+    # global processing
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -983,15 +975,21 @@ def update_filter(
         if data['Visibility'][
             click_data['points'][0]['id']
         ] == 'visible':
-            processing.data.at[click_data['points']
+            data.at[click_data['points']
                                [0]['id'], 'Visibility'] = 'hidden'
         else:
-            processing.data.at[click_data['points']
+            data.at[click_data['points']
                                [0]['id'], 'Visibility'] = 'visible'
+
+        context = pa.default_serialization_context()
+        redis_instance.set(
+            REDIS_KEYS["DATASET"],
+            context.serialize(data).to_buffer().to_pybytes()
+        )
 
         if overlay_sw:
             filterd_frame = filter_all(
-                processing.data,
+                data,
                 num_keys,
                 numerical_key_values,
                 cat_keys,
@@ -1170,9 +1168,11 @@ def update_left_graph(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if left_sw:
+        context = pa.default_serialization_context()
+        data = context.deserialize(redis_instance.get("DATASET"))
 
         filtered_table = filter_all(
-            processing.data,
+            data,
             num_keys,
             numerical_key_values,
             cat_keys,
@@ -1255,8 +1255,10 @@ def update_right_graph(
     color_label = keys_dict[color_right]['description']
 
     if right_sw:
+        context = pa.default_serialization_context()
+        data = context.deserialize(redis_instance.get("DATASET"))
         filtered_table = filter_all(
-            processing.data,
+            data,
             num_keys,
             numerical_key_values,
             cat_keys,
@@ -1334,8 +1336,10 @@ def update_histogram(
     y_key = y_histogram
 
     if histogram_sw:
+        context = pa.default_serialization_context()
+        data = context.deserialize(redis_instance.get("DATASET"))
         filtered_table = filter_all(
-            processing.data,
+            data,
             num_keys,
             numerical_key_values,
             cat_keys,
@@ -1406,9 +1410,11 @@ def update_heatmap(
         y_key = keys_dict[y_heat]['key']
         y_label = keys_dict[y_heat]['description']
         # if processing.is_filtering_ready():
+        context = pa.default_serialization_context()
+        data = context.deserialize(redis_instance.get("DATASET"))
 
         filtered_table = filter_all(
-            processing.data,
+            data,
             num_keys,
             numerical_key_values,
             cat_keys,
@@ -1519,15 +1525,23 @@ def left_hide_button(
     trigger_idx,
 ):
     if btn > 0 and selectedData is not None:
+        context = pa.default_serialization_context()
+        data = context.deserialize(redis_instance.get("DATASET"))
+
         s_data = pd.DataFrame(selectedData['points'])
         idx = s_data['id']
         idx.index = idx
 
-        vis_idx = idx[processing.data['Visibility'][idx] == 'visible']
-        hid_idx = idx[processing.data['Visibility'][idx] == 'hidden']
+        vis_idx = idx[data['Visibility'][idx] == 'visible']
+        hid_idx = idx[data['Visibility'][idx] == 'hidden']
 
-        processing.data.loc[vis_idx, 'Visibility'] = 'hidden'
-        processing.data.loc[hid_idx, 'Visibility'] = 'visible'
+        data.loc[vis_idx, 'Visibility'] = 'hidden'
+        data.loc[hid_idx, 'Visibility'] = 'visible'
+
+        redis_instance.set(
+            REDIS_KEYS["DATASET"],
+            context.serialize(data).to_buffer().to_pybytes()
+        )
 
         return trigger_idx+1
 
