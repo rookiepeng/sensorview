@@ -537,25 +537,6 @@ app.layout = html.Div([
 ], style={'display': 'flex', 'flex-direction': 'column'},)
 
 
-# @cache.memoize()
-# def global_store(test_case, data_file_name, selectedData=None):
-#     new_data = pd.read_pickle(
-#             './data/'+test_case+'/'+data_file_name)
-
-#     new_data['_IDS_'] = new_data.index
-#     new_data['Visibility'] = 'visible'
-#     # simulate expensive query
-#     print('New data stored')
-#     # time.sleep(5)
-#     return new_data
-
-# @cache.memoize()
-# def global_store(data):
-#     # simulate expensive query
-#     print('Computing value with {}'.format(value))
-#     time.sleep(5)
-#     return data
-
 @ app.callback(
     [
         Output('data-file', 'value'),
@@ -1426,56 +1407,68 @@ def update_heatmap(
 @ app.callback(
     Output('hidden-scatter2d-left', 'children'),
     Input('export-scatter2d-left', 'n_clicks'),
-    State('scatter2d-left', 'figure')
+    [
+        State('scatter2d-left', 'figure'),
+        State('test-case', 'value')
+    ]
 )
-def export_left_scatter_2d(btn, fig):
+def export_left_scatter_2d(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('images/'+timestamp+'_fig_left.png', scale=2)
+        temp_fig.write_image('data/test_case/images/'+timestamp+'_fig_left.png', scale=2)
     return 0
 
 
 @ app.callback(
     Output('hidden-scatter2d-right', 'children'),
     Input('export-scatter2d-right', 'n_clicks'),
-    State('scatter2d-right', 'figure')
+    [
+        State('scatter2d-right', 'figure'),
+        State('test-case', 'value')
+    ]
 )
-def export_right_scatter_2d(btn, fig):
+def export_right_scatter_2d(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('images/'+timestamp+'_fig_right.png', scale=2)
+        temp_fig.write_image('data/test_case/images/'+timestamp+'_fig_right.png', scale=2)
     return 0
 
 
 @ app.callback(
     Output('hidden-histogram', 'children'),
     Input('export-histogram', 'n_clicks'),
-    State('histogram', 'figure')
+    [
+        State('histogram', 'figure'),
+        State('test-case', 'value')
+    ]
 )
-def export_histogram(btn, fig):
+def export_histogram(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('images/'+timestamp+'_histogram.png', scale=2)
+        temp_fig.write_image('data/test_case/images/'+timestamp+'_histogram.png', scale=2)
     return 0
 
 
 @ app.callback(
     Output('hidden-heatmap', 'children'),
     Input('export-heatmap', 'n_clicks'),
-    State('heatmap', 'figure')
+    [
+        State('heatmap', 'figure'),
+        State('test-case', 'value')
+    ]
 )
-def export_heatmap(btn, fig):
+def export_heatmap(btn, fig, test_case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('images/'+timestamp+'_heatmap.png', scale=2)
+        temp_fig.write_image('data/test_case/images/'+timestamp+'_heatmap.png', scale=2)
     return 0
 
 
