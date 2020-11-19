@@ -6,5 +6,4 @@ numpy
 pandas
 pyarrow
 redis
-psutil
-plotly-orca
+kaleido
