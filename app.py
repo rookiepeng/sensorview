@@ -28,16 +28,12 @@
 """
 
 
-from queue import Queue
-
 import datetime
-import time
 
 import redis
 import pyarrow as pa
 
 from data_processing import filter_all
-from data_processing import DataProcessing
 
 import json
 import os
@@ -53,12 +49,9 @@ import pandas as pd
 import os
 import plotly.graph_objs as go
 import plotly.io as pio
-import plotly
 
 from viz.viz import get_figure_data, get_figure_layout, get_host_data
 from viz.viz import get_2d_scatter, get_histogram, get_heatmap
-
-# from flask_caching import Cache
 
 
 def scatter3d_data(det_list, params, layout, keys_dict, name):
@@ -103,13 +96,11 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
 
-redis_instance = redis.StrictRedis.from_url(os.environ.get('REDIS_URL', 'redis://redis:6379'))
+redis_instance = redis.StrictRedis.from_url(
+    os.environ.get('REDIS_URL', 'redis://redis:6379'))
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
-REDIS_KEYS = {"DATASET": "DATASET", "FRAME_IDX":"FRAME_IDX"}
-
-# task_queue = Queue()
-# processing = DataProcessing(task_queue)
+REDIS_KEYS = {"DATASET": "DATASET", "FRAME_IDX": "FRAME_IDX"}
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
@@ -841,12 +832,6 @@ def data_file_selection(
         output.append(new_dropdown)
         output.append(new_slider)
 
-        
-        # processing.data = new_data
-        # processing.frame_idx = new_data[
-        #     ui_config['numerical']
-        #     [ui_config['slider']]['key']].unique()
-
         return output
     else:
         raise PreventUpdate
@@ -893,8 +878,6 @@ def update_filter(
     ui_config,
     scatter3d_params
 ):
-    # global processing
-
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
@@ -911,16 +894,9 @@ def update_filter(
     y_host = scatter3d_params['y_host_key']
     z_det = scatter3d_params['z_det_key']
 
-    # data = processing.get_data()
-
-    print('read dataset')
     context = pa.default_serialization_context()
     data = context.deserialize(redis_instance.get("DATASET"))
     frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"))
-    # print(frame_idx)
-    print('read dataset done')
-
-    # print(data)
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
@@ -976,10 +952,10 @@ def update_filter(
             click_data['points'][0]['id']
         ] == 'visible':
             data.at[click_data['points']
-                               [0]['id'], 'Visibility'] = 'hidden'
+                    [0]['id'], 'Visibility'] = 'hidden'
         else:
             data.at[click_data['points']
-                               [0]['id'], 'Visibility'] = 'visible'
+                    [0]['id'], 'Visibility'] = 'visible'
 
         context = pa.default_serialization_context()
         redis_instance.set(
