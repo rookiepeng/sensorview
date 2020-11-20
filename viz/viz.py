@@ -63,7 +63,7 @@ def get_figure_data(det_list,
                 hover = hover + hover_dict[key]['description'] + \
                     ': ' + det_list[hover_dict[key]['key']]+'<br>'
 
-        if '_IDS_' in det_list.index:
+        if '_IDS_' in det_list.columns:
             ids = det_list['_IDS_']
         else:
             ids = None
