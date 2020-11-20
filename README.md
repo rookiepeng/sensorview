@@ -4,6 +4,16 @@
 
 A lightweight sensor data visualization and analysis tool.
 
+### Feature
+
+#### 3D View and Filtering
+
+![](./assets/3d.gif)
+
+#### 2D View and Filtering
+
+![](./assets/2d.gif)
+
 ### Screenshot
 
 ![](./assets/screenshot.png)
