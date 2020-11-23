@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the codebase into the image
 COPY . ./
 
+ENV REDIS_URL redis://redis:6379
+
 # Finally, run gunicorn.
 CMD ["gunicorn", "--workers=5", "--threads=2", "-b 0.0.0.0:8000", "app:server"]
 # CMD [ "python", "app.py"]
