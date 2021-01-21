@@ -49,6 +49,7 @@ import pandas as pd
 import os
 import plotly.graph_objs as go
 import plotly.io as pio
+import uuid
 
 from viz.viz import get_figure_data, get_figure_layout, get_host_data
 from viz.viz import get_2d_scatter, get_histogram, get_heatmap
@@ -96,11 +97,14 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
 
+session_id = str(uuid.uuid4())
+
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
-REDIS_KEYS = {"DATASET": "DATASET", "FRAME_IDX": "FRAME_IDX"}
+REDIS_KEYS = {"DATASET": "DATASET"+session_id,
+              "FRAME_IDX": "FRAME_IDX"+session_id}
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
