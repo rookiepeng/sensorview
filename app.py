@@ -97,14 +97,14 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'SensorView'
 
-session_id = str(uuid.uuid4())
+# session_id = str(uuid.uuid4())
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
-REDIS_KEYS = {"DATASET": "DATASET"+session_id,
-              "FRAME_IDX": "FRAME_IDX"+session_id}
+REDIS_KEYS = {"DATASET": "DATASET",
+              "FRAME_IDX": "FRAME_IDX"}
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
@@ -128,6 +128,7 @@ app.layout = html.Div([
     dcc.Store(id='num-key-values'),
     dcc.Store(id='selected-data-left'),
     dcc.Store(id='selected-data-right'),
+    dcc.Store(id='session-id', data=str(uuid.uuid4())),
     html.Div([
         html.Div([
             html.Img(
@@ -679,6 +680,7 @@ def test_case_selection(test_case):
         State('keys-dict', 'data'),
         State('scatter3d-params', 'data'),
         State('config', 'data'),
+        State('session-id', 'data'),
     ])
 def data_file_selection(
         data_file_name,
@@ -686,6 +688,7 @@ def data_file_selection(
         keys_dict,
         scatter3d_params,
         ui_config,
+        session_id
 ):
     if data_file_name is not None and test_case is not None:
         new_data = pd.read_pickle(
@@ -696,14 +699,14 @@ def data_file_selection(
 
         context = pa.default_serialization_context()
         redis_instance.set(
-            REDIS_KEYS["DATASET"],
+            REDIS_KEYS["DATASET"]+session_id,
             context.serialize(new_data).to_buffer().to_pybytes()
         )
         frame_idx = new_data[
             ui_config['numerical']
             [ui_config['slider']]['key']].unique()
         redis_instance.set(
-            REDIS_KEYS["FRAME_IDX"],
+            REDIS_KEYS["FRAME_IDX"]+session_id,
             context.serialize(frame_idx).to_buffer().to_pybytes()
         )
 
@@ -846,6 +849,7 @@ def data_file_selection(
         State('filter-trigger', 'children'),
         State('config', 'data'),
         State('scatter3d-params', 'data'),
+        State('session-id', 'data'),
     ])
 def update_filter(
     slider_arg,
@@ -861,7 +865,8 @@ def update_filter(
     cat_keys,
     trigger_idx,
     ui_config,
-    scatter3d_params
+    scatter3d_params,
+    session_id
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -880,8 +885,8 @@ def update_filter(
     z_det = scatter3d_params['z_det_key']
 
     context = pa.default_serialization_context()
-    data = context.deserialize(redis_instance.get("DATASET"))
-    frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"))
+    data = context.deserialize(redis_instance.get("DATASET"+session_id))
+    frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"+session_id))
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
@@ -944,7 +949,7 @@ def update_filter(
 
         context = pa.default_serialization_context()
         redis_instance.set(
-            REDIS_KEYS["DATASET"],
+            REDIS_KEYS["DATASET"]+session_id,
             context.serialize(data).to_buffer().to_pybytes()
         )
 
@@ -1103,6 +1108,7 @@ def update_filter(
         State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
+        State('session-id', 'data'),
     ]
 )
 def update_left_graph(
@@ -1116,7 +1122,8 @@ def update_left_graph(
     num_keys,
     cat_keys,
     categorical_key_values,
-    numerical_key_values
+    numerical_key_values,
+    session_id
 ):
     x_key = keys_dict[x_left]['key']
     y_key = keys_dict[y_left]['key']
@@ -1130,7 +1137,7 @@ def update_left_graph(
 
     if left_sw:
         context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"))
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
 
         filtered_table = filter_all(
             data,
@@ -1193,6 +1200,7 @@ def update_left_graph(
         State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
+        State('session-id', 'data'),
     ]
 )
 def update_right_graph(
@@ -1206,7 +1214,8 @@ def update_right_graph(
     num_keys,
     cat_keys,
     categorical_key_values,
-    numerical_key_values
+    numerical_key_values,
+    session_id
 ):
     x_key = keys_dict[x_right]['key']
     y_key = keys_dict[y_right]['key']
@@ -1217,7 +1226,7 @@ def update_right_graph(
 
     if right_sw:
         context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"))
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
         filtered_table = filter_all(
             data,
             num_keys,
@@ -1278,6 +1287,7 @@ def update_right_graph(
         State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
+        State('session-id', 'data'),
     ]
 )
 def update_histogram(
@@ -1290,7 +1300,8 @@ def update_histogram(
     num_keys,
     cat_keys,
     categorical_key_values,
-    numerical_key_values
+    numerical_key_values,
+    session_id
 ):
     x_key = keys_dict[x_histogram]['key']
     x_label = keys_dict[x_histogram]['description']
@@ -1298,7 +1309,7 @@ def update_histogram(
 
     if histogram_sw:
         context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"))
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
         filtered_table = filter_all(
             data,
             num_keys,
@@ -1351,6 +1362,7 @@ def update_histogram(
         State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
+        State('session-id', 'data'),
     ]
 )
 def update_heatmap(
@@ -1363,7 +1375,8 @@ def update_heatmap(
     num_keys,
     cat_keys,
     categorical_key_values,
-    numerical_key_values
+    numerical_key_values,
+    session_id
 ):
     if heat_sw:
         x_key = keys_dict[x_heat]['key']
@@ -1372,7 +1385,7 @@ def update_heatmap(
         y_label = keys_dict[y_heat]['description']
         # if processing.is_filtering_ready():
         context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"))
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
 
         filtered_table = filter_all(
             data,
@@ -1510,16 +1523,18 @@ def select_left_figure(selectedData):
     [
         State('selected-data-left', 'data'),
         State('left-hide-trigger', 'children'),
+        State('session-id', 'data'),
     ]
 )
 def left_hide_button(
     btn,
     selectedData,
     trigger_idx,
+    session_id
 ):
     if btn > 0 and selectedData is not None:
         context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"))
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
 
         s_data = pd.DataFrame(selectedData['points'])
         idx = s_data['id']
@@ -1532,7 +1547,7 @@ def left_hide_button(
         data.loc[hid_idx, 'Visibility'] = 'visible'
 
         redis_instance.set(
-            REDIS_KEYS["DATASET"],
+            REDIS_KEYS["DATASET"]+session_id,
             context.serialize(data).to_buffer().to_pybytes()
         )
 
