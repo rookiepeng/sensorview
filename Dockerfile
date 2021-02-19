@@ -13,5 +13,5 @@ COPY . ./
 ENV REDIS_URL redis://redis:6379
 
 # Finally, run gunicorn.
-CMD ["gunicorn", "--workers=5", "--threads=2", "-b 0.0.0.0:8000", "app:server", "--timeout 600"]
+CMD ["gunicorn", "--workers=5", "--threads=2", "--timeout 600", "-b 0.0.0.0:8000", "app:server"]
 # CMD [ "python", "app.py"]

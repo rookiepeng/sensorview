@@ -256,7 +256,10 @@ app.layout = html.Div([
                     html.Button(
                         'Export',
                         id='export-scatter3d',
-                        n_clicks=0),
+                        n_clicks=0,
+                        style={
+                            "horizontalAlign ": "right"
+                        }),
                     html.Div(id='hidden-scatter3d',
                              style={'display': 'none'}),
                 ], className='two columns'),
@@ -1442,10 +1445,23 @@ def update_heatmap(
         State('session-id', 'data'),
         State('keys-dict', 'data'),
         State('color-picker-3d', 'value'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
+        State('cat-key-values', 'data'),
+        State('num-key-values', 'data'),
         State('scatter3d-params', 'data'),
     ]
 )
-def export_scatter_3d(btn, test_case, session_id, keys_dict, color_picker, scatter3d_params):
+def export_scatter_3d(btn,
+                      test_case,
+                      session_id,
+                      keys_dict,
+                      color_picker,
+                      num_keys,
+                      cat_keys,
+                      categorical_key_values,
+                      numerical_key_values,
+                      scatter3d_params):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
@@ -1462,9 +1478,19 @@ def export_scatter_3d(btn, test_case, session_id, keys_dict, color_picker, scatt
         y_host = scatter3d_params['y_host_key']
         z_det = scatter3d_params['z_det_key']
 
+        filtered_table = filter_all(
+            data,
+            num_keys,
+            numerical_key_values,
+            cat_keys,
+            categorical_key_values
+        )
+
+        print('filter done')
+
         fig = go.Figure(
             get_animation_data(
-                data,
+                filtered_table,
                 x_key=x_det,
                 y_key=y_det,
                 z_key=z_det,
@@ -1479,9 +1505,11 @@ def export_scatter_3d(btn, test_case, session_id, keys_dict, color_picker, scatt
             )
         )
 
-        temp_fig = go.Figure(fig)
-        temp_fig.write_html('data/'+test_case+'/images/' +
-                            timestamp+'_3dview.html')
+        print('ani data ready')
+
+        # temp_fig = go.Figure(fig)
+        fig.write_html('data/'+test_case+'/images/' +
+                       timestamp+'_3dview.html')
     return 0
 
 
