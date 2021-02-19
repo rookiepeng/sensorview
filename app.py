@@ -256,7 +256,9 @@ app.layout = html.Div([
                     html.Button(
                         'Export',
                         id='export-scatter3d',
-                        n_clicks=0)
+                        n_clicks=0),
+                    html.Div(id='hidden-scatter3d',
+                             style={'display': 'none'}),
                 ], className='two columns'),
             ], className='row flex-display'),
         ], className='pretty_container nine columns'),
@@ -1430,6 +1432,49 @@ def update_heatmap(
         heat_x_disabled,
         heat_y_disabled,
     ]
+
+
+@ app.callback(
+    Output('hidden-scatter3d', 'children'),
+    Input('export-scatter3d', 'n_clicks'),
+    [
+        State('test-case', 'value'),
+        State('session-id', 'data'),
+        State('keys-dict', 'data'),
+    ]
+)
+def export_scatter_3d(btn, test_case, session_id, keys_dict):
+    if btn > 0:
+        now = datetime.datetime.now()
+        timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+        if not os.path.exists('data/'+test_case+'/images'):
+            os.makedirs('data/'+test_case+'/images')
+
+        context = pa.default_serialization_context()
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
+
+        fig = go.Figure(
+            get_animation_data(
+                data,
+                x_key='Latitude',
+                y_key='Longitude',
+                z_key='Height',
+                host_x_key='HostLatitude',
+                host_y_key='HostLongitude',
+                color_key='RangeRate',
+                hover_dict=keys_dict,
+                db=False,
+                colormap='Rainbow',
+                height=700,
+                title=test_case
+            )
+        )
+
+        temp_fig = go.Figure(fig)
+        temp_fig.write_html('data/'+test_case+'/images/' +
+                            timestamp+'_3dview.html')
+    return 0
 
 
 @ app.callback(
