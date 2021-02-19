@@ -53,6 +53,7 @@ import uuid
 
 from viz.viz import get_figure_data, get_figure_layout, get_host_data
 from viz.viz import get_2d_scatter, get_histogram, get_heatmap
+from viz.viz import get_animation_data
 
 
 def scatter3d_data(det_list, params, layout, keys_dict, name):
@@ -247,7 +248,17 @@ app.layout = html.Div([
                 )], style={'box-sizing': 'border-box',
                            'width': '100%',
                            'display': 'inline-block',
-                           'padding': '2rem 0rem'})
+                           'padding': '2rem 0rem'}),
+            html.Div([
+                html.Div([
+                ], className='nine columns'),
+                html.Div([
+                    html.Button(
+                        'Export',
+                        id='export-scatter3d',
+                        n_clicks=0)
+                ], className='two columns'),
+            ], className='row flex-display'),
         ], className='pretty_container nine columns'),
     ], className='row flex-display rows',
     ),
