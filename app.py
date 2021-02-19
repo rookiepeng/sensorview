@@ -1441,9 +1441,11 @@ def update_heatmap(
         State('test-case', 'value'),
         State('session-id', 'data'),
         State('keys-dict', 'data'),
+        State('color-picker-3d', 'value'),
+        State('scatter3d-params', 'data'),
     ]
 )
-def export_scatter_3d(btn, test_case, session_id, keys_dict):
+def export_scatter_3d(btn, test_case, session_id, keys_dict, color_picker, scatter3d_params):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
@@ -1454,15 +1456,21 @@ def export_scatter_3d(btn, test_case, session_id, keys_dict):
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
 
+        x_det = scatter3d_params['x_det_key']
+        x_host = scatter3d_params['x_host_key']
+        y_det = scatter3d_params['y_det_key']
+        y_host = scatter3d_params['y_host_key']
+        z_det = scatter3d_params['z_det_key']
+
         fig = go.Figure(
             get_animation_data(
                 data,
-                x_key='Latitude',
-                y_key='Longitude',
-                z_key='Height',
-                host_x_key='HostLatitude',
-                host_y_key='HostLongitude',
-                color_key='RangeRate',
+                x_key=x_det,
+                y_key=y_det,
+                z_key=z_det,
+                host_x_key=x_host,
+                host_y_key=y_host,
+                color_key=keys_dict[color_picker]['key'],
                 hover_dict=keys_dict,
                 db=False,
                 colormap='Rainbow',
