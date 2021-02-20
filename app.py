@@ -250,19 +250,19 @@ app.layout = html.Div([
                            'display': 'inline-block',
                            'padding': '2rem 0rem'}),
             html.Div([
-                html.Div([
-                ], className='nine columns'),
-                html.Div([
-                    html.Button(
-                        'Export',
-                        id='export-scatter3d',
-                        n_clicks=0,
-                        style={
-                            "horizontalAlign ": "right"
-                        }),
-                    html.Div(id='hidden-scatter3d',
-                             style={'display': 'none'}),
-                ], className='two columns'),
+                # html.Div([
+                # ], className='nine columns'),
+                # html.Div([
+                html.Button(
+                    'Export',
+                    id='export-scatter3d',
+                    n_clicks=0,
+                    style={
+                        "float": "right"
+                    }),
+                html.Div(id='hidden-scatter3d',
+                         style={'display': 'none'}),
+                # ], className='two columns'),
             ], className='row flex-display'),
         ], className='pretty_container nine columns'),
     ], className='row flex-display rows',
