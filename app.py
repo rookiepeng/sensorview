@@ -263,7 +263,7 @@ app.layout = html.Div([
                 html.Div(id='hidden-scatter3d',
                          style={'display': 'none'}),
                 # ], className='two columns'),
-            ], className='row flex-display'),
+            ], className='twelve columns'),
         ], className='pretty_container nine columns'),
     ], className='row flex-display rows',
     ),
