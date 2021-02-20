@@ -244,10 +244,7 @@ app.layout = html.Div([
                     id='slider-frame',
                     step=1,
                     value=0,
-                    updatemode='drag',
-                    style={
-                        'padding': '0px 25px 0px'
-                    }
+                    updatemode='drag'
                 )], style={'box-sizing': 'border-box',
                            'width': '100%',
                            #    'display': 'inline-block',
