@@ -240,6 +240,22 @@ app.layout = html.Div([
                 },
             ),
             html.Div([
+                html.Button(
+                         '<<',
+                         id='left-frame',
+                         n_clicks=0,
+                         style={
+                            # "float": "right",
+                         }),
+                html.Div([
+                    html.Button(
+                         '>>',
+                         id='right-frame',
+                         n_clicks=0,
+                         style={
+                            # "float": "left",
+                         }),
+                ], className='six columns'),
                 dcc.Slider(
                     id='slider-frame',
                     step=1,
@@ -249,26 +265,26 @@ app.layout = html.Div([
                            'width': '100%',
                            #    'display': 'inline-block',
                            'padding': '1rem 0rem'}),
-            html.Div([
-                html.Div([
-                     html.Button(
-                         '<<',
-                         id='left-frame',
-                         n_clicks=0,
-                         style={
-                            "float": "right",
-                         }),
-                     ], className='six columns'),
-                html.Div([
-                    html.Button(
-                         '>>',
-                         id='right-frame',
-                         n_clicks=0,
-                         style={
-                            "float": "left",
-                         }),
-                ], className='six columns'),
-            ], className='row flex-display'),
+            # html.Div([
+            #     html.Div([
+            #          html.Button(
+            #              '<<',
+            #              id='left-frame',
+            #              n_clicks=0,
+            #              style={
+            #                 "float": "right",
+            #              }),
+            #          ], className='six columns'),
+            #     html.Div([
+            #         html.Button(
+            #              '>>',
+            #              id='right-frame',
+            #              n_clicks=0,
+            #              style={
+            #                 "float": "left",
+            #              }),
+            #     ], className='six columns'),
+            # ], className='row flex-display'),
             html.Div([
                 html.Button(
                     'Export',
