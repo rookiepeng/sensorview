@@ -247,8 +247,8 @@ app.layout = html.Div([
                     updatemode='drag',
                 )], style={'box-sizing': 'border-box',
                            'width': '100%',
-                           'display': 'inline-block',
-                           'padding': '2rem 0rem'}),
+                        #    'display': 'inline-block',
+                           'padding': '1rem 0rem'}),
             html.Div([
                 # html.Div([
                 # ], className='nine columns'),
