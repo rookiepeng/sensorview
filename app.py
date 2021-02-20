@@ -856,9 +856,7 @@ def data_file_selection(
 
 
 @ app.callback(
-    [
-        Output('slider-frame', 'value'),
-    ],
+    Output('slider-frame', 'value'),
     [
         Input('frame-value', 'data'),
         Input('left-frame', 'n_clicks'),
