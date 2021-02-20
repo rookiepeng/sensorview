@@ -703,7 +703,9 @@ def test_case_selection(test_case):
         Output('slider-container', 'children'),
     ],
     [
-        Input('data-file', 'value')
+        Input('data-file', 'value'),
+        Input('left-frame', 'n_clicks'),
+        Input('right-frame', 'n_clicks'),
     ],
     [
         State('test-case', 'value'),
@@ -711,15 +713,52 @@ def test_case_selection(test_case):
         State('scatter3d-params', 'data'),
         State('config', 'data'),
         State('session-id', 'data'),
+        State('slider-frame', 'min'),
+        State('slider-frame', 'max'),
+        State('slider-frame', 'value'),
     ])
 def data_file_selection(
         data_file_name,
+        left_btn,
+        right_btn,
         test_case,
         keys_dict,
         scatter3d_params,
         ui_config,
-        session_id
+        session_id,
+        min_val,
+        max_val,
+        val,
 ):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if trigger_id == 'left-frame':
+        if left_btn > 0 and val > min_val:
+            return [dash.no_update,
+                    dash.no_update,
+                    val-1,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update]
+        else:
+            raise PreventUpdate
+    elif trigger_id == 'right-frame':
+        if right_btn > 0 and val < max_val:
+            return [dash.no_update,
+                    dash.no_update,
+                    val+1,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update]
+        else:
+            raise PreventUpdate
+
     if data_file_name is not None and test_case is not None:
         new_data = pd.read_pickle(
             './data/'+test_case+'/'+data_file_name)
