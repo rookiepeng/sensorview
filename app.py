@@ -260,19 +260,16 @@ app.layout = html.Div([
                          }),
                      ], className='six columns'),
                 html.Div([
-                     html.Button(
+                    html.Button(
                          '>>',
                          id='right-frame',
                          n_clicks=0,
                          style={
                             "float": "left",
                          }),
-                     ], className='six columns'),
+                ], className='six columns'),
             ], className='row flex-display'),
             html.Div([
-                # html.Div([
-                # ], className='nine columns'),
-                # html.Div([
                 html.Button(
                     'Export',
                     id='export-scatter3d',
@@ -282,7 +279,6 @@ app.layout = html.Div([
                     }),
                 html.Div(id='hidden-scatter3d',
                          style={'display': 'none'}),
-                # ], className='two columns'),
             ], className='twelve columns'),
         ], className='pretty_container nine columns'),
     ], className='row flex-display rows',
@@ -1506,8 +1502,6 @@ def export_scatter_3d(btn,
             categorical_key_values
         )
 
-        print('filter done')
-
         fig = go.Figure(
             get_animation_data(
                 filtered_table,
@@ -1524,8 +1518,6 @@ def export_scatter_3d(btn,
                 title=test_case
             )
         )
-
-        print('ani data ready')
 
         # temp_fig = go.Figure(fig)
         fig.write_html('data/'+test_case+'/images/' +
