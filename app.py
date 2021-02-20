@@ -256,7 +256,7 @@ app.layout = html.Div([
                         # "float": "left",
                     }),
 
-                html.div([
+                html.Div([
                     dcc.Slider(
                         id='slider-frame',
                         step=1,
