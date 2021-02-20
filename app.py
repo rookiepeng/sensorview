@@ -256,17 +256,14 @@ app.layout = html.Div([
                         # "float": "left",
                     }),
 
-                dcc.Slider(
-                    id='slider-frame',
-                    step=1,
-                    value=0,
-                    updatemode='drag'
-                )],
-                className='row flex-display',
-                style={'box-sizing': 'border-box',
-                       'width': '100%',
-                       #    'display': 'inline-block',
-                       'padding': '1rem 0rem'}),
+                html.div([
+                    dcc.Slider(
+                        id='slider-frame',
+                        step=1,
+                        value=0,
+                        updatemode='drag'
+                    )], style={'width': '100%'})
+            ], className='row flex-display'),
             # html.Div([
             #     html.Div([
             #          html.Button(
