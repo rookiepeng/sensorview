@@ -245,6 +245,9 @@ app.layout = html.Div([
                     step=1,
                     value=0,
                     updatemode='drag',
+                    style={
+                        'padding': '0px 25px 0px'
+                    }
                 )], style={'box-sizing': 'border-box',
                            'width': '100%',
                            #    'display': 'inline-block',
@@ -252,20 +255,22 @@ app.layout = html.Div([
             html.Div([
                 html.Div([
                      html.Button(
-                         '<',
+                         '⏪️',
                          id='left-frame',
                          n_clicks=0,
                          style={
-                            "float": "right"
+                            "float": "right",
+                            "border": "0px"
                          }),
                      ], className='six columns'),
                 html.Div([
                      html.Button(
-                         '>',
+                         '⏩️',
                          id='right-frame',
                          n_clicks=0,
                          style={
-                            "float": "left"
+                            "float": "left",
+                            "border": "0px"
                          }),
                      ], className='six columns'),
             ], className='row flex-display'),
