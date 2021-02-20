@@ -252,22 +252,20 @@ app.layout = html.Div([
             html.Div([
                 html.Div([
                      html.Button(
-                         '⏪️',
+                         '<<',
                          id='left-frame',
                          n_clicks=0,
                          style={
                             "float": "right",
-                            "border": "0px"
                          }),
                      ], className='six columns'),
                 html.Div([
                      html.Button(
-                         '⏩️',
+                         '>>',
                          id='right-frame',
                          n_clicks=0,
                          style={
                             "float": "left",
-                            "border": "0px"
                          }),
                      ], className='six columns'),
             ], className='row flex-display'),
