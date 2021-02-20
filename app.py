@@ -263,7 +263,8 @@ app.layout = html.Div([
                         value=0,
                         updatemode='drag'
                     )], style={'width': '100%'})
-            ], className='row flex-display'),
+            ], className='row flex-display',
+                style={'padding': '1rem 0rem'}),
             # html.Div([
             #     html.Div([
             #          html.Button(
