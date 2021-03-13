@@ -138,7 +138,7 @@ def get_figure_layout(
     return dict(
         title=title,
         # template=pio.templates['plotly_dark'],
-        template=pio.templates['plotly'],
+        template=pio.templates['seaborn'],
         height=height,
         scene=dict(xaxis=dict(range=x_range,
                               title='Lateral (m)',
