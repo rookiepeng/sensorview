@@ -43,7 +43,7 @@ def get_figure_data(det_list,
                     hover_dict=None,
                     c_range=[-30, 30],
                     db=False,
-                    colormap='Rainbow',):
+                    colormap='Jet',):
 
     if det_list.shape[0] > 0:
         color = det_list[color_key]
@@ -137,7 +137,8 @@ def get_figure_layout(
                     y_range[0], z_range[1]-z_range[0]])
     return dict(
         title=title,
-        template=pio.templates['plotly_dark'],
+        # template=pio.templates['plotly_dark'],
+        template=pio.templates['plotly'],
         height=height,
         scene=dict(xaxis=dict(range=x_range,
                               title='Lateral (m)',
