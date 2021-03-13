@@ -131,14 +131,15 @@ def get_figure_layout(
     z_range=[-20, 20],
     height=650,
     title=None,
-    margin=dict(l=0, r=0, b=0, t=20)
+    margin=dict(l=0, r=0, b=0, t=20),
+    template='seaborn'
 ):
     scale = np.min([x_range[1]-x_range[0], y_range[1] -
                     y_range[0], z_range[1]-z_range[0]])
     return dict(
         title=title,
         # template=pio.templates['plotly_dark'],
-        template=pio.templates['seaborn'],
+        template=pio.templates[template],
         height=height,
         scene=dict(xaxis=dict(range=x_range,
                               title='Lateral (m)',
@@ -291,7 +292,8 @@ def get_animation_data(det_list,
                        db=False,
                        colormap='Rainbow',
                        title=None,
-                       height=650):
+                       height=650,
+                       template='seaborn'):
 
     x_range = [np.min([np.min(det_list[x_key]),
                        np.min(det_list[host_x_key])]),
@@ -370,7 +372,8 @@ def get_animation_data(det_list,
         z_range,
         height=height,
         title=title,
-        margin=dict(l=0, r=0, b=0, t=40)
+        margin=dict(l=0, r=0, b=0, t=40),
+        template=template
     )
     figure_layout['updatemenus'] = [
         {

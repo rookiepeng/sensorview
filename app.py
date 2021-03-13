@@ -56,7 +56,7 @@ from viz.viz import get_2d_scatter, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
 
-def scatter3d_data(det_list, params, layout, keys_dict, name):
+def scatter3d_data(det_list, params, layout, keys_dict, name, colormap, template):
 
     return dict(
         data=[get_figure_data(
@@ -68,7 +68,8 @@ def scatter3d_data(det_list, params, layout, keys_dict, name):
             color_label=layout['color_label'],
             name=name,
             hover_dict=keys_dict,
-            c_range=layout['c_range']
+            c_range=layout['c_range'],
+            colormap=colormap
         ),
             get_host_data(
             det_list=det_list,
@@ -78,7 +79,8 @@ def scatter3d_data(det_list, params, layout, keys_dict, name):
         layout=get_figure_layout(
             x_range=layout['x_range'],
             y_range=layout['y_range'],
-            z_range=layout['z_range'])
+            z_range=layout['z_range'],
+            template=template)
     )
 
 
@@ -129,6 +131,8 @@ app.layout = html.Div([
     dcc.Store(id='num-key-values'),
     dcc.Store(id='selected-data-left'),
     dcc.Store(id='selected-data-right'),
+    dcc.Store(id='template'),
+    dcc.Store(id='colormap'),
     dcc.Store(id='session-id', data=str(uuid.uuid4())),
     html.Div([
         html.Div([
@@ -601,6 +605,8 @@ app.layout = html.Div([
         Output('x-heatmap', 'value'),
         Output('y-heatmap', 'options'),
         Output('y-heatmap', 'value'),
+        Output('template', 'data'),
+        Output('colormap', 'data'),
     ],
     [
         Input('test-case', 'value')
@@ -657,6 +663,9 @@ def test_case_selection(test_case):
             for idx, f_item in enumerate(keys_dict)
         ]
 
+        template=ui_config.get('template', 'plotly_dark')
+        colormap=ui_config.get('colormap', 'plotly_dark')
+
         return [
             data_files[0],
             [{'label': i, 'value': i} for i in data_files],
@@ -684,7 +693,9 @@ def test_case_selection(test_case):
             options,
             ui_config['heatmap']['default_x'],
             options,
-            ui_config['heatmap']['default_y']
+            ui_config['heatmap']['default_y'],
+            template,
+            colormap
         ]
     else:
         raise PreventUpdate
@@ -919,6 +930,8 @@ def data_file_selection(
         State('config', 'data'),
         State('scatter3d-params', 'data'),
         State('session-id', 'data'),
+        State('template', 'data'),
+        State('colormap', 'data'),
     ])
 def update_filter(
     slider_arg,
@@ -935,7 +948,9 @@ def update_filter(
     trigger_idx,
     ui_config,
     scatter3d_params,
-    session_id
+    session_id,
+    template,
+    colormap,
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -1000,7 +1015,9 @@ def update_filter(
             scatter3d_params,
             scatter3d_layout,
             keys_dict,
-            'Index: ' + str(slider_arg) + ' (' + slider_label+')'
+            'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+            colormap,
+            template
         )
 
         filter_trig = dash.no_update
@@ -1036,7 +1053,9 @@ def update_filter(
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
+                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+                colormap,
+                template
             )
             filter_trig = trigger_idx+1
 
@@ -1059,7 +1078,9 @@ def update_filter(
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
+                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+                colormap,
+                template
             )
             filter_trig = trigger_idx+1
 
@@ -1079,7 +1100,9 @@ def update_filter(
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
+                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+                colormap,
+                template
             )
             filter_trig = dash.no_update
 
@@ -1106,7 +1129,9 @@ def update_filter(
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
+                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+                colormap,
+                template
             )
             filter_trig = dash.no_update
 
@@ -1143,7 +1168,9 @@ def update_filter(
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
+                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+                colormap,
+                template
             )
             filter_trig = trigger_idx+1
         else:
@@ -1503,6 +1530,8 @@ def update_heatmap(
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
         State('scatter3d-params', 'data'),
+        State('colormap', 'data'),
+        State('template', 'data')
     ]
 )
 def export_scatter_3d(btn,
@@ -1514,7 +1543,9 @@ def export_scatter_3d(btn,
                       cat_keys,
                       categorical_key_values,
                       numerical_key_values,
-                      scatter3d_params):
+                      scatter3d_params,
+                      colormap,
+                      template):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
@@ -1550,9 +1581,10 @@ def export_scatter_3d(btn,
                 color_key=keys_dict[color_picker]['key'],
                 hover_dict=keys_dict,
                 db=False,
-                colormap='Rainbow',
+                colormap=colormap,
                 height=700,
-                title=test_case
+                title=test_case,
+                template=template
             )
         )
 
