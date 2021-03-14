@@ -81,17 +81,17 @@ def get_figure_data(det_list,
             mode='markers',
             name=name,
             marker=dict(
-                size=4,
+                size=3,
                 color=color,
                 colorscale=colormap,
-                opacity=0.8,
+                opacity=1,
                 colorbar=dict(
                     title=color_label,
                 ),
                 cmin=c_range[0],
                 cmax=c_range[1],
                 line=dict(
-                    color="#616161",
+                    color="#757575",
                     width=1,
                 )
             ),
