@@ -90,6 +90,10 @@ def get_figure_data(det_list,
                 ),
                 cmin=c_range[0],
                 cmax=c_range[1],
+                line=dict(
+                    # color='darkblue',
+                    width=1
+                )
             ),
         )
 
