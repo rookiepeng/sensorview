@@ -132,7 +132,7 @@ def get_figure_layout(
     height=650,
     title=None,
     margin=dict(l=0, r=0, b=0, t=20),
-    template='seaborn'
+    template='plotly'
 ):
     scale = np.min([x_range[1]-x_range[0], y_range[1] -
                     y_range[0], z_range[1]-z_range[0]])
@@ -231,7 +231,7 @@ def get_2d_scatter(det_list,
                    y_label=None,
                    color_label=None,
                    uirevision='no_change',
-                   colormap='Rainbow',
+                   colormap='Jet',
                    margin=dict(l=40, r=40, b=40, t=60)):
 
     if x_label is None:
@@ -290,10 +290,10 @@ def get_animation_data(det_list,
                        hover_dict=None,
                        c_range=[-30, 30],
                        db=False,
-                       colormap='Rainbow',
+                       colormap='Viridis',
                        title=None,
                        height=650,
-                       template='seaborn'):
+                       template='Plotly'):
 
     x_range = [np.min([np.min(det_list[x_key]),
                        np.min(det_list[host_x_key])]),
