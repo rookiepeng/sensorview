@@ -664,7 +664,7 @@ def test_case_selection(test_case):
         ]
 
         template = ui_config.get('template', 'plotly_dark')
-        colormap = ui_config.get('colormap', 'Rainbow')
+        colormap = ui_config.get('colormap', 'Jet')
 
         return [
             data_files[0],
