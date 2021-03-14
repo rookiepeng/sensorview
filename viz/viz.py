@@ -81,7 +81,7 @@ def get_figure_data(det_list,
             mode='markers',
             name=name,
             marker=dict(
-                size=3,
+                size=4,
                 color=color,
                 colorscale=colormap,
                 opacity=0.8,
@@ -92,7 +92,8 @@ def get_figure_data(det_list,
                 cmax=c_range[1],
                 line=dict(
                     color='white',
-                    width=1
+                    width=1,
+                    opacity=0.5,
                 )
             ),
         )
