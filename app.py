@@ -56,7 +56,13 @@ from viz.viz import get_2d_scatter, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
 
-def scatter3d_data(det_list, params, layout, keys_dict, name, colormap, template):
+def scatter3d_data(det_list,
+                   params,
+                   layout,
+                   keys_dict,
+                   name,
+                   colormap,
+                   template):
 
     return dict(
         data=[get_figure_data(
@@ -780,14 +786,16 @@ def data_file_selection(
         context = pa.default_serialization_context()
         redis_instance.set(
             REDIS_KEYS["DATASET"]+session_id,
-            context.serialize(new_data).to_buffer().to_pybytes()
+            context.serialize(new_data).to_buffer().to_pybytes(),
+            ex=3600
         )
         frame_idx = new_data[
             ui_config['numerical']
             [ui_config['slider']]['key']].unique()
         redis_instance.set(
             REDIS_KEYS["FRAME_IDX"]+session_id,
-            context.serialize(frame_idx).to_buffer().to_pybytes()
+            context.serialize(frame_idx).to_buffer().to_pybytes(),
+            ex=3600
         )
 
         x_det = scatter3d_params['x_det_key']
@@ -1036,7 +1044,8 @@ def update_filter(
         context = pa.default_serialization_context()
         redis_instance.set(
             REDIS_KEYS["DATASET"]+session_id,
-            context.serialize(data).to_buffer().to_pybytes()
+            context.serialize(data).to_buffer().to_pybytes(),
+            ex=3600
         )
 
         if overlay_sw:
@@ -1721,7 +1730,8 @@ def left_hide_button(
 
         redis_instance.set(
             REDIS_KEYS["DATASET"]+session_id,
-            context.serialize(data).to_buffer().to_pybytes()
+            context.serialize(data).to_buffer().to_pybytes(),
+            ex=3600
         )
 
         return trigger_idx+1
