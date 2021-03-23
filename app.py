@@ -807,7 +807,7 @@ def data_file_selection(
         frame_idx = new_data[
             ui_config['numerical']
             [ui_config['slider']]['key']].unique()
-        frame_idx = frame_idx.reset_index()
+
         print(frame_idx)
         redis_instance.set(
             REDIS_KEYS["FRAME_IDX"]+session_id,
