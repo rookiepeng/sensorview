@@ -181,8 +181,8 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Dropdown(
                         id='test-case',
-                        options=[{'label': i, 'value': i} for i in test_cases],
-                        value=test_cases[0]
+                        # options=[{'label': i, 'value': i} for i in test_cases],
+                        # value=test_cases[0]
                     ), ], style={'width': '100%',
                                  'padding': '0px 10px 0px 0px'}),
                 html.Button(
@@ -608,6 +608,23 @@ app.layout = html.Div([
 
 @ app.callback(
     [
+        Output('test-case', 'value'),
+        Output('test-case', 'options'),
+    ],
+    Input('refresh-case', 'n_clicks')
+)
+def test_case_refresh(n_clicks):
+    test_cases = []
+    for (dirpath, dirnames, filenames) in os.walk('./data'):
+        test_cases.extend(dirnames)
+        break
+    options=[{'label': i, 'value': i} for i in test_cases],
+    value=test_cases[0]
+    return [value, options]
+
+
+@ app.callback(
+    [
         Output('data-file', 'value'),
         Output('data-file', 'options'),
         Output('config', 'data'),
@@ -832,48 +849,6 @@ def data_file_selection(
                 ex=EXPIRATION
             )
 
-        x_det = scatter3d_params['x_det_key']
-        x_host = scatter3d_params['x_host_key']
-        y_det = scatter3d_params['y_det_key']
-        y_host = scatter3d_params['y_host_key']
-        z_det = scatter3d_params['z_det_key']
-
-        color_key = keys_dict[
-            ui_config['graph_3d_detections']['default_color']
-        ]['key']
-        color_label = keys_dict[
-            ui_config['graph_3d_detections']['default_color']
-        ]['description']
-
-        scatter3d_layout = dict(
-            x_range=[
-                np.min([np.min(new_data[x_det]),
-                        np.min(new_data[x_host])]),
-                np.max([np.max(new_data[x_det]),
-                        np.max(new_data[x_host])])],
-            y_range=[
-                np.min([np.min(new_data[y_det]),
-                        np.min(new_data[y_host])]),
-                np.max([np.max(new_data[y_det]),
-                        np.max(new_data[y_host])])],
-            z_range=[
-                np.min(new_data[z_det]),
-                np.max(new_data[z_det])],
-            c_range=[
-                np.min(new_data[color_key]),
-                np.max(new_data[color_key])
-            ],
-            color_key=keys_dict[
-                ui_config['graph_3d_detections']['default_color']
-            ]['key'],
-            color_label=keys_dict[
-                ui_config['graph_3d_detections']['default_color']
-            ]['description'],
-        )
-
-        frame_idx = new_data[
-            keys_dict
-            [ui_config['slider']]['key']].unique()
         output = [0, len(frame_idx)-1, 0]
 
         cat_values = []
