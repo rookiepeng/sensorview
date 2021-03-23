@@ -174,7 +174,16 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
-            html.H6('Test Case'),
+            html.Div([
+                html.H6('Test Case'),
+                html.Button(
+                    'Refresh',
+                    id='refresh-case',
+                    n_clicks=0,
+                    style={
+                        "float": "right"
+                    })
+            ], className='twelve columns'),
             dcc.Dropdown(
                 id='test-case',
                 options=[{'label': i, 'value': i} for i in test_cases],
