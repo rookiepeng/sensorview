@@ -808,7 +808,7 @@ def data_file_selection(
             ui_config['numerical']
             [ui_config['slider']]['key']].unique()
         frame_idx = np.sort(frame_idx)
-        print(frame_idx)
+
         redis_instance.set(
             REDIS_KEYS["FRAME_IDX"]+session_id,
             context.serialize(frame_idx).to_buffer().to_pybytes(),
@@ -997,7 +997,7 @@ def update_filter(
         # filterd_frame = filterd_frame.reset_index()
         filterd_frame = context.deserialize(redis_instance.get(
             "FRAME"+session_id+str(frame_idx[slider_arg])))
-        print("FRAME"+session_id+str(frame_idx[slider_arg]))
+
         filterd_frame = filter_all(
             filterd_frame,
             num_keys,
