@@ -117,17 +117,17 @@ REDIS_KEYS = {"DATASET": "DATASET",
               "FRAME": "FRAME"}
 EXPIRATION = 604800  # a week in seconds
 
-test_cases = []
-for (dirpath, dirnames, filenames) in os.walk('./data'):
-    test_cases.extend(dirnames)
-    break
+# test_cases = []
+# for (dirpath, dirnames, filenames) in os.walk('./data'):
+#     test_cases.extend(dirnames)
+#     break
 
-data_files = []
-for r, d, f in os.walk('./data/'+test_cases[0]):
-    for file in f:
-        if '.pkl' in file:
-            data_files.append(file)
-    break
+# data_files = []
+# for r, d, f in os.walk('./data/'+test_cases[0]):
+#     for file in f:
+#         if '.pkl' in file:
+#             data_files.append(file)
+#     break
 
 app.layout = html.Div([
     dcc.Store(id='config'),
@@ -181,8 +181,8 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Dropdown(
                         id='test-case',
-                        options=[{'label': i, 'value': i} for i in test_cases],
-                        value=test_cases[0]
+                        # options=[{'label': i, 'value': i} for i in test_cases],
+                        # value=test_cases[0]
                     ), ], style={'width': '100%',
                                  'padding': '0px 10px 0px 0px'}),
                 html.Button(
@@ -614,19 +614,13 @@ app.layout = html.Div([
     Input('refresh-case', 'n_clicks')
 )
 def test_case_refresh(n_clicks):
-    if n_clicks>0:
-        print('refresh')
-        test_cases = []
-        for (dirpath, dirnames, filenames) in os.walk('./data'):
-            test_cases.extend(dirnames)
-            break
-
-        options = [{'label': i, 'value': i} for i in test_cases]
-        print(options)
-        value = test_cases[0]
-        return [options, value]
-    else:
-        raise PreventUpdate
+    test_cases = []
+    for (dirpath, dirnames, filenames) in os.walk('./data'):
+        test_cases.extend(dirnames)
+        break
+    options = [{'label': i, 'value': i} for i in test_cases]
+    value = test_cases[0]
+    return [options, value]
 
 
 @ app.callback(
@@ -665,7 +659,6 @@ def test_case_refresh(n_clicks):
         Input('test-case', 'value')
     ])
 def test_case_selection(test_case):
-    print('test_case'+test_case)
     if test_case is not None:
         data_files = []
         for r, d, f in os.walk('./data/'+test_case):
