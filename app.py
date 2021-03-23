@@ -182,7 +182,7 @@ app.layout = html.Div([
                         options=[{'label': i, 'value': i} for i in test_cases],
                         value=test_cases[0]
                     ), ], style={'width': '100%',
-                                 'padding': '0px 0px 10px 0px'}),
+                                 'padding': '0px 10px 0px 0px'}),
                 html.Button(
                     'Refresh',
                     id='refresh-case',
@@ -194,11 +194,22 @@ app.layout = html.Div([
         ], className='pretty_container six column'),
         html.Div([
             html.H6('Data File'),
-            dcc.Dropdown(
-                id='data-file',
-                options=[{'label': i, 'value': i} for i in data_files],
-                value=data_files[0]
-            ),
+            html.Div([
+                html.Div([
+                    dcc.Dropdown(
+                        id='data-file',
+                        options=[{'label': i, 'value': i} for i in data_files],
+                        value=data_files[0]
+                    ), ], style={'width': '100%',
+                                 'padding': '0px 10px 0px 0px'}),
+                html.Button(
+                    'Refresh',
+                    id='refresh-data',
+                    n_clicks=0,
+                    style={
+                        "float": "right"
+                    })
+            ], className='row flex-display'),
         ], className='pretty_container rix column'),
     ], className='row flex-display'),
 
