@@ -757,16 +757,19 @@ def test_case_selection(test_case):
     State('test-case', 'value'),
 )
 def data_file_refresh(n_clicks, test_case):
-    data_files = []
-    for r, d, f in os.walk('./data/'+test_case):
-        for file in f:
-            if '.pkl' in file:
-                data_files.append(file)
-        break
+    if test_case is not None:
+        data_files = []
+        for r, d, f in os.walk('./data/'+test_case):
+            for file in f:
+                if '.pkl' in file:
+                    data_files.append(file)
+            break
 
-    options = [{'label': i, 'value': i} for i in data_files]
-    value = data_files[0]
-    return [options, value]
+        options = [{'label': i, 'value': i} for i in data_files]
+        value = data_files[0]
+        return [options, value]
+    else:
+        raise PreventUpdate
 
 
 @ app.callback(
