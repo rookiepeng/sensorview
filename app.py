@@ -617,7 +617,7 @@ def test_case_refresh(n_clicks):
     print('refresh')
     test_cases = []
     for (dirpath, dirnames, filenames) in os.walk('./data'):
-        test_cases.extend(dirnames)
+        test_cases.append(dirnames)
         break
     options = [{'label': i, 'value': i} for i in test_cases],
     value = test_cases[0]
