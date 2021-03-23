@@ -117,17 +117,17 @@ REDIS_KEYS = {"DATASET": "DATASET",
               "FRAME": "FRAME"}
 EXPIRATION = 604800  # a week in seconds
 
-test_cases = []
-for (dirpath, dirnames, filenames) in os.walk('./data'):
-    test_cases.extend(dirnames)
-    break
+# test_cases = []
+# for (dirpath, dirnames, filenames) in os.walk('./data'):
+#     test_cases.extend(dirnames)
+#     break
 
-data_files = []
-for r, d, f in os.walk('./data/'+test_cases[0]):
-    for file in f:
-        if '.pkl' in file:
-            data_files.append(file)
-    break
+# data_files = []
+# for r, d, f in os.walk('./data/'+test_cases[0]):
+#     for file in f:
+#         if '.pkl' in file:
+#             data_files.append(file)
+#     break
 
 app.layout = html.Div([
     dcc.Store(id='config'),
@@ -200,8 +200,8 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Dropdown(
                         id='data-file',
-                        options=[{'label': i, 'value': i} for i in data_files],
-                        value=data_files[0]
+                        # options=[{'label': i, 'value': i} for i in data_files],
+                        # value=data_files[0]
                     ), ], style={'width': '100%',
                                  'padding': '0px 10px 0px 0px'}),
                 html.Button(
@@ -619,8 +619,9 @@ def test_case_refresh(n_clicks):
     for (dirpath, dirnames, filenames) in os.walk('./data'):
         test_cases.extend(dirnames)
         break
-    print(test_cases)
+
     options = [{'label': i, 'value': i} for i in test_cases],
+    print(options)
     value = test_cases[0]
     return [options, value]
 
