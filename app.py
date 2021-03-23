@@ -117,17 +117,6 @@ REDIS_KEYS = {"DATASET": "DATASET",
               "FRAME": "FRAME"}
 EXPIRATION = 604800  # a week in seconds
 
-# test_cases = []
-# for (dirpath, dirnames, filenames) in os.walk('./data'):
-#     test_cases.extend(dirnames)
-#     break
-
-# data_files = []
-# for r, d, f in os.walk('./data/'+test_cases[0]):
-#     for file in f:
-#         if '.pkl' in file:
-#             data_files.append(file)
-#     break
 
 app.layout = html.Div([
     dcc.Store(id='config'),
@@ -181,8 +170,6 @@ app.layout = html.Div([
                 html.Div([
                     dcc.Dropdown(
                         id='test-case',
-                        # options=[{'label': i, 'value': i} for i in test_cases],
-                        # value=test_cases[0]
                     ), ], style={'width': '100%',
                                  'padding': '0px 10px 0px 0px'}),
                 html.Button(
@@ -196,22 +183,9 @@ app.layout = html.Div([
         ], className='pretty_container six column'),
         html.Div([
             html.H6('Data File'),
-            html.Div([
-                html.Div([
-                    dcc.Dropdown(
-                        id='data-file',
-                        # options=[{'label': i, 'value': i} for i in data_files],
-                        # value=data_files[0]
-                    ), ], style={'width': '100%',
-                                 'padding': '0px 10px 0px 0px'}),
-                html.Button(
-                    'Refresh',
-                    id='refresh-data',
-                    n_clicks=0,
-                    style={
-                        "float": "right"
-                    })
-            ], className='row flex-display'),
+            dcc.Dropdown(
+                id='data-file',
+            ),
         ], className='pretty_container rix column'),
     ], className='row flex-display'),
 
@@ -619,7 +593,6 @@ def test_case_refresh(n_clicks):
         test_cases.extend(dirnames)
         break
     options = [{'label': i, 'value': i} for i in test_cases]
-    print(options)
     value = test_cases[0]
     return [options, value]
 
@@ -747,30 +720,6 @@ def test_case_selection(test_case):
         ]
     else:
         raise PreventUpdate
-
-
-# @ app.callback(
-#     [
-#         Output('data-file', 'options'),
-#         Output('data-file', 'value'),
-#     ],
-#     Input('refresh-data', 'n_clicks'),
-#     State('test-case', 'value'),
-# )
-# def data_file_refresh(n_clicks, test_case):
-#     if n_clicks > 0 and test_case is not None:
-#         data_files = []
-#         for r, d, f in os.walk('./data/'+test_case):
-#             for file in f:
-#                 if '.pkl' in file:
-#                     data_files.append(file)
-#             break
-
-#         options = [{'label': i, 'value': i} for i in data_files]
-#         value = data_files[0]
-#         return [options, value]
-#     else:
-#         raise PreventUpdate
 
 
 @ app.callback(
