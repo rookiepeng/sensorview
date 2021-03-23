@@ -176,11 +176,13 @@ app.layout = html.Div([
         html.Div([
             html.H6('Test Case'),
             html.Div([
-                dcc.Dropdown(
-                    id='test-case',
-                    options=[{'label': i, 'value': i} for i in test_cases],
-                    value=test_cases[0]
-                ),
+                html.Div([
+                    dcc.Dropdown(
+                        id='test-case',
+                        options=[{'label': i, 'value': i} for i in test_cases],
+                        value=test_cases[0]
+                    ), ], style={'width': '100%',
+                                 'padding': '0px 0px 10px 0px'}),
                 html.Button(
                     'Refresh',
                     id='refresh-case',
