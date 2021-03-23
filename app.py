@@ -608,8 +608,8 @@ app.layout = html.Div([
 
 @ app.callback(
     [
-        Output('test-case', 'value'),
         Output('test-case', 'options'),
+        Output('test-case', 'value'),
     ],
     Input('refresh-case', 'n_clicks')
 )
@@ -621,7 +621,7 @@ def test_case_refresh(n_clicks):
         break
     options = [{'label': i, 'value': i} for i in test_cases],
     value = test_cases[0]
-    return [value, options]
+    return [options, value]
 
 
 @ app.callback(
