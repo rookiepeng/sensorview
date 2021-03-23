@@ -174,8 +174,13 @@ app.layout = html.Div([
 
     html.Div([
         html.Div([
+            html.H6('Test Case'),
             html.Div([
-                html.H6('Test Case'),
+                dcc.Dropdown(
+                    id='test-case',
+                    options=[{'label': i, 'value': i} for i in test_cases],
+                    value=test_cases[0]
+                ),
                 html.Button(
                     'Refresh',
                     id='refresh-case',
@@ -183,12 +188,7 @@ app.layout = html.Div([
                     style={
                         "float": "right"
                     })
-            ], className='twelve columns'),
-            dcc.Dropdown(
-                id='test-case',
-                options=[{'label': i, 'value': i} for i in test_cases],
-                value=test_cases[0]
-            ),
+            ], className='row flex-display'),
         ], className='pretty_container six column'),
         html.Div([
             html.H6('Data File'),
