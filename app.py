@@ -823,8 +823,8 @@ def data_file_selection(
         )
 
         for f_idx in frame_idx:
-            single_frame = new_data[ui_config['numerical']
-                                    [ui_config['slider']]['key'] == f_idx]
+            single_frame = new_data[new_data[ui_config['numerical']
+                                    [ui_config['slider']]['key']] == f_idx]
             single_frame = single_frame.reset_index()
             redis_instance.set(
                 REDIS_KEYS["FRAME"]+session_id+str(f_idx),
