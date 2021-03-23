@@ -619,6 +619,7 @@ def test_case_refresh(n_clicks):
         test_cases.extend(dirnames)
         break
     options = [{'label': i, 'value': i} for i in test_cases]
+    print(options)
     value = test_cases[0]
     return [options, value]
 
@@ -757,7 +758,7 @@ def test_case_selection(test_case):
     State('test-case', 'value'),
 )
 def data_file_refresh(n_clicks, test_case):
-    if test_case is not None:
+    if n_clicks > 0 and test_case is not None:
         data_files = []
         for r, d, f in os.walk('./data/'+test_case):
             for file in f:
