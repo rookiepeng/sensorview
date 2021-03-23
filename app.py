@@ -113,7 +113,9 @@ redis_instance = redis.StrictRedis.from_url(
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
 REDIS_KEYS = {"DATASET": "DATASET",
-              "FRAME_IDX": "FRAME_IDX"}
+              "FRAME_IDX": "FRAME_IDX",
+              "FRAME": "FRAME"}
+EXPIRATION = 604800  # a week in seconds
 
 test_cases = []
 for (dirpath, dirnames, filenames) in os.walk('./data'):
@@ -809,7 +811,7 @@ def data_file_selection(
         redis_instance.set(
             REDIS_KEYS["DATASET"]+session_id,
             context.serialize(new_data).to_buffer().to_pybytes(),
-            ex=3600
+            ex=EXPIRATION
         )
         frame_idx = new_data[
             ui_config['numerical']
@@ -817,8 +819,18 @@ def data_file_selection(
         redis_instance.set(
             REDIS_KEYS["FRAME_IDX"]+session_id,
             context.serialize(frame_idx).to_buffer().to_pybytes(),
-            ex=3600
+            ex=EXPIRATION
         )
+
+        for f_idx in frame_idx:
+            single_frame = new_data[ui_config['numerical']
+                                    [ui_config['slider']]['key'] == f_idx]
+            single_frame = single_frame.reset_index()
+            redis_instance.set(
+                REDIS_KEYS["FRAME"]+session_id+str(f_idx),
+                context.serialize(single_frame).to_buffer().to_pybytes(),
+                ex=EXPIRATION
+            )
 
         x_det = scatter3d_params['x_det_key']
         x_host = scatter3d_params['x_host_key']
@@ -1028,10 +1040,12 @@ def update_filter(
     )
 
     if trigger_id == 'slider-frame' and not overlay_sw:
-        filterd_frame = data[
-            data[slider_key] == frame_idx[slider_arg]
-        ]
-        filterd_frame = filterd_frame.reset_index()
+        # filterd_frame = data[
+        #     data[slider_key] == frame_idx[slider_arg]
+        # ]
+        # filterd_frame = filterd_frame.reset_index()
+        filterd_frame = context.deserialize(redis_instance.get(
+            "FRAME"+session_id+str(frame_idx[slider_arg])))
 
         filterd_frame = filter_all(
             filterd_frame,
@@ -1067,7 +1081,7 @@ def update_filter(
         redis_instance.set(
             REDIS_KEYS["DATASET"]+session_id,
             context.serialize(data).to_buffer().to_pybytes(),
-            ex=3600
+            ex=EXPIRATION
         )
 
         if overlay_sw:
@@ -1753,7 +1767,7 @@ def left_hide_button(
         redis_instance.set(
             REDIS_KEYS["DATASET"]+session_id,
             context.serialize(data).to_buffer().to_pybytes(),
-            ex=3600
+            ex=EXPIRATION
         )
 
         return trigger_idx+1
