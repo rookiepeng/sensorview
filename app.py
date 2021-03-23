@@ -621,7 +621,7 @@ def test_case_refresh(n_clicks):
             test_cases.extend(dirnames)
             break
 
-        options = [{'label': i, 'value': i} for i in test_cases],
+        options = [{'label': i, 'value': i} for i in test_cases]
         print(options)
         value = test_cases[0]
         return [options, value]
