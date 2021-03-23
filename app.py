@@ -614,12 +614,13 @@ app.layout = html.Div([
     Input('refresh-case', 'n_clicks')
 )
 def test_case_refresh(n_clicks):
+    print('refresh')
     test_cases = []
     for (dirpath, dirnames, filenames) in os.walk('./data'):
         test_cases.extend(dirnames)
         break
-    options=[{'label': i, 'value': i} for i in test_cases],
-    value=test_cases[0]
+    options = [{'label': i, 'value': i} for i in test_cases],
+    value = test_cases[0]
     return [value, options]
 
 
