@@ -750,6 +750,27 @@ def test_case_selection(test_case):
 
 @ app.callback(
     [
+        Output('data-file', 'options'),
+        Output('data-file', 'value'),
+    ],
+    Input('refresh-data', 'n_clicks'),
+    State('test-case', 'value'),
+)
+def data_file_refresh(n_clicks, test_case):
+    data_files = []
+    for r, d, f in os.walk('./data/'+test_case):
+        for file in f:
+            if '.pkl' in file:
+                data_files.append(file)
+        break
+
+    options = [{'label': i, 'value': i} for i in data_files]
+    value = data_files[0]
+    return [options, value]
+
+
+@ app.callback(
+    [
         Output('slider-frame', 'min'),
         Output('slider-frame', 'max'),
         Output('slider-frame', 'value'),
