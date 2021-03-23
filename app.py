@@ -662,6 +662,7 @@ def test_case_refresh(n_clicks):
         Input('test-case', 'value')
     ])
 def test_case_selection(test_case):
+    print('test_case'+test_case)
     if test_case is not None:
         data_files = []
         for r, d, f in os.walk('./data/'+test_case):
