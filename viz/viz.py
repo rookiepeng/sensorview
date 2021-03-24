@@ -273,10 +273,10 @@ def get_2d_scatter(det_list,
             y=det_list[y_key],
             mode='markers',
             marker=dict(
-                size=5,
+                size=6,
                 color=det_list[color_key],
                 colorscale=colormap,
-                opacity=0.8,
+                opacity=1,
                 colorbar=dict(
                     title=color_label,
                 ),
@@ -401,12 +401,6 @@ def get_animation_data(det_list,
         }
     ]
 
-    # camera = dict(
-    #     up=dict(x=0, y=0, z=1),
-    #     center=dict(x=0, y=0, z=0),
-    #     eye=dict(x=0, y=-1.5, z=10),
-    # )
-
     if images is not None:
         img = images[0]
     else:
@@ -453,5 +447,3 @@ def get_animation_data(det_list,
     return dict(data=[ani_frames[0]['data'][0], ani_frames[0]['data'][1]],
                 frames=ani_frames,
                 layout=figure_layout)
-    # fig.show()
-    # fig.write_html(file_name[:-4]+'.html')
