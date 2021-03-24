@@ -136,10 +136,27 @@ def get_figure_layout(
     height=650,
     title=None,
     margin=dict(l=0, r=0, b=0, t=20),
-    template='plotly'
+    template='plotly',
+    image=None
 ):
     scale = np.min([x_range[1]-x_range[0], y_range[1] -
                     y_range[0], z_range[1]-z_range[0]])
+
+    if image is not None:
+        img_dict = [dict(
+            source=image,
+            xref="x domain",
+            yref="y domain",
+            x=0,
+            y=1,
+            xanchor="left",
+            yanchor="top",
+            sizex=0.2,
+            sizey=0.2,
+        )]
+    else:
+        img_dict = None
+
     return dict(
         title=title,
         # template=pio.templates['plotly_dark'],
@@ -159,6 +176,7 @@ def get_figure_layout(
                    ),
         margin=margin,
         legend=dict(x=0, y=0),
+        images=img_dict,
         uirevision='no_change',
     )
 
@@ -301,7 +319,8 @@ def get_animation_data(det_list,
                        colormap='Viridis',
                        title=None,
                        height=650,
-                       template='plotly'):
+                       template='plotly',
+                       images=None):
 
     x_range = [np.min([np.min(det_list[x_key]),
                        np.min(det_list[host_x_key])]),
@@ -325,6 +344,11 @@ def get_animation_data(det_list,
         filtered_list = det_list[det_list['Frame'] == frame_idx]
         filtered_list = filtered_list.reset_index()
 
+        if images is not None:
+            img = images[frame_idx]
+        else:
+            img = None
+
         ani_frames.append(
             dict(
                 data=[
@@ -345,6 +369,16 @@ def get_animation_data(det_list,
                         host_x_key,
                         host_y_key)
                 ],
+                layout=get_figure_layout(
+                    x_range,
+                    y_range,
+                    z_range,
+                    height=height,
+                    title=title,
+                    margin=dict(l=0, r=0, b=0, t=40),
+                    template=template,
+                    image=img
+                ),
                 # need to name the frame for the animation to behave properly
                 name=str(frame_idx)
             )
@@ -373,6 +407,11 @@ def get_animation_data(det_list,
     #     eye=dict(x=0, y=-1.5, z=10),
     # )
 
+    if images is not None:
+        img = images[0]
+    else:
+        img = None
+
     # Layout
     figure_layout = get_figure_layout(
         x_range,
@@ -381,7 +420,8 @@ def get_animation_data(det_list,
         height=height,
         title=title,
         margin=dict(l=0, r=0, b=0, t=40),
-        template=template
+        template=template,
+        image=img
     )
     figure_layout['updatemenus'] = [
         {
