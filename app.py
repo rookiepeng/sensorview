@@ -684,7 +684,7 @@ def test_case_selection(test_case):
             for idx, f_item in enumerate(keys_dict)
         ]
 
-        template = ui_config.get('template', 'plotly_dark')
+        template = ui_config.get('template', 'plotly')
         colormap = ui_config.get('colormap', 'Jet')
 
         return [
