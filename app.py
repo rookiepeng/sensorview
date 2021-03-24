@@ -241,7 +241,7 @@ app.layout = html.Div([
                     'data': [{'mode': 'markers', 'type': 'scatter3d',
                               'x': [], 'y': [], 'z': []}
                              ],
-                    'layout': {'template': pio.templates['plotly_dark'],
+                    'layout': {'template': pio.templates['plotly'],
                                'height': 650,
                                'uirevision': 'no_change'
                                }

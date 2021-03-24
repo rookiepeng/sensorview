@@ -262,6 +262,10 @@ def get_2d_scatter(det_list,
                 colorbar=dict(
                     title=color_label,
                 ),
+                line=dict(
+                    color="#757575",
+                    width=1,
+                )
                 # cmin=c_range[0],
                 # cmax=c_range[1],
             )
@@ -297,7 +301,7 @@ def get_animation_data(det_list,
                        colormap='Viridis',
                        title=None,
                        height=650,
-                       template='Plotly'):
+                       template='plotly'):
 
     x_range = [np.min([np.min(det_list[x_key]),
                        np.min(det_list[host_x_key])]),
