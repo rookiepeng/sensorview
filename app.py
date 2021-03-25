@@ -41,6 +41,8 @@ import os
 import dash
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash.exceptions import PreventUpdate
+import dash_core_components as dcc
+import dash_html_components as html
 
 import numpy as np
 import pandas as pd
