@@ -44,6 +44,8 @@ from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 
+import base64
+
 import numpy as np
 import pandas as pd
 import os
@@ -89,7 +91,7 @@ def scatter3d_data(det_list,
             y_range=layout['y_range'],
             z_range=layout['z_range'],
             template=template,
-            image="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Iris_setosa_var._setosa_%282595031014%29.jpg/360px-Iris_setosa_var._setosa_%282595031014%29.jpg")
+            image=image)
     )
 
 
@@ -540,6 +542,11 @@ def update_filter(
             "FRAME"+session_id+str(frame_idx[slider_arg])))
 
         img = './data/'+test_case+'/imgs/'+data_file[0:-4]+str(slider_arg)+'.png'
+
+        encoded_image = base64.b64encode(open(img, 'rb').read())
+
+        source_encoded = 'data:image/png;base64,{}'.format(encoded_image.decode())
+
         print(img)
         filterd_frame = filter_all(
             filterd_frame,
@@ -556,7 +563,7 @@ def update_filter(
             'Index: ' + str(slider_arg) + ' (' + slider_label+')',
             colormap,
             template,
-            image=img
+            image=source_encoded
         )
 
         filter_trig = dash.no_update
