@@ -88,7 +88,8 @@ def scatter3d_data(det_list,
             x_range=layout['x_range'],
             y_range=layout['y_range'],
             z_range=layout['z_range'],
-            template=template)
+            template=template,
+            image=image)
     )
 
 
