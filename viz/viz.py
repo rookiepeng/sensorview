@@ -151,8 +151,8 @@ def get_figure_layout(
             y=1,
             xanchor="left",
             yanchor="top",
-            sizex=0.4,
-            sizey=0.4,
+            sizex=0.3,
+            sizey=0.3,
         )]
     else:
         img_dict = None
