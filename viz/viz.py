@@ -281,7 +281,8 @@ def get_2d_scatter(det_list,
                     title=color_label,
                 ),
                 line=dict(
-                    color="#9E9E9E",
+                    opacity=0.5,
+                    color="#757575",
                     width=1,
                 )
                 # cmin=c_range[0],
