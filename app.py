@@ -89,7 +89,7 @@ def scatter3d_data(det_list,
             y_range=layout['y_range'],
             z_range=layout['z_range'],
             template=template,
-            image=image)
+            image="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Iris_setosa_var._setosa_%282595031014%29.jpg/360px-Iris_setosa_var._setosa_%282595031014%29.jpg")
     )
 
 
