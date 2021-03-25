@@ -238,6 +238,7 @@ def get_app_layout(app):
                                           'x': [], 'y': []}
                                          ],
                                 'layout': {
+                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
@@ -284,21 +285,28 @@ def get_app_layout(app):
                             id='x-scatter2d-right',
                             disabled=True
                         ),
-                    ], className='one-third column'),
+                    ], className='one-forth column'),
                     html.Div([
                         html.Label('y-axis'),
                         dcc.Dropdown(
                             id='y-scatter2d-right',
                             disabled=True
                         ),
-                    ], className='one-third column'),
+                    ], className='one-forth column'),
                     html.Div([
                         html.Label('color'),
                         dcc.Dropdown(
                             id='color-scatter2d-right',
                             disabled=True
                         ),
-                    ], className='one-third column'),
+                    ], className='one-forth column'),
+                    html.Div([
+                        html.Label('colormap'),
+                        dcc.Dropdown(
+                            id='colormap-scatter2d-right',
+                            disabled=True
+                        ),
+                    ], className='one-forth column'),
                 ], className='row flex-display'),
 
                 dcc.Loading(
@@ -310,10 +318,12 @@ def get_app_layout(app):
                                 'displaylogo': False
                             },
                             figure={
-                                'data': [{'mode': 'markers', 'type': 'scattergl',
-                                          'x': [], 'y': []}
-                                         ],
+                                'data': [{
+                                    'mode': 'markers', 'type': 'scattergl',
+                                    'x': [], 'y': []
+                                }],
                                 'layout': {
+                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
@@ -389,6 +399,7 @@ def get_app_layout(app):
                                           'x': []}
                                          ],
                                 'layout': {
+                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
@@ -450,6 +461,7 @@ def get_app_layout(app):
                                           'x': []}
                                          ],
                                 'layout': {
+                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
