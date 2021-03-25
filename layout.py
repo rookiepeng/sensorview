@@ -202,21 +202,28 @@ def get_app_layout(app):
                             id='x-scatter2d-left',
                             disabled=True
                         ),
-                    ], className='one-third column'),
+                    ], className='one-forth column'),
                     html.Div([
                         html.Label('y-axis'),
                         dcc.Dropdown(
                             id='y-scatter2d-left',
                             disabled=True
                         ),
-                    ], className='one-third column'),
+                    ], className='one-forth column'),
                     html.Div([
                         html.Label('color'),
                         dcc.Dropdown(
                             id='color-scatter2d-left',
                             disabled=True
                         ),
-                    ], className='one-third column'),
+                    ], className='one-forth column'),
+                    html.Div([
+                        html.Label('colormap'),
+                        dcc.Dropdown(
+                            id='colormap-scatter2d-left',
+                            disabled=True
+                        ),
+                    ], className='one-forth column'),
                 ], className='row flex-display'),
                 dcc.Loading(
                     id='loading_left',
