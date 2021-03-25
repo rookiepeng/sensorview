@@ -465,6 +465,8 @@ def data_file_selection(
         State('session-id', 'data'),
         State('template', 'data'),
         State('colormap', 'data'),
+        State('test-case', 'value'),
+        State('data-file', 'value'),
     ])
 def update_filter(
     slider_arg,
@@ -484,6 +486,8 @@ def update_filter(
     session_id,
     template,
     colormap,
+    test_case,
+    data_file,
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -531,13 +535,11 @@ def update_filter(
     )
 
     if trigger_id == 'slider-frame' and not overlay_sw:
-        # filterd_frame = data[
-        #     data[slider_key] == frame_idx[slider_arg]
-        # ]
-        # filterd_frame = filterd_frame.reset_index()
         filterd_frame = context.deserialize(redis_instance.get(
             "FRAME"+session_id+str(frame_idx[slider_arg])))
 
+        img = './data/'+test_case+'/imgs/'+data_file[0:-4]+str(slider_arg)+'.png'
+        print(img)
         filterd_frame = filter_all(
             filterd_frame,
             num_keys,
@@ -552,7 +554,8 @@ def update_filter(
             keys_dict,
             'Index: ' + str(slider_arg) + ' (' + slider_label+')',
             colormap,
-            template
+            template,
+            image=img
         )
 
         filter_trig = dash.no_update
