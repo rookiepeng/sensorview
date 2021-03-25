@@ -543,9 +543,11 @@ def update_filter(
 
         img = './data/'+test_case+'/imgs/'+data_file[0:-4]+str(slider_arg)+'.png'
 
-        encoded_image = base64.b64encode(open(img, 'rb').read())
-
-        source_encoded = 'data:image/png;base64,{}'.format(encoded_image.decode())
+        try:
+            encoded_image = base64.b64encode(open(img, 'rb').read())
+            source_encoded = 'data:image/png;base64,{}'.format(encoded_image.decode())
+        except FileNotFoundError:
+            source_encoded = None
 
         print(img)
         filterd_frame = filter_all(
