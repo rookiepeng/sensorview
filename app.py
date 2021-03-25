@@ -774,6 +774,7 @@ def update_filter(
         Output('x-scatter2d-left', 'disabled'),
         Output('y-scatter2d-left', 'disabled'),
         Output('color-scatter2d-left', 'disabled'),
+        Output('colormap-scatter2d-left', 'disabled'),
     ],
     [
         Input('filter-trigger', 'children'),
@@ -782,6 +783,7 @@ def update_filter(
         Input('x-scatter2d-left', 'value'),
         Input('y-scatter2d-left', 'value'),
         Input('color-scatter2d-left', 'value'),
+        Input('colormap-scatter2d-left', 'value'),
     ],
     [
         State('keys-dict', 'data'),
@@ -799,6 +801,7 @@ def update_left_graph(
     x_left,
     y_left,
     color_left,
+    colormap,
     keys_dict,
     num_keys,
     cat_keys,
@@ -835,11 +838,13 @@ def update_left_graph(
             color_key,
             x_label,
             y_label,
-            color_label
+            color_label,
+            colormap=colormap
         )
         left_x_disabled = False
         left_y_disabled = False
         left_color_disabled = False
+        colormap_disable = False
 
     else:
         left_fig = {
@@ -851,12 +856,14 @@ def update_left_graph(
         left_x_disabled = True
         left_y_disabled = True
         left_color_disabled = True
+        colormap_disable = True
 
     return [
         left_fig,
         left_x_disabled,
         left_y_disabled,
         left_color_disabled,
+        colormap_disable
     ]
 
 
