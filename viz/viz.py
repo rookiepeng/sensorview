@@ -119,7 +119,7 @@ def get_host_data(det_list,
             'Longitudinal: %{y:.2f} m<br>',
             mode='markers',
             name=name,
-            marker=dict(color='rgb(255, 255, 255)', size=6, opacity=0.8,
+            marker=dict(color='rgb(0, 0, 0)', size=6, opacity=0.8,
                         symbol='circle')
         )
 
