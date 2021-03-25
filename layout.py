@@ -5,7 +5,11 @@ import dash_daq as daq
 
 import plotly.io as pio
 
+import plotly.express as px
+
 import uuid
+
+colorscales = px.colors.named_colorscales()
 
 
 def get_app_layout(app):
@@ -221,7 +225,10 @@ def get_app_layout(app):
                         html.Label('colormap'),
                         dcc.Dropdown(
                             id='colormap-scatter2d-left',
-                            disabled=True
+                            disabled=True,
+                            options=[{"value": x, "label": x}
+                                     for x in colorscales],
+                            value='jet'
                         ),
                     ], className='one-forth column'),
                 ], className='row flex-display'),
@@ -234,11 +241,11 @@ def get_app_layout(app):
                                 'displaylogo': False
                             },
                             figure={
-                                'data': [{'mode': 'markers', 'type': 'scattergl',
-                                          'x': [], 'y': []}
-                                         ],
+                                'data': [{
+                                    'mode': 'markers', 'type': 'scattergl',
+                                    'x': [], 'y': []
+                                }],
                                 'layout': {
-                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
@@ -304,7 +311,10 @@ def get_app_layout(app):
                         html.Label('colormap'),
                         dcc.Dropdown(
                             id='colormap-scatter2d-right',
-                            disabled=True
+                            disabled=True,
+                            options=[{"value": x, "label": x}
+                                     for x in colorscales],
+                            value='jet'
                         ),
                     ], className='one-forth column'),
                 ], className='row flex-display'),
@@ -323,7 +333,6 @@ def get_app_layout(app):
                                     'x': [], 'y': []
                                 }],
                                 'layout': {
-                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
@@ -399,7 +408,6 @@ def get_app_layout(app):
                                           'x': []}
                                          ],
                                 'layout': {
-                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
@@ -461,7 +469,6 @@ def get_app_layout(app):
                                           'x': []}
                                          ],
                                 'layout': {
-                                    'template': pio.templates['plotly'],
                                     'uirevision': 'no_change'
                                 }
                             },
