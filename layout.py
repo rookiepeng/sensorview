@@ -5,11 +5,25 @@ import dash_daq as daq
 
 import plotly.io as pio
 
-import plotly.express as px
-
 import uuid
 
-colorscales = px.colors.named_colorscales()
+colorscales = ['Blackbody',
+               'Bluered',
+               'Blues',
+               'Earth',
+               'Electric',
+               'Greens',
+               'Greys',
+               'Hot',
+               'Jet',
+               'Picnic',
+               'Portland',
+               'Rainbow',
+               'RdBu',
+               'Reds',
+               'Viridis',
+               'YlGnBu',
+               'YlOrRd']
 
 
 def get_app_layout(app):
@@ -228,7 +242,7 @@ def get_app_layout(app):
                             disabled=True,
                             options=[{"value": x, "label": x}
                                      for x in colorscales],
-                            value='jet'
+                            value='Jet'
                         ),
                     ], className='one-forth column'),
                 ], className='row flex-display'),
@@ -314,7 +328,7 @@ def get_app_layout(app):
                             disabled=True,
                             options=[{"value": x, "label": x}
                                      for x in colorscales],
-                            value='jet'
+                            value='Jet'
                         ),
                     ], className='one-forth column'),
                 ], className='row flex-display'),
