@@ -541,15 +541,16 @@ def update_filter(
         filterd_frame = context.deserialize(redis_instance.get(
             "FRAME"+session_id+str(frame_idx[slider_arg])))
 
-        img = './data/'+test_case+'/imgs/'+data_file[0:-4]+str(slider_arg)+'.png'
+        img = './data/'+test_case+'/imgs/' + \
+            data_file[0:-4]+str(slider_arg)+'.png'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
-            source_encoded = 'data:image/png;base64,{}'.format(encoded_image.decode())
+            source_encoded = 'data:image/png;base64,{}'.format(
+                encoded_image.decode())
         except FileNotFoundError:
             source_encoded = None
 
-        print(img)
         filterd_frame = filter_all(
             filterd_frame,
             num_keys,
@@ -614,6 +615,16 @@ def update_filter(
             ]
             filterd_frame = filterd_frame.reset_index()
 
+            img = './data/'+test_case+'/imgs/' + \
+                data_file[0:-4]+str(slider_arg)+'.png'
+
+            try:
+                encoded_image = base64.b64encode(open(img, 'rb').read())
+                source_encoded = 'data:image/png;base64,{}'.format(
+                    encoded_image.decode())
+            except FileNotFoundError:
+                source_encoded = None
+
             filterd_frame = filter_all(
                 filterd_frame,
                 num_keys,
@@ -629,7 +640,8 @@ def update_filter(
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
                 colormap,
-                template
+                template,
+                image=source_encoded
             )
             filter_trig = trigger_idx+1
 
@@ -673,6 +685,16 @@ def update_filter(
                 categorical_key_values
             )
 
+            img = './data/'+test_case+'/imgs/' + \
+                data_file[0:-4]+str(slider_arg)+'.png'
+
+            try:
+                encoded_image = base64.b64encode(open(img, 'rb').read())
+                source_encoded = 'data:image/png;base64,{}'.format(
+                    encoded_image.decode())
+            except FileNotFoundError:
+                source_encoded = None
+
             fig = scatter3d_data(
                 filterd_frame,
                 scatter3d_params,
@@ -680,7 +702,8 @@ def update_filter(
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
                 colormap,
-                template
+                template,
+                image=source_encoded
             )
             filter_trig = dash.no_update
 
@@ -695,6 +718,8 @@ def update_filter(
                     cat_keys,
                     categorical_key_values
                 )
+
+                source_encoded = None
             else:
                 filterd_frame = data[
                     data[
@@ -704,6 +729,16 @@ def update_filter(
                         ]['key']] == frame_idx[slider_arg]
                 ]
                 filterd_frame = filterd_frame.reset_index()
+
+                img = './data/'+test_case+'/imgs/' + \
+                    data_file[0:-4]+str(slider_arg)+'.png'
+
+                try:
+                    encoded_image = base64.b64encode(open(img, 'rb').read())
+                    source_encoded = 'data:image/png;base64,{}'.format(
+                        encoded_image.decode())
+                except FileNotFoundError:
+                    source_encoded = None
 
                 filterd_frame = filter_all(
                     filterd_frame,
@@ -719,7 +754,8 @@ def update_filter(
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
                 colormap,
-                template
+                template,
+                image=source_encoded
             )
             filter_trig = trigger_idx+1
         else:
