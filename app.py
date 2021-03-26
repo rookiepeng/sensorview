@@ -625,11 +625,7 @@ def update_filter(
 
         else:
             filterd_frame = data[
-                data[
-                    keys_dict
-                    [
-                        ui_config['slider']
-                    ]['key']] == frame_idx[slider_arg]
+                data[ui_config['slider']] == frame_idx[slider_arg]
             ]
             filterd_frame = filterd_frame.reset_index()
 
@@ -676,11 +672,7 @@ def update_filter(
                 source_encoded = None
             else:
                 filterd_frame = data[
-                    data[
-                        keys_dict
-                        [
-                            ui_config['slider']
-                        ]['key']] == frame_idx[slider_arg]
+                    data[ui_config['slider']] == frame_idx[slider_arg]
                 ]
                 filterd_frame = filterd_frame.reset_index()
 
@@ -1125,7 +1117,7 @@ def export_scatter_3d(btn,
                 z_key=z_det,
                 host_x_key=x_host,
                 host_y_key=y_host,
-                color_key=keys_dict[color_picker]['key'],
+                color_key=color_picker,
                 hover_dict=keys_dict,
                 db=False,
                 height=700,
