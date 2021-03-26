@@ -192,9 +192,9 @@ def test_case_selection(test_case):
         cat_keys = []
         for idx, s_item in enumerate(keys_dict):
             if keys_dict[s_item].get('type', 'numerical') == 'numerical':
-                num_keys.append(keys_dict[s_item])
+                num_keys.append(keys_dict[s_item]['key'])
             else:
-                cat_keys.append(keys_dict[s_item])
+                cat_keys.append(keys_dict[s_item]['key'])
 
         scatter3d_params = {
             'x_det_key': keys_dict[ui_config['x_3d']]['key'],
