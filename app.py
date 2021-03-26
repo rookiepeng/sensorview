@@ -170,7 +170,7 @@ def test_case_refresh(n_clicks):
     Output('num-key-list', 'data'),
     Output('cat-key-list', 'data'),
     Output('scatter3d-params', 'data')] /
-    + dropdown_options
+    + dropdown_options /
     + dropdown_values,
     [Input('test-case', 'value')])
 def test_case_selection(test_case):
