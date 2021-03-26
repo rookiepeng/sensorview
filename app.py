@@ -136,13 +136,8 @@ def test_case_refresh(n_clicks):
     for entry in obj:
         if entry.is_dir():
             options.append({'label': entry.name, 'value': entry.name})
-    #         print(entry.name)
-    # for (dirpath, dirnames, filenames) in os.walk('./data'):
-    #     test_cases.extend(dirnames)
-    #     break
-    # options = [{'label': i, 'value': i} for i in test_cases]
-    value = options[0]['value']
-    return [options, value]
+
+    return [options, options[0]['value']]
 
 
 @ app.callback(
