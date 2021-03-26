@@ -175,11 +175,13 @@ def test_case_refresh(n_clicks):
 def test_case_selection(test_case):
     if test_case is not None:
         data_files = []
-        for r, d, f in os.walk('./data/'+test_case):
-            for file in f:
-                if '.pkl' in file:
-                    data_files.append(file)
-            break
+        obj = os.scandir('./data'+test_case)
+        for entry in obj:
+            if entry.is_file():
+                if '.pkl' in entry.name:
+                    data_files.append({
+                        'label': entry.name,
+                        'value': entry.name})
 
         if os.path.exists('./data/'+test_case+'/config.json'):
             ui_config = load_config('./data/'+test_case+'/config.json')
@@ -190,7 +192,7 @@ def test_case_selection(test_case):
 
         num_keys = []
         cat_keys = []
-        for idx, s_item in enumerate(keys_dict):
+        for _, s_item in enumerate(keys_dict):
             if keys_dict[s_item].get('type', 'numerical') == 'numerical':
                 num_keys.append(s_item)
             else:
@@ -207,12 +209,12 @@ def test_case_selection(test_case):
         options = [[{
             'label': keys_dict[f_item].get('description', f_item),
             'value': f_item}
-            for idx, f_item in enumerate(keys_dict)
+            for _, f_item in enumerate(keys_dict)
         ]]*len(dropdown_options)
 
         return [
-            data_files[0],
-            [{'label': i, 'value': i} for i in data_files],
+            data_files[0]['value'],
+            data_files,
             ui_config,
             keys_dict,
             num_keys,
