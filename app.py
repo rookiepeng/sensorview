@@ -175,7 +175,7 @@ def test_case_refresh(n_clicks):
 def test_case_selection(test_case):
     if test_case is not None:
         data_files = []
-        obj = os.scandir('./data'+test_case)
+        obj = os.scandir('./data/'+test_case)
         for entry in obj:
             if entry.is_file():
                 if '.pkl' in entry.name:
