@@ -64,8 +64,6 @@ def scatter3d_data(det_list,
                    layout,
                    keys_dict,
                    name,
-                   colormap,
-                   template,
                    image=None):
 
     return dict(
@@ -78,8 +76,7 @@ def scatter3d_data(det_list,
             color_label=layout['color_label'],
             name=name,
             hover_dict=keys_dict,
-            c_range=layout['c_range'],
-            colormap=colormap
+            c_range=layout['c_range']
         ),
             get_host_data(
             det_list=det_list,
@@ -90,7 +87,6 @@ def scatter3d_data(det_list,
             x_range=layout['x_range'],
             y_range=layout['y_range'],
             z_range=layout['z_range'],
-            template=template,
             image=image)
     )
 
@@ -169,8 +165,6 @@ def test_case_refresh(n_clicks):
         Output('x-heatmap', 'value'),
         Output('y-heatmap', 'options'),
         Output('y-heatmap', 'value'),
-        Output('template', 'data'),
-        Output('colormap', 'data'),
     ],
     [
         Input('test-case', 'value')
@@ -227,9 +221,6 @@ def test_case_selection(test_case):
             for idx, f_item in enumerate(keys_dict)
         ]
 
-        template = ui_config.get('template', 'plotly')
-        colormap = ui_config.get('colormap', 'Jet')
-
         return [
             data_files[0],
             [{'label': i, 'value': i} for i in data_files],
@@ -258,8 +249,6 @@ def test_case_selection(test_case):
             ui_config['heatmap']['default_x'],
             options,
             ui_config['heatmap']['default_y'],
-            template,
-            colormap
         ]
     else:
         raise PreventUpdate
@@ -466,8 +455,6 @@ def data_file_selection(
         State('config', 'data'),
         State('scatter3d-params', 'data'),
         State('session-id', 'data'),
-        State('template', 'data'),
-        State('colormap', 'data'),
         State('test-case', 'value'),
         State('data-file', 'value'),
     ])
@@ -487,8 +474,6 @@ def update_filter(
     ui_config,
     scatter3d_params,
     session_id,
-    template,
-    colormap,
     test_case,
     data_file,
 ):
@@ -564,8 +549,6 @@ def update_filter(
             scatter3d_layout,
             keys_dict,
             'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-            colormap,
-            template,
             image=source_encoded
         )
 
@@ -603,9 +586,7 @@ def update_filter(
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                colormap,
-                template
+                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
             filter_trig = trigger_idx+1
 
@@ -639,8 +620,6 @@ def update_filter(
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                colormap,
-                template,
                 image=source_encoded
             )
             filter_trig = trigger_idx+1
@@ -661,9 +640,7 @@ def update_filter(
                 scatter3d_params,
                 scatter3d_layout,
                 keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                colormap,
-                template
+                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
             )
             filter_trig = dash.no_update
 
@@ -701,8 +678,6 @@ def update_filter(
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                colormap,
-                template,
                 image=source_encoded
             )
             filter_trig = dash.no_update
@@ -753,8 +728,6 @@ def update_filter(
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                colormap,
-                template,
                 image=source_encoded
             )
             filter_trig = trigger_idx+1
@@ -1129,8 +1102,6 @@ def update_heatmap(
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
         State('scatter3d-params', 'data'),
-        State('colormap', 'data'),
-        State('template', 'data')
     ]
 )
 def export_scatter_3d(btn,
@@ -1142,9 +1113,7 @@ def export_scatter_3d(btn,
                       cat_keys,
                       categorical_key_values,
                       numerical_key_values,
-                      scatter3d_params,
-                      colormap,
-                      template):
+                      scatter3d_params):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
@@ -1180,10 +1149,8 @@ def export_scatter_3d(btn,
                 color_key=keys_dict[color_picker]['key'],
                 hover_dict=keys_dict,
                 db=False,
-                colormap=colormap,
                 height=700,
-                title=test_case,
-                template=template
+                title=test_case
             )
         )
 
