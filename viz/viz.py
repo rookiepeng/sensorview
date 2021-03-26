@@ -278,10 +278,14 @@ def get_2d_scatter(det_list,
                 size=6,
                 color=det_list[color_key],
                 colorscale=colormap,
-                opacity=1,
+                opacity=0.8,
                 colorbar=dict(
                     title=color_label,
                 ),
+                line=dict(
+                    color="#FFFFFF",
+                    width=1,
+                )
                 # cmin=c_range[0],
                 # cmax=c_range[1],
             )

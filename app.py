@@ -118,7 +118,7 @@ REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
 REDIS_KEYS = {"DATASET": "DATASET",
               "FRAME_IDX": "FRAME_IDX",
               "FRAME": "FRAME"}
-EXPIRATION = 604800  # a week in seconds
+EXPIRATION = 172800  # a week in seconds
 
 app.layout = get_app_layout(app)
 
