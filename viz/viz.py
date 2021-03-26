@@ -347,9 +347,8 @@ def get_animation_data(det_list,
         filtered_list = filtered_list.reset_index()
 
         if image_dir is not None:
-            path = image_dir+str(idx)+'.png'
             try:
-                encoded_image = base64.b64encode(open(path, 'rb').read())
+                encoded_image = base64.b64encode(open(image_dir[idx], 'rb').read())
                 img = 'data:image/png;base64,{}'.format(
                     encoded_image.decode())
             except FileNotFoundError:
@@ -410,9 +409,8 @@ def get_animation_data(det_list,
     ]
 
     if image_dir is not None:
-        path = image_dir+str(0)+'.png'
         try:
-            encoded_image = base64.b64encode(open(path, 'rb').read())
+            encoded_image = base64.b64encode(open(image_dir[0], 'rb').read())
             img = 'data:image/png;base64,{}'.format(
                 encoded_image.decode())
         except FileNotFoundError:
