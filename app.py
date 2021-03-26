@@ -131,12 +131,17 @@ app.layout = get_app_layout(app)
     Input('refresh-case', 'n_clicks')
 )
 def test_case_refresh(n_clicks):
-    test_cases = []
-    for (dirpath, dirnames, filenames) in os.walk('./data'):
-        test_cases.extend(dirnames)
-        break
-    options = [{'label': i, 'value': i} for i in test_cases]
-    value = test_cases[0]
+    options = []
+    obj = os.scandir('./data')
+    for entry in obj:
+        if entry.is_dir():
+            options.append({'label': entry.name, 'value': entry.name})
+    #         print(entry.name)
+    # for (dirpath, dirnames, filenames) in os.walk('./data'):
+    #     test_cases.extend(dirnames)
+    #     break
+    # options = [{'label': i, 'value': i} for i in test_cases]
+    value = options[0]['value']
     return [options, value]
 
 
