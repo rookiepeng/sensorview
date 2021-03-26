@@ -255,7 +255,6 @@ def test_case_selection(test_case):
     [
         State('test-case', 'value'),
         State('keys-dict', 'data'),
-        State('scatter3d-params', 'data'),
         State('config', 'data'),
         State('session-id', 'data'),
         State('slider-frame', 'min'),
@@ -270,7 +269,6 @@ def data_file_selection(
         right_btn,
         test_case,
         keys_dict,
-        scatter3d_params,
         ui_config,
         session_id,
         min_val,

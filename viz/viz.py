@@ -56,14 +56,14 @@ def get_figure_data(det_list,
 
         hover = np.full(rows, '', dtype=object)
 
-        for idx, key in enumerate(hover_dict):
+        for _, key in enumerate(hover_dict):
             if 'format' in hover_dict[key]:
                 hover = hover + hover_dict[key]['description'] + ': ' + \
-                    det_list[hover_dict[key]['key']].map(
+                    det_list[key].map(
                         hover_dict[key]['format'].format)+'<br>'
             else:
                 hover = hover + hover_dict[key]['description'] + \
-                    ': ' + det_list[hover_dict[key]['key']]+'<br>'
+                    ': ' + det_list[key]+'<br>'
 
         if '_IDS_' in det_list.columns:
             ids = det_list['_IDS_']
