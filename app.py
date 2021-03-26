@@ -118,6 +118,32 @@ EXPIRATION = 172800  # a week in seconds
 
 app.layout = get_app_layout(app)
 
+dropdown_options = [
+    Output('color-picker-3d', 'options'),
+    Output('x-scatter2d-left', 'options'),
+    Output('y-scatter2d-left', 'options'),
+    Output('color-scatter2d-left', 'options'),
+    Output('x-scatter2d-right', 'options'),
+    Output('y-scatter2d-right', 'options'),
+    Output('color-scatter2d-right', 'options'),
+    Output('x-histogram', 'options'),
+    Output('x-heatmap', 'options'),
+    Output('y-heatmap', 'options'),
+]
+
+dropdown_values = [
+    Output('color-picker-3d', 'value'),
+    Output('x-scatter2d-left', 'value'),
+    Output('y-scatter2d-left', 'value'),
+    Output('color-scatter2d-left', 'value'),
+    Output('x-scatter2d-right', 'value'),
+    Output('y-scatter2d-right', 'value'),
+    Output('color-scatter2d-right', 'value'),
+    Output('x-histogram', 'value'),
+    Output('x-heatmap', 'value'),
+    Output('y-heatmap', 'value'),
+]
+
 
 @ app.callback(
     [
@@ -136,39 +162,17 @@ def test_case_refresh(n_clicks):
     return [options, options[0]['value']]
 
 
-@ app.callback(
-    [
-        Output('data-file', 'value'),
-        Output('data-file', 'options'),
-        Output('config', 'data'),
-        Output('keys-dict', 'data'),
-        Output('num-key-list', 'data'),
-        Output('cat-key-list', 'data'),
-        Output('scatter3d-params', 'data'),
-        Output('color-picker-3d', 'options'),
-        Output('color-picker-3d', 'value'),
-        Output('x-scatter2d-left', 'options'),
-        Output('x-scatter2d-left', 'value'),
-        Output('y-scatter2d-left', 'options'),
-        Output('y-scatter2d-left', 'value'),
-        Output('color-scatter2d-left', 'options'),
-        Output('color-scatter2d-left', 'value'),
-        Output('x-scatter2d-right', 'options'),
-        Output('x-scatter2d-right', 'value'),
-        Output('y-scatter2d-right', 'options'),
-        Output('y-scatter2d-right', 'value'),
-        Output('color-scatter2d-right', 'options'),
-        Output('color-scatter2d-right', 'value'),
-        Output('x-histogram', 'options'),
-        Output('x-histogram', 'value'),
-        Output('x-heatmap', 'options'),
-        Output('x-heatmap', 'value'),
-        Output('y-heatmap', 'options'),
-        Output('y-heatmap', 'value'),
-    ],
-    [
-        Input('test-case', 'value')
-    ])
+@ app.callback([
+    Output('data-file', 'value'),
+    Output('data-file', 'options'),
+    Output('config', 'data'),
+    Output('keys-dict', 'data'),
+    Output('num-key-list', 'data'),
+    Output('cat-key-list', 'data'),
+    Output('scatter3d-params', 'data')] /
+    + dropdown_options
+    + dropdown_values,
+    [Input('test-case', 'value')])
 def test_case_selection(test_case):
     if test_case is not None:
         data_files = []
@@ -230,24 +234,24 @@ def test_case_selection(test_case):
             cat_keys,
             scatter3d_params,
             options,
+            options,
+            options,
+            options,
+            options,
+            options,
+            options,
+            options,
+            options,
+            options,
             ui_config['graph_3d_detections']['default_color'],
-            options,
             ui_config['graph_2d_left']['default_x'],
-            options,
             ui_config['graph_2d_left']['default_y'],
-            options,
             ui_config['graph_2d_left']['default_color'],
-            options,
             ui_config['graph_2d_right']['default_x'],
-            options,
             ui_config['graph_2d_right']['default_y'],
-            options,
             ui_config['graph_2d_right']['default_color'],
-            options,
             ui_config['histogram']['default_x'],
-            options,
             ui_config['heatmap']['default_x'],
-            options,
             ui_config['heatmap']['default_y'],
         ]
     else:
@@ -1154,7 +1158,6 @@ def export_scatter_3d(btn,
             )
         )
 
-        # temp_fig = go.Figure(fig)
         fig.write_html('data/'+test_case+'/images/' +
                        timestamp+'_3dview.html')
     return 0
