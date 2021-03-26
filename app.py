@@ -217,13 +217,11 @@ def test_case_selection(test_case):
             ]['key'],
         }
 
-        options = [
-            {
-                'label': keys_dict[f_item]['description'],
-                'value': f_item
-            }
+        options = [[{
+            'label': keys_dict[f_item]['description'],
+            'value': f_item}
             for idx, f_item in enumerate(keys_dict)
-        ]
+        ]]*len(dropdown_options)
 
         return [
             data_files[0],
@@ -232,17 +230,7 @@ def test_case_selection(test_case):
             keys_dict,
             num_keys,
             cat_keys,
-            scatter3d_params,
-            options,
-            options,
-            options,
-            options,
-            options,
-            options,
-            options,
-            options,
-            options,
-            options,
+            scatter3d_params]+options+[
             ui_config['graph_3d_detections']['default_color'],
             ui_config['graph_2d_left']['default_x'],
             ui_config['graph_2d_left']['default_y'],
