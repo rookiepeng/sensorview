@@ -169,7 +169,8 @@ def test_case_refresh(n_clicks):
     Output('keys-dict', 'data'),
     Output('num-key-list', 'data'),
     Output('cat-key-list', 'data'),
-    Output('scatter3d-params', 'data')] + dropdown_options + dropdown_values,
+    Output('scatter3d-params', 'data')
+] + dropdown_options + dropdown_values,
     [Input('test-case', 'value')])
 def test_case_selection(test_case):
     if test_case is not None:
@@ -185,38 +186,26 @@ def test_case_selection(test_case):
         else:
             ui_config = load_config('config.json')
 
+        keys_dict = ui_config['keys']
+
         num_keys = []
-        for idx, s_item in enumerate(ui_config['numerical']):
-            num_keys.append(
-                ui_config['numerical'][s_item]['key'])
-
         cat_keys = []
-        for idx, d_item in enumerate(ui_config['categorical']):
-            cat_keys.append(
-                ui_config['categorical'][d_item]['key'])
-
-        keys_dict = {**ui_config['categorical'], **ui_config['numerical']}
+        for idx, s_item in enumerate(keys_dict):
+            if keys_dict[s_item].get('type', 'numerical') == 'numerical':
+                num_keys.append(keys_dict[s_item]['key'])
+            else:
+                cat_keys.append(keys_dict[s_item]['key'])
 
         scatter3d_params = {
-            'x_det_key': keys_dict[
-                ui_config['graph_3d_detections']['default_x']
-            ]['key'],
-            'y_det_key': keys_dict[
-                ui_config['graph_3d_detections']['default_y']
-            ]['key'],
-            'z_det_key': keys_dict[
-                ui_config['graph_3d_detections']['default_z']
-            ]['key'],
-            'x_host_key': ui_config['host'][
-                ui_config['graph_3d_host']['default_x']
-            ]['key'],
-            'y_host_key': ui_config['host'][
-                ui_config['graph_3d_host']['default_y']
-            ]['key'],
+            'x_det_key': keys_dict[ui_config['x_3d']]['key'],
+            'y_det_key': keys_dict[ui_config['y_3d']]['key'],
+            'z_det_key': keys_dict[ui_config['z_3d']]['key'],
+            'x_host_key': ui_config['reference'][ui_config['latitude']]['key'],
+            'y_host_key': ui_config['reference'][ui_config['longitude']]['key']
         }
 
         options = [[{
-            'label': keys_dict[f_item]['description'],
+            'label': keys_dict[f_item].get('description', f_item),
             'value': f_item}
             for idx, f_item in enumerate(keys_dict)
         ]]*len(dropdown_options)
@@ -229,16 +218,16 @@ def test_case_selection(test_case):
             num_keys,
             cat_keys,
             scatter3d_params]+options+[
-            ui_config['graph_3d_detections']['default_color'],
-            ui_config['graph_2d_left']['default_x'],
-            ui_config['graph_2d_left']['default_y'],
-            ui_config['graph_2d_left']['default_color'],
-            ui_config['graph_2d_right']['default_x'],
-            ui_config['graph_2d_right']['default_y'],
-            ui_config['graph_2d_right']['default_color'],
-            ui_config['histogram']['default_x'],
-            ui_config['heatmap']['default_x'],
-            ui_config['heatmap']['default_y'],
+            ui_config['c_3d'],
+            ui_config['x_2d_l'],
+            ui_config['y_2d_l'],
+            ui_config['c_2d_l'],
+            ui_config['x_2d_r'],
+            ui_config['y_2d_r'],
+            ui_config['c_2d_r'],
+            ui_config['x_hist'],
+            ui_config['x_heatmap'],
+            ui_config['y_heatmap'],
         ]
     else:
         raise PreventUpdate
@@ -270,6 +259,8 @@ def test_case_selection(test_case):
         State('slider-frame', 'min'),
         State('slider-frame', 'max'),
         State('slider-frame', 'value'),
+        State('num-key-list', 'data'),
+        State('cat-key-list', 'data'),
     ])
 def data_file_selection(
         data_file_name,
@@ -283,6 +274,8 @@ def data_file_selection(
         min_val,
         max_val,
         val,
+        num_keys,
+        cat_keys
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -327,7 +320,7 @@ def data_file_selection(
             ex=EXPIRATION
         )
         frame_idx = new_data[
-            ui_config['numerical']
+            ui_config['keys']
             [ui_config['slider']]['key']].unique()
         frame_idx = np.sort(frame_idx)
 
@@ -338,7 +331,7 @@ def data_file_selection(
         )
 
         for f_idx in frame_idx:
-            single_frame = new_data[new_data[ui_config['numerical']
+            single_frame = new_data[new_data[ui_config['keys']
                                     [ui_config['slider']]['key']] == f_idx]
             single_frame = single_frame.reset_index()
             redis_instance.set(
@@ -351,11 +344,11 @@ def data_file_selection(
 
         cat_values = []
         new_dropdown = []
-        for idx, d_item in enumerate(ui_config['categorical']):
-            var_list = new_data[ui_config['categorical']
+        for idx, d_item in enumerate(cat_keys):
+            var_list = new_data[keys_dict
                                 [d_item]['key']].unique()
 
-            if ui_config['categorical'][d_item]['key'] == 'Visibility':
+            if keys_dict[d_item]['key'] == 'Visibility':
                 var_list = np.append(var_list, 'hidden')
                 value_list = [np.array('visible')]
             else:
@@ -363,7 +356,7 @@ def data_file_selection(
 
             new_dropdown.append(
                 html.Label(
-                    ui_config['categorical'][d_item]['description']
+                    keys_dict[d_item]['description']
                 )
             )
             new_dropdown.append(
@@ -382,15 +375,15 @@ def data_file_selection(
 
         num_values = []
         new_slider = []
-        for idx, s_item in enumerate(ui_config['numerical']):
+        for idx, s_item in enumerate(num_keys):
             var_min = round(
-                np.min(new_data[ui_config['numerical'][s_item]['key']]), 1)
+                np.min(new_data[keys_dict[s_item]['key']]), 1)
             var_max = round(
-                np.max(new_data[ui_config['numerical'][s_item]['key']]), 1)
+                np.max(new_data[keys_dict[s_item]['key']]), 1)
 
             new_slider.append(
                 html.Label(
-                    ui_config['numerical'][s_item]['description']
+                    keys_dict[s_item]['description']
                 )
             )
             new_slider.append(dcc.RangeSlider(
@@ -637,7 +630,7 @@ def update_filter(
         else:
             filterd_frame = data[
                 data[
-                    ui_config['numerical']
+                    keys_dict
                     [
                         ui_config['slider']
                     ]['key']] == frame_idx[slider_arg]
@@ -688,7 +681,7 @@ def update_filter(
             else:
                 filterd_frame = data[
                     data[
-                        ui_config['numerical']
+                        keys_dict
                         [
                             ui_config['slider']
                         ]['key']] == frame_idx[slider_arg]
