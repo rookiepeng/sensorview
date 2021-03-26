@@ -192,16 +192,16 @@ def test_case_selection(test_case):
         cat_keys = []
         for idx, s_item in enumerate(keys_dict):
             if keys_dict[s_item].get('type', 'numerical') == 'numerical':
-                num_keys.append(keys_dict[s_item]['key'])
+                num_keys.append(s_item)
             else:
-                cat_keys.append(keys_dict[s_item]['key'])
+                cat_keys.append(s_item)
 
         scatter3d_params = {
-            'x_det_key': keys_dict[ui_config['x_3d']]['key'],
-            'y_det_key': keys_dict[ui_config['y_3d']]['key'],
-            'z_det_key': keys_dict[ui_config['z_3d']]['key'],
-            'x_host_key': ui_config['reference'][ui_config['x_ref']]['key'],
-            'y_host_key': ui_config['reference'][ui_config['y_ref']]['key']
+            'x_det_key': ui_config['x_3d'],
+            'y_det_key': ui_config['y_3d'],
+            'z_det_key': ui_config['z_3d'],
+            'x_host_key': ui_config['x_ref'],
+            'y_host_key': ui_config['y_ref']
         }
 
         options = [[{
@@ -319,9 +319,7 @@ def data_file_selection(
             context.serialize(new_data).to_buffer().to_pybytes(),
             ex=EXPIRATION
         )
-        frame_idx = new_data[
-            ui_config['keys']
-            [ui_config['slider']]['key']].unique()
+        frame_idx = new_data[ui_config['slider']].unique()
         frame_idx = np.sort(frame_idx)
 
         redis_instance.set(
@@ -331,8 +329,7 @@ def data_file_selection(
         )
 
         for f_idx in frame_idx:
-            single_frame = new_data[new_data[ui_config['keys']
-                                    [ui_config['slider']]['key']] == f_idx]
+            single_frame = new_data[new_data[ui_config['slider']] == f_idx]
             single_frame = single_frame.reset_index()
             redis_instance.set(
                 REDIS_KEYS["FRAME"]+session_id+str(f_idx),
@@ -345,10 +342,9 @@ def data_file_selection(
         cat_values = []
         new_dropdown = []
         for idx, d_item in enumerate(cat_keys):
-            var_list = new_data[keys_dict
-                                [d_item]['key']].unique()
+            var_list = new_data[d_item].unique()
 
-            if keys_dict[d_item]['key'] == 'Visibility':
+            if d_item == 'Visibility':
                 var_list = np.append(var_list, 'hidden')
                 value_list = [np.array('visible')]
             else:
@@ -377,9 +373,9 @@ def data_file_selection(
         new_slider = []
         for idx, s_item in enumerate(num_keys):
             var_min = round(
-                np.min(new_data[keys_dict[s_item]['key']]), 1)
+                np.min(new_data[s_item]), 1)
             var_max = round(
-                np.max(new_data[keys_dict[s_item]['key']]), 1)
+                np.max(new_data[s_item]), 1)
 
             new_slider.append(
                 html.Label(
@@ -463,10 +459,10 @@ def update_filter(
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    color_key = keys_dict[color_picker]['key']
+    color_key = color_picker
     color_label = keys_dict[color_picker]['description']
 
-    slider_key = keys_dict[ui_config['slider']]['key']
+    slider_key = ui_config['slider']
     slider_label = keys_dict[ui_config['slider']
                              ]['description']
 
@@ -765,9 +761,9 @@ def update_left_graph(
     numerical_key_values,
     session_id
 ):
-    x_key = keys_dict[x_left]['key']
-    y_key = keys_dict[y_left]['key']
-    color_key = keys_dict[color_left]['key']
+    x_key = x_left
+    y_key = y_left
+    color_key = color_left
     x_label = keys_dict[x_left]['description']
     y_label = keys_dict[y_left]['description']
     color_label = keys_dict[color_left]['description']
@@ -864,9 +860,9 @@ def update_right_graph(
     numerical_key_values,
     session_id
 ):
-    x_key = keys_dict[x_right]['key']
-    y_key = keys_dict[y_right]['key']
-    color_key = keys_dict[color_right]['key']
+    x_key = x_right
+    y_key = y_right
+    color_key = color_right
     x_label = keys_dict[x_right]['description']
     y_label = keys_dict[y_right]['description']
     color_label = keys_dict[color_right]['description']
@@ -954,7 +950,7 @@ def update_histogram(
     numerical_key_values,
     session_id
 ):
-    x_key = keys_dict[x_histogram]['key']
+    x_key = x_histogram
     x_label = keys_dict[x_histogram]['description']
     y_key = y_histogram
 
@@ -1030,9 +1026,9 @@ def update_heatmap(
     session_id
 ):
     if heat_sw:
-        x_key = keys_dict[x_heat]['key']
+        x_key = x_heat
         x_label = keys_dict[x_heat]['description']
-        y_key = keys_dict[y_heat]['key']
+        y_key = y_heat
         y_label = keys_dict[y_heat]['description']
         # if processing.is_filtering_ready():
         context = pa.default_serialization_context()
