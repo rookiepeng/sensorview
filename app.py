@@ -200,8 +200,8 @@ def test_case_selection(test_case):
             'x_det_key': keys_dict[ui_config['x_3d']]['key'],
             'y_det_key': keys_dict[ui_config['y_3d']]['key'],
             'z_det_key': keys_dict[ui_config['z_3d']]['key'],
-            'x_host_key': ui_config['reference'][ui_config['latitude']]['key'],
-            'y_host_key': ui_config['reference'][ui_config['longitude']]['key']
+            'x_host_key': ui_config['reference'][ui_config['x_ref']]['key'],
+            'y_host_key': ui_config['reference'][ui_config['y_ref']]['key']
         }
 
         options = [[{
