@@ -431,7 +431,9 @@ def get_app_layout(app):
                             ], className='nine columns'),
                             html.Div([
                                 html.Button(
-                                    'Export', id='export-histogram', n_clicks=0),
+                                    'Export',
+                                    id='export-histogram',
+                                    n_clicks=0),
                                 html.Div(id='hidden-histogram',
                                          style={'display': 'none'}),
                             ], className='two columns'),

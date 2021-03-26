@@ -32,6 +32,8 @@ import pandas as pd
 import plotly.graph_objs as go
 import plotly.io as pio
 
+import base64
+
 
 def get_figure_data(det_list,
                     x_key,
@@ -316,7 +318,7 @@ def get_animation_data(det_list,
                        title=None,
                        height=650,
                        template='plotly',
-                       images=None):
+                       image_dir=None):
 
     x_range = [np.min([np.min(det_list[x_key]),
                        np.min(det_list[host_x_key])]),
@@ -336,12 +338,18 @@ def get_animation_data(det_list,
     ani_frames = []
     frame_list = det_list['Frame'].unique()
 
-    for frame_idx in frame_list:
+    for idx, frame_idx in enumerate(frame_list):
         filtered_list = det_list[det_list['Frame'] == frame_idx]
         filtered_list = filtered_list.reset_index()
 
-        if images is not None:
-            img = images[frame_idx]
+        if image_dir is not None:
+            path = image_dir+str(idx)+'.png'
+            try:
+                encoded_image = base64.b64encode(open(path, 'rb').read())
+                img = 'data:image/png;base64,{}'.format(
+                    encoded_image.decode())
+            except FileNotFoundError:
+                img = None
         else:
             img = None
 
@@ -397,8 +405,14 @@ def get_animation_data(det_list,
         }
     ]
 
-    if images is not None:
-        img = images[0]
+    if image_dir is not None:
+        path = image_dir+str(0)+'.png'
+        try:
+            encoded_image = base64.b64encode(open(path, 'rb').read())
+            img = 'data:image/png;base64,{}'.format(
+                encoded_image.decode())
+        except FileNotFoundError:
+            img = None
     else:
         img = None
 
