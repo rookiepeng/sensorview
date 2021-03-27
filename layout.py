@@ -30,15 +30,12 @@ def get_app_layout(app):
     return html.Div([
         dcc.Store(id='config'),
         dcc.Store(id='keys-dict'),
-        dcc.Store(id='scatter3d-params'),
         dcc.Store(id='num-key-list'),
         dcc.Store(id='cat-key-list'),
         dcc.Store(id='cat-key-values'),
         dcc.Store(id='num-key-values'),
         dcc.Store(id='selected-data-left'),
         dcc.Store(id='selected-data-right'),
-        dcc.Store(id='template'),
-        dcc.Store(id='colormap'),
         dcc.Store(id='session-id', data=str(uuid.uuid4())),
         html.Div([
             html.Div([
