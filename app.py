@@ -190,6 +190,9 @@ def test_case_selection(test_case):
 
         keys_dict = ui_config['keys']
 
+        keys_dict['Visibility']['description'] = 'Visibility'
+        keys_dict['Visibility']['type'] = 'categorical'
+
         num_keys = []
         cat_keys = []
         for _, s_item in enumerate(keys_dict):
@@ -199,11 +202,11 @@ def test_case_selection(test_case):
                 cat_keys.append(s_item)
 
         scatter3d_params = {
-            'x_det_key': ui_config['x_3d'],
-            'y_det_key': ui_config['y_3d'],
-            'z_det_key': ui_config['z_3d'],
-            'x_host_key': ui_config['x_ref'],
-            'y_host_key': ui_config['y_ref']
+            'x_det_key': ui_config.get('x_3d', num_keys[0]),
+            'y_det_key': ui_config.get('y_3d', num_keys[1]),
+            'z_det_key': ui_config.get('z_3d', num_keys[2]),
+            'x_host_key': ui_config.get('x_ref', None),
+            'y_host_key': ui_config.get('y_ref', None),
         }
 
         options = [[{
@@ -220,16 +223,16 @@ def test_case_selection(test_case):
             num_keys,
             cat_keys,
             scatter3d_params]+options+[
-            ui_config['c_3d'],
-            ui_config['x_2d_l'],
-            ui_config['y_2d_l'],
-            ui_config['c_2d_l'],
-            ui_config['x_2d_r'],
-            ui_config['y_2d_r'],
-            ui_config['c_2d_r'],
-            ui_config['x_hist'],
-            ui_config['x_heatmap'],
-            ui_config['y_heatmap'],
+            ui_config.get('c_3d', num_keys[2]),
+            ui_config.get('x_2d_l', num_keys[0]),
+            ui_config.get('y_2d_l', num_keys[1]),
+            ui_config.get('c_2d_l', num_keys[2]),
+            ui_config.get('x_2d_r', num_keys[0]),
+            ui_config.get('y_2d_r', num_keys[1]),
+            ui_config.get('c_2d_r', num_keys[2]),
+            ui_config.get('x_hist', num_keys[0]),
+            ui_config.get('x_heatmap', num_keys[0]),
+            ui_config.get('y_heatmap', num_keys[1]),
         ]
     else:
         raise PreventUpdate
