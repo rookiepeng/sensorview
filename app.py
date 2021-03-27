@@ -188,10 +188,14 @@ def test_case_selection(test_case):
         else:
             ui_config = load_config('config.json')
 
-        keys_dict = ui_config['keys']
+        visible_dict = {
+            'Visibility': {
+                "description": "Visibility",
+                "type": "categorical"
+            }
+        }
 
-        keys_dict['Visibility']['description'] = 'Visibility'
-        keys_dict['Visibility']['type'] = 'categorical'
+        keys_dict = {**visible_dict, **ui_config['keys']}
 
         num_keys = []
         cat_keys = []
