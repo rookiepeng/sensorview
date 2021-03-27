@@ -208,14 +208,6 @@ def test_case_selection(test_case):
             else:
                 cat_keys.append(s_item)
 
-        scatter3d_params = {
-            'x_det_key': ui_config.get('x_3d', num_keys[0]),
-            'y_det_key': ui_config.get('y_3d', num_keys[1]),
-            'z_det_key': ui_config.get('z_3d', num_keys[2]),
-            'x_host_key': ui_config.get('x_ref', None),
-            'y_host_key': ui_config.get('y_ref', None),
-        }
-
         options = [[{
             'label': keys_dict[f_item].get('description', f_item),
             'value': f_item}
@@ -474,10 +466,10 @@ def update_filter(
                              ]['description']
 
     x_det = ui_config.get('x_3d', num_keys[0])
-    x_host = ui_config.get('y_3d', num_keys[1])
-    y_det = ui_config.get('z_3d', num_keys[2])
-    y_host = ui_config.get('x_ref', None)
-    z_det = ui_config.get('y_ref', None)
+    y_det = ui_config.get('y_3d', num_keys[1])
+    z_det = ui_config.get('z_3d', num_keys[2])
+    x_host = ui_config.get('x_ref', None)
+    y_host = ui_config.get('y_ref', None)
 
     context = pa.default_serialization_context()
     data = context.deserialize(redis_instance.get("DATASET"+session_id))
@@ -1130,10 +1122,10 @@ def export_scatter_3d(
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
 
         x_det = ui_config.get('x_3d', num_keys[0])
-        x_host = ui_config.get('y_3d', num_keys[1])
-        y_det = ui_config.get('z_3d', num_keys[2])
-        y_host = ui_config.get('x_ref', None)
-        z_det = ui_config.get('y_ref', None)
+        y_det = ui_config.get('y_3d', num_keys[1])
+        z_det = ui_config.get('z_3d', num_keys[2])
+        x_host = ui_config.get('x_ref', None)
+        y_host = ui_config.get('y_ref', None)
 
         filtered_table = filter_all(
             data,
