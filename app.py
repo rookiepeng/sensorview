@@ -60,7 +60,11 @@ from viz.viz import get_animation_data
 
 
 def scatter3d_data(det_list,
-                   params,
+                   x,
+                   y,
+                   z,
+                   x_ref,
+                   y_ref,
                    layout,
                    keys_dict,
                    name,
@@ -69,9 +73,9 @@ def scatter3d_data(det_list,
     return dict(
         data=[get_figure_data(
             det_list=det_list,
-            x_key=params['x_det_key'],
-            y_key=params['y_det_key'],
-            z_key=params['z_det_key'],
+            x_key=x,
+            y_key=y,
+            z_key=z,
             color_key=layout['color_key'],
             color_label=layout['color_label'],
             name=name,
@@ -80,8 +84,8 @@ def scatter3d_data(det_list,
         ),
             get_host_data(
             det_list=det_list,
-            x_key=params['x_host_key'],
-            y_key=params['y_host_key'],
+            x_key=x_ref,
+            y_key=y_ref,
         )],
         layout=get_figure_layout(
             x_range=layout['x_range'],
@@ -168,8 +172,7 @@ def test_case_refresh(n_clicks):
     Output('config', 'data'),
     Output('keys-dict', 'data'),
     Output('num-key-list', 'data'),
-    Output('cat-key-list', 'data'),
-    Output('scatter3d-params', 'data')
+    Output('cat-key-list', 'data')
 ] + dropdown_options + dropdown_values,
     [Input('test-case', 'value')])
 def test_case_selection(test_case):
@@ -189,9 +192,9 @@ def test_case_selection(test_case):
             ui_config = load_config('config.json')
 
         visible_dict = {
-            'Visibility': {
-                "description": "Visibility",
-                "type": "categorical"
+            '_VIS_': {
+                'description': 'Visibility',
+                'type': 'categorical'
             }
         }
 
@@ -225,8 +228,7 @@ def test_case_selection(test_case):
             ui_config,
             keys_dict,
             num_keys,
-            cat_keys,
-            scatter3d_params]+options+[
+            cat_keys]+options+[
             ui_config.get('c_3d', num_keys[2]),
             ui_config.get('x_2d_l', num_keys[0]),
             ui_config.get('y_2d_l', num_keys[1]),
@@ -318,7 +320,7 @@ def data_file_selection(
             './data/'+test_case+'/'+data_file_name)
 
         new_data['_IDS_'] = new_data.index
-        new_data['Visibility'] = 'visible'
+        new_data['_VIS_'] = 'visible'
 
         context = pa.default_serialization_context()
         redis_instance.set(
@@ -351,7 +353,7 @@ def data_file_selection(
         for idx, d_item in enumerate(cat_keys):
             var_list = new_data[d_item].unique()
 
-            if d_item == 'Visibility':
+            if d_item == '_VIS_':
                 var_list = np.append(var_list, 'hidden')
                 value_list = [np.array('visible')]
             else:
@@ -439,7 +441,6 @@ def data_file_selection(
         State('cat-key-list', 'data'),
         State('filter-trigger', 'children'),
         State('config', 'data'),
-        State('scatter3d-params', 'data'),
         State('session-id', 'data'),
         State('test-case', 'value'),
         State('data-file', 'value'),
@@ -458,7 +459,6 @@ def update_filter(
     cat_keys,
     trigger_idx,
     ui_config,
-    scatter3d_params,
     session_id,
     test_case,
     data_file,
@@ -473,11 +473,11 @@ def update_filter(
     slider_label = keys_dict[ui_config['slider']
                              ]['description']
 
-    x_det = scatter3d_params['x_det_key']
-    x_host = scatter3d_params['x_host_key']
-    y_det = scatter3d_params['y_det_key']
-    y_host = scatter3d_params['y_host_key']
-    z_det = scatter3d_params['z_det_key']
+    x_det = ui_config.get('x_3d', num_keys[0])
+    x_host = ui_config.get('y_3d', num_keys[1])
+    y_det = ui_config.get('z_3d', num_keys[2])
+    y_host = ui_config.get('x_ref', None)
+    z_det = ui_config.get('y_ref', None)
 
     context = pa.default_serialization_context()
     data = context.deserialize(redis_instance.get("DATASET"+session_id))
@@ -529,9 +529,14 @@ def update_filter(
             cat_keys,
             categorical_key_values
         )
+
         fig = scatter3d_data(
             filterd_frame,
-            scatter3d_params,
+            x_det,
+            y_det,
+            z_det,
+            x_host,
+            y_host,
             scatter3d_layout,
             keys_dict,
             'Index: ' + str(slider_arg) + ' (' + slider_label+')',
@@ -542,14 +547,14 @@ def update_filter(
 
     elif trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
-        if data['Visibility'][
+        if data['_VIS_'][
             click_data['points'][0]['id']
         ] == 'visible':
             data.at[click_data['points']
-                    [0]['id'], 'Visibility'] = 'hidden'
+                    [0]['id'], '_VIS_'] = 'hidden'
         else:
             data.at[click_data['points']
-                    [0]['id'], 'Visibility'] = 'visible'
+                    [0]['id'], '_VIS_'] = 'visible'
 
         context = pa.default_serialization_context()
         redis_instance.set(
@@ -569,7 +574,11 @@ def update_filter(
 
             fig = scatter3d_data(
                 filterd_frame,
-                scatter3d_params,
+                x_det,
+                y_det,
+                z_det,
+                x_host,
+                y_host,
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
@@ -602,7 +611,11 @@ def update_filter(
 
             fig = scatter3d_data(
                 filterd_frame,
-                scatter3d_params,
+                x_det,
+                y_det,
+                z_det,
+                x_host,
+                y_host,
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
@@ -623,7 +636,11 @@ def update_filter(
 
             fig = scatter3d_data(
                 filterd_frame,
-                scatter3d_params,
+                x_det,
+                y_det,
+                z_det,
+                x_host,
+                y_host,
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')'
@@ -656,7 +673,11 @@ def update_filter(
 
             fig = scatter3d_data(
                 filterd_frame,
-                scatter3d_params,
+                x_det,
+                y_det,
+                z_det,
+                x_host,
+                y_host,
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
@@ -702,7 +723,11 @@ def update_filter(
                 )
             fig = scatter3d_data(
                 filterd_frame,
-                scatter3d_params,
+                x_det,
+                y_det,
+                z_det,
+                x_host,
+                y_host,
                 scatter3d_layout,
                 keys_dict,
                 'Index: ' + str(slider_arg) + ' (' + slider_label+')',
@@ -1079,19 +1104,21 @@ def update_heatmap(
         State('cat-key-list', 'data'),
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
-        State('scatter3d-params', 'data'),
+        State('config', 'data'),
     ]
 )
-def export_scatter_3d(btn,
-                      test_case,
-                      session_id,
-                      keys_dict,
-                      color_picker,
-                      num_keys,
-                      cat_keys,
-                      categorical_key_values,
-                      numerical_key_values,
-                      scatter3d_params):
+def export_scatter_3d(
+    btn,
+    test_case,
+    session_id,
+    keys_dict,
+    color_picker,
+    num_keys,
+    cat_keys,
+    categorical_key_values,
+    numerical_key_values,
+    ui_config
+):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
@@ -1102,11 +1129,11 @@ def export_scatter_3d(btn,
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
 
-        x_det = scatter3d_params['x_det_key']
-        x_host = scatter3d_params['x_host_key']
-        y_det = scatter3d_params['y_det_key']
-        y_host = scatter3d_params['y_host_key']
-        z_det = scatter3d_params['z_det_key']
+        x_det = ui_config.get('x_3d', num_keys[0])
+        x_host = ui_config.get('y_3d', num_keys[1])
+        y_det = ui_config.get('z_3d', num_keys[2])
+        y_host = ui_config.get('x_ref', None)
+        z_det = ui_config.get('y_ref', None)
 
         filtered_table = filter_all(
             data,
@@ -1256,11 +1283,11 @@ def left_hide_button(
         idx = s_data['id']
         idx.index = idx
 
-        vis_idx = idx[data['Visibility'][idx] == 'visible']
-        hid_idx = idx[data['Visibility'][idx] == 'hidden']
+        vis_idx = idx[data['_VIS_'][idx] == 'visible']
+        hid_idx = idx[data['_VIS_'][idx] == 'hidden']
 
-        data.loc[vis_idx, 'Visibility'] = 'hidden'
-        data.loc[hid_idx, 'Visibility'] = 'visible'
+        data.loc[vis_idx, '_VIS_'] = 'hidden'
+        data.loc[hid_idx, '_VIS_'] = 'visible'
 
         redis_instance.set(
             REDIS_KEYS["DATASET"]+session_id,
