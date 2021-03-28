@@ -54,7 +54,7 @@ def filter_all(
 
     for filter_idx, filter_name in enumerate(categorical_key_list):
         if categorical_key_values[filter_idx] is not None:
-           for val_idx, val in enumerate(categorical_key_values[filter_idx]):
+            for val_idx, val in enumerate(categorical_key_values[filter_idx]):
                 if val_idx == 0:
                     val_condition = data_frame[filter_name] == val
                 else:
