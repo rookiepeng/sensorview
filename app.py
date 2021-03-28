@@ -237,10 +237,49 @@ def test_case_selection(test_case):
 
 
 @ app.callback(
+    Output('slider-frame', 'value'),
+    [
+        Input('data-file', 'value'),
+        Input('left-frame', 'n_clicks'),
+        Input('right-frame', 'n_clicks'),
+    ],
+    [
+        State('test-case', 'value'),
+        State('slider-frame', 'min'),
+        State('slider-frame', 'max'),
+        State('slider-frame', 'value'),
+    ])
+def slider_value_change(
+        data_file_name,
+        left_btn,
+        right_btn,
+        test_case,
+        min_val,
+        max_val,
+        val):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if trigger_id == 'left-frame':
+        if left_btn > 0 and val > min_val:
+            return val-1
+        else:
+            raise PreventUpdate
+    elif trigger_id == 'right-frame':
+        if right_btn > 0 and val < max_val:
+            return val+1
+        else:
+            raise PreventUpdate
+    elif trigger_id == 'data-file':
+        if data_file_name is not None and test_case is not None:
+            return 0
+        else:
+            raise PreventUpdate
+
+
+@ app.callback(
     [
         Output('slider-frame', 'min'),
         Output('slider-frame', 'max'),
-        Output('slider-frame', 'value'),
         Output('left-switch', 'on'),
         Output('right-switch', 'on'),
         Output('histogram-switch', 'on'),
@@ -250,62 +289,24 @@ def test_case_selection(test_case):
     ],
     [
         Input('data-file', 'value'),
-        Input('left-frame', 'n_clicks'),
-        Input('right-frame', 'n_clicks'),
     ],
     [
         State('test-case', 'value'),
         State('keys-dict', 'data'),
         State('config', 'data'),
         State('session-id', 'data'),
-        State('slider-frame', 'min'),
-        State('slider-frame', 'max'),
-        State('slider-frame', 'value'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
     ])
 def data_file_selection(
         data_file_name,
-        left_btn,
-        right_btn,
         test_case,
         keys_dict,
         ui_config,
         session_id,
-        min_val,
-        max_val,
-        val,
         num_keys,
         cat_keys
 ):
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    if trigger_id == 'left-frame':
-        if left_btn > 0 and val > min_val:
-            return [dash.no_update,
-                    dash.no_update,
-                    val-1,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update]
-        else:
-            raise PreventUpdate
-    elif trigger_id == 'right-frame':
-        if right_btn > 0 and val < max_val:
-            return [dash.no_update,
-                    dash.no_update,
-                    val+1,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update,
-                    dash.no_update]
-        else:
-            raise PreventUpdate
 
     if data_file_name is not None and test_case is not None:
         new_data = pd.read_pickle(
@@ -338,7 +339,7 @@ def data_file_selection(
                 ex=EXPIRATION
             )
 
-        output = [0, len(frame_idx)-1, 0]
+        output = [0, len(frame_idx)-1]
 
         cat_values = []
         new_dropdown = []
