@@ -53,18 +53,17 @@ def filter_all(
                 filter_idx][0]) & (data_frame[filter_name] <= numerical_key_values[filter_idx][1])
 
     for filter_idx, filter_name in enumerate(categorical_key_list):
-        for val_idx, val in enumerate(categorical_key_values[filter_idx]):
-            if val_idx == 0:
-                val_condition = data_frame[filter_name] == val
-            else:
-                val_condition = val_condition | (data_frame[filter_name] == val)
+        if categorical_key_values[filter_idx] is not None:
+           for val_idx, val in enumerate(categorical_key_values[filter_idx]):
+                if val_idx == 0:
+                    val_condition = data_frame[filter_name] == val
+                else:
+                    val_condition = val_condition | (
+                        data_frame[filter_name] == val)
 
-        condition = condition & val_condition
-    # for filter_idx, filter_name in enumerate(categorical_key_list):
-    #     filtered_table = filter_picker(
-    #         filtered_table,
-    #         filter_name,
-    #         categorical_key_values[filter_idx])
+            condition = condition & val_condition
+        else:
+            condition = condition & False
+            break
 
-    # return filtered_table
     return data_frame.loc[condition]
