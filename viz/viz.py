@@ -348,7 +348,8 @@ def get_animation_data(det_list,
 
         if image_dir is not None:
             try:
-                encoded_image = base64.b64encode(open(image_dir[idx], 'rb').read())
+                encoded_image = base64.b64encode(
+                    open(image_dir[idx], 'rb').read())
                 img = 'data:image/png;base64,{}'.format(
                     encoded_image.decode())
             except FileNotFoundError:
