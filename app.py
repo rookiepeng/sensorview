@@ -536,6 +536,8 @@ def update_filter(
 
     elif trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
+
+        print(click_data)
         if data['_VIS_'][
             click_data['points'][0]['id']
         ] == 'visible':

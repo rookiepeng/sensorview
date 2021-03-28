@@ -34,13 +34,13 @@ def filter_range(data_frame, name, value):
     temp_frame = data_frame[data_frame[name] >= value[0]]
     return temp_frame[
         temp_frame[name] <= value[1]
-    ].reset_index(drop=True)
+    ]
 
 
 def filter_picker(data_frame, name, value):
     return data_frame[pd.DataFrame(
         data_frame[name].tolist()
-    ).isin(value).any(1)].reset_index(drop=True)
+    ).isin(value).any(1)]
 
 
 def filter_all(
