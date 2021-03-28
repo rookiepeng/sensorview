@@ -76,6 +76,7 @@ def get_app_layout(app):
                     html.Div([
                         dcc.Dropdown(
                             id='test-case',
+                            clearable=False,
                         ), ], style={'width': '100%',
                                      'padding': '0px 10px 0px 0px'}),
                     html.Button(
@@ -91,6 +92,7 @@ def get_app_layout(app):
                 html.H6('Data File'),
                 dcc.Dropdown(
                     id='data-file',
+                    clearable=False,
                 ),
             ], className='pretty_container rix column'),
         ], className='row flex-display'),
@@ -131,7 +133,8 @@ def get_app_layout(app):
 
                     html.Div([
                         dcc.Dropdown(
-                            id='color-picker-3d'
+                            id='color-picker-3d',
+                            clearable=False,
                         ),
                     ], className='two columns',
                         style={'margin-bottom': '10px'}),
@@ -215,21 +218,24 @@ def get_app_layout(app):
                         html.Label('x-axis'),
                         dcc.Dropdown(
                             id='x-scatter2d-left',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                     html.Div([
                         html.Label('y-axis'),
                         dcc.Dropdown(
                             id='y-scatter2d-left',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                     html.Div([
                         html.Label('color'),
                         dcc.Dropdown(
                             id='color-scatter2d-left',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                     html.Div([
@@ -239,7 +245,8 @@ def get_app_layout(app):
                             disabled=True,
                             options=[{"value": x, "label": x}
                                      for x in colorscales],
-                            value='Jet'
+                            value='Jet',
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                 ], className='row flex-display'),
@@ -301,21 +308,24 @@ def get_app_layout(app):
                         html.Label('x-axis'),
                         dcc.Dropdown(
                             id='x-scatter2d-right',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                     html.Div([
                         html.Label('y-axis'),
                         dcc.Dropdown(
                             id='y-scatter2d-right',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                     html.Div([
                         html.Label('color'),
                         dcc.Dropdown(
                             id='color-scatter2d-right',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                     html.Div([
@@ -325,7 +335,8 @@ def get_app_layout(app):
                             disabled=True,
                             options=[{"value": x, "label": x}
                                      for x in colorscales],
-                            value='Jet'
+                            value='Jet',
+                            clearable=False,
                         ),
                     ], className='one-forth column'),
                 ], className='row flex-display'),
@@ -385,7 +396,8 @@ def get_app_layout(app):
                         html.Label('x-axis'),
                         dcc.Dropdown(
                             id='x-histogram',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-third column'),
                     html.Div([
@@ -402,7 +414,8 @@ def get_app_layout(app):
                             },
                             ],
                             value='density',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-third column'),
                 ], className='row flex-display'),
@@ -458,14 +471,16 @@ def get_app_layout(app):
                         html.Label('x-axis'),
                         dcc.Dropdown(
                             id='x-heatmap',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-third column'),
                     html.Div([
                         html.Label('y-axis'),
                         dcc.Dropdown(
                             id='y-heatmap',
-                            disabled=True
+                            disabled=True,
+                            clearable=False,
                         ),
                     ], className='one-third column'),
                 ], className='row flex-display'),
