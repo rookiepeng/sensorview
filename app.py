@@ -240,10 +240,6 @@ def test_case_selection(test_case):
     [
         Output('slider-frame', 'min'),
         Output('slider-frame', 'max'),
-        Output('left-switch', 'on'),
-        Output('right-switch', 'on'),
-        Output('histogram-switch', 'on'),
-        Output('heat-switch', 'on'),
         Output('dropdown-container', 'children'),
         Output('slider-container', 'children'),
     ],
@@ -357,11 +353,6 @@ def data_file_selection(
 
             num_values.append([var_min, var_max])
 
-        output.append(False)
-        output.append(False)
-        output.append(False)
-        output.append(False)
-
         output.append(new_dropdown)
         output.append(new_slider)
 
@@ -401,6 +392,25 @@ def slider_value_change(
             raise PreventUpdate
     elif trigger_id == 'slider-frame':
         return 0
+
+
+@ app.callback(
+    [
+        Output('left-switch', 'on'),
+        Output('right-switch', 'on'),
+        Output('histogram-switch', 'on'),
+        Output('heat-switch', 'on'),
+    ],
+    Input('data-file', 'value'),
+    State('test-case', 'value'))
+def reset_switch_state(
+        data_file_name,
+        test_case
+):
+    if data_file_name is not None and test_case is not None:
+        return [False, False, False, False]
+    else:
+        raise PreventUpdate
 
 
 @ app.callback(
