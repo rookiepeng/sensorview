@@ -239,23 +239,21 @@ def test_case_selection(test_case):
 @ app.callback(
     Output('slider-frame', 'value'),
     [
-        Input('data-file', 'value'),
+        Input('slider-frame', 'max'),
         Input('left-frame', 'n_clicks'),
         Input('right-frame', 'n_clicks'),
     ],
     [
         State('test-case', 'value'),
         State('slider-frame', 'min'),
-        State('slider-frame', 'max'),
         State('slider-frame', 'value'),
     ])
 def slider_value_change(
-        data_file_name,
+        max_val,
         left_btn,
         right_btn,
         test_case,
         min_val,
-        max_val,
         val):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
