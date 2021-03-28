@@ -30,40 +30,36 @@
 import pandas as pd
 
 
-def filter_picker(data_frame, name, value):
-    return data_frame[pd.DataFrame(
-        data_frame[name].tolist()
-    ).isin(value).any(1)]
-
-
 def filter_all(
-        data_frame,
-        numerical_key_list,
-        numerical_key_values,
-        categorical_key_list,
-        categorical_key_values
+        data,
+        num_list,
+        num_values,
+        cat_list,
+        cat_values
 ):
 
-    for filter_idx, filter_name in enumerate(numerical_key_list):
-        if filter_idx == 0:
-            condition = (data_frame[filter_name] >= numerical_key_values[filter_idx][
-                0]) & (data_frame[filter_name] <= numerical_key_values[filter_idx][1])
+    for f_idx, f_name in enumerate(num_list):
+        if f_idx == 0:
+            condition = (data[f_name] >= num_values[f_idx][0]) \
+                & (data[f_name] <= num_values[f_idx][1])
         else:
-            condition = condition & (data_frame[filter_name] >= numerical_key_values[
-                filter_idx][0]) & (data_frame[filter_name] <= numerical_key_values[filter_idx][1])
+            condition = condition \
+                & (data[f_name] >= num_values[f_idx][0]) \
+                & (data[f_name] <= num_values[f_idx][1])
 
-    for filter_idx, filter_name in enumerate(categorical_key_list):
-        if categorical_key_values[filter_idx] is not None:
-            for val_idx, val in enumerate(categorical_key_values[filter_idx]):
+    for f_idx, f_name in enumerate(cat_list):
+        print(cat_values[f_idx])
+        if cat_values[f_idx] is not None:
+            for val_idx, val in enumerate(cat_values[f_idx]):
                 if val_idx == 0:
-                    val_condition = data_frame[filter_name] == val
+                    val_condition = data[f_name] == val
                 else:
-                    val_condition = val_condition | (
-                        data_frame[filter_name] == val)
+                    val_condition = val_condition \
+                        | (data[f_name] == val)
 
             condition = condition & val_condition
         else:
             condition = condition & False
             break
 
-    return data_frame.loc[condition]
+    return data.loc[condition]
