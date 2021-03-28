@@ -48,8 +48,10 @@ def filter_all(
                 & (data[f_name] <= num_values[f_idx][1])
 
     for f_idx, f_name in enumerate(cat_list):
-        print(cat_values[f_idx])
-        if cat_values[f_idx] is not None:
+        if not cat_values[f_idx]:
+            condition = condition & False
+            break
+        else:
             for val_idx, val in enumerate(cat_values[f_idx]):
                 if val_idx == 0:
                     val_condition = data[f_name] == val
@@ -58,8 +60,5 @@ def filter_all(
                         | (data[f_name] == val)
 
             condition = condition & val_condition
-        else:
-            condition = condition & False
-            break
 
     return data.loc[condition]
