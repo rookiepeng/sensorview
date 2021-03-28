@@ -65,9 +65,9 @@ def filter_all(
             condition = condition & (data_frame[filter_name] >= numerical_key_values[
                 filter_idx][0]) & (data_frame[filter_name] <= numerical_key_values[filter_idx][1])
 
-    for filter_idx, filter_name in enumerate(categorical_key_list):
-        condition = condition & (data_frame[filter_name].str.fullmatch(
-            categorical_key_values[filter_idx]))
+    # for filter_idx, filter_name in enumerate(categorical_key_list):
+    #     condition = condition & (data_frame[filter_name].str.fullmatch(
+    #         categorical_key_values[filter_idx]))
     # for filter_idx, filter_name in enumerate(categorical_key_list):
     #     filtered_table = filter_picker(
     #         filtered_table,
