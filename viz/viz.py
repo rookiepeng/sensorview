@@ -114,8 +114,8 @@ def get_host_data(det_list,
 
         vel_map = dict(
             type='scatter3d',
-            x=[det_list[x_key][0]],
-            y=[det_list[y_key][0]],
+            x=[det_list[x_key].iloc[0]],
+            y=[det_list[y_key].iloc[0]],
             z=[0],
             hovertemplate='Lateral: %{x:.2f} m<br>' +
             'Longitudinal: %{y:.2f} m<br>',
