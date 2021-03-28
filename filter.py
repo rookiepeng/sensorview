@@ -50,17 +50,26 @@ def filter_all(
         categorical_key_list,
         categorical_key_values
 ):
-    filtered_table = data_frame
+    # filtered_table = data_frame
+    # for filter_idx, filter_name in enumerate(numerical_key_list):
+    #     filtered_table = filter_range(
+    #         filtered_table,
+    #         filter_name,
+    #         numerical_key_values[filter_idx])
+
     for filter_idx, filter_name in enumerate(numerical_key_list):
-        filtered_table = filter_range(
-            filtered_table,
-            filter_name,
-            numerical_key_values[filter_idx])
+        if filter_idx == 0:
+            condition = data_frame[filter_name] >= numerical_key_values[filter_idx][
+                0] & data_frame[filter_name] <= numerical_key_values[filter_idx][1]
+        else:
+            condition = condition & data_frame[filter_name] >= numerical_key_values[
+                filter_idx][0] & data_frame[filter_name] <= numerical_key_values[filter_idx][1]
 
-    for filter_idx, filter_name in enumerate(categorical_key_list):
-        filtered_table = filter_picker(
-            filtered_table,
-            filter_name,
-            categorical_key_values[filter_idx])
+    # for filter_idx, filter_name in enumerate(categorical_key_list):
+    #     filtered_table = filter_picker(
+    #         filtered_table,
+    #         filter_name,
+    #         categorical_key_values[filter_idx])
 
-    return filtered_table
+    # return filtered_table
+    return data_frame.loc[condition]
