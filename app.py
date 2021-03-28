@@ -237,41 +237,6 @@ def test_case_selection(test_case):
 
 
 @ app.callback(
-    Output('slider-frame', 'value'),
-    [
-        Input('slider-frame', 'max'),
-        Input('left-frame', 'n_clicks'),
-        Input('right-frame', 'n_clicks'),
-    ],
-    [
-        State('test-case', 'value'),
-        State('slider-frame', 'min'),
-        State('slider-frame', 'value'),
-    ])
-def slider_value_change(
-        max_val,
-        left_btn,
-        right_btn,
-        test_case,
-        min_val,
-        val):
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    if trigger_id == 'left-frame':
-        if left_btn > 0 and val > min_val:
-            return val-1
-        else:
-            raise PreventUpdate
-    elif trigger_id == 'right-frame':
-        if right_btn > 0 and val < max_val:
-            return val+1
-        else:
-            raise PreventUpdate
-    elif trigger_id == 'slider-frame':
-        return 0
-
-
-@ app.callback(
     [
         Output('slider-frame', 'min'),
         Output('slider-frame', 'max'),
@@ -302,7 +267,6 @@ def data_file_selection(
         num_keys,
         cat_keys
 ):
-
     if data_file_name is not None and test_case is not None:
         new_data = pd.read_pickle(
             './data/'+test_case+'/'+data_file_name)
@@ -404,6 +368,39 @@ def data_file_selection(
         return output
     else:
         raise PreventUpdate
+
+
+@ app.callback(
+    Output('slider-frame', 'value'),
+    [
+        Input('slider-frame', 'max'),
+        Input('left-frame', 'n_clicks'),
+        Input('right-frame', 'n_clicks'),
+    ],
+    [
+        State('slider-frame', 'min'),
+        State('slider-frame', 'value'),
+    ])
+def slider_value_change(
+        max_val,
+        left_btn,
+        right_btn,
+        min_val,
+        val):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    if trigger_id == 'left-frame':
+        if left_btn > 0 and val > min_val:
+            return val-1
+        else:
+            raise PreventUpdate
+    elif trigger_id == 'right-frame':
+        if right_btn > 0 and val < max_val:
+            return val+1
+        else:
+            raise PreventUpdate
+    elif trigger_id == 'slider-frame':
+        return 0
 
 
 @ app.callback(
