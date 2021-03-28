@@ -267,11 +267,8 @@ def slider_value_change(
             return val+1
         else:
             raise PreventUpdate
-    elif trigger_id == 'data-file':
-        if data_file_name is not None and test_case is not None:
-            return 0
-        else:
-            raise PreventUpdate
+    elif trigger_id == 'slider-frame':
+        return 0
 
 
 @ app.callback(
