@@ -65,14 +65,14 @@ def get_figure_data(det_list,
                 hover = hover + hover_dict[key]['description'] + \
                     ': ' + det_list[key]+'<br>'
 
-        if '_IDS_' in det_list.columns:
-            ids = det_list['_IDS_']
-        else:
-            ids = None
+        # if '_IDS_' in det_list.columns:
+        #     ids = det_list['_IDS_']
+        # else:
+        #     ids = None
 
         det_map = dict(
             type='scatter3d',
-            ids=ids,
+            ids=det_list.index,
             x=det_list[x_key],
             y=det_list[y_key],
             z=det_list[z_key],

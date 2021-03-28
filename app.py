@@ -116,7 +116,8 @@ redis_instance = redis.StrictRedis.from_url(
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
 REDIS_KEYS = {"DATASET": "DATASET",
-              "FRAME_IDX": "FRAME_IDX"}
+              "FRAME_IDX": "FRAME_IDX",
+              "VIS": "VIS"}
 EXPIRATION = 172800  # a week in seconds
 
 app.layout = get_app_layout(app)
@@ -268,6 +269,10 @@ def data_file_selection(
 
         new_data['_IDS_'] = new_data.index
         new_data['_VIS_'] = 'visible'
+
+        vis_table = pd.DataFrame()
+        vis_table['_IDS_'] = new_data.index
+        vis_table['_VIS_'] = 'visible'
 
         context = pa.default_serialization_context()
         redis_instance.set(
@@ -573,7 +578,7 @@ def update_filter(
             filterd_frame = data[
                 data[slider_key] == frame_idx[slider_arg]
             ]
-            filterd_frame = filterd_frame.reset_index()
+            # filterd_frame = filterd_frame.reset_index()
 
             img = './data/'+test_case+'/imgs/' + \
                 data_file[0:-4]+str(slider_arg)+'.png'
@@ -635,7 +640,7 @@ def update_filter(
             filterd_frame = data[
                 data[ui_config['slider']] == frame_idx[slider_arg]
             ]
-            filterd_frame = filterd_frame.reset_index()
+            # filterd_frame = filterd_frame.reset_index()
 
             filterd_frame = filter_all(
                 filterd_frame,
@@ -686,7 +691,7 @@ def update_filter(
                 filterd_frame = data[
                     data[ui_config['slider']] == frame_idx[slider_arg]
                 ]
-                filterd_frame = filterd_frame.reset_index()
+                # filterd_frame = filterd_frame.reset_index()
 
                 img = './data/'+test_case+'/imgs/' + \
                     data_file[0:-4]+str(slider_arg)+'.png'
