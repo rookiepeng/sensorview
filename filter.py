@@ -57,7 +57,7 @@ def filter_all(
             if val_idx == 0:
                 val_condition = data_frame[filter_name] == val
             else:
-                val_condition = val_condition | data_frame[filter_name] == val
+                val_condition = val_condition | (data_frame[filter_name] == val)
 
         condition = condition & val_condition
     # for filter_idx, filter_name in enumerate(categorical_key_list):
