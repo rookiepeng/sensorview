@@ -126,7 +126,7 @@ def get_app_layout(app):
                         id='vis-picker',
                         options=[{'label': 'visible', 'value': 'visible'},
                                  {'label': 'hidden', 'value': 'hidden'}],
-                        value='visible',
+                        value=['visible'],
                         multi=True,
                         clearable=False,
                     ),

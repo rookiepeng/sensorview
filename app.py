@@ -427,6 +427,7 @@ def reset_switch_state(
         Input('slider-frame', 'value'),
         Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         Input({'type': 'filter-slider', 'index': ALL}, 'value'),
+        Input('vis-picker', 'value'),
         Input('color-picker-3d', 'value'),
         Input('overlay-switch', 'on'),
         Input('scatter3d', 'clickData'),
@@ -447,6 +448,7 @@ def update_filter(
     slider_arg,
     categorical_key_values,
     numerical_key_values,
+    vis_picker,
     color_picker,
     overlay_sw,
     click_data,
@@ -479,6 +481,7 @@ def update_filter(
 
     context = pa.default_serialization_context()
     data = context.deserialize(redis_instance.get("DATASET"+session_id))
+    vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
     frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"+session_id))
 
     x_range = [
@@ -524,7 +527,9 @@ def update_filter(
             num_keys,
             numerical_key_values,
             cat_keys,
-            categorical_key_values
+            categorical_key_values,
+            vis_table,
+            vis_picker
         )
 
         fig = scatter3d_data(
@@ -567,7 +572,9 @@ def update_filter(
                 num_keys,
                 numerical_key_values,
                 cat_keys,
-                categorical_key_values
+                categorical_key_values,
+                vis_table,
+                vis_picker
             )
 
             fig = scatter3d_data(
@@ -604,7 +611,9 @@ def update_filter(
                 num_keys,
                 numerical_key_values,
                 cat_keys,
-                categorical_key_values
+                categorical_key_values,
+                vis_table,
+                vis_picker
             )
 
             fig = scatter3d_data(
@@ -629,7 +638,9 @@ def update_filter(
                 num_keys,
                 numerical_key_values,
                 cat_keys,
-                categorical_key_values
+                categorical_key_values,
+                vis_table,
+                vis_picker
             )
 
             fig = scatter3d_data(
@@ -656,7 +667,9 @@ def update_filter(
                 num_keys,
                 numerical_key_values,
                 cat_keys,
-                categorical_key_values
+                categorical_key_values,
+                vis_table,
+                vis_picker
             )
 
             img = './data/'+test_case+'/imgs/' + \
@@ -692,7 +705,9 @@ def update_filter(
                     num_keys,
                     numerical_key_values,
                     cat_keys,
-                    categorical_key_values
+                    categorical_key_values,
+                    vis_table,
+                    vis_picker
                 )
 
                 source_encoded = None
@@ -717,7 +732,9 @@ def update_filter(
                     num_keys,
                     numerical_key_values,
                     cat_keys,
-                    categorical_key_values
+                    categorical_key_values,
+                    vis_table,
+                    vis_picker
                 )
             fig = scatter3d_data(
                 filterd_frame,
@@ -766,6 +783,7 @@ def update_filter(
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
         State('session-id', 'data'),
+        State('vis-picker', 'value')
     ]
 )
 def update_left_graph(
@@ -781,7 +799,8 @@ def update_left_graph(
     cat_keys,
     categorical_key_values,
     numerical_key_values,
-    session_id
+    session_id,
+    vis_picker
 ):
     x_key = x_left
     y_key = y_left
@@ -796,13 +815,16 @@ def update_left_graph(
     if left_sw:
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
 
         filtered_table = filter_all(
             data,
             num_keys,
             numerical_key_values,
             cat_keys,
-            categorical_key_values
+            categorical_key_values,
+            vis_table,
+            vis_picker
         )
 
         left_fig = get_2d_scatter(
@@ -865,6 +887,7 @@ def update_left_graph(
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
         State('session-id', 'data'),
+        State('vis-picker', 'value')
     ]
 )
 def update_right_graph(
@@ -880,7 +903,8 @@ def update_right_graph(
     cat_keys,
     categorical_key_values,
     numerical_key_values,
-    session_id
+    session_id,
+    vis_picker
 ):
     x_key = x_right
     y_key = y_right
@@ -892,12 +916,15 @@ def update_right_graph(
     if right_sw:
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
         filtered_table = filter_all(
             data,
             num_keys,
             numerical_key_values,
             cat_keys,
-            categorical_key_values
+            categorical_key_values,
+            vis_table,
+            vis_picker
         )
 
         right_fig = get_2d_scatter(
@@ -957,6 +984,7 @@ def update_right_graph(
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
         State('session-id', 'data'),
+        State('vis-picker', 'value')
     ]
 )
 def update_histogram(
@@ -970,7 +998,8 @@ def update_histogram(
     cat_keys,
     categorical_key_values,
     numerical_key_values,
-    session_id
+    session_id,
+    vis_picker
 ):
     x_key = x_histogram
     x_label = keys_dict[x_histogram]['description']
@@ -979,12 +1008,15 @@ def update_histogram(
     if histogram_sw:
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
         filtered_table = filter_all(
             data,
             num_keys,
             numerical_key_values,
             cat_keys,
-            categorical_key_values
+            categorical_key_values,
+            vis_table,
+            vis_picker
         )
 
         histogram_fig = get_histogram(
@@ -1032,6 +1064,7 @@ def update_histogram(
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
         State('session-id', 'data'),
+        State('vis-picker', 'value')
     ]
 )
 def update_heatmap(
@@ -1045,7 +1078,8 @@ def update_heatmap(
     cat_keys,
     categorical_key_values,
     numerical_key_values,
-    session_id
+    session_id,
+    vis_picker
 ):
     if heat_sw:
         x_key = x_heat
@@ -1055,13 +1089,16 @@ def update_heatmap(
         # if processing.is_filtering_ready():
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
 
         filtered_table = filter_all(
             data,
             num_keys,
             numerical_key_values,
             cat_keys,
-            categorical_key_values
+            categorical_key_values,
+            vis_table,
+            vis_picker
         )
 
         heat_fig = get_heatmap(
@@ -1103,6 +1140,7 @@ def update_heatmap(
         State('cat-key-values', 'data'),
         State('num-key-values', 'data'),
         State('config', 'data'),
+        State('vis-picker', 'value')
     ]
 )
 def export_scatter_3d(
@@ -1115,7 +1153,8 @@ def export_scatter_3d(
     cat_keys,
     categorical_key_values,
     numerical_key_values,
-    ui_config
+    ui_config,
+    vis_picker
 ):
     if btn > 0:
         now = datetime.datetime.now()
@@ -1126,6 +1165,7 @@ def export_scatter_3d(
 
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
 
         x_det = ui_config.get('x_3d', num_keys[0])
         y_det = ui_config.get('y_3d', num_keys[1])
@@ -1138,7 +1178,9 @@ def export_scatter_3d(
             num_keys,
             numerical_key_values,
             cat_keys,
-            categorical_key_values
+            categorical_key_values,
+            vis_table,
+            vis_picker
         )
 
         fig = go.Figure(
@@ -1275,21 +1317,22 @@ def left_hide_button(
 ):
     if btn > 0 and selectedData is not None:
         context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        # data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
 
         s_data = pd.DataFrame(selectedData['points'])
         idx = s_data['id']
         idx.index = idx
 
-        vis_idx = idx[data['_VIS_'][idx] == 'visible']
-        hid_idx = idx[data['_VIS_'][idx] == 'hidden']
+        vis_idx = idx[vis_table['_VIS_'][idx] == 'visible']
+        hid_idx = idx[vis_table['_VIS_'][idx] == 'hidden']
 
-        data.loc[vis_idx, '_VIS_'] = 'hidden'
-        data.loc[hid_idx, '_VIS_'] = 'visible'
+        vis_table.loc[vis_idx, '_VIS_'] = 'hidden'
+        vis_table.loc[hid_idx, '_VIS_'] = 'visible'
 
         redis_instance.set(
-            REDIS_KEYS["DATASET"]+session_id,
-            context.serialize(data).to_buffer().to_pybytes(),
+            REDIS_KEYS["VIS"]+session_id,
+            context.serialize(vis_table).to_buffer().to_pybytes(),
             ex=EXPIRATION
         )
 

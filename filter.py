@@ -35,7 +35,9 @@ def filter_all(
         num_list,
         num_values,
         cat_list,
-        cat_values
+        cat_values,
+        vis_table=None,
+        vis_list=None,
 ):
 
     for f_idx, f_name in enumerate(num_list):
@@ -60,5 +62,10 @@ def filter_all(
                         | (data[f_name] == val)
 
             condition = condition & val_condition
+
+    if len(vis_list) == 1:
+        condition = condition & (vis_table['_VIS_'] == vis_list[0])
+    elif not vis_list:
+        condition = condition & False
 
     return data.loc[condition]
