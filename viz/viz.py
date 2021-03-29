@@ -270,7 +270,7 @@ def get_2d_scatter(det_list,
     return dict(
         data=[dict(
             type='scattergl',
-            ids=det_list['_IDS_'],
+            ids=det_list.index,
             x=det_list[x_key],
             y=det_list[y_key],
             mode='markers',
