@@ -130,8 +130,7 @@ def get_app_layout(app):
                         multi=True,
                         clearable=False,
                     ),
-                ], className='column flex-display',
-                    style={'margin-bottom': '20px'}
+                ], style={'margin-bottom': '20px'}
                 ),
                 html.H6('Filter'),
                 html.Div(id='dropdown-container', children=[]),
