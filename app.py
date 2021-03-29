@@ -418,10 +418,24 @@ def reset_switch_state(
 
 @ app.callback(
     [
-        Output('scatter3d', 'figure'),
-        Output('filter-trigger', 'children'),
         Output('cat-key-values', 'data'),
         Output('num-key-values', 'data'),
+    ],
+    [
+        Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        Input({'type': 'filter-slider', 'index': ALL}, 'value'),
+    ])
+def update_filter_values(
+    cat_key_values,
+    num_key_values,
+):
+    return [cat_key_values, num_key_values]
+
+
+@ app.callback(
+    [
+        Output('scatter3d', 'figure'),
+        Output('filter-trigger', 'children'),
     ],
     [
         Input('slider-frame', 'value'),
@@ -752,11 +766,7 @@ def update_filter(
         else:
             raise PreventUpdate
 
-    return [fig,
-            filter_trig,
-            categorical_key_values,
-            numerical_key_values,
-            ]
+    return [fig, filter_trig]
 
 
 @ app.callback(
