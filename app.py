@@ -267,8 +267,8 @@ def data_file_selection(
         new_data = pd.read_pickle(
             './data/'+test_case+'/'+data_file_name)
 
-        new_data['_IDS_'] = new_data.index
-        new_data['_VIS_'] = 'visible'
+        # new_data['_IDS_'] = new_data.index
+        # new_data['_VIS_'] = 'visible'
 
         vis_table = pd.DataFrame()
         vis_table['_IDS_'] = new_data.index
@@ -280,6 +280,13 @@ def data_file_selection(
             context.serialize(new_data).to_buffer().to_pybytes(),
             ex=EXPIRATION
         )
+
+        redis_instance.set(
+            REDIS_KEYS["VIS"]+session_id,
+            context.serialize(vis_table).to_buffer().to_pybytes(),
+            ex=EXPIRATION
+        )
+
         frame_idx = new_data[ui_config['slider']].unique()
         frame_idx = np.sort(frame_idx)
 
@@ -293,14 +300,15 @@ def data_file_selection(
 
         cat_values = []
         new_dropdown = []
+
         for idx, d_item in enumerate(cat_keys):
             var_list = new_data[d_item].unique()
 
-            if d_item == '_VIS_':
-                var_list = np.append(var_list, 'hidden')
-                value_list = [np.array('visible')]
-            else:
-                value_list = var_list
+            # if d_item == '_VIS_':
+            #     var_list = np.append(var_list, 'hidden')
+            #     value_list = [np.array('visible')]
+            # else:
+            value_list = var_list
 
             new_dropdown.append(
                 html.Label(

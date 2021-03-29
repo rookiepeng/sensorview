@@ -118,6 +118,21 @@ def get_app_layout(app):
                 ], className='column flex-display',
                     style={'margin-bottom': '20px'}
                 ),
+                html.Div([
+                    html.Label(
+                        'Visibility'
+                    ),
+                    dcc.Dropdown(
+                        id='vis-picker',
+                        options=[{'label': 'visible', 'value': 'visible'},
+                                 {'label': 'hidden', 'value': 'hidden'}],
+                        value='visible',
+                        multi=True,
+                        clearable=False,
+                    ),
+                ], className='column flex-display',
+                    style={'margin-bottom': '20px'}
+                ),
                 html.H6('Filter'),
                 html.Div(id='dropdown-container', children=[]),
                 html.Div(id='slider-container', children=[]),
