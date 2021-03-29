@@ -209,8 +209,6 @@ def get_histogram(det_list,
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
             margin=margin,
-            # xaxis_title_text=x_label,  # xaxis label
-            # yaxis_title_text=y_label,  # yaxis label
             uirevision='no_change',
         )
     )
@@ -240,8 +238,6 @@ def get_heatmap(det_list,
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
             margin=margin,
-            # xaxis_title_text=x_label,  # xaxis label
-            # yaxis_title_text=y_label,  # yaxis label
             uirevision='no_change',
         )
     )
@@ -286,8 +282,6 @@ def get_2d_scatter(det_list,
                     color="#FFFFFF",
                     width=1,
                 )
-                # cmin=c_range[0],
-                # cmax=c_range[1],
             )
         )],
         layout=dict(

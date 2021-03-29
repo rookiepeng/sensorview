@@ -1,6 +1,6 @@
 """
 
-    Copyright (C) 2019 - 2020  Zhengyu Peng
+    Copyright (C) 2019 - 2021  Zhengyu Peng
     E-mail: zpeng.me@gmail.com
     Website: https://zpeng.me
 
@@ -191,13 +191,6 @@ def test_case_selection(test_case):
         else:
             ui_config = load_config('config.json')
 
-        # visible_dict = {
-        #     '_VIS_': {
-        #         'description': 'Visibility',
-        #         'type': 'categorical'
-        #     }
-        # }
-
         keys_dict = ui_config['keys']
 
         num_keys = []
@@ -267,9 +260,6 @@ def data_file_selection(
         new_data = pd.read_pickle(
             './data/'+test_case+'/'+data_file_name)
 
-        # new_data['_IDS_'] = new_data.index
-        # new_data['_VIS_'] = 'visible'
-
         vis_table = pd.DataFrame()
         vis_table['_IDS_'] = new_data.index
         vis_table['_VIS_'] = 'visible'
@@ -303,11 +293,6 @@ def data_file_selection(
 
         for idx, d_item in enumerate(cat_keys):
             var_list = new_data[d_item].unique()
-
-            # if d_item == '_VIS_':
-            #     var_list = np.append(var_list, 'hidden')
-            #     value_list = [np.array('visible')]
-            # else:
             value_list = var_list
 
             new_dropdown.append(
@@ -608,7 +593,6 @@ def update_filter(
             filterd_frame = data[
                 data[slider_key] == frame_idx[slider_arg]
             ]
-            # filterd_frame = filterd_frame.reset_index()
 
             img = './data/'+test_case+'/imgs/' + \
                 data_file[0:-4]+str(slider_arg)+'.png'
@@ -674,7 +658,6 @@ def update_filter(
             filterd_frame = data[
                 data[ui_config['slider']] == frame_idx[slider_arg]
             ]
-            # filterd_frame = filterd_frame.reset_index()
 
             filterd_frame = filter_all(
                 filterd_frame,
@@ -729,7 +712,6 @@ def update_filter(
                 filterd_frame = data[
                     data[ui_config['slider']] == frame_idx[slider_arg]
                 ]
-                # filterd_frame = filterd_frame.reset_index()
 
                 img = './data/'+test_case+'/imgs/' + \
                     data_file[0:-4]+str(slider_arg)+'.png'
