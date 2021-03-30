@@ -492,6 +492,28 @@ def update_filter(
     vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
     frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"+session_id))
 
+    if trigger_id == 'scatter3d':
+        if visible_sw and \
+                click_data['points'][0]['curveNumber'] == 0:
+
+            if vis_table['_VIS_'][
+                click_data['points'][0]['id']
+            ] == 'visible':
+                vis_table.at[click_data['points']
+                             [0]['id'], '_VIS_'] = 'hidden'
+            else:
+                vis_table.at[click_data['points']
+                             [0]['id'], '_VIS_'] = 'visible'
+
+            context = pa.default_serialization_context()
+            redis_instance.set(
+                REDIS_KEYS["VIS"]+session_id,
+                context.serialize(vis_table).to_buffer().to_pybytes(),
+                ex=EXPIRATION
+            )
+        else:
+            raise PreventUpdate
+
     if overlay_sw:
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
         source_encoded = None
@@ -535,28 +557,6 @@ def update_filter(
         color_key=color_key,
         color_label=color_label,
     )
-
-    if trigger_id == 'scatter3d':
-        if visible_sw and \
-                click_data['points'][0]['curveNumber'] == 0:
-
-            if vis_table['_VIS_'][
-                click_data['points'][0]['id']
-            ] == 'visible':
-                vis_table.at[click_data['points']
-                             [0]['id'], '_VIS_'] = 'hidden'
-            else:
-                vis_table.at[click_data['points']
-                             [0]['id'], '_VIS_'] = 'visible'
-
-            context = pa.default_serialization_context()
-            redis_instance.set(
-                REDIS_KEYS["VIS"]+session_id,
-                context.serialize(vis_table).to_buffer().to_pybytes(),
-                ex=EXPIRATION
-            )
-        else:
-            raise PreventUpdate
 
     filterd_frame = filter_all(
         data,
