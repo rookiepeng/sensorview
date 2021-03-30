@@ -393,8 +393,7 @@ def slider_value_change(
     State('test-case', 'value'))
 def reset_switch_state(
         data_file_name,
-        test_case
-):
+        test_case):
     if data_file_name is not None and test_case is not None:
         return [False, False, False, False]
     else:
@@ -411,9 +410,8 @@ def reset_switch_state(
         Input({'type': 'filter-slider', 'index': ALL}, 'value'),
     ])
 def update_filter_values(
-    cat_key_values,
-    num_key_values,
-):
+        cat_key_values,
+        num_key_values):
     return [cat_key_values, num_key_values]
 
 
@@ -490,20 +488,39 @@ def update_filter(
     y_host = ui_config.get('y_ref', None)
 
     context = pa.default_serialization_context()
-    data = context.deserialize(redis_instance.get("DATASET"+session_id))
+    # data = context.deserialize(redis_instance.get("DATASET"+session_id))
     vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
     frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"+session_id))
 
+    if overlay_sw:
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        source_encoded = None
+    else:
+        data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        data = data[
+            data[slider_key] == frame_idx[slider_arg]
+        ]
+
+        img = './data/'+test_case+'/imgs/' + \
+            data_file[0:-4]+str(slider_arg)+'.png'
+
+        try:
+            encoded_image = base64.b64encode(open(img, 'rb').read())
+            source_encoded = 'data:image/png;base64,{}'.format(
+                encoded_image.decode())
+        except FileNotFoundError:
+            source_encoded = None
+
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
-                np.min(data[x_host])]),
+                numerical_key_values[num_keys.index(x_host)][0]]),
         np.max([numerical_key_values[num_keys.index(x_det)][1],
-                np.max(data[x_host])])]
+                numerical_key_values[num_keys.index(x_host)][1]])]
     y_range = [
         np.min([numerical_key_values[num_keys.index(y_det)][0],
-                np.min(data[y_host])]),
+                numerical_key_values[num_keys.index(y_host)][0]]),
         np.max([numerical_key_values[num_keys.index(y_det)][1],
-                np.max(data[y_host])])]
+                numerical_key_values[num_keys.index(y_host)][1]])]
     z_range = numerical_key_values[num_keys.index(z_det)]
     c_range = [
         numerical_key_values[num_keys.index(color_key)][0],
@@ -519,45 +536,7 @@ def update_filter(
         color_label=color_label,
     )
 
-    if trigger_id == 'slider-frame':
-        filterd_frame = data[data[slider_key] == frame_idx[slider_arg]]
-
-        img = './data/'+test_case+'/imgs/' + \
-            data_file[0:-4]+str(slider_arg)+'.png'
-
-        try:
-            encoded_image = base64.b64encode(open(img, 'rb').read())
-            source_encoded = 'data:image/png;base64,{}'.format(
-                encoded_image.decode())
-        except FileNotFoundError:
-            source_encoded = None
-
-        filterd_frame = filter_all(
-            filterd_frame,
-            num_keys,
-            numerical_key_values,
-            cat_keys,
-            categorical_key_values,
-            vis_table,
-            vis_picker
-        )
-
-        fig = scatter3d_data(
-            filterd_frame,
-            x_det,
-            y_det,
-            z_det,
-            x_host,
-            y_host,
-            scatter3d_layout,
-            keys_dict,
-            'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-            image=source_encoded
-        )
-
-        filter_trig = dash.no_update
-
-    elif trigger_id == 'scatter3d' and visible_sw and \
+    if trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
 
         if vis_table['_VIS_'][
@@ -576,183 +555,38 @@ def update_filter(
             ex=EXPIRATION
         )
 
-        if overlay_sw:
-            filterd_frame = filter_all(
-                data,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values,
-                vis_table,
-                vis_picker
-            )
+    filterd_frame = filter_all(
+        data,
+        num_keys,
+        numerical_key_values,
+        cat_keys,
+        categorical_key_values,
+        vis_table,
+        vis_picker
+    )
 
-            fig = scatter3d_data(
-                filterd_frame,
-                x_det,
-                y_det,
-                z_det,
-                x_host,
-                y_host,
-                scatter3d_layout,
-                keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
-            )
+    fig = scatter3d_data(
+        filterd_frame,
+        x_det,
+        y_det,
+        z_det,
+        x_host,
+        y_host,
+        scatter3d_layout,
+        keys_dict,
+        'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+        image=source_encoded
+    )
+
+    if (trigger_id == 'slider-frame') or (trigger_id == 'left-hide-trigger'):
+        filter_trig = dash.no_update
+    elif trigger_id == 'scatter3d':
+        if visible_sw and \
+                click_data['points'][0]['curveNumber'] == 0:
             filter_trig = trigger_idx+1
-
         else:
-            filterd_frame = data[
-                data[slider_key] == frame_idx[slider_arg]
-            ]
-
-            img = './data/'+test_case+'/imgs/' + \
-                data_file[0:-4]+str(slider_arg)+'.png'
-
-            try:
-                encoded_image = base64.b64encode(open(img, 'rb').read())
-                source_encoded = 'data:image/png;base64,{}'.format(
-                    encoded_image.decode())
-            except FileNotFoundError:
-                source_encoded = None
-
-            filterd_frame = filter_all(
-                filterd_frame,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values,
-                vis_table,
-                vis_picker
-            )
-
-            fig = scatter3d_data(
-                filterd_frame,
-                x_det,
-                y_det,
-                z_det,
-                x_host,
-                y_host,
-                scatter3d_layout,
-                keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                image=source_encoded
-            )
-            filter_trig = trigger_idx+1
-
-    elif trigger_id == 'left-hide-trigger':
-
-        if overlay_sw:
-            filterd_frame = filter_all(
-                data,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values,
-                vis_table,
-                vis_picker
-            )
-
-            fig = scatter3d_data(
-                filterd_frame,
-                x_det,
-                y_det,
-                z_det,
-                x_host,
-                y_host,
-                scatter3d_layout,
-                keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')'
-            )
             filter_trig = dash.no_update
-
-        else:
-            filterd_frame = data[
-                data[ui_config['slider']] == frame_idx[slider_arg]
-            ]
-
-            filterd_frame = filter_all(
-                filterd_frame,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values,
-                vis_table,
-                vis_picker
-            )
-
-            img = './data/'+test_case+'/imgs/' + \
-                data_file[0:-4]+str(slider_arg)+'.png'
-
-            try:
-                encoded_image = base64.b64encode(open(img, 'rb').read())
-                source_encoded = 'data:image/png;base64,{}'.format(
-                    encoded_image.decode())
-            except FileNotFoundError:
-                source_encoded = None
-
-            fig = scatter3d_data(
-                filterd_frame,
-                x_det,
-                y_det,
-                z_det,
-                x_host,
-                y_host,
-                scatter3d_layout,
-                keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                image=source_encoded
-            )
-            filter_trig = dash.no_update
-
     else:
-        if overlay_sw:
-            filterd_frame = filter_all(
-                data,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values,
-                vis_table,
-                vis_picker
-            )
-
-            source_encoded = None
-        else:
-            filterd_frame = data[
-                data[ui_config['slider']] == frame_idx[slider_arg]
-            ]
-
-            img = './data/'+test_case+'/imgs/' + \
-                data_file[0:-4]+str(slider_arg)+'.png'
-
-            try:
-                encoded_image = base64.b64encode(open(img, 'rb').read())
-                source_encoded = 'data:image/png;base64,{}'.format(
-                    encoded_image.decode())
-            except FileNotFoundError:
-                source_encoded = None
-
-            filterd_frame = filter_all(
-                filterd_frame,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values,
-                vis_table,
-                vis_picker
-            )
-        fig = scatter3d_data(
-            filterd_frame,
-            x_det,
-            y_det,
-            z_det,
-            x_host,
-            y_host,
-            scatter3d_layout,
-            keys_dict,
-            'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-            image=source_encoded
-        )
         filter_trig = trigger_idx+1
 
     return [fig, filter_trig]
