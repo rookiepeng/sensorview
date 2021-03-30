@@ -506,8 +506,8 @@ def update_filter(
                 np.max(data[y_host])])]
     z_range = numerical_key_values[num_keys.index(z_det)]
     c_range = [
-        np.min(data[color_key]),
-        np.max(data[color_key])
+        numerical_key_values[num_keys.index(color_key)][0],
+        numerical_key_values[num_keys.index(color_key)][1]
     ]
 
     scatter3d_layout = dict(
@@ -519,7 +519,7 @@ def update_filter(
         color_label=color_label,
     )
 
-    if trigger_id == 'slider-frame' and not overlay_sw:
+    if trigger_id == 'slider-frame':
         filterd_frame = data[data[slider_key] == frame_idx[slider_arg]]
 
         img = './data/'+test_case+'/imgs/' + \
@@ -705,59 +705,55 @@ def update_filter(
             filter_trig = dash.no_update
 
     else:
-        if None not in categorical_key_values:
-
-            if overlay_sw:
-                filterd_frame = filter_all(
-                    data,
-                    num_keys,
-                    numerical_key_values,
-                    cat_keys,
-                    categorical_key_values,
-                    vis_table,
-                    vis_picker
-                )
-
-                source_encoded = None
-            else:
-                filterd_frame = data[
-                    data[ui_config['slider']] == frame_idx[slider_arg]
-                ]
-
-                img = './data/'+test_case+'/imgs/' + \
-                    data_file[0:-4]+str(slider_arg)+'.png'
-
-                try:
-                    encoded_image = base64.b64encode(open(img, 'rb').read())
-                    source_encoded = 'data:image/png;base64,{}'.format(
-                        encoded_image.decode())
-                except FileNotFoundError:
-                    source_encoded = None
-
-                filterd_frame = filter_all(
-                    filterd_frame,
-                    num_keys,
-                    numerical_key_values,
-                    cat_keys,
-                    categorical_key_values,
-                    vis_table,
-                    vis_picker
-                )
-            fig = scatter3d_data(
-                filterd_frame,
-                x_det,
-                y_det,
-                z_det,
-                x_host,
-                y_host,
-                scatter3d_layout,
-                keys_dict,
-                'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-                image=source_encoded
+        if overlay_sw:
+            filterd_frame = filter_all(
+                data,
+                num_keys,
+                numerical_key_values,
+                cat_keys,
+                categorical_key_values,
+                vis_table,
+                vis_picker
             )
-            filter_trig = trigger_idx+1
+
+            source_encoded = None
         else:
-            raise PreventUpdate
+            filterd_frame = data[
+                data[ui_config['slider']] == frame_idx[slider_arg]
+            ]
+
+            img = './data/'+test_case+'/imgs/' + \
+                data_file[0:-4]+str(slider_arg)+'.png'
+
+            try:
+                encoded_image = base64.b64encode(open(img, 'rb').read())
+                source_encoded = 'data:image/png;base64,{}'.format(
+                    encoded_image.decode())
+            except FileNotFoundError:
+                source_encoded = None
+
+            filterd_frame = filter_all(
+                filterd_frame,
+                num_keys,
+                numerical_key_values,
+                cat_keys,
+                categorical_key_values,
+                vis_table,
+                vis_picker
+            )
+        fig = scatter3d_data(
+            filterd_frame,
+            x_det,
+            y_det,
+            z_det,
+            x_host,
+            y_host,
+            scatter3d_layout,
+            keys_dict,
+            'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+            image=source_encoded
+        )
+        filter_trig = trigger_idx+1
 
     return [fig, filter_trig]
 
