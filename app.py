@@ -536,24 +536,27 @@ def update_filter(
         color_label=color_label,
     )
 
-    if trigger_id == 'scatter3d' and visible_sw and \
-            click_data['points'][0]['curveNumber'] == 0:
+    if trigger_id == 'scatter3d':
+        if visible_sw and \
+                click_data['points'][0]['curveNumber'] == 0:
 
-        if vis_table['_VIS_'][
-            click_data['points'][0]['id']
-        ] == 'visible':
-            vis_table.at[click_data['points']
-                         [0]['id'], '_VIS_'] = 'hidden'
+            if vis_table['_VIS_'][
+                click_data['points'][0]['id']
+            ] == 'visible':
+                vis_table.at[click_data['points']
+                             [0]['id'], '_VIS_'] = 'hidden'
+            else:
+                vis_table.at[click_data['points']
+                             [0]['id'], '_VIS_'] = 'visible'
+
+            context = pa.default_serialization_context()
+            redis_instance.set(
+                REDIS_KEYS["VIS"]+session_id,
+                context.serialize(vis_table).to_buffer().to_pybytes(),
+                ex=EXPIRATION
+            )
         else:
-            vis_table.at[click_data['points']
-                         [0]['id'], '_VIS_'] = 'visible'
-
-        context = pa.default_serialization_context()
-        redis_instance.set(
-            REDIS_KEYS["VIS"]+session_id,
-            context.serialize(vis_table).to_buffer().to_pybytes(),
-            ex=EXPIRATION
-        )
+            raise PreventUpdate
 
     filterd_frame = filter_all(
         data,
