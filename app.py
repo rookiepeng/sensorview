@@ -646,9 +646,6 @@ def update_left_graph(
     y_label = keys_dict[y_left]['description']
     color_label = keys_dict[color_left]['description']
 
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
     if left_sw:
         context = pa.default_serialization_context()
         data = context.deserialize(redis_instance.get("DATASET"+session_id))

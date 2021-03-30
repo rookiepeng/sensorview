@@ -174,18 +174,12 @@ def get_app_layout(app):
                     html.Button(
                         '<<',
                         id='left-frame',
-                        n_clicks=0,
-                        style={
-                            # "float": "right",
-                        }),
+                        n_clicks=0),
 
                     html.Button(
                         '>>',
                         id='right-frame',
-                        n_clicks=0,
-                        style={
-                            # "float": "left",
-                        }),
+                        n_clicks=0),
 
                     html.Div([
                         dcc.Store(id='frame-value'),
