@@ -419,6 +419,17 @@ def update_filter_values(
 
 @ app.callback(
     [
+        Output('slider-frame', 'disabled'),
+        Output('left-frame', 'disabled'),
+        Output('right-frame', 'disabled'),
+    ],
+    Input('overlay-switch', 'on'))
+def overlay_switch_changed(overlay):
+    return [overlay]*3
+
+
+@ app.callback(
+    [
         Output('scatter3d', 'figure'),
         Output('filter-trigger', 'children'),
     ],
