@@ -474,8 +474,9 @@ def update_filter(
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if trigger_id == 'scatter3d' and ((not visible_sw) or
-                                      (click_data['points'][0]['curveNumber'] != 0)):
+    if trigger_id == 'scatter3d' and \
+            ((not visible_sw) or
+                (click_data['points'][0]['curveNumber'] != 0)):
         raise PreventUpdate
 
     color_key = color_picker
