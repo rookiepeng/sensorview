@@ -539,6 +539,8 @@ def update_filter(
                 numerical_key_values[num_keys.index(x_host)][0]]),
         np.max([numerical_key_values[num_keys.index(x_det)][1],
                 numerical_key_values[num_keys.index(x_host)][1]])]
+
+    print(x_range)
     y_range = [
         np.min([numerical_key_values[num_keys.index(y_det)][0],
                 numerical_key_values[num_keys.index(y_host)][0]]),
