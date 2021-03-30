@@ -474,6 +474,10 @@ def update_filter(
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    if trigger_id == 'scatter3d' and ((not visible_sw) or
+                                      (click_data['points'][0]['curveNumber'] != 0)):
+        raise PreventUpdate
+
     color_key = color_picker
     color_label = keys_dict[color_picker]['description']
 
@@ -492,27 +496,23 @@ def update_filter(
     vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
     frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"+session_id))
 
-    if trigger_id == 'scatter3d':
-        if visible_sw and \
-                click_data['points'][0]['curveNumber'] == 0:
-
-            if vis_table['_VIS_'][
-                click_data['points'][0]['id']
-            ] == 'visible':
-                vis_table.at[click_data['points']
-                             [0]['id'], '_VIS_'] = 'hidden'
-            else:
-                vis_table.at[click_data['points']
-                             [0]['id'], '_VIS_'] = 'visible'
-
-            context = pa.default_serialization_context()
-            redis_instance.set(
-                REDIS_KEYS["VIS"]+session_id,
-                context.serialize(vis_table).to_buffer().to_pybytes(),
-                ex=EXPIRATION
-            )
+    if trigger_id == 'scatter3d' and visible_sw and \
+            click_data['points'][0]['curveNumber'] == 0:
+        if vis_table['_VIS_'][
+            click_data['points'][0]['id']
+        ] == 'visible':
+            vis_table.at[click_data['points']
+                         [0]['id'], '_VIS_'] = 'hidden'
         else:
-            raise PreventUpdate
+            vis_table.at[click_data['points']
+                         [0]['id'], '_VIS_'] = 'visible'
+
+        context = pa.default_serialization_context()
+        redis_instance.set(
+            REDIS_KEYS["VIS"]+session_id,
+            context.serialize(vis_table).to_buffer().to_pybytes(),
+            ex=EXPIRATION
+        )
 
     if overlay_sw:
         data = context.deserialize(redis_instance.get("DATASET"+session_id))
