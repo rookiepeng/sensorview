@@ -231,6 +231,7 @@ def test_case_selection(test_case):
 
 @ app.callback(
     [
+        Output('slider-frame', 'value'),
         Output('slider-frame', 'min'),
         Output('slider-frame', 'max'),
         Output('dropdown-container', 'children'),
@@ -238,6 +239,8 @@ def test_case_selection(test_case):
     ],
     [
         Input('data-file', 'value'),
+        Input('left-frame', 'n_clicks'),
+        Input('right-frame', 'n_clicks'),
     ],
     [
         State('test-case', 'value'),
@@ -246,140 +249,132 @@ def test_case_selection(test_case):
         State('session-id', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
+        State('slider-frame', 'min'),
+        State('slider-frame', 'max'),
+        State('slider-frame', 'value'),
     ])
 def data_file_selection(
         data_file_name,
+        left_btn,
+        right_btn,
         test_case,
         keys_dict,
         ui_config,
         session_id,
         num_keys,
-        cat_keys
+        cat_keys,
+        slider_min,
+        slider_max,
+        slider_var
 ):
-    if data_file_name is not None and test_case is not None:
-        new_data = pd.read_pickle(
-            './data/'+test_case+'/'+data_file_name)
-
-        vis_table = pd.DataFrame()
-        vis_table['_IDS_'] = new_data.index
-        vis_table['_VIS_'] = 'visible'
-
-        context = pa.default_serialization_context()
-        redis_instance.set(
-            REDIS_KEYS["DATASET"]+session_id,
-            context.serialize(new_data).to_buffer().to_pybytes(),
-            ex=EXPIRATION
-        )
-
-        redis_instance.set(
-            REDIS_KEYS["VIS"]+session_id,
-            context.serialize(vis_table).to_buffer().to_pybytes(),
-            ex=EXPIRATION
-        )
-
-        frame_idx = new_data[ui_config['slider']].unique()
-        frame_idx = np.sort(frame_idx)
-
-        redis_instance.set(
-            REDIS_KEYS["FRAME_IDX"]+session_id,
-            context.serialize(frame_idx).to_buffer().to_pybytes(),
-            ex=EXPIRATION
-        )
-
-        output = [0, len(frame_idx)-1]
-
-        cat_values = []
-        new_dropdown = []
-
-        for idx, d_item in enumerate(cat_keys):
-            var_list = new_data[d_item].unique()
-            value_list = var_list
-
-            new_dropdown.append(
-                html.Label(
-                    keys_dict[d_item]['description']
-                )
-            )
-            new_dropdown.append(
-                dcc.Dropdown(
-                    id={
-                        'type': 'filter-dropdown',
-                        'index': idx
-                    },
-                    options=[{'label': i, 'value': i}
-                             for i in var_list],
-                    value=value_list,
-                    multi=True
-                ))
-
-            cat_values.append(value_list)
-
-        num_values = []
-        new_slider = []
-        for idx, s_item in enumerate(num_keys):
-            var_min = round(
-                np.min(new_data[s_item]), 1)
-            var_max = round(
-                np.max(new_data[s_item]), 1)
-
-            new_slider.append(
-                html.Label(
-                    keys_dict[s_item]['description']
-                )
-            )
-            new_slider.append(dcc.RangeSlider(
-                id={
-                    'type': 'filter-slider',
-                    'index': idx
-                },
-                min=var_min,
-                max=var_max,
-                step=round((var_max-var_min)/100, 3),
-                value=[var_min, var_max],
-                tooltip={'always_visible': False}
-            ))
-
-            num_values.append([var_min, var_max])
-
-        output.append(new_dropdown)
-        output.append(new_slider)
-
-        return output
-    else:
-        raise PreventUpdate
-
-
-@ app.callback(
-    Output('slider-frame', 'value'),
-    [
-        # Input('slider-frame', 'max'),
-        Input('left-frame', 'n_clicks'),
-        Input('right-frame', 'n_clicks'),
-    ],
-    [
-        State('slider-frame', 'min'),
-        State('slider-frame', 'value'),
-    ])
-def slider_value_change(
-        # max_val,
-        left_btn,
-        right_btn,
-        min_val,
-        val):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    if trigger_id == 'left-frame':
-        if left_btn > 0 and val > min_val:
-            return val-1
+    if trigger_id == 'data-file':
+        if data_file_name is not None and test_case is not None:
+            new_data = pd.read_pickle(
+                './data/'+test_case+'/'+data_file_name)
+
+            vis_table = pd.DataFrame()
+            vis_table['_IDS_'] = new_data.index
+            vis_table['_VIS_'] = 'visible'
+
+            context = pa.default_serialization_context()
+            redis_instance.set(
+                REDIS_KEYS["DATASET"]+session_id,
+                context.serialize(new_data).to_buffer().to_pybytes(),
+                ex=EXPIRATION
+            )
+
+            redis_instance.set(
+                REDIS_KEYS["VIS"]+session_id,
+                context.serialize(vis_table).to_buffer().to_pybytes(),
+                ex=EXPIRATION
+            )
+
+            frame_idx = new_data[ui_config['slider']].unique()
+            frame_idx = np.sort(frame_idx)
+
+            redis_instance.set(
+                REDIS_KEYS["FRAME_IDX"]+session_id,
+                context.serialize(frame_idx).to_buffer().to_pybytes(),
+                ex=EXPIRATION
+            )
+
+            output = [0, 0, len(frame_idx)-1]
+
+            cat_values = []
+            new_dropdown = []
+
+            for idx, d_item in enumerate(cat_keys):
+                var_list = new_data[d_item].unique()
+                value_list = var_list
+
+                new_dropdown.append(
+                    html.Label(
+                        keys_dict[d_item]['description']
+                    )
+                )
+                new_dropdown.append(
+                    dcc.Dropdown(
+                        id={
+                            'type': 'filter-dropdown',
+                            'index': idx
+                        },
+                        options=[{'label': i, 'value': i}
+                                 for i in var_list],
+                        value=value_list,
+                        multi=True
+                    ))
+
+                cat_values.append(value_list)
+
+            num_values = []
+            new_slider = []
+            for idx, s_item in enumerate(num_keys):
+                var_min = round(
+                    np.min(new_data[s_item]), 1)
+                var_max = round(
+                    np.max(new_data[s_item]), 1)
+
+                new_slider.append(
+                    html.Label(
+                        keys_dict[s_item]['description']
+                    )
+                )
+                new_slider.append(dcc.RangeSlider(
+                    id={
+                        'type': 'filter-slider',
+                        'index': idx
+                    },
+                    min=var_min,
+                    max=var_max,
+                    step=round((var_max-var_min)/100, 3),
+                    value=[var_min, var_max],
+                    tooltip={'always_visible': False}
+                ))
+
+                num_values.append([var_min, var_max])
+
+            output.append(new_dropdown)
+            output.append(new_slider)
+
+            return output
+        else:
+            raise PreventUpdate
+    elif trigger_id == 'left-frame':
+        if left_btn > 0 and slider_var > slider_min:
+            return [slider_var-1,
+                    dash.no_update, dash.no_update,
+                    dash.no_update, dash.no_update]
         else:
             raise PreventUpdate
     elif trigger_id == 'right-frame':
-        if right_btn > 0 and val < max_val:
-            return val+1
+        if right_btn > 0 and slider_var < slider_max:
+            return [slider_var+1,
+                    dash.no_update, dash.no_update,
+                    dash.no_update, dash.no_update]
         else:
             raise PreventUpdate
-    elif trigger_id == 'slider-frame':
-        return 0
 
 
 @ app.callback(
@@ -533,18 +528,12 @@ def update_filter(
                 encoded_image.decode())
         except FileNotFoundError:
             source_encoded = None
-    print(num_keys)
-    print(numerical_key_values)
-
-    if len(numerical_key_values) != len(num_keys):
-        raise PreventUpdate
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
                 numerical_key_values[num_keys.index(x_host)][0]]),
         np.max([numerical_key_values[num_keys.index(x_det)][1],
                 numerical_key_values[num_keys.index(x_host)][1]])]
-
     y_range = [
         np.min([numerical_key_values[num_keys.index(y_det)][0],
                 numerical_key_values[num_keys.index(y_host)][0]]),
