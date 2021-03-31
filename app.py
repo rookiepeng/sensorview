@@ -331,10 +331,8 @@ def data_file_selection(
             num_values = []
             new_slider = []
             for idx, s_item in enumerate(num_keys):
-                var_min = round(
-                    np.min(new_data[s_item]), 1)
-                var_max = round(
-                    np.max(new_data[s_item]), 1)
+                var_min = np.floor(np.min(new_data[s_item]))
+                var_max = np.ceil(np.max(new_data[s_item]))
 
                 new_slider.append(
                     html.Label(
@@ -531,12 +529,8 @@ def update_filter(
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
-                numerical_key_values[num_keys.index(x_host)][0]])-\
-                    0.1*np.min([numerical_key_values[num_keys.index(x_det)][0],
                 numerical_key_values[num_keys.index(x_host)][0]]),
         np.max([numerical_key_values[num_keys.index(x_det)][1],
-                numerical_key_values[num_keys.index(x_host)][1]])+\
-                    0.1*np.max([numerical_key_values[num_keys.index(x_det)][1],
                 numerical_key_values[num_keys.index(x_host)][1]])]
     y_range = [
         np.min([numerical_key_values[num_keys.index(y_det)][0],
