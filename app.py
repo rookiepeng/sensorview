@@ -352,7 +352,7 @@ def data_file_selection(
 @ app.callback(
     Output('slider-frame', 'value'),
     [
-        Input('slider-frame', 'max'),
+        # Input('slider-frame', 'max'),
         Input('left-frame', 'n_clicks'),
         Input('right-frame', 'n_clicks'),
     ],
@@ -361,7 +361,7 @@ def data_file_selection(
         State('slider-frame', 'value'),
     ])
 def slider_value_change(
-        max_val,
+        # max_val,
         left_btn,
         right_btn,
         min_val,
@@ -536,7 +536,7 @@ def update_filter(
     print(num_keys)
     print(numerical_key_values)
 
-    if len(numerical_key_values) < len(num_keys):
+    if len(numerical_key_values) != len(num_keys):
         raise PreventUpdate
 
     x_range = [
