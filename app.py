@@ -535,6 +535,10 @@ def update_filter(
             source_encoded = None
     print(num_keys)
     print(numerical_key_values)
+
+    if len(numerical_key_values) < len(num_keys):
+        raise PreventUpdate
+
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
                 numerical_key_values[num_keys.index(x_host)][0]]),
