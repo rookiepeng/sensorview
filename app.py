@@ -533,15 +533,14 @@ def update_filter(
                 encoded_image.decode())
         except FileNotFoundError:
             source_encoded = None
-
+    print(num_keys)
+    print(numerical_key_values)
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
                 numerical_key_values[num_keys.index(x_host)][0]]),
         np.max([numerical_key_values[num_keys.index(x_det)][1],
                 numerical_key_values[num_keys.index(x_host)][1]])]
 
-    print(num_keys)
-    print(numerical_key_values)
     y_range = [
         np.min([numerical_key_values[num_keys.index(y_det)][0],
                 numerical_key_values[num_keys.index(y_host)][0]]),
