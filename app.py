@@ -44,6 +44,8 @@ from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 
+import dash_bootstrap_components as dbc
+
 import base64
 
 import numpy as np
@@ -101,14 +103,15 @@ def load_config(json_file):
 
 
 ###############################################################
-app = dash.Dash(__name__,
+app = dash.Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP],
                 meta_tags=[{
                     'name': 'viewport',
                     'content': 'width=device-width,initial-scale=1'
-                }])
+                }]
+                )
 server = app.server
-app.scripts.config.serve_locally = True
-app.css.config.serve_locally = True
+# app.scripts.config.serve_locally = True
+# app.css.config.serve_locally = True
 app.title = 'SensorView'
 
 redis_instance = redis.StrictRedis.from_url(
