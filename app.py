@@ -395,21 +395,6 @@ def reset_switch_state(
 
 @ app.callback(
     [
-        Output('cat-key-values', 'data'),
-        Output('num-key-values', 'data'),
-    ],
-    [
-        Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        Input({'type': 'filter-slider', 'index': ALL}, 'value'),
-    ])
-def update_filter_values(
-        cat_key_values,
-        num_key_values):
-    return [cat_key_values, num_key_values]
-
-
-@ app.callback(
-    [
         Output('slider-frame', 'disabled'),
         Output('left-frame', 'disabled'),
         Output('right-frame', 'disabled'),
@@ -610,8 +595,8 @@ def update_filter(
         State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
-        State('cat-key-values', 'data'),
-        State('num-key-values', 'data'),
+        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value')
     ]
@@ -711,8 +696,8 @@ def update_left_graph(
         State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
-        State('cat-key-values', 'data'),
-        State('num-key-values', 'data'),
+        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value')
     ]
@@ -808,8 +793,8 @@ def update_right_graph(
         State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
-        State('cat-key-values', 'data'),
-        State('num-key-values', 'data'),
+        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value')
     ]
@@ -888,8 +873,8 @@ def update_histogram(
         State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
-        State('cat-key-values', 'data'),
-        State('num-key-values', 'data'),
+        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value')
     ]
@@ -964,8 +949,8 @@ def update_heatmap(
         State('color-picker-3d', 'value'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
-        State('cat-key-values', 'data'),
-        State('num-key-values', 'data'),
+        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('config', 'data'),
         State('vis-picker', 'value')
     ]
