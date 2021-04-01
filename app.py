@@ -402,9 +402,12 @@ def reset_switch_state(
         Output('left-frame', 'disabled'),
         Output('right-frame', 'disabled'),
     ],
-    Input('overlay-switch', 'on'))
+    Input('overlay-switch', 'value'))
 def overlay_switch_changed(overlay):
-    return [overlay]*3
+    if overlay:
+        return [True]*3
+    else:
+        return [False]*3
 
 
 @ app.callback(
@@ -418,13 +421,13 @@ def overlay_switch_changed(overlay):
         Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         Input('vis-picker', 'value'),
         Input('color-picker-3d', 'value'),
-        Input('overlay-switch', 'on'),
+        Input('overlay-switch', 'value'),
         Input('scatter3d', 'clickData'),
         Input('left-hide-trigger', 'children'),
     ],
     [
         State('keys-dict', 'data'),
-        State('visible-switch', 'on'),
+        State('visible-switch', 'value'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State('filter-trigger', 'children'),

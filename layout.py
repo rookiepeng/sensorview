@@ -29,7 +29,7 @@ colorscales = ['Blackbody',
 
 
 def get_app_layout(app):
-    return html.Div([
+    return dbc.Container([
         dbc.Row([
             dcc.Store(id='config'),
             dcc.Store(id='keys-dict'),
@@ -46,6 +46,12 @@ def get_app_layout(app):
             html.Div(id='trigger', style={'display': 'none'}),
             html.Div(id='dummy', style={'display': 'none'}),
             html.Div(id='hidden-scatter2d-left',
+                     style={'display': 'none'}),
+            html.Div(id='hidden-scatter2d-right',
+                     style={'display': 'none'}),
+            html.Div(id='hidden-histogram',
+                        style={'display': 'none'}),
+            html.Div(id='hidden-heatmap',
                      style={'display': 'none'})]),
         # html.Div([
         #     html.Div([
@@ -81,76 +87,101 @@ def get_app_layout(app):
 
         dbc.Row([
             dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6('Test Case', className="card-title"),
-                        dbc.Row([
-                            dbc.Col(dcc.Dropdown(
-                                id='test-case',
+                dbc.CardGroup([
+                    dbc.Card([
+                        dbc.CardHeader("Test Case"),
+                        dbc.CardBody([
+                            dbc.Row([
+                                dbc.Col(dcc.Dropdown(
+                                    id='test-case',
+                                    clearable=False,
+                                )),
+                                dbc.Col(dbc.Button(
+                                    'Refresh',
+                                    id='refresh-case',
+                                    color="primary",
+                                    className="mr-1",
+                                    n_clicks=0,
+                                    style={
+                                        "float": "right"
+                                    }), width=2)
+                            ]),
+                        ])], color="primary", outline=True),
+                    dbc.Card([
+                        dbc.CardHeader("Data File"),
+                        dbc.CardBody([
+                            dcc.Dropdown(
+                                id='data-file',
                                 clearable=False,
-                            )),
-                            dbc.Col(dbc.Button(
-                                'Refresh',
-                                id='refresh-case',
-                                color="primary",
-                                className="mr-1",
-                                n_clicks=0,
-                                style={
-                                    "float": "right"
-                                }), width=2)
-                        ]),
-                    ]))),
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.H6('Data File', className="card-title"),
-                        dcc.Dropdown(
-                            id='data-file',
-                            clearable=False,
-                        ),
-                    ])
-                )
-            )], className="mb-4"),
+                            ),
+                        ])
+                    ], color="primary", outline=True)])
+            )], className="mb-3"),
 
-        dbc.Row([dbc.Col(dbc.Card(
+        dbc.Row([dbc.Col(dbc.Card([
+            dbc.CardHeader("Control"),
             dbc.CardBody([
-                html.H6('Control', className="card-title"),
-                html.Div([
-                    daq.BooleanSwitch(
-                        id='overlay-switch',
-                        on=False
-                    ),
-                    html.Label('Overlay all frames'),
-                ], className='column flex-display',
-                    style={'margin-bottom': '10px'}
+                dbc.FormGroup(
+                    [
+                        dbc.Checklist(
+                            options=[
+                                {"label": "Overlay all frames",
+                                 "value": True},
+                            ],
+                            value=[],
+                            id="overlay-switch",
+                            switch=True,
+                        ),
+                        dbc.Checklist(
+                            options=[
+                                {"label": "Click to change visibility",
+                                 "value": True},
+                            ],
+                            value=[],
+                            id="visible-switch",
+                            switch=True,
+                        ),
+                    ]
                 ),
-                html.Div([
-                    daq.BooleanSwitch(
-                        id='visible-switch',
-                        on=False
-                    ),
-                    html.Label('Click to change visibility'),
-                ], className='column flex-display',
-                    style={'margin-bottom': '20px'}
+
+                dbc.FormGroup(
+                    [
+                        dbc.Label("Visibility options"),
+                        dbc.Checklist(
+                            options=[
+                                {"label": "Show visible", "value": "visible"},
+                                {"label": "Show hidden", "value": "hidden"},
+                            ],
+                            value=["visible"],
+                            id="vis-picker",
+                        ),
+                    ]
                 ),
-                html.Div([
-                    html.Label(
-                        'Visibility'
-                    ),
-                    dcc.Dropdown(
-                        id='vis-picker',
-                        options=[{'label': 'visible', 'value': 'visible'},
-                                 {'label': 'hidden', 'value': 'hidden'}],
-                        value=['visible'],
-                        multi=True,
-                        clearable=False,
-                    ),
-                ], style={'margin-bottom': '20px'}
-                ),
-                html.H6('Filter'),
+                # html.Div([
+                #     daq.BooleanSwitch(
+                #         id='overlay-switch',
+                #         on=False
+                #     ),
+                #     html.Label('Overlay all frames'),
+                # ], className='column flex-display',
+                #     style={'margin-bottom': '10px'}
+                # ),
+                # html.Div([
+                #     daq.BooleanSwitch(
+                #         id='visible-switch',
+                #         on=False
+                #     ),
+                #     html.Label('Click to change visibility'),
+                # ], className='column flex-display',
+                #     style={'margin-bottom': '20px'}
+                # ),
+            ]),
+            dbc.CardHeader("Filter"),
+            dbc.CardBody([
                 html.Div(id='dropdown-container', children=[]),
                 html.Div(id='slider-container', children=[]),
-            ])), width=3),
+            ])
+        ], color="info", outline=True), width=3),
             dbc.Col(
             dbc.Card(
                 dbc.CardBody([
@@ -168,12 +199,16 @@ def get_app_layout(app):
                         id='scatter3d',
                         config={
                             'displaylogo': False,
-                            'modeBarButtonsToRemove': ['resetCameraDefault3d',
-                                                       'resetCameraLastSave3d'],
+                            'modeBarButtonsToRemove': [
+                                'resetCameraDefault3d',
+                                'resetCameraLastSave3d'],
                         },
                         figure={
-                            'data': [{'mode': 'markers', 'type': 'scatter3d',
-                                              'x': [], 'y': [], 'z': []}
+                            'data': [{'mode': 'markers',
+                                      'type': 'scatter3d',
+                                      'x': [],
+                                      'y': [],
+                                      'z': []}
                                      ],
                             'layout': {'template': pio.templates['plotly'],
                                        'height': 650,
@@ -213,7 +248,7 @@ def get_app_layout(app):
                                  style={'display': 'none'}),
                     ]),
                 ])), width=9
-        )], className="mb-4"),
+        )], className="mb-3"),
 
         dbc.Row([
             dbc.Col(
@@ -304,49 +339,50 @@ def get_app_layout(app):
             dbc.Col(
                 dbc.Card(
                     dbc.CardBody([
-                        html.H6('2D View', className="card-title"),
-                        daq.BooleanSwitch(
-                            id='right-switch',
-                            on=False
-                        ),
+                        dbc.Row([
+                            dbc.Col(
+                                html.H6('2D View', className="card-title")),
+                            dbc.Col(
+                                daq.BooleanSwitch(
+                                    id='right-switch',
+                                    on=False,
+                                    style={
+                                        "float": "right"
+                                    }
+                                ))]),
 
-                        html.Div([
-                            html.Div([
-                                html.Label('x-axis'),
-                                dcc.Dropdown(
-                                    id='x-scatter2d-right',
-                                    disabled=True,
-                                    clearable=False,
-                                ),
-                            ], className='one-forth column'),
-                            html.Div([
-                                html.Label('y-axis'),
-                                dcc.Dropdown(
-                                    id='y-scatter2d-right',
-                                    disabled=True,
-                                    clearable=False,
-                                ),
-                            ], className='one-forth column'),
-                            html.Div([
-                                html.Label('color'),
-                                dcc.Dropdown(
-                                    id='color-scatter2d-right',
-                                    disabled=True,
-                                    clearable=False,
-                                ),
-                            ], className='one-forth column'),
-                            html.Div([
-                                html.Label('colormap'),
-                                dcc.Dropdown(
-                                    id='colormap-scatter2d-right',
-                                    disabled=True,
-                                    options=[{"value": x, "label": x}
-                                             for x in colorscales],
-                                    value='Jet',
-                                    clearable=False,
-                                ),
-                            ], className='one-forth column'),
-                        ], className='row flex-display'),
+                        dbc.Row([
+                            dbc.Col(html.Label('x-axis')),
+                            dbc.Col(html.Label('y-axis')),
+                            dbc.Col(html.Label('color')),
+                            dbc.Col(html.Label('colormap')),
+                        ]),
+
+                        dbc.Row([
+                            dbc.Col(dcc.Dropdown(
+                                id='x-scatter2d-right',
+                                disabled=True,
+                                clearable=False,
+                            )),
+                            dbc.Col(dcc.Dropdown(
+                                id='y-scatter2d-right',
+                                disabled=True,
+                                clearable=False,
+                            )),
+                            dbc.Col(dcc.Dropdown(
+                                id='color-scatter2d-right',
+                                disabled=True,
+                                clearable=False,
+                            )),
+                            dbc.Col(dcc.Dropdown(
+                                id='colormap-scatter2d-right',
+                                disabled=True,
+                                options=[{"value": x, "label": x}
+                                         for x in colorscales],
+                                value='Jet',
+                                clearable=False,
+                            )),
+                        ]),
 
                         dcc.Loading(
                             id='loading_right',
@@ -367,69 +403,67 @@ def get_app_layout(app):
                                         }
                                     },
                                 ),
-                                html.Div([
-                                    html.Div([
-                                    ], className='nine columns'),
-                                    html.Div([
-                                        dbc.Button(
-                                            'Export',
-                                            id='export-scatter2d-right',
-                                            n_clicks=0),
-                                        html.Div(id='hidden-scatter2d-right',
-                                                 style={'display': 'none'}),
-                                    ], className='two columns'),
-                                ], className='row flex-display'),
+                                dbc.Row([
+                                    dbc.Col(dbc.Button(
+                                        'Export',
+                                        id='export-scatter2d-right',
+                                        n_clicks=0,
+                                        style={
+                                            "float": "right"
+                                        }))
+                                ]),
                             ],
                             type='default',
                         ),
                     ])),
             )
-        ], className="mb-4"),
+        ], className="mb-3"),
 
         dbc.Row([
                 dbc.Col(
                     dbc.Card(
                         dbc.CardBody([
-                            html.Div([
-                                html.Div([
-                                    html.H6('Histogram'),
-                                ], className='ten columns'),
-                                html.Div([
+                            dbc.Row([
+                                dbc.Col(
+                                    html.H6('Histogram',
+                                            className="card-title")),
+                                dbc.Col(
                                     daq.BooleanSwitch(
                                         id='histogram-switch',
-                                        on=False
-                                    ),
-                                ], className='two columns',
-                                    style={'margin-top': '10px'}),
-                            ], className='row flex-display'),
-                            html.Div([
-                                html.Div([
-                                    html.Label('x-axis'),
-                                    dcc.Dropdown(
-                                        id='x-histogram',
-                                        disabled=True,
-                                        clearable=False,
-                                    ),
-                                ], className='one-third column'),
-                                html.Div([
-                                    html.Label('y-axis'),
-                                    dcc.Dropdown(
-                                        id='y-histogram',
-                                        options=[{
-                                            'label': 'Probability',
-                                            'value': 'probability'
-                                        },
-                                            {
-                                            'label': 'Density',
-                                            'value': 'density'
-                                        },
-                                        ],
-                                        value='density',
-                                        disabled=True,
-                                        clearable=False,
-                                    ),
-                                ], className='one-third column'),
-                            ], className='row flex-display'),
+                                        on=False,
+                                        style={
+                                            "float": "right"
+                                        }
+                                    ))]),
+
+                            dbc.Row([
+                                    dbc.Col(html.Label('x-axis')),
+                                    dbc.Col(html.Label('y-axis')),
+                                    ]),
+
+                            dbc.Row([
+                                dbc.Col(dcc.Dropdown(
+                                    id='x-histogram',
+                                    disabled=True,
+                                    clearable=False,
+                                )),
+                                dbc.Col(dcc.Dropdown(
+                                    id='y-histogram',
+                                    options=[{
+                                        'label': 'Probability',
+                                        'value': 'probability'
+                                    },
+                                        {
+                                        'label': 'Density',
+                                        'value': 'density'
+                                    },
+                                    ],
+                                    value='density',
+                                    disabled=True,
+                                    clearable=False,
+                                )),
+                            ]),
+
                             dcc.Loading(
                                 id='loading_histogram',
                                 children=[
@@ -447,18 +481,16 @@ def get_app_layout(app):
                                             }
                                         },
                                     ),
-                                    html.Div([
-                                        html.Div([
-                                        ], className='nine columns'),
-                                        html.Div([
+                                    dbc.Row([
+                                        dbc.Col(
                                             dbc.Button(
                                                 'Export',
                                                 id='export-histogram',
-                                                n_clicks=0),
-                                            html.Div(id='hidden-histogram',
-                                                     style={'display': 'none'}),
-                                        ], className='two columns'),
-                                    ], className='row flex-display'),
+                                                n_clicks=0,
+                                                style={
+                                                    "float": "right"
+                                                })),
+                                    ]),
                                 ],
                                 type='default',
                             ),
@@ -467,36 +499,37 @@ def get_app_layout(app):
                 dbc.Col(
                     dbc.Card(
                         dbc.CardBody([
-                            html.Div([
-                                html.Div([
-                                    html.H6('Heatmap'),
-                                ], className='ten columns'),
-                                html.Div([
+                            dbc.Row([
+                                dbc.Col(
+                                    html.H6('Heatmap',
+                                            className="card-title")),
+                                dbc.Col(
                                     daq.BooleanSwitch(
                                         id='heat-switch',
-                                        on=False
-                                    ),
-                                ], className='two columns',
-                                    style={'margin-top': '10px'}),
+                                        on=False,
+                                        style={
+                                            "float": "right"
+                                        }
+                                    ))]),
+
+                            dbc.Row([
+                                    dbc.Col(html.Label('x-axis')),
+                                    dbc.Col(html.Label('y-axis'))
+                                    ]),
+
+                            dbc.Row([
+                                dbc.Col(dcc.Dropdown(
+                                    id='x-heatmap',
+                                    disabled=True,
+                                    clearable=False,
+                                )),
+                                dbc.Col(dcc.Dropdown(
+                                    id='y-heatmap',
+                                    disabled=True,
+                                    clearable=False,
+                                ))
                             ]),
-                            html.Div([
-                                html.Div([
-                                    html.Label('x-axis'),
-                                    dcc.Dropdown(
-                                        id='x-heatmap',
-                                        disabled=True,
-                                        clearable=False,
-                                    ),
-                                ]),
-                                html.Div([
-                                    html.Label('y-axis'),
-                                    dcc.Dropdown(
-                                        id='y-heatmap',
-                                        disabled=True,
-                                        clearable=False,
-                                    ),
-                                ]),
-                            ]),
+
                             dcc.Loading(
                                 id='loading_heat',
                                 children=[
@@ -514,19 +547,19 @@ def get_app_layout(app):
                                             }
                                         },
                                     ),
-                                    html.Div([
-                                        html.Div([
-                                        ], className='nine columns'),
-                                        html.Div([
+                                    dbc.Row([
+                                        dbc.Col(
                                             dbc.Button(
-                                                'Export', id='export-heatmap', n_clicks=0),
-                                            html.Div(id='hidden-heatmap',
-                                                     style={'display': 'none'}),
-                                        ]),
+                                                'Export',
+                                                id='export-heatmap',
+                                                n_clicks=0,
+                                                style={
+                                                    "float": "right"
+                                                })),
                                     ]),
                                 ],
                                 type='default',
                             ),
                         ]))),
-                ], className="mb-4")
-    ])
+                ], className="mb-3")
+    ], fluid=True, style={'background-color': '#ECEFF1'})
