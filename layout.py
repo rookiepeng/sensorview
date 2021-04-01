@@ -53,37 +53,21 @@ def get_app_layout(app):
                         style={'display': 'none'}),
             html.Div(id='hidden-heatmap',
                      style={'display': 'none'})]),
-        # html.Div([
-        #     html.Div([
-        #         html.Img(
-        #             src=app.get_asset_url('sensorview_logo.svg'),
-        #             id='sensorview-image',
-        #             style={
-        #                 'height': '100px',
-        #                 'width': 'auto',
-        #                 'margin-bottom': '0px',
-        #             },
-        #         )
-        #     ], className='one-third column'),
-        #     html.Div([
-        #         html.Div(
-        #             [
-        #                 html.H3(
-        #                     'SensorView',
-        #                     style={'margin-bottom': '0px'},
-        #                 ),
-        #                 html.H5(
-        #                     'Sensor Data Visualization',
-        #                     style={'margin-top': '0px'}),
-        #             ]
-        #         ),
-        #     ],
-        #         className='one-half columns',
-        #         id='title',
-        #     ),
-        #     html.Div([], className='one-third column'),
-        # ], className='row flex-display',
-        #     style={'margin-bottomm': '25px'}),
+        dbc.Jumbotron([
+            dbc.Row([
+                html.Img(
+                    src=app.get_asset_url('sensorview_logo.svg'),
+                    id='sensorview-image',
+                    style={
+                        'height': '100px',
+                        'width': 'auto',
+                    },
+                ),
+                html.H1('SensorView',),
+            ], align="end"),
+            html.Hr(className="my-2"),
+            html.P('Sensor Data Visualization'),
+        ]),
 
         dbc.Row([
             dbc.Col(
