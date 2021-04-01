@@ -157,24 +157,6 @@ def get_app_layout(app):
                         ),
                     ]
                 ),
-                # html.Div([
-                #     daq.BooleanSwitch(
-                #         id='overlay-switch',
-                #         on=False
-                #     ),
-                #     html.Label('Overlay all frames'),
-                # ], className='column flex-display',
-                #     style={'margin-bottom': '10px'}
-                # ),
-                # html.Div([
-                #     daq.BooleanSwitch(
-                #         id='visible-switch',
-                #         on=False
-                #     ),
-                #     html.Label('Click to change visibility'),
-                # ], className='column flex-display',
-                #     style={'margin-bottom': '20px'}
-                # ),
             ]),
             dbc.CardHeader("Filter"),
             dbc.CardBody([
@@ -183,17 +165,22 @@ def get_app_layout(app):
             ])
         ], color="info", outline=True), width=3),
             dbc.Col(
-            dbc.Card(
+            dbc.Card([
+                dbc.CardHeader("3D View"),
                 dbc.CardBody([
-                    html.H6('3D View', className="card-title"),
-
-                    html.Div([
-                        dcc.Dropdown(
+                    dbc.Row([
+                        dbc.Col(dcc.Dropdown(
                             id='color-picker-3d',
                             clearable=False,
-                        ),
-                    ], className='two columns',
-                        style={'margin-bottom': '10px'}),
+                        ), width=2),
+                        dbc.Col(dcc.Dropdown(
+                            id='colormap-3d',
+                            options=[{"value": x, "label": x}
+                                         for x in colorscales],
+                            value='Jet',
+                            clearable=False,
+                        ), width=2)
+                    ], justify="end"),
 
                     dcc.Graph(
                         id='scatter3d',
@@ -247,7 +234,7 @@ def get_app_layout(app):
                         html.Div(id='hidden-scatter3d',
                                  style={'display': 'none'}),
                     ]),
-                ])), width=9
+                ])]), width=9
         )], className="mb-3"),
 
         dbc.Row([
