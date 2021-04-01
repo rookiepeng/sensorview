@@ -176,7 +176,7 @@ def get_app_layout(app):
                         dbc.Col(dcc.Dropdown(
                             id='colormap-3d',
                             options=[{"value": x, "label": x}
-                                         for x in colorscales],
+                                     for x in colorscales],
                             value='Jet',
                             clearable=False,
                         ), width=2)
@@ -204,16 +204,17 @@ def get_app_layout(app):
                         },
                     ),
                     dbc.Row([
-                        dbc.Col(dbc.Button(
-                            '<<',
-                            id='left-frame',
-                            n_clicks=0)),
-
-                        dbc.Col(dbc.Button(
-                            '>>',
-                            id='right-frame',
-                            n_clicks=0)),
-
+                        dbc.Col(
+                            dbc.ButtonGroup(
+                                [dbc.Button(
+                                    '<<',
+                                    id='left-frame',
+                                    n_clicks=0),
+                                    dbc.Button(
+                                    '>>',
+                                    id='right-frame',
+                                    n_clicks=0)
+                                 ]), width=1),
                         dbc.Col(
                             dcc.Slider(
                                 id='slider-frame',
@@ -234,7 +235,7 @@ def get_app_layout(app):
                         html.Div(id='hidden-scatter3d',
                                  style={'display': 'none'}),
                     ]),
-                ])]), width=9
+                ])], color="success", outline=True), width=9
         )], className="mb-3"),
 
         dbc.Row([
