@@ -70,6 +70,7 @@ def scatter3d_data(det_list,
                    layout,
                    keys_dict,
                    name,
+                   colormap='Jet',
                    image=None):
 
     return dict(
@@ -82,7 +83,8 @@ def scatter3d_data(det_list,
             color_label=layout['color_label'],
             name=name,
             hover_dict=keys_dict,
-            c_range=layout['c_range']
+            c_range=layout['c_range'],
+            colormap=colormap,
         ),
             get_host_data(
             det_list=det_list,
@@ -419,6 +421,7 @@ def overlay_switch_changed(overlay):
         Input('slider-frame', 'value'),
         Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         Input({'type': 'filter-slider', 'index': ALL}, 'value'),
+        Input('colormap-3d', 'value'),
         Input('vis-picker', 'value'),
         Input('color-picker-3d', 'value'),
         Input('overlay-switch', 'value'),
@@ -440,6 +443,7 @@ def update_filter(
     slider_arg,
     categorical_key_values,
     numerical_key_values,
+    colormap,
     vis_picker,
     color_picker,
     overlay_sw,
@@ -563,10 +567,13 @@ def update_filter(
         scatter3d_layout,
         keys_dict,
         'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+        colormap=colormap,
         image=source_encoded
     )
 
-    if (trigger_id == 'slider-frame') or (trigger_id == 'left-hide-trigger'):
+    if (trigger_id == 'slider-frame') or \
+        (trigger_id == 'left-hide-trigger') or \
+            (trigger_id == 'colormap-3d'):
         filter_trig = dash.no_update
     elif trigger_id == 'scatter3d':
         if visible_sw and \

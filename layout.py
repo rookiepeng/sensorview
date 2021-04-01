@@ -204,7 +204,9 @@ def get_app_layout(app):
                                 id='slider-frame',
                                 step=1,
                                 value=0,
-                                updatemode='drag'
+                                updatemode='drag',
+                                tooltip={'always_visible': True,
+                                         'placement': 'bottom'}
                             )
                         )
                     ]),
