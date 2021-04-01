@@ -315,7 +315,7 @@ def data_file_selection(
                 value_list = var_list
 
                 new_dropdown.append(
-                    html.Label(
+                    dbc.Label(
                         keys_dict[d_item]['description']
                     )
                 )
@@ -340,7 +340,7 @@ def data_file_selection(
                 var_max = np.ceil(np.max(new_data[s_item]))
 
                 new_slider.append(
-                    html.Label(
+                    dbc.Label(
                         keys_dict[s_item]['description']
                     )
                 )
