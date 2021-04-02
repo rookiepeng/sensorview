@@ -319,7 +319,7 @@ def get_app_layout(app):
                             ],
                             type='default',
                         ),
-                    ]))),
+                    ])), width=6),
 
             dbc.Col(
                 dbc.Card(
@@ -400,8 +400,7 @@ def get_app_layout(app):
                             ],
                             type='default',
                         ),
-                    ])),
-            )
+                    ])), width=6)
         ], className="mb-3"),
 
         dbc.Row([
@@ -479,7 +478,7 @@ def get_app_layout(app):
                                 ],
                                 type='default',
                             ),
-                        ]))),
+                        ])), width=6),
 
                 dbc.Col(
                     dbc.Card(
@@ -545,6 +544,6 @@ def get_app_layout(app):
                                 ],
                                 type='default',
                             ),
-                        ]))),
+                        ])), width=6),
                 ], className="mb-3")
     ], fluid=True, style={'background-color': '#ECEFF1'})
