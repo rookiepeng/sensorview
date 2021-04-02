@@ -113,7 +113,7 @@ app = dash.Dash(__name__,
 server = app.server
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
-app.title = 'SensorView'
+app.title = 'RadarViz'
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
