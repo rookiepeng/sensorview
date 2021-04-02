@@ -216,7 +216,7 @@ def get_app_layout(app):
                         'width': 'auto',
                     },
                 ),
-                html.H1('SensorView',),
+                html.H1(app.title),
             ], align="end"),
             html.Hr(className="my-2"),
             html.P('Sensor Data Visualization'),

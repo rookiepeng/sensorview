@@ -42,7 +42,6 @@ import dash
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
-import dash_html_components as html
 
 import dash_bootstrap_components as dbc
 
@@ -119,7 +118,7 @@ app.title = 'SensorView'
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
 
-REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", "SensorView")
+REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
 REDIS_KEYS = {"DATASET": "DATASET",
               "FRAME_IDX": "FRAME_IDX",
               "VIS": "VIS"}
