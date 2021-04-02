@@ -32,31 +32,31 @@ testcase_card = dbc.Card([
     dbc.CardHeader("Test Case"),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(dcc.Dropdown(
+            dbc.Col(dbc.Select(
                 id='test-case',
-                clearable=False,
+                # clearable=False,
             )),
             dbc.Col(dbc.Button(
                 'Refresh',
                 id='refresh-case',
-                color="primary",
+                color="success",
                 className="mr-1",
                 n_clicks=0,
                 style={
                     "float": "right"
                 }), width=2)
         ]),
-    ])], color="primary", outline=True)
+    ])], color="primary", inverse=True)
 
 datafile_card = dbc.Card([
     dbc.CardHeader("Data File"),
     dbc.CardBody([
-        dcc.Dropdown(
+        dbc.Select(
             id='data-file',
-            clearable=False,
+            # clearable=False,
         ),
     ])
-], color="primary", outline=True)
+], color="primary", inverse=True)
 
 
 filter_card = dbc.Card([
