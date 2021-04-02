@@ -86,7 +86,7 @@ def get_figure_data(det_list,
                 size=3,
                 color=color,
                 colorscale=colormap,
-                opacity=1,
+                opacity=0.8,
                 colorbar=dict(
                     title=color_label,
                 ),
