@@ -94,7 +94,7 @@ def get_figure_data(det_list,
                 cmax=c_range[1],
                 line=dict(
                     color="#757575",
-                    width=1,
+                    width=0,
                 )
             ),
         )
@@ -280,7 +280,7 @@ def get_2d_scatter(det_list,
                 ),
                 line=dict(
                     color="#FFFFFF",
-                    width=1,
+                    width=0,
                 )
             )
         )],
