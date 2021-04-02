@@ -104,7 +104,7 @@ filter_card = dbc.Card([
         html.Div(id='dropdown-container', children=[]),
         html.Div(id='slider-container', children=[]),
     ])
-], color="info", outline=True)
+], color="info", inverse=True)
 
 view3d_card = dbc.Card([
     dbc.CardHeader("3D View"),
