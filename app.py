@@ -31,7 +31,8 @@
 import datetime
 
 import redis
-import pyarrow as pa
+import pickle
+# import pyarrow as pa
 
 from filter import filter_all
 
@@ -283,16 +284,15 @@ def data_file_selection(
             vis_table['_IDS_'] = new_data.index
             vis_table['_VIS_'] = 'visible'
 
-            context = pa.default_serialization_context()
             redis_instance.set(
                 REDIS_KEYS["DATASET"]+session_id,
-                context.serialize(new_data).to_buffer().to_pybytes(),
+                pickle.dumps(new_data),
                 ex=EXPIRATION
             )
 
             redis_instance.set(
                 REDIS_KEYS["VIS"]+session_id,
-                context.serialize(vis_table).to_buffer().to_pybytes(),
+                pickle.dumps(vis_table),
                 ex=EXPIRATION
             )
 
@@ -301,7 +301,7 @@ def data_file_selection(
 
             redis_instance.set(
                 REDIS_KEYS["FRAME_IDX"]+session_id,
-                context.serialize(frame_idx).to_buffer().to_pybytes(),
+                pickle.dumps(frame_idx),
                 ex=EXPIRATION
             )
 
@@ -480,10 +480,8 @@ def update_filter(
     x_host = ui_config.get('x_ref', None)
     y_host = ui_config.get('y_ref', None)
 
-    context = pa.default_serialization_context()
-    # data = context.deserialize(redis_instance.get("DATASET"+session_id))
-    vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
-    frame_idx = context.deserialize(redis_instance.get("FRAME_IDX"+session_id))
+    vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+    frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
 
     if trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
@@ -496,18 +494,17 @@ def update_filter(
             vis_table.at[click_data['points']
                          [0]['id'], '_VIS_'] = 'visible'
 
-        context = pa.default_serialization_context()
         redis_instance.set(
             REDIS_KEYS["VIS"]+session_id,
-            context.serialize(vis_table).to_buffer().to_pybytes(),
+            pickle.dumps(vis_table),
             ex=EXPIRATION
         )
 
     if overlay_sw:
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        data = pickle.loads(redis_instance.get("DATASET"+session_id))
         source_encoded = None
     else:
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
+        data = pickle.loads(redis_instance.get("DATASET"+session_id))
         data = data[
             data[slider_key] == frame_idx[slider_arg]
         ]
@@ -638,9 +635,8 @@ def update_left_graph(
     color_label = keys_dict[color_left]['description']
 
     if left_sw:
-        context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
-        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
+        data = pickle.loads(redis_instance.get("DATASET"+session_id))
+        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
 
         filtered_table = filter_all(
             data,
@@ -739,9 +735,8 @@ def update_right_graph(
     color_label = keys_dict[color_right]['description']
 
     if right_sw:
-        context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
-        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
+        data = pickle.loads(redis_instance.get("DATASET"+session_id))
+        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
         filtered_table = filter_all(
             data,
             num_keys,
@@ -831,9 +826,8 @@ def update_histogram(
     y_key = y_histogram
 
     if histogram_sw:
-        context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
-        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
+        data = pickle.loads(redis_instance.get("DATASET"+session_id))
+        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
         filtered_table = filter_all(
             data,
             num_keys,
@@ -912,9 +906,9 @@ def update_heatmap(
         y_key = y_heat
         y_label = keys_dict[y_heat]['description']
         # if processing.is_filtering_ready():
-        context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
-        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
+
+        data = pickle.loads(redis_instance.get("DATASET"+session_id))
+        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
 
         filtered_table = filter_all(
             data,
@@ -988,9 +982,8 @@ def export_scatter_3d(
         if not os.path.exists('data/'+test_case+'/images'):
             os.makedirs('data/'+test_case+'/images')
 
-        context = pa.default_serialization_context()
-        data = context.deserialize(redis_instance.get("DATASET"+session_id))
-        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
+        data = pickle.loads(redis_instance.get("DATASET"+session_id))
+        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
 
         x_det = ui_config.get('x_3d', num_keys[0])
         y_det = ui_config.get('y_3d', num_keys[1])
@@ -1141,9 +1134,7 @@ def left_hide_button(
     session_id
 ):
     if btn > 0 and selectedData is not None:
-        context = pa.default_serialization_context()
-        # data = context.deserialize(redis_instance.get("DATASET"+session_id))
-        vis_table = context.deserialize(redis_instance.get("VIS"+session_id))
+        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
 
         s_data = pd.DataFrame(selectedData['points'])
         idx = s_data['id']
@@ -1157,7 +1148,7 @@ def left_hide_button(
 
         redis_instance.set(
             REDIS_KEYS["VIS"]+session_id,
-            context.serialize(vis_table).to_buffer().to_pybytes(),
+            pickle.dumps(vis_table),
             ex=EXPIRATION
         )
 
