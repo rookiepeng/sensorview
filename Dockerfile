@@ -1,4 +1,4 @@
-FROM python:3.8.6-slim-buster
+FROM python:alpine3.12
 
 # Create a working directory.
 WORKDIR /usr/src/app
