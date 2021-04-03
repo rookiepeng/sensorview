@@ -64,6 +64,15 @@ filter_card = dbc.Card([
             [
                 dbc.Checklist(
                     options=[
+                        {"label": "Add outline to scatters",
+                         "value": True},
+                    ],
+                    value=[],
+                    id="outline-switch",
+                    switch=True,
+                ),
+                dbc.Checklist(
+                    options=[
                         {"label": "Overlay all frames",
                          "value": True},
                     ],
