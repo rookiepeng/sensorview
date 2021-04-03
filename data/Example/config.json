@@ -1,0 +1,60 @@
+{
+    "slider": "Frame",
+    "x_3d": "Latitude",
+    "y_3d": "Longitude",
+    "z_3d": "Height",
+    "c_3d": "Height",
+    "x_2d_l": "Longitude",
+    "y_2d_l": "Latitude",
+    "c_2d_l": "Frame",
+    "x_2d_r": "Longitude",
+    "y_2d_r": "Height",
+    "c_2d_r": "Frame",
+    "x_ref": "Host_Latitude",
+    "y_ref": "Host_Longitude",
+    "z_ref": "Height",
+    "x_hist": "Frame",
+    "x_heatmap": "Latitude",
+    "y_heatmap": "Longitude",
+    "keys": {
+        "Frame": {
+            "description": "Frame",
+            "format": "{:,.0f}",
+            "type": "numerical"
+        },
+        "Longitude": {
+            "description": "Longitude (m)",
+            "format": "{:,.2f}",
+            "type": "numerical"
+        },
+        "Latitude": {
+            "description": "Latitude (m)",
+            "format": "{:,.2f}",
+            "type": "numerical"
+        },
+        "Height": {
+            "description": "Height (m)",
+            "format": "{:,.2f}",
+            "type": "numerical"
+        },
+        "Time": {
+            "description": "Time (s)",
+            "format": "{:,.2f}",
+            "type": "numerical"
+        },
+        "Sensor": {
+            "description": "Sensor",
+            "type": "categorical"
+        },
+        "Host_Longitude": {
+            "description": "Ref Longitude (m)",
+            "format": "{:,.2f}",
+            "type": "numerical"
+        },
+        "Host_Latitude": {
+            "description": "Ref Latitude (m)",
+            "format": "{:,.2f}",
+            "type": "numerical"
+        }
+    }
+}
