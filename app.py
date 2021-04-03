@@ -514,7 +514,7 @@ def update_filter(
         ]
 
         img = './data/'+test_case+'/imgs/' + \
-            data_file[0:-4]+str(slider_arg)+'.png'
+            data_file[0:-4]+'_'+str(slider_arg)+'.png'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
