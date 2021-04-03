@@ -41,16 +41,14 @@ def get_figure_data(det_list,
                     z_key,
                     color_key,
                     color_label=None,
+                    outline=0,
                     name=None,
                     hover_dict=None,
                     c_range=[-30, 30],
-                    db=False,
-                    colormap='Jet',):
+                    colormap='Jet'):
 
     if det_list.shape[0] > 0:
         color = det_list[color_key]
-        if db:
-            color = 20*np.log10(color)
 
         rows = len(det_list.index)
 
@@ -64,11 +62,6 @@ def get_figure_data(det_list,
             else:
                 hover = hover + hover_dict[key]['description'] + \
                     ': ' + det_list[key]+'<br>'
-
-        # if '_IDS_' in det_list.columns:
-        #     ids = det_list['_IDS_']
-        # else:
-        #     ids = None
 
         det_map = dict(
             type='scatter3d',
@@ -94,7 +87,7 @@ def get_figure_data(det_list,
                 cmax=c_range[1],
                 line=dict(
                     color="#757575",
-                    width=0,
+                    width=outline,
                 )
             ),
         )
@@ -252,6 +245,7 @@ def get_2d_scatter(det_list,
                    color_label=None,
                    uirevision='no_change',
                    colormap='Jet',
+                   outline=0,
                    margin=dict(l=40, r=40, b=40, t=60)):
 
     if x_label is None:
@@ -280,7 +274,7 @@ def get_2d_scatter(det_list,
                 ),
                 line=dict(
                     color="#FFFFFF",
-                    width=0,
+                    width=outline,
                 )
             )
         )],

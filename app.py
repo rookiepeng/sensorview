@@ -70,6 +70,7 @@ def scatter3d_data(det_list,
                    layout,
                    keys_dict,
                    name,
+                   outline=0,
                    colormap='Jet',
                    image=None):
 
@@ -81,6 +82,7 @@ def scatter3d_data(det_list,
             z_key=z,
             color_key=layout['color_key'],
             color_label=layout['color_label'],
+            outline=outline,
             name=name,
             hover_dict=keys_dict,
             c_range=layout['c_range'],
@@ -425,6 +427,7 @@ def overlay_switch_changed(overlay):
         Input('vis-picker', 'value'),
         Input('color-picker-3d', 'value'),
         Input('overlay-switch', 'value'),
+        Input('outline-switch', 'value'),
         Input('scatter3d', 'clickData'),
         Input('left-hide-trigger', 'children'),
     ],
@@ -447,6 +450,7 @@ def update_filter(
     vis_picker,
     color_picker,
     overlay_sw,
+    outline_sw,
     click_data,
     left_hide_trigger,
     keys_dict,
@@ -519,6 +523,11 @@ def update_filter(
         except FileNotFoundError:
             source_encoded = None
 
+    if outline_sw:
+        outline = 1
+    else:
+        outline = 0
+
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
                 numerical_key_values[num_keys.index(x_host)][0]]),
@@ -564,13 +573,15 @@ def update_filter(
         scatter3d_layout,
         keys_dict,
         'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+        outline=outline,
         colormap=colormap,
         image=source_encoded
     )
 
     if (trigger_id == 'slider-frame') or \
         (trigger_id == 'left-hide-trigger') or \
-            (trigger_id == 'colormap-3d'):
+            (trigger_id == 'colormap-3d') or \
+            (trigger_id == 'outline-switch'):
         filter_trig = dash.no_update
     elif trigger_id == 'scatter3d':
         if visible_sw and \
@@ -600,6 +611,7 @@ def update_filter(
         Input('y-scatter2d-left', 'value'),
         Input('color-scatter2d-left', 'value'),
         Input('colormap-scatter2d-left', 'value'),
+        Input('outline-switch', 'value'),
     ],
     [
         State('keys-dict', 'data'),
@@ -619,6 +631,7 @@ def update_left_graph(
     y_left,
     color_left,
     colormap,
+    outline_sw,
     keys_dict,
     num_keys,
     cat_keys,
@@ -633,6 +646,11 @@ def update_left_graph(
     x_label = keys_dict[x_left]['description']
     y_label = keys_dict[y_left]['description']
     color_label = keys_dict[color_left]['description']
+
+    if outline_sw:
+        outline = 1
+    else:
+        outline = 0
 
     if left_sw:
         data = pickle.loads(redis_instance.get("DATASET"+session_id))
@@ -656,7 +674,8 @@ def update_left_graph(
             x_label,
             y_label,
             color_label,
-            colormap=colormap
+            colormap=colormap,
+            outline=outline
         )
         left_x_disabled = False
         left_y_disabled = False
@@ -700,6 +719,7 @@ def update_left_graph(
         Input('y-scatter2d-right', 'value'),
         Input('color-scatter2d-right', 'value'),
         Input('colormap-scatter2d-right', 'value'),
+        Input('outline-switch', 'value'),
     ],
     [
         State('keys-dict', 'data'),
@@ -719,6 +739,7 @@ def update_right_graph(
     y_right,
     color_right,
     colormap,
+    outline_sw,
     keys_dict,
     num_keys,
     cat_keys,
@@ -733,6 +754,11 @@ def update_right_graph(
     x_label = keys_dict[x_right]['description']
     y_label = keys_dict[y_right]['description']
     color_label = keys_dict[color_right]['description']
+
+    if outline_sw:
+        outline = 1
+    else:
+        outline = 0
 
     if right_sw:
         data = pickle.loads(redis_instance.get("DATASET"+session_id))
@@ -755,7 +781,8 @@ def update_right_graph(
             x_label,
             y_label,
             color_label,
-            colormap=colormap
+            colormap=colormap,
+            outline=outline
         )
         right_x_disabled = False
         right_y_disabled = False
