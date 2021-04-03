@@ -94,7 +94,7 @@ def get_figure_data(det_list,
                 cmax=c_range[1],
                 line=dict(
                     color="#757575",
-                    width=1,
+                    width=0,
                 )
             ),
         )
