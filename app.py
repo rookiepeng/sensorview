@@ -277,6 +277,7 @@ def data_file_selection(
         if data_file_name is not None and test_case is not None:
             new_data = pd.read_pickle(
                 './data/'+test_case+'/'+data_file_name)
+            new_data = new_data.reset_index(drop=True)
 
             vis_table = pd.DataFrame()
             vis_table['_IDS_'] = new_data.index
