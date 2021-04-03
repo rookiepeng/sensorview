@@ -382,10 +382,10 @@ def data_file_selection(
 
 @ app.callback(
     [
-        Output('left-switch', 'on'),
-        Output('right-switch', 'on'),
-        Output('histogram-switch', 'on'),
-        Output('heat-switch', 'on'),
+        Output('left-switch', 'value'),
+        Output('right-switch', 'value'),
+        Output('histogram-switch', 'value'),
+        Output('heat-switch', 'value'),
     ],
     Input('data-file', 'value'),
     State('test-case', 'value'))
@@ -393,7 +393,7 @@ def reset_switch_state(
         data_file_name,
         test_case):
     if data_file_name is not None and test_case is not None:
-        return [False, False, False, False]
+        return [[], [], [], []]
     else:
         raise PreventUpdate
 
@@ -598,7 +598,7 @@ def update_filter(
     [
         Input('filter-trigger', 'children'),
         Input('left-hide-trigger', 'children'),
-        Input('left-switch', 'on'),
+        Input('left-switch', 'value'),
         Input('x-scatter2d-left', 'value'),
         Input('y-scatter2d-left', 'value'),
         Input('color-scatter2d-left', 'value'),
@@ -699,7 +699,7 @@ def update_left_graph(
     [
         Input('filter-trigger', 'children'),
         Input('left-hide-trigger', 'children'),
-        Input('right-switch', 'on'),
+        Input('right-switch', 'value'),
         Input('x-scatter2d-right', 'value'),
         Input('y-scatter2d-right', 'value'),
         Input('color-scatter2d-right', 'value'),
@@ -798,7 +798,7 @@ def update_right_graph(
     [
         Input('filter-trigger', 'children'),
         Input('left-hide-trigger', 'children'),
-        Input('histogram-switch', 'on'),
+        Input('histogram-switch', 'value'),
         Input('x-histogram', 'value'),
         Input('y-histogram', 'value'),
     ],
@@ -878,7 +878,7 @@ def update_histogram(
     [
         Input('filter-trigger', 'children'),
         Input('left-hide-trigger', 'children'),
-        Input('heat-switch', 'on'),
+        Input('heat-switch', 'value'),
         Input('x-heatmap', 'value'),
         Input('y-heatmap', 'value'),
     ],

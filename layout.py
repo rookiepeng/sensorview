@@ -102,7 +102,7 @@ filter_card = dbc.Card([
         html.Div(id='dropdown-container', children=[]),
         html.Div(id='slider-container', children=[]),
     ])
-], color="info", inverse=True)
+], color="info", outline=True)
 
 view3d_card = dbc.Card([
     dbc.CardHeader("3D View"),
@@ -177,20 +177,27 @@ view3d_card = dbc.Card([
     ])], color="success", outline=True)
 
 
-left2d_card = dbc.Card(
-    dbc.CardBody([
+left2d_card = dbc.Card([
+    dbc.CardHeader(
         dbc.Row([
-            dbc.Col(html.H6('2D View',
-                            className="card-title")),
-            dbc.Col(daq.BooleanSwitch(
-                id='left-switch',
-                on=False,
-                style={
-                    "float": "right"
-                }
-            ))
-        ]),
-
+            dbc.Col(
+                dbc.Label('2D View')),
+            dbc.Col(
+                dbc.Checklist(
+                    options=[
+                        {"label": "Enable",
+                         "value": True},
+                    ],
+                    value=[],
+                    id="left-switch",
+                    switch=True,
+                    style={
+                        "float": "right"
+                    }
+                )
+            )]),
+    ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(dbc.Label('x-axis')),
             dbc.Col(dbc.Label('y-axis')),
@@ -259,22 +266,30 @@ left2d_card = dbc.Card(
             ],
             type='default',
         ),
-    ]))
+    ])
+])
 
-right2d_card = dbc.Card(
-    dbc.CardBody([
+right2d_card = dbc.Card([
+    dbc.CardHeader(
         dbc.Row([
             dbc.Col(
-                html.H6('2D View', className="card-title")),
+                dbc.Label('2D View')),
             dbc.Col(
-                daq.BooleanSwitch(
-                    id='right-switch',
-                    on=False,
+                dbc.Checklist(
+                    options=[
+                        {"label": "Enable",
+                         "value": True},
+                    ],
+                    value=[],
+                    id="right-switch",
+                    switch=True,
                     style={
                         "float": "right"
                     }
-                ))]),
-
+                )
+            )]),
+    ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(html.Label('x-axis')),
             dbc.Col(html.Label('y-axis')),
@@ -339,24 +354,30 @@ right2d_card = dbc.Card(
             ],
             type='default',
         ),
-    ]))
+    ])])
 
 
-hist_card = dbc.Card(
-    dbc.CardBody([
+hist_card = dbc.Card([
+    dbc.CardHeader(
         dbc.Row([
             dbc.Col(
-                html.H6('Histogram',
-                        className="card-title")),
+                dbc.Label('Histogram')),
             dbc.Col(
-                daq.BooleanSwitch(
-                    id='histogram-switch',
-                    on=False,
+                dbc.Checklist(
+                    options=[
+                        {"label": "Enable",
+                         "value": True},
+                    ],
+                    value=[],
+                    id="histogram-switch",
+                    switch=True,
                     style={
                         "float": "right"
                     }
-                ))]),
-
+                )
+            )]),
+    ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(html.Label('x-axis')),
             dbc.Col(html.Label('y-axis')),
@@ -415,24 +436,30 @@ hist_card = dbc.Card(
             ],
             type='default',
         ),
-    ]))
+    ])])
 
 
-heatmap_card = dbc.Card(
-    dbc.CardBody([
+heatmap_card = dbc.Card([
+    dbc.CardHeader(
         dbc.Row([
             dbc.Col(
-                html.H6('Heatmap',
-                        className="card-title")),
+                dbc.Label('Heatmap')),
             dbc.Col(
-                daq.BooleanSwitch(
-                    id='heat-switch',
-                    on=False,
+                dbc.Checklist(
+                    options=[
+                        {"label": "Enable",
+                         "value": True},
+                    ],
+                    value=[],
+                    id="heat-switch",
+                    switch=True,
                     style={
                         "float": "right"
                     }
-                ))]),
-
+                )
+            )]),
+    ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(html.Label('x-axis')),
             dbc.Col(html.Label('y-axis'))
@@ -481,7 +508,7 @@ heatmap_card = dbc.Card(
             ],
             type='default',
         ),
-    ]))
+    ])])
 
 
 def get_app_layout(app):
