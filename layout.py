@@ -34,7 +34,6 @@ testcase_card = dbc.Card([
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='test-case',
-                # clearable=False,
             )),
             dbc.Col(dbc.Button(
                 'Refresh',
@@ -53,7 +52,6 @@ datafile_card = dbc.Card([
     dbc.CardBody([
         dbc.Select(
             id='data-file',
-            # clearable=False,
         ),
     ])
 ], color="primary", inverse=True)
@@ -110,16 +108,14 @@ view3d_card = dbc.Card([
     dbc.CardHeader("3D View"),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(dcc.Dropdown(
+            dbc.Col(dbc.Select(
                 id='color-picker-3d',
-                clearable=False,
             ), width=2),
-            dbc.Col(dcc.Dropdown(
+            dbc.Col(dbc.Select(
                 id='colormap-3d',
                 options=[{"value": x, "label": x}
                          for x in colorscales],
                 value='Jet',
-                clearable=False,
             ), width=2)
         ], justify="end"),
 
@@ -181,6 +177,313 @@ view3d_card = dbc.Card([
     ])], color="success", outline=True)
 
 
+left2d_card = dbc.Card(
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(html.H6('2D View',
+                            className="card-title")),
+            dbc.Col(daq.BooleanSwitch(
+                id='left-switch',
+                on=False,
+                style={
+                    "float": "right"
+                }
+            ))
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Label('x-axis')),
+            dbc.Col(dbc.Label('y-axis')),
+            dbc.Col(dbc.Label('color')),
+            dbc.Col(dbc.Label('colormap')),
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Select(
+                id='x-scatter2d-left',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='y-scatter2d-left',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='color-scatter2d-left',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='colormap-scatter2d-left',
+                disabled=True,
+                options=[{"value": x, "label": x}
+                         for x in colorscales],
+                value='Jet',
+                # clearable=False,
+            )),
+        ]),
+
+        dcc.Loading(
+            id='loading_left',
+            children=[
+                dcc.Graph(
+                    id='scatter2d-left',
+                    config={
+                        'displaylogo': False
+                    },
+                    figure={
+                        'data': [{
+                            'mode': 'markers',
+                            'type': 'scattergl',
+                            'x': [], 'y': []
+                        }],
+                        'layout': {
+                            'uirevision': 'no_change'
+                        }
+                    },
+                ),
+                dbc.Row([
+                    dbc.Col(dbc.Button(
+                        'Hide/Unhide',
+                        id='hide-left',
+                        n_clicks=0)),
+                    dbc.Col(dbc.Button(
+                        'Export',
+                        id='export-scatter2d-left',
+                        n_clicks=0,
+                        style={
+                            "float": "right"
+                        })),
+                ]),
+            ],
+            type='default',
+        ),
+    ]))
+
+right2d_card = dbc.Card(
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(
+                html.H6('2D View', className="card-title")),
+            dbc.Col(
+                daq.BooleanSwitch(
+                    id='right-switch',
+                    on=False,
+                    style={
+                        "float": "right"
+                    }
+                ))]),
+
+        dbc.Row([
+            dbc.Col(html.Label('x-axis')),
+            dbc.Col(html.Label('y-axis')),
+            dbc.Col(html.Label('color')),
+            dbc.Col(html.Label('colormap')),
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Select(
+                id='x-scatter2d-right',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='y-scatter2d-right',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='color-scatter2d-right',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='colormap-scatter2d-right',
+                disabled=True,
+                options=[{"value": x, "label": x}
+                         for x in colorscales],
+                value='Jet',
+                # clearable=False,
+            )),
+        ]),
+
+        dcc.Loading(
+            id='loading_right',
+            children=[
+                dcc.Graph(
+                    id='scatter2d-right',
+                    config={
+                        'displaylogo': False
+                    },
+                    figure={
+                        'data': [{
+                            'mode': 'markers',
+                            'type': 'scattergl',
+                            'x': [], 'y': []
+                        }],
+                        'layout': {
+                            'uirevision': 'no_change'
+                        }
+                    },
+                ),
+                dbc.Row([
+                    dbc.Col(dbc.Button(
+                        'Export',
+                        id='export-scatter2d-right',
+                        n_clicks=0,
+                        style={
+                            "float": "right"
+                        }))
+                ]),
+            ],
+            type='default',
+        ),
+    ]))
+
+
+hist_card = dbc.Card(
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(
+                html.H6('Histogram',
+                        className="card-title")),
+            dbc.Col(
+                daq.BooleanSwitch(
+                    id='histogram-switch',
+                    on=False,
+                    style={
+                        "float": "right"
+                    }
+                ))]),
+
+        dbc.Row([
+            dbc.Col(html.Label('x-axis')),
+            dbc.Col(html.Label('y-axis')),
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Select(
+                id='x-histogram',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='y-histogram',
+                options=[{
+                    'label': 'Probability',
+                    'value': 'probability'
+                },
+                    {
+                    'label': 'Density',
+                    'value': 'density'
+                },
+                ],
+                value='density',
+                disabled=True,
+                # clearable=False,
+            )),
+        ]),
+
+        dcc.Loading(
+            id='loading_histogram',
+            children=[
+                dcc.Graph(
+                    id='histogram',
+                    config={
+                        'displaylogo': False
+                    },
+                    figure={
+                        'data': [{'type': 'histogram',
+                                  'x': []}
+                                 ],
+                        'layout': {
+                            'uirevision': 'no_change'
+                        }
+                    },
+                ),
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button(
+                            'Export',
+                            id='export-histogram',
+                            n_clicks=0,
+                            style={
+                                "float": "right"
+                            })),
+                ]),
+            ],
+            type='default',
+        ),
+    ]))
+
+
+heatmap_card = dbc.Card(
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(
+                html.H6('Heatmap',
+                        className="card-title")),
+            dbc.Col(
+                daq.BooleanSwitch(
+                    id='heat-switch',
+                    on=False,
+                    style={
+                        "float": "right"
+                    }
+                ))]),
+
+        dbc.Row([
+            dbc.Col(html.Label('x-axis')),
+            dbc.Col(html.Label('y-axis'))
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Select(
+                id='x-heatmap',
+                disabled=True,
+                # clearable=False,
+            )),
+            dbc.Col(dbc.Select(
+                id='y-heatmap',
+                disabled=True,
+                # clearable=False,
+            ))
+        ]),
+
+        dcc.Loading(
+            id='loading_heat',
+            children=[
+                dcc.Graph(
+                    id='heatmap',
+                    config={
+                        'displaylogo': False
+                    },
+                    figure={
+                        'data': [{'type': 'histogram2dcontour',
+                                  'x': []}
+                                 ],
+                        'layout': {
+                            'uirevision': 'no_change'
+                        }
+                    },
+                ),
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button(
+                            'Export',
+                            id='export-heatmap',
+                            n_clicks=0,
+                            style={
+                                "float": "right"
+                            })),
+                ]),
+            ],
+            type='default',
+        ),
+    ]))
+
+
 def get_app_layout(app):
     return dbc.Container([
         dbc.Row([
@@ -236,314 +539,12 @@ def get_app_layout(app):
         ], className="mb-3"),
 
         dbc.Row([
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        dbc.Row([
-                            dbc.Col(html.H6('2D View',
-                                            className="card-title")),
-                            dbc.Col(daq.BooleanSwitch(
-                                id='left-switch',
-                                on=False,
-                                style={
-                                    "float": "right"
-                                }
-                            ))
-                        ]),
-
-                        dbc.Row([
-                            dbc.Col(dbc.Label('x-axis')),
-                            dbc.Col(dbc.Label('y-axis')),
-                            dbc.Col(dbc.Label('color')),
-                            dbc.Col(dbc.Label('colormap')),
-                        ]),
-
-                        dbc.Row([
-                            dbc.Col(dcc.Dropdown(
-                                id='x-scatter2d-left',
-                                disabled=True,
-                                clearable=False,
-                            )),
-                            dbc.Col(dcc.Dropdown(
-                                id='y-scatter2d-left',
-                                disabled=True,
-                                clearable=False,
-                            )),
-                            dbc.Col(dcc.Dropdown(
-                                id='color-scatter2d-left',
-                                disabled=True,
-                                clearable=False,
-                            )),
-                            dbc.Col(dcc.Dropdown(
-                                id='colormap-scatter2d-left',
-                                disabled=True,
-                                options=[{"value": x, "label": x}
-                                         for x in colorscales],
-                                value='Jet',
-                                clearable=False,
-                            )),
-                        ]),
-
-                        dcc.Loading(
-                            id='loading_left',
-                            children=[
-                                dcc.Graph(
-                                    id='scatter2d-left',
-                                    config={
-                                        'displaylogo': False
-                                    },
-                                    figure={
-                                        'data': [{
-                                            'mode': 'markers',
-                                            'type': 'scattergl',
-                                            'x': [], 'y': []
-                                        }],
-                                        'layout': {
-                                            'uirevision': 'no_change'
-                                        }
-                                    },
-                                ),
-                                dbc.Row([
-                                    dbc.Col(dbc.Button(
-                                            'Hide/Unhide',
-                                            id='hide-left',
-                                            n_clicks=0)),
-                                    dbc.Col(dbc.Button(
-                                            'Export',
-                                            id='export-scatter2d-left',
-                                            n_clicks=0,
-                                            style={
-                                                "float": "right"
-                                            })),
-                                ]),
-                            ],
-                            type='default',
-                        ),
-                    ])), width=6),
-
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        dbc.Row([
-                            dbc.Col(
-                                html.H6('2D View', className="card-title")),
-                            dbc.Col(
-                                daq.BooleanSwitch(
-                                    id='right-switch',
-                                    on=False,
-                                    style={
-                                        "float": "right"
-                                    }
-                                ))]),
-
-                        dbc.Row([
-                            dbc.Col(html.Label('x-axis')),
-                            dbc.Col(html.Label('y-axis')),
-                            dbc.Col(html.Label('color')),
-                            dbc.Col(html.Label('colormap')),
-                        ]),
-
-                        dbc.Row([
-                            dbc.Col(dcc.Dropdown(
-                                id='x-scatter2d-right',
-                                disabled=True,
-                                clearable=False,
-                            )),
-                            dbc.Col(dcc.Dropdown(
-                                id='y-scatter2d-right',
-                                disabled=True,
-                                clearable=False,
-                            )),
-                            dbc.Col(dcc.Dropdown(
-                                id='color-scatter2d-right',
-                                disabled=True,
-                                clearable=False,
-                            )),
-                            dbc.Col(dcc.Dropdown(
-                                id='colormap-scatter2d-right',
-                                disabled=True,
-                                options=[{"value": x, "label": x}
-                                         for x in colorscales],
-                                value='Jet',
-                                clearable=False,
-                            )),
-                        ]),
-
-                        dcc.Loading(
-                            id='loading_right',
-                            children=[
-                                dcc.Graph(
-                                    id='scatter2d-right',
-                                    config={
-                                        'displaylogo': False
-                                    },
-                                    figure={
-                                        'data': [{
-                                            'mode': 'markers',
-                                            'type': 'scattergl',
-                                            'x': [], 'y': []
-                                        }],
-                                        'layout': {
-                                            'uirevision': 'no_change'
-                                        }
-                                    },
-                                ),
-                                dbc.Row([
-                                    dbc.Col(dbc.Button(
-                                        'Export',
-                                        id='export-scatter2d-right',
-                                        n_clicks=0,
-                                        style={
-                                            "float": "right"
-                                        }))
-                                ]),
-                            ],
-                            type='default',
-                        ),
-                    ])), width=6)
+            dbc.Col(left2d_card, width=6),
+            dbc.Col(right2d_card, width=6)
         ], className="mb-3"),
 
         dbc.Row([
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([
-                            dbc.Row([
-                                dbc.Col(
-                                    html.H6('Histogram',
-                                            className="card-title")),
-                                dbc.Col(
-                                    daq.BooleanSwitch(
-                                        id='histogram-switch',
-                                        on=False,
-                                        style={
-                                            "float": "right"
-                                        }
-                                    ))]),
-
-                            dbc.Row([
-                                    dbc.Col(html.Label('x-axis')),
-                                    dbc.Col(html.Label('y-axis')),
-                                    ]),
-
-                            dbc.Row([
-                                dbc.Col(dcc.Dropdown(
-                                    id='x-histogram',
-                                    disabled=True,
-                                    clearable=False,
-                                )),
-                                dbc.Col(dcc.Dropdown(
-                                    id='y-histogram',
-                                    options=[{
-                                        'label': 'Probability',
-                                        'value': 'probability'
-                                    },
-                                        {
-                                        'label': 'Density',
-                                        'value': 'density'
-                                    },
-                                    ],
-                                    value='density',
-                                    disabled=True,
-                                    clearable=False,
-                                )),
-                            ]),
-
-                            dcc.Loading(
-                                id='loading_histogram',
-                                children=[
-                                    dcc.Graph(
-                                        id='histogram',
-                                        config={
-                                            'displaylogo': False
-                                        },
-                                        figure={
-                                            'data': [{'type': 'histogram',
-                                                      'x': []}
-                                                     ],
-                                            'layout': {
-                                                'uirevision': 'no_change'
-                                            }
-                                        },
-                                    ),
-                                    dbc.Row([
-                                        dbc.Col(
-                                            dbc.Button(
-                                                'Export',
-                                                id='export-histogram',
-                                                n_clicks=0,
-                                                style={
-                                                    "float": "right"
-                                                })),
-                                    ]),
-                                ],
-                                type='default',
-                            ),
-                        ])), width=6),
-
-                dbc.Col(
-                    dbc.Card(
-                        dbc.CardBody([
-                            dbc.Row([
-                                dbc.Col(
-                                    html.H6('Heatmap',
-                                            className="card-title")),
-                                dbc.Col(
-                                    daq.BooleanSwitch(
-                                        id='heat-switch',
-                                        on=False,
-                                        style={
-                                            "float": "right"
-                                        }
-                                    ))]),
-
-                            dbc.Row([
-                                    dbc.Col(html.Label('x-axis')),
-                                    dbc.Col(html.Label('y-axis'))
-                                    ]),
-
-                            dbc.Row([
-                                dbc.Col(dcc.Dropdown(
-                                    id='x-heatmap',
-                                    disabled=True,
-                                    clearable=False,
-                                )),
-                                dbc.Col(dcc.Dropdown(
-                                    id='y-heatmap',
-                                    disabled=True,
-                                    clearable=False,
-                                ))
-                            ]),
-
-                            dcc.Loading(
-                                id='loading_heat',
-                                children=[
-                                    dcc.Graph(
-                                        id='heatmap',
-                                        config={
-                                            'displaylogo': False
-                                        },
-                                        figure={
-                                            'data': [{'type': 'histogram2dcontour',
-                                                      'x': []}
-                                                     ],
-                                            'layout': {
-                                                'uirevision': 'no_change'
-                                            }
-                                        },
-                                    ),
-                                    dbc.Row([
-                                        dbc.Col(
-                                            dbc.Button(
-                                                'Export',
-                                                id='export-heatmap',
-                                                n_clicks=0,
-                                                style={
-                                                    "float": "right"
-                                                })),
-                                    ]),
-                                ],
-                                type='default',
-                            ),
-                        ])), width=6),
+                dbc.Col(hist_card, width=6),
+                dbc.Col(heatmap_card, width=6),
                 ], className="mb-3")
     ], fluid=True, style={'background-color': '#ECEFF1'})
