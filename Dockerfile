@@ -1,4 +1,4 @@
-FROM python:alpine3.12
+FROM python:slim
 
 # Create a working directory.
 WORKDIR /usr/src/app
