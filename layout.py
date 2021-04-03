@@ -574,4 +574,4 @@ def get_app_layout(app):
                 dbc.Col(hist_card, width=6),
                 dbc.Col(heatmap_card, width=6),
                 ], className="mb-3")
-    ], fluid=True, style={'background-color': '#ECEFF1'})
+    ], fluid=True, style={'background-color': '#f9f8fc'})
