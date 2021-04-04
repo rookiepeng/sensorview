@@ -37,7 +37,7 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Usage
 
-### Local debug
+### Local
 
 Save data as the `.pkl` files under `./data` directory. See `./data/Example`.
 
