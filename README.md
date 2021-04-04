@@ -43,20 +43,20 @@ Save data as the `.pkl` files under `./data` directory. See `./data/Example`.
 
 Put the `config.json` in the same directory, and sepcify the `columns` of the data in `config.json`. Check `./data/Example/config.json`.
 
-    ``` bash
-    $ redis-server
-    $ python app.py
-    ```
+```
+$ redis-server
+$ python app.py
+```
 
 - Open `http://127.0.0.1:8050/`
 
 ### Docker
 
-    ``` bash
-    $ docker pull redis
-    $ docker pull rookeiepng/sensorview
-    $ docker run --name redis -d redis
-    $ docker run -it -p 8000:8000 -v <path/to/your/data>:/usr/src/app/data --link redis:redis rookiepeng/sensorview
-    ```
+```
+$ docker pull redis
+$ docker pull rookeiepng/sensorview
+$ docker run --name redis -d redis
+$ docker run -it -p 8000:8000 -v <path/to/your/data>:/usr/src/app/data --link redis:redis rookiepeng/sensorview
+```
 
 - Open `http://127.0.0.1:8000/`
