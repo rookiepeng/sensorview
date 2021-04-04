@@ -417,7 +417,7 @@ def overlay_switch_changed(overlay):
 @ app.callback(
     [
         Output('scatter3d', 'figure'),
-        Output('filter-trigger', 'children'),
+        Output('filter-trigger', 'data'),
     ],
     [
         Input('slider-frame', 'value'),
@@ -429,14 +429,14 @@ def overlay_switch_changed(overlay):
         Input('overlay-switch', 'value'),
         Input('outline-switch', 'value'),
         Input('scatter3d', 'clickData'),
-        Input('left-hide-trigger', 'children'),
+        Input('left-hide-trigger', 'data'),
     ],
     [
         State('keys-dict', 'data'),
         State('visible-switch', 'value'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
-        State('filter-trigger', 'children'),
+        State('filter-trigger', 'data'),
         State('config', 'data'),
         State('session-id', 'data'),
         State('test-case', 'value'),
@@ -604,8 +604,8 @@ def update_filter(
         Output('colormap-scatter2d-left', 'disabled'),
     ],
     [
-        Input('filter-trigger', 'children'),
-        Input('left-hide-trigger', 'children'),
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
         Input('left-switch', 'value'),
         Input('x-scatter2d-left', 'value'),
         Input('y-scatter2d-left', 'value'),
@@ -712,8 +712,8 @@ def update_left_graph(
         Output('colormap-scatter2d-right', 'disabled'),
     ],
     [
-        Input('filter-trigger', 'children'),
-        Input('left-hide-trigger', 'children'),
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
         Input('right-switch', 'value'),
         Input('x-scatter2d-right', 'value'),
         Input('y-scatter2d-right', 'value'),
@@ -818,8 +818,8 @@ def update_right_graph(
         Output('y-histogram', 'disabled'),
     ],
     [
-        Input('filter-trigger', 'children'),
-        Input('left-hide-trigger', 'children'),
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
         Input('histogram-switch', 'value'),
         Input('x-histogram', 'value'),
         Input('y-histogram', 'value'),
@@ -897,8 +897,8 @@ def update_histogram(
         Output('y-heatmap', 'disabled'),
     ],
     [
-        Input('filter-trigger', 'children'),
-        Input('left-hide-trigger', 'children'),
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
         Input('heat-switch', 'value'),
         Input('x-heatmap', 'value'),
         Input('y-heatmap', 'value'),
@@ -1050,7 +1050,7 @@ def export_scatter_3d(
 
 
 @ app.callback(
-    Output('hidden-scatter2d-left', 'children'),
+    Output('dummy-export-scatter2d-left', 'data'),
     Input('export-scatter2d-left', 'n_clicks'),
     [
         State('scatter2d-left', 'figure'),
@@ -1072,7 +1072,7 @@ def export_left_scatter_2d(btn, fig, test_case):
 
 
 @ app.callback(
-    Output('hidden-scatter2d-right', 'children'),
+    Output('dummy-export-scatter2d-right', 'data'),
     Input('export-scatter2d-right', 'n_clicks'),
     [
         State('scatter2d-right', 'figure'),
@@ -1094,7 +1094,7 @@ def export_right_scatter_2d(btn, fig, test_case):
 
 
 @ app.callback(
-    Output('hidden-histogram', 'children'),
+    Output('dummy-export-histogram', 'data'),
     Input('export-histogram', 'n_clicks'),
     [
         State('histogram', 'figure'),
@@ -1116,7 +1116,7 @@ def export_histogram(btn, fig, test_case):
 
 
 @ app.callback(
-    Output('hidden-heatmap', 'children'),
+    Output('dummy-export-heatmap', 'data'),
     Input('export-heatmap', 'n_clicks'),
     [
         State('heatmap', 'figure'),
@@ -1146,11 +1146,11 @@ def select_left_figure(selectedData):
 
 
 @app.callback(
-    Output('left-hide-trigger', 'children'),
+    Output('left-hide-trigger', 'data'),
     [Input('hide-left', 'n_clicks')],
     [
         State('selected-data-left', 'data'),
-        State('left-hide-trigger', 'children'),
+        State('left-hide-trigger', 'data'),
         State('session-id', 'data'),
     ]
 )
