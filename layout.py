@@ -522,7 +522,6 @@ heatmap_card = dbc.Card([
 
 def get_app_layout(app):
     return dbc.Container([
-        # dbc.Row([
         dcc.Store(id='config'),
         dcc.Store(id='keys-dict'),
         dcc.Store(id='num-key-list'),
@@ -536,7 +535,7 @@ def get_app_layout(app):
         dcc.Store(id='dummy-export-scatter2d-right'),
         dcc.Store(id='dummy-export-histogram'),
         dcc.Store(id='dummy-export-heatmap'),
-        # ]),
+
         dbc.Jumbotron([
             dbc.Row([
                 html.Img(
