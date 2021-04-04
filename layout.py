@@ -522,29 +522,21 @@ heatmap_card = dbc.Card([
 
 def get_app_layout(app):
     return dbc.Container([
-        dbc.Row([
-            dcc.Store(id='config'),
-            dcc.Store(id='keys-dict'),
-            dcc.Store(id='num-key-list'),
-            dcc.Store(id='cat-key-list'),
-            dcc.Store(id='selected-data-left'),
-            dcc.Store(id='selected-data-right'),
-            dcc.Store(id='session-id', data=str(uuid.uuid4())),
-            dcc.Store(id='frame-value'),
-            html.Div(id='filter-trigger', children=0,
-                     style={'display': 'none'}),
-            html.Div(id='left-hide-trigger', children=0,
-                        style={'display': 'none'}),
-            html.Div(id='trigger', style={'display': 'none'}),
-            html.Div(id='dummy', style={'display': 'none'}),
-            html.Div(id='hidden-scatter2d-left',
-                     style={'display': 'none'}),
-            html.Div(id='hidden-scatter2d-right',
-                     style={'display': 'none'}),
-            html.Div(id='hidden-histogram',
-                        style={'display': 'none'}),
-            html.Div(id='hidden-heatmap',
-                     style={'display': 'none'})]),
+        # dbc.Row([
+        dcc.Store(id='config'),
+        dcc.Store(id='keys-dict'),
+        dcc.Store(id='num-key-list'),
+        dcc.Store(id='cat-key-list'),
+        dcc.Store(id='selected-data-left'),
+        dcc.Store(id='selected-data-right'),
+        dcc.Store(id='session-id', data=str(uuid.uuid4())),
+        dcc.Store(id='filter-trigger'),
+        dcc.Store(id='left-hide-trigger', data=0),
+        dcc.Store(id='dummy-export-scatter2d-left'),
+        dcc.Store(id='dummy-export-scatter2d-right'),
+        dcc.Store(id='dummy-export-histogram'),
+        dcc.Store(id='dummy-export-heatmap'),
+        # ]),
         dbc.Jumbotron([
             dbc.Row([
                 html.Img(
