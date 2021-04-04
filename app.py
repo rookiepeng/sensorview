@@ -124,6 +124,7 @@ redis_instance = redis.StrictRedis.from_url(
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
 REDIS_KEYS = {"DATASET": "DATASET",
               "FRAME_IDX": "FRAME_IDX",
+              "FRAME": "FRAME",
               "VIS": "VIS"}
 EXPIRATION = 172800  # a week in seconds
 
@@ -306,6 +307,15 @@ def data_file_selection(
                 pickle.dumps(frame_idx),
                 ex=EXPIRATION
             )
+
+            for _, f in enumerate(frame_idx):
+                redis_instance.set(
+                    REDIS_KEYS["FRAME"]+session_id+str(f),
+                    pickle.dumps(new_data[
+                        new_data[ui_config['slider']] == f
+                    ]),
+                    ex=EXPIRATION
+                )
 
             output = [0, 0, len(frame_idx)-1]
 
@@ -508,10 +518,8 @@ def update_filter(
         data = pickle.loads(redis_instance.get("DATASET"+session_id))
         source_encoded = None
     else:
-        data = pickle.loads(redis_instance.get("DATASET"+session_id))
-        data = data[
-            data[slider_key] == frame_idx[slider_arg]
-        ]
+        data = pickle.loads(redis_instance.get(
+            "FRAME"+session_id+str(frame_idx[slider_arg])))
 
         img = './data/'+test_case+'/imgs/' + \
             data_file[0:-4]+'_'+str(slider_arg)+'.png'

@@ -530,7 +530,7 @@ def get_app_layout(app):
         dcc.Store(id='selected-data-left'),
         dcc.Store(id='selected-data-right'),
         dcc.Store(id='session-id', data=str(uuid.uuid4())),
-        dcc.Store(id='filter-trigger'),
+        dcc.Store(id='filter-trigger', data=0),
         dcc.Store(id='left-hide-trigger', data=0),
         dcc.Store(id='dummy-export-scatter2d-left'),
         dcc.Store(id='dummy-export-scatter2d-right'),
