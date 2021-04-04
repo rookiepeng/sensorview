@@ -536,22 +536,6 @@ def get_app_layout(app):
         dcc.Store(id='dummy-export-histogram'),
         dcc.Store(id='dummy-export-heatmap'),
 
-        dbc.Jumbotron([
-            dbc.Row([
-                html.Img(
-                    src=app.get_asset_url('sensorview_logo.svg'),
-                    id='sensorview-image',
-                    style={
-                        'height': '100px',
-                        'width': 'auto',
-                    },
-                ),
-                html.H1(app.title),
-            ], align="end"),
-            html.Hr(className="my-2"),
-            html.P('Sensor Data Visualization'),
-        ]),
-
         dbc.Row([
             dbc.Col(
                 dbc.CardGroup([
