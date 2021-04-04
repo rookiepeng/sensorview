@@ -37,11 +37,11 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Usage
 
-### Local
-
 Save data as the `.pkl` files under `./data` directory. See `./data/Example`.
 
 Put the `config.json` in the same directory, and sepcify the `columns` of the data in `config.json`. Check `./data/Example/config.json`.
+
+### Local
 
 ```
 $ redis-server
