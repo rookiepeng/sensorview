@@ -189,7 +189,7 @@ def test_case_selection(test_case):
         obj = os.scandir('./data/'+test_case)
         for entry in obj:
             if entry.is_file():
-                if '.pkl' in entry.name:
+                if ('.pkl' in entry.name) or ('.csv' in entry.name):
                     data_files.append({
                         'label': entry.name,
                         'value': entry.name})
@@ -279,9 +279,12 @@ def data_file_selection(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if trigger_id == 'data-file':
         if data_file_name is not None and test_case is not None:
-            new_data = pd.read_pickle(
-                './data/'+test_case+'/'+data_file_name)
-            new_data = new_data.reset_index(drop=True)
+            if '.pkl' in data_file_name:
+                new_data = pd.read_pickle(
+                    './data/'+test_case+'/'+data_file_name)
+                new_data = new_data.reset_index(drop=True)
+            elif '.csv' in data_file_name:
+                new_data = pd.read_csv('./data/'+test_case+'/'+data_file_name)
 
             vis_table = pd.DataFrame()
             vis_table['_IDS_'] = new_data.index
