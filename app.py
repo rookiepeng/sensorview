@@ -29,6 +29,7 @@
 
 
 import datetime
+from logging import disable
 
 import redis
 import pickle
@@ -72,10 +73,11 @@ def scatter3d_data(det_list,
                    name,
                    outline=0,
                    colormap='Jet',
+                   discrete=False,
                    image=None):
 
     return dict(
-        data=[get_figure_data(
+        data=get_figure_data(
             det_list=det_list,
             x_key=x,
             y_key=y,
@@ -87,8 +89,8 @@ def scatter3d_data(det_list,
             hover_dict=keys_dict,
             c_range=layout['c_range'],
             colormap=colormap,
-        ),
-            get_host_data(
+            discrete=discrete
+        )+[get_host_data(
             det_list=det_list,
             x_key=x_ref,
             y_key=y_ref,
@@ -550,10 +552,16 @@ def update_filter(
         np.max([numerical_key_values[num_keys.index(y_det)][1],
                 numerical_key_values[num_keys.index(y_host)][1]])]
     z_range = numerical_key_values[num_keys.index(z_det)]
-    c_range = [
-        numerical_key_values[num_keys.index(color_key)][0],
-        numerical_key_values[num_keys.index(color_key)][1]
-    ]
+
+    if keys_dict[color_key].get('type', 'numerical') == 'numerical':
+        c_range = [
+            numerical_key_values[num_keys.index(color_key)][0],
+            numerical_key_values[num_keys.index(color_key)][1]
+        ]
+        discrete = False
+    else:
+        c_range = [0, 0]
+        discrete = True
 
     scatter3d_layout = dict(
         x_range=x_range,
@@ -586,6 +594,7 @@ def update_filter(
         'Index: ' + str(slider_arg) + ' (' + slider_label+')',
         outline=outline,
         colormap=colormap,
+        discrete=discrete,
         image=source_encoded
     )
 
@@ -686,7 +695,9 @@ def update_left_graph(
             y_label,
             color_label,
             colormap=colormap,
-            outline=outline
+            outline=outline,
+            discrete=(keys_dict[color_key].get(
+                'type', 'numerical') == 'categorical')
         )
         left_x_disabled = False
         left_y_disabled = False
@@ -793,7 +804,9 @@ def update_right_graph(
             y_label,
             color_label,
             colormap=colormap,
-            outline=outline
+            outline=outline,
+            discrete=(keys_dict[color_key].get(
+                'type', 'numerical') == 'categorical')
         )
         right_x_disabled = False
         right_y_disabled = False

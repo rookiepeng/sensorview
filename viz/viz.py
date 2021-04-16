@@ -45,57 +45,100 @@ def get_figure_data(det_list,
                     name=None,
                     hover_dict=None,
                     c_range=[-30, 30],
-                    colormap='Jet'):
+                    colormap='Jet',
+                    discrete=False):
 
     if det_list.shape[0] > 0:
-        color = det_list[color_key]
 
-        rows = len(det_list.index)
+        if not discrete:
+            color = det_list[color_key]
 
-        hover = np.full(rows, '', dtype=object)
+            rows = len(det_list.index)
 
-        for _, key in enumerate(hover_dict):
-            if 'format' in hover_dict[key]:
-                hover = hover + hover_dict[key]['description'] + ': ' + \
-                    det_list[key].map(
-                        hover_dict[key]['format'].format)+'<br>'
-            else:
-                hover = hover + hover_dict[key]['description'] + \
-                    ': ' + det_list[key]+'<br>'
+            hover = np.full(rows, '', dtype=object)
 
-        det_map = dict(
-            type='scatter3d',
-            ids=det_list.index,
-            x=det_list[x_key],
-            y=det_list[y_key],
-            z=det_list[z_key],
-            text=hover,
-            hovertemplate='%{text}',
-            # +'Lateral: %{x:.2f} m<br>' +
-            # 'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
-            mode='markers',
-            name=name,
-            marker=dict(
-                size=3,
-                color=color,
-                colorscale=colormap,
-                opacity=0.8,
-                colorbar=dict(
-                    title=color_label,
+            for _, key in enumerate(hover_dict):
+                if 'format' in hover_dict[key]:
+                    hover = hover + hover_dict[key]['description'] + ': ' + \
+                        det_list[key].map(
+                            hover_dict[key]['format'].format)+'<br>'
+                else:
+                    hover = hover + hover_dict[key]['description'] + \
+                        ': ' + det_list[key]+'<br>'
+
+            det_map = [dict(
+                type='scatter3d',
+                ids=det_list.index,
+                x=det_list[x_key],
+                y=det_list[y_key],
+                z=det_list[z_key],
+                text=hover,
+                hovertemplate='%{text}',
+                # +'Lateral: %{x:.2f} m<br>' +
+                # 'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
+                mode='markers',
+                name=name,
+                marker=dict(
+                    size=3,
+                    color=color,
+                    colorscale=colormap,
+                    opacity=0.8,
+                    colorbar=dict(
+                        title=color_label,
+                    ),
+                    cmin=c_range[0],
+                    cmax=c_range[1],
+                    line=dict(
+                        color="#757575",
+                        width=outline,
+                    )
                 ),
-                cmin=c_range[0],
-                cmax=c_range[1],
-                line=dict(
-                    color="#757575",
-                    width=outline,
+            )]
+        else:
+            det_map = []
+            color_list = pd.unique(det_list[color_key])
+            for c_key in color_list:
+                new_list = det_list[det_list[color_key] == c_key]
+                rows = len(new_list.index)
+
+                hover = np.full(rows, '', dtype=object)
+
+                for _, key in enumerate(hover_dict):
+                    if 'format' in hover_dict[key]:
+                        hover = hover + hover_dict[key]['description'] + ': ' + \
+                            new_list[key].map(
+                                hover_dict[key]['format'].format)+'<br>'
+                    else:
+                        hover = hover + hover_dict[key]['description'] + \
+                            ': ' + new_list[key]+'<br>'
+                det_map.append(
+                    dict(
+                        type='scatter3d',
+                        ids=new_list.index,
+                        x=new_list[x_key],
+                        y=new_list[y_key],
+                        z=new_list[z_key],
+                        text=hover,
+                        hovertemplate='%{text}',
+                        # +'Lateral: %{x:.2f} m<br>' +
+                        # 'Longitudinal: %{y:.2f} m<br>'+'Height: %{z:.2f} m<br>',
+                        mode='markers',
+                        name=c_key,
+                        marker=dict(
+                            size=3,
+                            opacity=0.8,
+                            line=dict(
+                                color="#757575",
+                                width=outline,
+                            )
+                        ),
+                    )
                 )
-            ),
-        )
 
         return det_map
     else:
-        return {'mode': 'markers', 'type': 'scatter3d',
-                'x': [], 'y': [], 'z': []}
+        return [{'mode': 'markers', 'type': 'scatter3d',
+                'x': [], 'y': [], 'z': []}]
 
 
 def get_host_data(det_list,
@@ -246,7 +289,8 @@ def get_2d_scatter(det_list,
                    uirevision='no_change',
                    colormap='Jet',
                    outline=0,
-                   margin=dict(l=40, r=40, b=40, t=60)):
+                   margin=dict(l=40, r=40, b=40, t=60),
+                   discrete=False):
 
     if x_label is None:
         x_label = x_key
@@ -257,34 +301,67 @@ def get_2d_scatter(det_list,
     if color_label is None:
         color_label = color_key
 
-    return dict(
-        data=[dict(
-            type='scattergl',
-            ids=det_list.index,
-            x=det_list[x_key],
-            y=det_list[y_key],
-            mode='markers',
-            marker=dict(
-                size=6,
-                color=det_list[color_key],
-                colorscale=colormap,
-                opacity=0.8,
-                colorbar=dict(
-                    title=color_label,
-                ),
-                line=dict(
-                    color="#FFFFFF",
-                    width=outline,
+    if not discrete:
+        return dict(
+            data=[dict(
+                type='scattergl',
+                ids=det_list.index,
+                x=det_list[x_key],
+                y=det_list[y_key],
+                mode='markers',
+                marker=dict(
+                    size=6,
+                    color=det_list[color_key],
+                    colorscale=colormap,
+                    opacity=0.8,
+                    colorbar=dict(
+                        title=color_label,
+                    ),
+                    line=dict(
+                        color="#FFFFFF",
+                        width=outline,
+                    )
+                )
+            )],
+            layout=dict(
+                xaxis=dict(title=x_label),
+                yaxis=dict(title=y_label),
+                margin=margin,
+                uirevision=uirevision,
+            )
+        )
+    else:
+        data = []
+        color_list = pd.unique(det_list[color_key])
+        for c_key in color_list:
+            new_list = det_list[det_list[color_key] == c_key]
+            data.append(
+                dict(
+                    type='scattergl',
+                    ids=new_list.index,
+                    x=new_list[x_key],
+                    y=new_list[y_key],
+                    mode='markers',
+                    marker=dict(
+                        size=6,
+                        opacity=0.8,
+                        line=dict(
+                            color="#FFFFFF",
+                            width=outline,
+                        )
+                    ),
+                    name=c_key
                 )
             )
-        )],
-        layout=dict(
-            xaxis=dict(title=x_label),
-            yaxis=dict(title=y_label),
-            margin=margin,
-            uirevision=uirevision,
+        return dict(
+            data=data,
+            layout=dict(
+                xaxis=dict(title=x_label),
+                yaxis=dict(title=y_label),
+                margin=margin,
+                uirevision=uirevision,
+            )
         )
-    )
 
 
 def frame_args(duration):
