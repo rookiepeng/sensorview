@@ -527,11 +527,11 @@ def update_filter(
             "FRAME"+session_id+str(frame_idx[slider_arg])))
 
         img = './data/'+test_case+'/imgs/' + \
-            data_file[0:-4]+'_'+str(slider_arg)+'.png'
+            data_file[0:-4]+'_'+str(slider_arg)+'.jpg'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
-            source_encoded = 'data:image/png;base64,{}'.format(
+            source_encoded = 'data:image/jpeg;base64,{}'.format(
                 encoded_image.decode())
         except FileNotFoundError:
             source_encoded = None
