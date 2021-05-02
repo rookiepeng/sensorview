@@ -72,25 +72,25 @@ def scatter3d_data(det_list,
                    name,
                    linewidth=0,
                    colormap='Jet',
-                   discrete=False,
+                   is_discrete_color=False,
                    image=None):
 
     return dict(
         data=get_scatter3d_data(
-            det_list=det_list,
-            x_key=x,
-            y_key=y,
-            z_key=z,
-            c_key=layout['color_key'],
-            c_label=layout['color_label'],
+            det_list,
+            x,
+            y,
+            z,
+            layout['c_key'],
+            c_label=layout['c_label'],
             linewidth=linewidth,
             name=name,
             hover=keys_dict,
             c_range=layout['c_range'],
             colormap=colormap,
-            discrete=discrete
+            is_discrete_color=is_discrete_color
         )+[get_host_data(
-            det_list=det_list,
+            data_frame=det_list,
             x_key=x_ref,
             y_key=y_ref,
         )],
@@ -557,10 +557,10 @@ def update_filter(
             numerical_key_values[num_keys.index(c_key)][0],
             numerical_key_values[num_keys.index(c_key)][1]
         ]
-        discrete = False
+        is_discrete_color = False
     else:
         c_range = [0, 0]
-        discrete = True
+        is_discrete_color = True
 
     scatter3d_layout = dict(
         x_range=x_range,
@@ -593,7 +593,7 @@ def update_filter(
         'Index: ' + str(slider_arg) + ' (' + slider_label+')',
         linewidth=linewidth,
         colormap=colormap,
-        discrete=discrete,
+        is_discrete_color=is_discrete_color,
         image=source_encoded
     )
 
@@ -695,7 +695,7 @@ def update_left_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            discrete=(keys_dict[c_key].get(
+            is_discrete_color=(keys_dict[c_key].get(
                 'type', 'numerical') == 'categorical')
         )
         left_x_disabled = False
@@ -804,7 +804,7 @@ def update_right_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            discrete=(keys_dict[c_key].get(
+            is_discrete_color=(keys_dict[c_key].get(
                 'type', 'numerical') == 'categorical')
         )
         right_x_disabled = False
