@@ -33,7 +33,6 @@ from logging import disable
 
 import redis
 import pickle
-# import pyarrow as pa
 
 from filter import filter_all
 
@@ -71,7 +70,7 @@ def scatter3d_data(det_list,
                    layout,
                    keys_dict,
                    name,
-                   outline=0,
+                   linewidth=0,
                    colormap='Jet',
                    discrete=False,
                    image=None):
@@ -82,11 +81,11 @@ def scatter3d_data(det_list,
             x_key=x,
             y_key=y,
             z_key=z,
-            color_key=layout['color_key'],
-            color_label=layout['color_label'],
-            outline=outline,
+            c_key=layout['color_key'],
+            c_label=layout['color_label'],
+            linewidth=linewidth,
             name=name,
-            hover_dict=keys_dict,
+            hover=keys_dict,
             c_range=layout['c_range'],
             colormap=colormap,
             discrete=discrete
@@ -486,8 +485,8 @@ def update_filter(
                 (click_data['points'][0]['curveNumber'] != 0)):
         raise PreventUpdate
 
-    color_key = color_picker
-    color_label = keys_dict[color_picker]['description']
+    c_key = color_picker
+    c_label = keys_dict[color_picker]['description']
 
     slider_key = ui_config['slider']
     slider_label = keys_dict[ui_config['slider']
@@ -537,9 +536,9 @@ def update_filter(
             source_encoded = None
 
     if outline_sw:
-        outline = 1
+        linewidth = 1
     else:
-        outline = 0
+        linewidth = 0
 
     x_range = [
         np.min([numerical_key_values[num_keys.index(x_det)][0],
@@ -553,10 +552,10 @@ def update_filter(
                 numerical_key_values[num_keys.index(y_host)][1]])]
     z_range = numerical_key_values[num_keys.index(z_det)]
 
-    if keys_dict[color_key].get('type', 'numerical') == 'numerical':
+    if keys_dict[c_key].get('type', 'numerical') == 'numerical':
         c_range = [
-            numerical_key_values[num_keys.index(color_key)][0],
-            numerical_key_values[num_keys.index(color_key)][1]
+            numerical_key_values[num_keys.index(c_key)][0],
+            numerical_key_values[num_keys.index(c_key)][1]
         ]
         discrete = False
     else:
@@ -568,8 +567,8 @@ def update_filter(
         y_range=y_range,
         z_range=z_range,
         c_range=c_range,
-        color_key=color_key,
-        color_label=color_label,
+        c_key=c_key,
+        c_label=c_label,
     )
 
     filterd_frame = filter_all(
@@ -592,7 +591,7 @@ def update_filter(
         scatter3d_layout,
         keys_dict,
         'Index: ' + str(slider_arg) + ' (' + slider_label+')',
-        outline=outline,
+        linewidth=linewidth,
         colormap=colormap,
         discrete=discrete,
         image=source_encoded
@@ -662,15 +661,15 @@ def update_left_graph(
 ):
     x_key = x_left
     y_key = y_left
-    color_key = color_left
+    c_key = color_left
     x_label = keys_dict[x_left]['description']
     y_label = keys_dict[y_left]['description']
-    color_label = keys_dict[color_left]['description']
+    c_label = keys_dict[color_left]['description']
 
     if outline_sw:
-        outline = 1
+        linewidth = 1
     else:
-        outline = 0
+        linewidth = 0
 
     if left_sw:
         data = pickle.loads(redis_instance.get("DATASET"+session_id))
@@ -690,13 +689,13 @@ def update_left_graph(
             filtered_table,
             x_key,
             y_key,
-            color_key,
+            c_key,
             x_label,
             y_label,
-            color_label,
+            c_label,
             colormap=colormap,
-            outline=outline,
-            discrete=(keys_dict[color_key].get(
+            linewidth=linewidth,
+            discrete=(keys_dict[c_key].get(
                 'type', 'numerical') == 'categorical')
         )
         left_x_disabled = False
@@ -772,15 +771,15 @@ def update_right_graph(
 ):
     x_key = x_right
     y_key = y_right
-    color_key = color_right
+    c_key = color_right
     x_label = keys_dict[x_right]['description']
     y_label = keys_dict[y_right]['description']
-    color_label = keys_dict[color_right]['description']
+    c_label = keys_dict[color_right]['description']
 
     if outline_sw:
-        outline = 1
+        linewidth = 1
     else:
-        outline = 0
+        linewidth = 0
 
     if right_sw:
         data = pickle.loads(redis_instance.get("DATASET"+session_id))
@@ -799,13 +798,13 @@ def update_right_graph(
             filtered_table,
             x_key,
             y_key,
-            color_key,
+            c_key,
             x_label,
             y_label,
-            color_label,
+            c_label,
             colormap=colormap,
-            outline=outline,
-            discrete=(keys_dict[color_key].get(
+            linewidth=linewidth,
+            discrete=(keys_dict[c_key].get(
                 'type', 'numerical') == 'categorical')
         )
         right_x_disabled = False
@@ -1060,8 +1059,8 @@ def export_scatter_3d(
                 z_key=z_det,
                 host_x_key=x_host,
                 host_y_key=y_host,
-                color_key=color_picker,
-                hover_dict=keys_dict,
+                c_key=color_picker,
+                hover=keys_dict,
                 db=False,
                 height=700,
                 title=test_case

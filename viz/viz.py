@@ -1,6 +1,6 @@
 """
 
-    Copyright (C) 2019 - 2020  Zhengyu Peng
+    Copyright (C) 2019 - 2021  Zhengyu Peng
     E-mail: zpeng.me@gmail.com
     Website: https://zpeng.me
 
@@ -39,33 +39,35 @@ def get_scatter3d_data(data_frame,
                        x_key,
                        y_key,
                        z_key,
-                       color_key,
-                       color_label=None,
-                       outline=0,
-                       name=None,
-                       hover_dict=None,
+                       c_key,
                        c_range=[-30, 30],
-                       colormap='Jet',
-                       discrete=False):
+                       discrete=False,
+                       **kwargs):
 
     if data_frame.shape[0] == 0:
         return [{'mode': 'markers', 'type': 'scatter3d',
                 'x': [], 'y': [], 'z': []}]
 
+    linewidth = kwargs.get('linewidth', 0)
+    c_label = kwargs.get('c_label', c_key)
+    colormap = kwargs.get('colormap', 'Jet')
+    name = kwargs.get('name', None)
+    hover = kwargs.get('hover', None)
+
     if not discrete:
-        color = data_frame[color_key]
+        color = data_frame[c_key]
 
         rows = len(data_frame.index)
 
         hover = np.full(rows, '', dtype=object)
 
-        for _, key in enumerate(hover_dict):
-            if 'format' in hover_dict[key]:
-                hover = hover + hover_dict[key]['description'] + ': ' + \
+        for _, key in enumerate(hover):
+            if 'format' in hover[key]:
+                hover = hover + hover[key]['description'] + ': ' + \
                     data_frame[key].map(
-                        hover_dict[key]['format'].format)+'<br>'
+                        hover[key]['format'].format)+'<br>'
             else:
-                hover = hover + hover_dict[key]['description'] + \
+                hover = hover + hover[key]['description'] + \
                     ': ' + data_frame[key]+'<br>'
 
         det_map = [dict(
@@ -84,32 +86,32 @@ def get_scatter3d_data(data_frame,
                 colorscale=colormap,
                 opacity=0.8,
                 colorbar=dict(
-                    title=color_label,
+                    title=c_label,
                 ),
                 cmin=c_range[0],
                 cmax=c_range[1],
                 line=dict(
                     color="#757575",
-                    width=outline,
+                    width=linewidth,
                 )
             ),
         )]
     else:
         det_map = []
-        color_list = pd.unique(data_frame[color_key])
+        color_list = pd.unique(data_frame[c_key])
         for c_key in color_list:
-            new_list = data_frame[data_frame[color_key] == c_key]
+            new_list = data_frame[data_frame[c_key] == c_key]
             rows = len(new_list.index)
 
             hover = np.full(rows, '', dtype=object)
 
-            for _, key in enumerate(hover_dict):
-                if 'format' in hover_dict[key]:
-                    hover = hover + hover_dict[key]['description'] + ': ' + \
+            for _, key in enumerate(hover):
+                if 'format' in hover[key]:
+                    hover = hover + hover[key]['description'] + ': ' + \
                         new_list[key].map(
-                            hover_dict[key]['format'].format)+'<br>'
+                            hover[key]['format'].format)+'<br>'
                 else:
-                    hover = hover + hover_dict[key]['description'] + \
+                    hover = hover + hover[key]['description'] + \
                         ': ' + new_list[key]+'<br>'
             det_map.append(
                 dict(
@@ -127,7 +129,7 @@ def get_scatter3d_data(data_frame,
                         opacity=0.8,
                         line=dict(
                             color="#757575",
-                            width=outline,
+                            width=linewidth,
                         )
                     ),
                 )
@@ -277,15 +279,16 @@ def get_heatmap(data_frame,
 def get_2d_scatter(data_frame,
                    x_key,
                    y_key,
-                   color_key,
+                   c_key,
                    x_label=None,
                    y_label=None,
-                   color_label=None,
                    uirevision='no_change',
                    colormap='Jet',
-                   outline=0,
                    margin=dict(l=40, r=40, b=40, t=60),
-                   discrete=False):
+                   discrete=False,
+                   **kwargs):
+
+    linewidth = kwargs.get('linewidth', 0)
 
     if x_label is None:
         x_label = x_key
@@ -293,8 +296,7 @@ def get_2d_scatter(data_frame,
     if y_label is None:
         y_label = y_key
 
-    if color_label is None:
-        color_label = color_key
+    c_label = kwargs.get('c_label', c_key)
 
     if not discrete:
         return dict(
@@ -306,15 +308,15 @@ def get_2d_scatter(data_frame,
                 mode='markers',
                 marker=dict(
                     size=6,
-                    color=data_frame[color_key],
+                    color=data_frame[c_key],
                     colorscale=colormap,
                     opacity=0.8,
                     colorbar=dict(
-                        title=color_label,
+                        title=c_label,
                     ),
                     line=dict(
                         color="#FFFFFF",
-                        width=outline,
+                        width=linewidth,
                     )
                 )
             )],
@@ -327,9 +329,9 @@ def get_2d_scatter(data_frame,
         )
     else:
         data = []
-        color_list = pd.unique(data_frame[color_key])
+        color_list = pd.unique(data_frame[c_key])
         for c_key in color_list:
-            new_list = data_frame[data_frame[color_key] == c_key]
+            new_list = data_frame[data_frame[c_key] == c_key]
             data.append(
                 dict(
                     type='scattergl',
@@ -342,7 +344,7 @@ def get_2d_scatter(data_frame,
                         opacity=0.8,
                         line=dict(
                             color="#FFFFFF",
-                            width=outline,
+                            width=linewidth,
                         )
                     ),
                     name=c_key
@@ -374,8 +376,8 @@ def get_animation_data(data_frame,
                        z_key,
                        host_x_key,
                        host_y_key,
-                       color_key=None,
-                       hover_dict=None,
+                       c_key=None,
+                       hover=None,
                        c_range=[-30, 30],
                        db=False,
                        colormap='Viridis',
@@ -395,9 +397,9 @@ def get_animation_data(data_frame,
     z_range = [np.min(data_frame[z_key]),
                np.max(data_frame[z_key])]
 
-    if color_key is not None:
-        c_range = [np.min(data_frame[color_key]),
-                   np.max(data_frame[color_key])]
+    if c_key is not None:
+        c_range = [np.min(data_frame[c_key]),
+                   np.max(data_frame[c_key])]
 
     ani_frames = []
     frame_list = data_frame['Frame'].unique()
@@ -425,10 +427,10 @@ def get_animation_data(data_frame,
                         x_key,
                         y_key,
                         z_key,
-                        color_key,
-                        color_label=color_key,
+                        c_key,
+                        c_label=c_key,
                         name='Frame: '+str(frame_idx),
-                        hover_dict=hover_dict,
+                        hover=hover,
                         c_range=c_range,
                         db=db,
                         colormap=colormap),
