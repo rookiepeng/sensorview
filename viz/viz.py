@@ -60,45 +60,50 @@ def get_scatter3d_data(data_frame,
         rows = len(data_frame.index)
         hover_str = np.full(rows, '', dtype=object)
         for _, key in enumerate(hover):
-            hover_str = hover_str + hover[key]['description'] + \
-                ': ' + data_frame[key].apply(str)+'<br>'
+            if 'format' in hover[key]:
+                hover_str = hover_str + hover[key]['description'] + \
+                    ': ' + data_frame[key].map(
+                    hover[key]['format'].format)+'<br>'
+            else:
+                hover_str = hover_str + hover[key]['description'] + \
+                    ': ' + data_frame[key].apply(str)+'<br>'
 
-        det_map = [dict(
-            type='scatter3d',
-            ids=data_frame.index,
-            x=data_frame[x_key],
-            y=data_frame[y_key],
-            z=data_frame[z_key],
-            text=hover_str,
-            hovertemplate='%{text}',
-            mode='markers',
-            name=name,
-            marker=dict(
-                size=3,
-                color=color,
-                colorscale=colormap,
-                opacity=0.8,
-                colorbar=dict(
-                    title=c_label,
+        fig_data = [
+            dict(
+                type='scatter3d',
+                ids=data_frame.index,
+                x=data_frame[x_key],
+                y=data_frame[y_key],
+                z=data_frame[z_key],
+                text=hover_str,
+                hovertemplate='%{text}',
+                mode='markers',
+                name=name,
+                marker=dict(
+                    size=3,
+                    color=color,
+                    colorscale=colormap,
+                    opacity=0.8,
+                    colorbar=dict(
+                        title=c_label,
+                    ),
+                    cmin=c_range[0],
+                    cmax=c_range[1],
+                    line=dict(
+                        color="#757575",
+                        width=linewidth,
+                    )
                 ),
-                cmin=c_range[0],
-                cmax=c_range[1],
-                line=dict(
-                    color="#757575",
-                    width=linewidth,
-                )
-            ),
-        )]
+            )]
     else:
-        det_map = []
+        fig_data = []
         color_list = pd.unique(data_frame[c_key])
-        # print(color_list)
+
         for c_item in color_list:
             new_list = data_frame[data_frame[c_key] == c_item]
+
             rows = len(new_list.index)
-
             hover_str = np.full(rows, '', dtype=object)
-
             for _, key in enumerate(hover):
                 if 'format' in hover[key]:
                     hover_str = hover_str + hover[key]['description'] + ': ' + \
@@ -106,8 +111,9 @@ def get_scatter3d_data(data_frame,
                             hover[key]['format'].format)+'<br>'
                 else:
                     hover_str = hover_str + hover[key]['description'] + \
-                        ': ' + new_list[key]+'<br>'
-            det_map.append(
+                        ': ' + new_list[key].apply(str)+'<br>'
+
+            fig_data.append(
                 dict(
                     type='scatter3d',
                     ids=new_list.index,
@@ -129,7 +135,7 @@ def get_scatter3d_data(data_frame,
                 )
             )
 
-    return det_map
+    return fig_data
 
 
 def get_host_data(data_frame,
