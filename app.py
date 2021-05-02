@@ -955,7 +955,6 @@ def update_heatmap(
         x_label = keys_dict[x_heat]['description']
         y_key = y_heat
         y_label = keys_dict[y_heat]['description']
-        # if processing.is_filtering_ready():
 
         data = pickle.loads(redis_instance.get("DATASET"+session_id))
         vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
