@@ -35,7 +35,7 @@ import plotly.io as pio
 import base64
 
 
-def get_figure_data(det_list,
+def get_figure_data(data_frame,
                     x_key,
                     y_key,
                     z_key,
@@ -48,32 +48,32 @@ def get_figure_data(det_list,
                     colormap='Jet',
                     discrete=False):
 
-    if det_list.shape[0] == 0:
+    if data_frame.shape[0] == 0:
         return [{'mode': 'markers', 'type': 'scatter3d',
                 'x': [], 'y': [], 'z': []}]
 
     if not discrete:
-        color = det_list[color_key]
+        color = data_frame[color_key]
 
-        rows = len(det_list.index)
+        rows = len(data_frame.index)
 
         hover = np.full(rows, '', dtype=object)
 
         for _, key in enumerate(hover_dict):
             if 'format' in hover_dict[key]:
                 hover = hover + hover_dict[key]['description'] + ': ' + \
-                    det_list[key].map(
+                    data_frame[key].map(
                         hover_dict[key]['format'].format)+'<br>'
             else:
                 hover = hover + hover_dict[key]['description'] + \
-                    ': ' + det_list[key]+'<br>'
+                    ': ' + data_frame[key]+'<br>'
 
         det_map = [dict(
             type='scatter3d',
-            ids=det_list.index,
-            x=det_list[x_key],
-            y=det_list[y_key],
-            z=det_list[z_key],
+            ids=data_frame.index,
+            x=data_frame[x_key],
+            y=data_frame[y_key],
+            z=data_frame[z_key],
             text=hover,
             hovertemplate='%{text}',
             mode='markers',
@@ -96,9 +96,9 @@ def get_figure_data(det_list,
         )]
     else:
         det_map = []
-        color_list = pd.unique(det_list[color_key])
+        color_list = pd.unique(data_frame[color_key])
         for c_key in color_list:
-            new_list = det_list[det_list[color_key] == c_key]
+            new_list = data_frame[data_frame[color_key] == c_key]
             rows = len(new_list.index)
 
             hover = np.full(rows, '', dtype=object)
@@ -136,17 +136,17 @@ def get_figure_data(det_list,
     return det_map
 
 
-def get_host_data(det_list,
+def get_host_data(data_frame,
                   x_key,
                   y_key,
                   name='Host'):
 
-    if det_list.shape[0] > 0:
+    if data_frame.shape[0] > 0:
 
         vel_map = dict(
             type='scatter3d',
-            x=[det_list[x_key].iloc[0]],
-            y=[det_list[y_key].iloc[0]],
+            x=[data_frame[x_key].iloc[0]],
+            y=[data_frame[y_key].iloc[0]],
             z=[0],
             hovertemplate='Lateral: %{x:.2f} m<br>' +
             'Longitudinal: %{y:.2f} m<br>',
@@ -214,7 +214,7 @@ def get_figure_layout(
     )
 
 
-def get_histogram(det_list,
+def get_histogram(data_frame,
                   x_key,
                   x_label=None,
                   histnorm='probability',
@@ -231,7 +231,7 @@ def get_histogram(det_list,
     return dict(
         data=[dict(
             type='histogram',
-            x=det_list[x_key],
+            x=data_frame[x_key],
             histnorm=histnorm,
             opacity=0.75,
         )],
@@ -245,7 +245,7 @@ def get_histogram(det_list,
     )
 
 
-def get_heatmap(det_list,
+def get_heatmap(data_frame,
                 x_key,
                 y_key,
                 x_label=None,
@@ -261,8 +261,8 @@ def get_heatmap(det_list,
     return dict(
         data=[dict(
             type='histogram2dcontour',
-            x=det_list[x_key],
-            y=det_list[y_key],
+            x=data_frame[x_key],
+            y=data_frame[y_key],
             colorscale='Jet'
         )],
         layout=dict(
@@ -274,7 +274,7 @@ def get_heatmap(det_list,
     )
 
 
-def get_2d_scatter(det_list,
+def get_2d_scatter(data_frame,
                    x_key,
                    y_key,
                    color_key,
@@ -300,13 +300,13 @@ def get_2d_scatter(det_list,
         return dict(
             data=[dict(
                 type='scattergl',
-                ids=det_list.index,
-                x=det_list[x_key],
-                y=det_list[y_key],
+                ids=data_frame.index,
+                x=data_frame[x_key],
+                y=data_frame[y_key],
                 mode='markers',
                 marker=dict(
                     size=6,
-                    color=det_list[color_key],
+                    color=data_frame[color_key],
                     colorscale=colormap,
                     opacity=0.8,
                     colorbar=dict(
@@ -327,9 +327,9 @@ def get_2d_scatter(det_list,
         )
     else:
         data = []
-        color_list = pd.unique(det_list[color_key])
+        color_list = pd.unique(data_frame[color_key])
         for c_key in color_list:
-            new_list = det_list[det_list[color_key] == c_key]
+            new_list = data_frame[data_frame[color_key] == c_key]
             data.append(
                 dict(
                     type='scattergl',
@@ -368,7 +368,7 @@ def frame_args(duration):
     }
 
 
-def get_animation_data(det_list,
+def get_animation_data(data_frame,
                        x_key,
                        y_key,
                        z_key,
@@ -384,26 +384,26 @@ def get_animation_data(det_list,
                        template='plotly',
                        image_dir=None):
 
-    x_range = [np.min([np.min(det_list[x_key]),
-                       np.min(det_list[host_x_key])]),
-               np.max([np.max(det_list[x_key]),
-                       np.max(det_list[host_x_key])])]
-    y_range = [np.min([np.min(det_list[y_key]),
-                       np.min(det_list[host_y_key])]),
-               np.max([np.max(det_list[y_key]),
-                       np.max(det_list[host_y_key])])]
-    z_range = [np.min(det_list[z_key]),
-               np.max(det_list[z_key])]
+    x_range = [np.min([np.min(data_frame[x_key]),
+                       np.min(data_frame[host_x_key])]),
+               np.max([np.max(data_frame[x_key]),
+                       np.max(data_frame[host_x_key])])]
+    y_range = [np.min([np.min(data_frame[y_key]),
+                       np.min(data_frame[host_y_key])]),
+               np.max([np.max(data_frame[y_key]),
+                       np.max(data_frame[host_y_key])])]
+    z_range = [np.min(data_frame[z_key]),
+               np.max(data_frame[z_key])]
 
     if color_key is not None:
-        c_range = [np.min(det_list[color_key]),
-                   np.max(det_list[color_key])]
+        c_range = [np.min(data_frame[color_key]),
+                   np.max(data_frame[color_key])]
 
     ani_frames = []
-    frame_list = det_list['Frame'].unique()
+    frame_list = data_frame['Frame'].unique()
 
     for idx, frame_idx in enumerate(frame_list):
-        filtered_list = det_list[det_list['Frame'] == frame_idx]
+        filtered_list = data_frame[data_frame['Frame'] == frame_idx]
         filtered_list = filtered_list.reset_index()
 
         if image_dir is not None:
