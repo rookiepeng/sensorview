@@ -57,7 +57,7 @@ import plotly.graph_objs as go
 
 from layout import get_app_layout
 
-from viz.viz import get_figure_data, get_figure_layout, get_host_data
+from viz.viz import get_scatter3d_data, get_figure_layout, get_host_data
 from viz.viz import get_2d_scatter, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
@@ -77,7 +77,7 @@ def scatter3d_data(det_list,
                    image=None):
 
     return dict(
-        data=get_figure_data(
+        data=get_scatter3d_data(
             det_list=det_list,
             x_key=x,
             y_key=y,
