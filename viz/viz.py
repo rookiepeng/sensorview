@@ -106,8 +106,8 @@ def get_scatter3d_data(data_frame,
             hover_str = np.full(rows, '', dtype=object)
             for _, key in enumerate(hover):
                 if 'format' in hover[key]:
-                    hover_str = hover_str + hover[key]['description'] + ': ' + \
-                        new_list[key].map(
+                    hover_str = hover_str + hover[key]['description'] + \
+                        ': ' + new_list[key].map(
                             hover[key]['format'].format)+'<br>'
                 else:
                     hover_str = hover_str + hover[key]['description'] + \
@@ -138,33 +138,38 @@ def get_scatter3d_data(data_frame,
     return fig_data
 
 
-def get_host_data(data_frame,
-                  x_key,
-                  y_key,
-                  name='Host'):
+def get_ref_scatter3d_data(data_frame,
+                           x_key,
+                           y_key,
+                           z_key=None,
+                           name=None):
 
-    if data_frame.shape[0] > 0:
-
-        vel_map = dict(
-            type='scatter3d',
-            x=[data_frame[x_key].iloc[0]],
-            y=[data_frame[y_key].iloc[0]],
-            z=[0],
-            hovertemplate='Lateral: %{x:.2f} m<br>' +
-            'Longitudinal: %{y:.2f} m<br>',
-            mode='markers',
-            name=name,
-            marker=dict(color='rgb(0, 0, 0)', size=6, opacity=0.8,
-                        symbol='circle')
-        )
-
-        return vel_map
-    else:
+    if data_frame.shape[0] == 0:
         return {'mode': 'markers', 'type': 'scatter3d',
                 'x': [], 'y': [], 'z': []}
 
+    if z_key is None:
+        z_data = [0]
+    else:
+        z_data = [data_frame[z_key].iloc[0]]
 
-def get_figure_layout(
+    fig_data = dict(
+        type='scatter3d',
+        x=[data_frame[x_key].iloc[0]],
+        y=[data_frame[y_key].iloc[0]],
+        z=z_data,
+        hovertemplate='Lateral: %{x:.2f} m<br>' +
+        'Longitudinal: %{y:.2f} m<br>',
+        mode='markers',
+        name=name,
+        marker=dict(color='rgb(0, 0, 0)', size=6, opacity=0.8,
+                    symbol='circle')
+    )
+
+    return fig_data
+
+
+def get_scatter3d_layout(
     x_range,
     y_range,
     z_range=[-20, 20],
@@ -276,17 +281,17 @@ def get_heatmap(data_frame,
     )
 
 
-def get_2d_scatter(data_frame,
-                   x_key,
-                   y_key,
-                   c_key,
-                   x_label=None,
-                   y_label=None,
-                   uirevision='no_change',
-                   colormap='Jet',
-                   margin=dict(l=40, r=40, b=40, t=60),
-                   is_discrete_color=False,
-                   **kwargs):
+def get_scatter2d(data_frame,
+                  x_key,
+                  y_key,
+                  c_key,
+                  x_label=None,
+                  y_label=None,
+                  uirevision='no_change',
+                  colormap='Jet',
+                  margin=dict(l=40, r=40, b=40, t=60),
+                  is_discrete_color=False,
+                  **kwargs):
 
     linewidth = kwargs.get('linewidth', 0)
 
@@ -434,12 +439,12 @@ def get_animation_data(data_frame,
                         c_range=c_range,
                         db=db,
                         colormap=colormap),
-                    get_host_data(
+                    get_ref_scatter3d_data(
                         filtered_list,
                         host_x_key,
                         host_y_key)
                 ],
-                layout=get_figure_layout(
+                layout=get_scatter3d_layout(
                     x_range,
                     y_range,
                     z_range,
@@ -482,7 +487,7 @@ def get_animation_data(data_frame,
         img = None
 
     # Layout
-    figure_layout = get_figure_layout(
+    figure_layout = get_scatter3d_layout(
         x_range,
         y_range,
         z_range,

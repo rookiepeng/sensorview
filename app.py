@@ -56,8 +56,9 @@ import plotly.graph_objs as go
 
 from layout import get_app_layout
 
-from viz.viz import get_scatter3d_data, get_figure_layout, get_host_data
-from viz.viz import get_2d_scatter, get_histogram, get_heatmap
+from viz.viz import get_scatter3d_data, get_ref_scatter3d_data
+from viz.viz import get_scatter3d_layout
+from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
 
@@ -89,12 +90,12 @@ def scatter3d_data(det_list,
             c_range=layout['c_range'],
             colormap=colormap,
             is_discrete_color=is_discrete_color
-        )+[get_host_data(
+        )+[get_ref_scatter3d_data(
             data_frame=det_list,
             x_key=x_ref,
             y_key=y_ref,
         )],
-        layout=get_figure_layout(
+        layout=get_scatter3d_layout(
             x_range=layout['x_range'],
             y_range=layout['y_range'],
             z_range=layout['z_range'],
@@ -685,7 +686,7 @@ def update_left_graph(
             vis_picker
         )
 
-        left_fig = get_2d_scatter(
+        left_fig = get_scatter2d(
             filtered_table,
             x_key,
             y_key,
@@ -794,7 +795,7 @@ def update_right_graph(
             vis_picker
         )
 
-        right_fig = get_2d_scatter(
+        right_fig = get_scatter2d(
             filtered_table,
             x_key,
             y_key,
