@@ -35,18 +35,18 @@ import plotly.io as pio
 import base64
 
 
-def get_figure_data(data_frame,
-                    x_key,
-                    y_key,
-                    z_key,
-                    color_key,
-                    color_label=None,
-                    outline=0,
-                    name=None,
-                    hover_dict=None,
-                    c_range=[-30, 30],
-                    colormap='Jet',
-                    discrete=False):
+def get_scatter3d_data(data_frame,
+                       x_key,
+                       y_key,
+                       z_key,
+                       color_key,
+                       color_label=None,
+                       outline=0,
+                       name=None,
+                       hover_dict=None,
+                       c_range=[-30, 30],
+                       colormap='Jet',
+                       discrete=False):
 
     if data_frame.shape[0] == 0:
         return [{'mode': 'markers', 'type': 'scatter3d',
@@ -420,7 +420,7 @@ def get_animation_data(data_frame,
         ani_frames.append(
             dict(
                 data=[
-                    get_figure_data(
+                    get_scatter3d_data(
                         filtered_list,
                         x_key,
                         y_key,
