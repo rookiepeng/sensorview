@@ -40,8 +40,6 @@ def get_scatter3d_data(data_frame,
                        y_key,
                        z_key,
                        c_key,
-                       c_range=[-30, 30],
-                       discrete=False,
                        **kwargs):
 
     if data_frame.shape[0] == 0:
@@ -53,22 +51,17 @@ def get_scatter3d_data(data_frame,
     colormap = kwargs.get('colormap', 'Jet')
     name = kwargs.get('name', None)
     hover = kwargs.get('hover', None)
+    is_discrete_color = kwargs.get('is_discrete_color', False)
 
-    if not discrete:
+    if not is_discrete_color:
         color = data_frame[c_key]
+        c_range = kwargs.get('c_range', [np.min(color), np.max(color)])
 
         rows = len(data_frame.index)
-
-        hover = np.full(rows, '', dtype=object)
-
+        hover_str = np.full(rows, '', dtype=object)
         for _, key in enumerate(hover):
-            if 'format' in hover[key]:
-                hover = hover + hover[key]['description'] + ': ' + \
-                    data_frame[key].map(
-                        hover[key]['format'].format)+'<br>'
-            else:
-                hover = hover + hover[key]['description'] + \
-                    ': ' + data_frame[key]+'<br>'
+            hover_str = hover_str + hover[key]['description'] + \
+                ': ' + data_frame[key].apply(str)+'<br>'
 
         det_map = [dict(
             type='scatter3d',
@@ -76,7 +69,7 @@ def get_scatter3d_data(data_frame,
             x=data_frame[x_key],
             y=data_frame[y_key],
             z=data_frame[z_key],
-            text=hover,
+            text=hover_str,
             hovertemplate='%{text}',
             mode='markers',
             name=name,
@@ -99,19 +92,20 @@ def get_scatter3d_data(data_frame,
     else:
         det_map = []
         color_list = pd.unique(data_frame[c_key])
-        for c_key in color_list:
-            new_list = data_frame[data_frame[c_key] == c_key]
+        # print(color_list)
+        for c_item in color_list:
+            new_list = data_frame[data_frame[c_key] == c_item]
             rows = len(new_list.index)
 
-            hover = np.full(rows, '', dtype=object)
+            hover_str = np.full(rows, '', dtype=object)
 
             for _, key in enumerate(hover):
                 if 'format' in hover[key]:
-                    hover = hover + hover[key]['description'] + ': ' + \
+                    hover_str = hover_str + hover[key]['description'] + ': ' + \
                         new_list[key].map(
                             hover[key]['format'].format)+'<br>'
                 else:
-                    hover = hover + hover[key]['description'] + \
+                    hover_str = hover_str + hover[key]['description'] + \
                         ': ' + new_list[key]+'<br>'
             det_map.append(
                 dict(
@@ -120,10 +114,10 @@ def get_scatter3d_data(data_frame,
                     x=new_list[x_key],
                     y=new_list[y_key],
                     z=new_list[z_key],
-                    text=hover,
+                    text=hover_str,
                     hovertemplate='%{text}',
                     mode='markers',
-                    name=c_key,
+                    name=c_item,
                     marker=dict(
                         size=3,
                         opacity=0.8,
@@ -285,7 +279,7 @@ def get_2d_scatter(data_frame,
                    uirevision='no_change',
                    colormap='Jet',
                    margin=dict(l=40, r=40, b=40, t=60),
-                   discrete=False,
+                   is_discrete_color=False,
                    **kwargs):
 
     linewidth = kwargs.get('linewidth', 0)
@@ -298,7 +292,7 @@ def get_2d_scatter(data_frame,
 
     c_label = kwargs.get('c_label', c_key)
 
-    if not discrete:
+    if not is_discrete_color:
         return dict(
             data=[dict(
                 type='scattergl',
@@ -330,8 +324,8 @@ def get_2d_scatter(data_frame,
     else:
         data = []
         color_list = pd.unique(data_frame[c_key])
-        for c_key in color_list:
-            new_list = data_frame[data_frame[c_key] == c_key]
+        for c_item in color_list:
+            new_list = data_frame[data_frame[c_key] == c_item]
             data.append(
                 dict(
                     type='scattergl',
@@ -347,7 +341,7 @@ def get_2d_scatter(data_frame,
                             width=linewidth,
                         )
                     ),
-                    name=c_key
+                    name=c_item
                 )
             )
         return dict(
