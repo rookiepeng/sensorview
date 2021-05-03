@@ -32,192 +32,50 @@ import pandas as pd
 import plotly.graph_objs as go
 import plotly.io as pio
 
+from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from .graph_layout import get_scatter3d_layout
+
 import base64
 
 
-def get_scatter3d_data(data_frame,
-                       x_key,
-                       y_key,
-                       z_key,
-                       c_key,
-                       **kwargs):
-
-    if data_frame.shape[0] == 0:
-        return [{'mode': 'markers', 'type': 'scatter3d',
-                'x': [], 'y': [], 'z': []}]
-
-    linewidth = kwargs.get('linewidth', 0)
-    c_label = kwargs.get('c_label', c_key)
-    colormap = kwargs.get('colormap', 'Jet')
-    name = kwargs.get('name', None)
-    hover = kwargs.get('hover', None)
-    is_discrete_color = kwargs.get('is_discrete_color', False)
-
-    if not is_discrete_color:
-        color = data_frame[c_key]
-        c_range = kwargs.get('c_range', [np.min(color), np.max(color)])
-
-        rows = len(data_frame.index)
-        hover_str = np.full(rows, '', dtype=object)
-        for _, key in enumerate(hover):
-            if 'format' in hover[key]:
-                hover_str = hover_str + hover[key]['description'] + \
-                    ': ' + data_frame[key].map(
-                    hover[key]['format'].format)+'<br>'
-            else:
-                hover_str = hover_str + hover[key]['description'] + \
-                    ': ' + data_frame[key].apply(str)+'<br>'
-
-        fig_data = [
-            dict(
-                type='scatter3d',
-                ids=data_frame.index,
-                x=data_frame[x_key],
-                y=data_frame[y_key],
-                z=data_frame[z_key],
-                text=hover_str,
-                hovertemplate='%{text}',
-                mode='markers',
-                name=name,
-                marker=dict(
-                    size=3,
-                    color=color,
-                    colorscale=colormap,
-                    opacity=0.8,
-                    colorbar=dict(
-                        title=c_label,
-                    ),
-                    cmin=c_range[0],
-                    cmax=c_range[1],
-                    line=dict(
-                        color="#757575",
-                        width=linewidth,
-                    )
-                ),
-            )]
-    else:
-        fig_data = []
-        color_list = pd.unique(data_frame[c_key])
-
-        for c_item in color_list:
-            new_list = data_frame[data_frame[c_key] == c_item]
-
-            rows = len(new_list.index)
-            hover_str = np.full(rows, '', dtype=object)
-            for _, key in enumerate(hover):
-                if 'format' in hover[key]:
-                    hover_str = hover_str + hover[key]['description'] + \
-                        ': ' + new_list[key].map(
-                            hover[key]['format'].format)+'<br>'
-                else:
-                    hover_str = hover_str + hover[key]['description'] + \
-                        ': ' + new_list[key].apply(str)+'<br>'
-
-            fig_data.append(
-                dict(
-                    type='scatter3d',
-                    ids=new_list.index,
-                    x=new_list[x_key],
-                    y=new_list[y_key],
-                    z=new_list[z_key],
-                    text=hover_str,
-                    hovertemplate='%{text}',
-                    mode='markers',
-                    name=c_item,
-                    marker=dict(
-                        size=3,
-                        opacity=0.8,
-                        line=dict(
-                            color="#757575",
-                            width=linewidth,
-                        )
-                    ),
-                )
-            )
-
-    return fig_data
-
-
-def get_ref_scatter3d_data(data_frame,
-                           x_key,
-                           y_key,
-                           z_key=None,
-                           name=None):
-
-    if data_frame.shape[0] == 0:
-        return {'mode': 'markers', 'type': 'scatter3d',
-                'x': [], 'y': [], 'z': []}
-
-    if z_key is None:
-        z_data = [0]
-    else:
-        z_data = [data_frame[z_key].iloc[0]]
-
-    fig_data = dict(
-        type='scatter3d',
-        x=[data_frame[x_key].iloc[0]],
-        y=[data_frame[y_key].iloc[0]],
-        z=z_data,
-        hovertemplate='Lateral: %{x:.2f} m<br>' +
-        'Longitudinal: %{y:.2f} m<br>',
-        mode='markers',
-        name=name,
-        marker=dict(color='rgb(0, 0, 0)', size=6, opacity=0.8,
-                    symbol='circle')
-    )
-
-    return fig_data
-
-
-def get_scatter3d_layout(
-    x_range,
-    y_range,
-    z_range=[-20, 20],
-    height=650,
-    title=None,
-    margin=dict(l=0, r=0, b=0, t=20),
-    template='plotly',
-    image=None
-):
-    scale = np.min([x_range[1]-x_range[0], y_range[1] -
-                    y_range[0], z_range[1]-z_range[0]])
-
-    if image is not None:
-        img_dict = [dict(
-            source=image,
-            xref="x domain",
-            yref="y domain",
-            x=0,
-            y=1,
-            xanchor="left",
-            yanchor="top",
-            sizex=0.3,
-            sizey=0.3,
-        )]
-    else:
-        img_dict = None
+def get_scatter3d(det_list,
+                  x,
+                  y,
+                  z,
+                  x_ref,
+                  y_ref,
+                  layout,
+                  keys_dict,
+                  name,
+                  linewidth=0,
+                  colormap='Jet',
+                  is_discrete_color=False,
+                  image=None):
 
     return dict(
-        title=title,
-        # template=pio.templates['plotly_dark'],
-        template=pio.templates[template],
-        height=height,
-        scene=dict(xaxis=dict(range=x_range,
-                              title='Lateral (m)',
-                              autorange=False),
-                   yaxis=dict(range=y_range,
-                              title='Longitudinal (m)', autorange=False),
-                   zaxis=dict(range=z_range,
-                              title='Height (m)', autorange=False),
-                   aspectmode='manual',
-                   aspectratio=dict(x=(x_range[1]-x_range[0])/scale,
-                                    y=(y_range[1]-y_range[0])/scale,
-                                    z=(z_range[1]-z_range[0])/scale),
-                   ),
-        margin=margin,
-        legend=dict(x=0, y=0),
-        images=img_dict,
-        uirevision='no_change',
+        data=get_scatter3d_data(
+            det_list,
+            x,
+            y,
+            z,
+            layout['c_key'],
+            c_label=layout['c_label'],
+            linewidth=linewidth,
+            name=name,
+            hover=keys_dict,
+            c_range=layout['c_range'],
+            colormap=colormap,
+            is_discrete_color=is_discrete_color
+        )+[get_ref_scatter3d_data(
+            data_frame=det_list,
+            x_key=x_ref,
+            y_key=y_ref,
+        )],
+        layout=get_scatter3d_layout(
+            x_range=layout['x_range'],
+            y_range=layout['y_range'],
+            z_range=layout['z_range'],
+            image=image)
     )
 
 
