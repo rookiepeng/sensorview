@@ -38,43 +38,72 @@ from .graph_layout import get_scatter3d_layout
 import base64
 
 
-def get_scatter3d(det_list,
-                  x,
-                  y,
-                  z,
-                  x_ref,
-                  y_ref,
-                  layout,
-                  keys_dict,
-                  name,
-                  linewidth=0,
-                  colormap='Jet',
-                  is_discrete_color=False,
-                  image=None):
+def get_scatter3d(data_frame,
+                  x_key,
+                  y_key,
+                  z_key,
+                  c_key,
+                  x_ref=None,
+                  y_ref=None,
+                  z_ref=None,
+                  keys_dict=None,
+                  **kwargs):
+    c_label = kwargs.get('c_label', c_key)
+    c_range = kwargs.get('c_range', None)
+    linewidth = kwargs.get('linewidth', 0)
+    name = kwargs.get('name', None)
+    colormap = kwargs.get('colormap', 'Jet')
+    is_discrete_color = kwargs.get('is_discrete_color', False)
+    image = kwargs.get('image', None)
 
-    return dict(
-        data=get_scatter3d_data(
-            det_list,
-            x,
-            y,
-            z,
-            layout['c_key'],
-            c_label=layout['c_label'],
+    x_range = kwargs.get('x_range', None)
+    y_range = kwargs.get('y_range', None)
+    z_range = kwargs.get('z_range', None)
+    ref_name = kwargs.get('ref_name', None)
+
+    if x_ref is None or y_ref is None:
+        data = get_scatter3d_data(
+            data_frame,
+            x_key,
+            y_key,
+            z_key,
+            c_key,
+            c_label=c_label,
             linewidth=linewidth,
             name=name,
             hover=keys_dict,
-            c_range=layout['c_range'],
+            c_range=c_range,
+            colormap=colormap,
+            is_discrete_color=is_discrete_color
+        )
+    else:
+        data = get_scatter3d_data(
+            data_frame,
+            x_key,
+            y_key,
+            z_key,
+            c_key,
+            c_label=c_label,
+            linewidth=linewidth,
+            name=name,
+            hover=keys_dict,
+            c_range=c_range,
             colormap=colormap,
             is_discrete_color=is_discrete_color
         )+[get_ref_scatter3d_data(
-            data_frame=det_list,
+            data_frame=data_frame,
             x_key=x_ref,
             y_key=y_ref,
-        )],
+            z_key=z_ref,
+            name=ref_name
+        )]
+
+    return dict(
+        data=data,
         layout=get_scatter3d_layout(
-            x_range=layout['x_range'],
-            y_range=layout['y_range'],
-            z_range=layout['z_range'],
+            x_range=x_range,
+            y_range=y_range,
+            z_range=z_range,
             image=image)
     )
 
