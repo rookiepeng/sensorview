@@ -77,8 +77,7 @@ def get_scatter3d(data_frame,
 
     return dict(
         data=data,
-        layout=get_scatter3d_layout(
-            **kwargs)
+        layout=get_scatter3d_layout(**kwargs)
     )
 
 
