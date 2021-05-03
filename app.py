@@ -1017,7 +1017,8 @@ def export_scatter_3d(
                 host_y_key=y_host,
                 c_key=color_picker,
                 hover=keys_dict,
-                title=test_case
+                title=test_case,
+                height=750
             )
         )
 

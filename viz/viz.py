@@ -241,12 +241,8 @@ def get_animation_data(data_frame,
                        z_key,
                        host_x_key,
                        host_y_key,
-                       c_key=None,
-                       hover=None,
-                       c_range=[-30, 30],
-                       colormap='Viridis',
-                       title=None,
-                       image_dir=None):
+                       image_dir=None,
+                       **kwargs):
 
     x_range = [np.min([np.min(data_frame[x_key]),
                        np.min(data_frame[host_x_key])]),
@@ -258,10 +254,6 @@ def get_animation_data(data_frame,
                        np.max(data_frame[host_y_key])])]
     z_range = [np.min(data_frame[z_key]),
                np.max(data_frame[z_key])]
-
-    if c_key is not None:
-        c_range = [np.min(data_frame[c_key]),
-                   np.max(data_frame[c_key])]
 
     ani_frames = []
     frame_list = data_frame['Frame'].unique()
@@ -286,20 +278,15 @@ def get_animation_data(data_frame,
             x_key,
             y_key,
             z_key,
-            c_key,
             x_ref=host_x_key,
             y_ref=host_y_key,
-            hover=hover,
             name='Frame: '+str(frame_idx),
-            c_label=c_key,
-            colormap=colormap,
             ref_name='Host Vehicle',
             x_range=x_range,
             y_range=y_range,
             z_range=z_range,
-            c_range=c_range,
-            # is_discrete_color=is_discrete_color,
-            image=img)
+            image=img,
+            **kwargs)
         # need 'name' to make sure animation works properly
         new_frame['name'] = str(frame_idx)
         ani_frames.append(new_frame)
@@ -336,8 +323,8 @@ def get_animation_data(data_frame,
         x_range,
         y_range,
         z_range,
-        title=title,
-        image=img
+        image=img,
+        **kwargs
     )
     figure_layout['updatemenus'] = [
         {
