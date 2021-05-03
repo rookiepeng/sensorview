@@ -26,16 +26,21 @@ def get_scatter3d_data(data_frame,
         if c_range is None:
             c_range = [np.min(color), np.max(color)]
 
-        rows = len(data_frame.index)
-        hover_str = np.full(rows, '', dtype=object)
-        for _, key in enumerate(hover):
-            if 'format' in hover[key]:
-                hover_str = hover_str + hover[key]['description'] + \
-                    ': ' + data_frame[key].map(
-                    hover[key]['format'].format)+'<br>'
-            else:
-                hover_str = hover_str + hover[key]['description'] + \
-                    ': ' + data_frame[key].apply(str)+'<br>'
+        if hover is not None:
+            rows = len(data_frame.index)
+            hover_str = np.full(rows, '', dtype=object)
+            for _, key in enumerate(hover):
+                if 'format' in hover[key]:
+                    hover_str = hover_str + hover[key]['description'] + \
+                        ': ' + data_frame[key].map(
+                        hover[key]['format'].format)+'<br>'
+                else:
+                    hover_str = hover_str + hover[key]['description'] + \
+                        ': ' + data_frame[key].apply(str)+'<br>'
+            hovertemplate = '%{text}'
+        else:
+            hover_str = None
+            hovertemplate = None
 
         fig_data = [
             dict(
@@ -45,7 +50,7 @@ def get_scatter3d_data(data_frame,
                 y=data_frame[y_key],
                 z=data_frame[z_key],
                 text=hover_str,
-                hovertemplate='%{text}',
+                hovertemplate=hovertemplate,
                 mode='markers',
                 name=name,
                 marker=dict(
@@ -71,16 +76,21 @@ def get_scatter3d_data(data_frame,
         for c_item in color_list:
             new_list = data_frame[data_frame[c_key] == c_item]
 
-            rows = len(new_list.index)
-            hover_str = np.full(rows, '', dtype=object)
-            for _, key in enumerate(hover):
-                if 'format' in hover[key]:
-                    hover_str = hover_str + hover[key]['description'] + \
-                        ': ' + new_list[key].map(
-                            hover[key]['format'].format)+'<br>'
-                else:
-                    hover_str = hover_str + hover[key]['description'] + \
-                        ': ' + new_list[key].apply(str)+'<br>'
+            if hover is not None:
+                rows = len(new_list.index)
+                hover_str = np.full(rows, '', dtype=object)
+                for _, key in enumerate(hover):
+                    if 'format' in hover[key]:
+                        hover_str = hover_str + hover[key]['description'] + \
+                            ': ' + new_list[key].map(
+                                hover[key]['format'].format)+'<br>'
+                    else:
+                        hover_str = hover_str + hover[key]['description'] + \
+                            ': ' + new_list[key].apply(str)+'<br>'
+                hovertemplate = '%{text}'
+            else:
+                hover_str = None
+                hovertemplate = None
 
             fig_data.append(
                 dict(
