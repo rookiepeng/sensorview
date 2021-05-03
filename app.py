@@ -1132,7 +1132,6 @@ def export_heatmap(btn, fig, test_case):
     Output('selected-data-left', 'data'),
     [Input('scatter2d-left', 'selectedData')])
 def select_left_figure(selectedData):
-    # print(selectedData)
     return selectedData
 
 
