@@ -539,7 +539,7 @@ def update_filter(
         c_key,
         x_ref=x_host,
         y_ref=y_host,
-        keys_dict=keys_dict,
+        hover=keys_dict,
         name='Index: ' + str(slider_arg) + ' (' +
         slider_label+': '+str(frame_idx[slider_arg])+')',
         c_label=c_label,
@@ -1017,8 +1017,6 @@ def export_scatter_3d(
                 host_y_key=y_host,
                 c_key=color_picker,
                 hover=keys_dict,
-                db=False,
-                height=700,
                 title=test_case
             )
         )

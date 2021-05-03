@@ -46,19 +46,16 @@ def get_scatter3d(data_frame,
                   x_ref=None,
                   y_ref=None,
                   z_ref=None,
-                  keys_dict=None,
                   **kwargs):
     c_label = kwargs.get('c_label', c_key)
     c_range = kwargs.get('c_range', None)
     linewidth = kwargs.get('linewidth', 0)
     name = kwargs.get('name', None)
     colormap = kwargs.get('colormap', 'Jet')
+    hover = kwargs.get('hover', None)
     is_discrete_color = kwargs.get('is_discrete_color', False)
     image = kwargs.get('image', None)
 
-    x_range = kwargs.get('x_range', None)
-    y_range = kwargs.get('y_range', None)
-    z_range = kwargs.get('z_range', None)
     ref_name = kwargs.get('ref_name', None)
 
     if x_ref is None or y_ref is None:
@@ -68,13 +65,7 @@ def get_scatter3d(data_frame,
             y_key,
             z_key,
             c_key,
-            c_label=c_label,
-            linewidth=linewidth,
-            name=name,
-            hover=keys_dict,
-            c_range=c_range,
-            colormap=colormap,
-            is_discrete_color=is_discrete_color
+            **kwargs
         )
     else:
         data = get_scatter3d_data(
@@ -83,13 +74,7 @@ def get_scatter3d(data_frame,
             y_key,
             z_key,
             c_key,
-            c_label=c_label,
-            linewidth=linewidth,
-            name=name,
-            hover=keys_dict,
-            c_range=c_range,
-            colormap=colormap,
-            is_discrete_color=is_discrete_color
+            **kwargs
         )+[get_ref_scatter3d_data(
             data_frame=data_frame,
             x_key=x_ref,
@@ -101,10 +86,7 @@ def get_scatter3d(data_frame,
     return dict(
         data=data,
         layout=get_scatter3d_layout(
-            x_range=x_range,
-            y_range=y_range,
-            z_range=z_range,
-            image=image)
+            **kwargs)
     )
 
 
@@ -271,11 +253,8 @@ def get_animation_data(data_frame,
                        c_key=None,
                        hover=None,
                        c_range=[-30, 30],
-                       db=False,
                        colormap='Viridis',
                        title=None,
-                       height=650,
-                       template='plotly',
                        image_dir=None):
 
     x_range = [np.min([np.min(data_frame[x_key]),
@@ -304,51 +283,39 @@ def get_animation_data(data_frame,
             try:
                 encoded_image = base64.b64encode(
                     open(image_dir[idx], 'rb').read())
-                img = 'data:image/png;base64,{}'.format(
+                img = 'data:image/jpeg;base64,{}'.format(
                     encoded_image.decode())
             except FileNotFoundError:
                 img = None
         else:
             img = None
 
-        ani_frames.append(
-            dict(
-                data=[
-                    get_scatter3d_data(
-                        filtered_list,
-                        x_key,
-                        y_key,
-                        z_key,
-                        c_key,
-                        c_label=c_key,
-                        name='Frame: '+str(frame_idx),
-                        hover=hover,
-                        c_range=c_range,
-                        db=db,
-                        colormap=colormap),
-                    get_ref_scatter3d_data(
-                        filtered_list,
-                        host_x_key,
-                        host_y_key)
-                ],
-                layout=get_scatter3d_layout(
-                    x_range,
-                    y_range,
-                    z_range,
-                    height=height,
-                    title=title,
-                    margin=dict(l=0, r=0, b=0, t=40),
-                    template=template,
-                    image=img
-                ),
-                # need to name the frame for the animation to behave properly
-                name=str(frame_idx)
-            )
-        )
+        new_frame = get_scatter3d(
+            filtered_list,
+            x_key,
+            y_key,
+            z_key,
+            c_key,
+            x_ref=host_x_key,
+            y_ref=host_y_key,
+            hover=hover,
+            name='Frame: '+str(frame_idx),
+            c_label=c_key,
+            colormap=colormap,
+            ref_name='Host Vehicle',
+            x_range=x_range,
+            y_range=y_range,
+            z_range=z_range,
+            c_range=c_range,
+            # is_discrete_color=is_discrete_color,
+            image=img)
+        # need 'name' to make sure animation works properly
+        new_frame['name'] = str(frame_idx)
+        ani_frames.append(new_frame)
 
     sliders = [
         {
-            'pad': {'b': 10, 't': 40},
+            'pad': {'b': 10, 't': 10},
             'len': 0.9,
             'x': 0.1,
             'y': 0,
@@ -366,7 +333,7 @@ def get_animation_data(data_frame,
     if image_dir is not None:
         try:
             encoded_image = base64.b64encode(open(image_dir[0], 'rb').read())
-            img = 'data:image/png;base64,{}'.format(
+            img = 'data:image/jpeg;base64,{}'.format(
                 encoded_image.decode())
         except FileNotFoundError:
             img = None
@@ -378,10 +345,7 @@ def get_animation_data(data_frame,
         x_range,
         y_range,
         z_range,
-        height=height,
         title=title,
-        margin=dict(l=0, r=0, b=0, t=40),
-        template=template,
         image=img
     )
     figure_layout['updatemenus'] = [
@@ -401,7 +365,7 @@ def get_animation_data(data_frame,
                 },
             ],
             'direction': 'left',
-            'pad': {'r': 10, 't': 50, 'l': 20},
+            'pad': {'r': 10, 't': 30, 'l': 20, 'b': 10},
             'type': 'buttons',
             'x': 0.1,
             'xanchor': 'right',
