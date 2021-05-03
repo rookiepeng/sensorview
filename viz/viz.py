@@ -255,6 +255,9 @@ def get_animation_data(data_frame,
     z_range = [np.min(data_frame[z_key]),
                np.max(data_frame[z_key])]
 
+    c_range = [np.min(data_frame[kwargs.get('c_key')]),
+               np.max(data_frame[kwargs.get('c_key')])]
+
     ani_frames = []
     frame_list = data_frame['Frame'].unique()
 
@@ -285,6 +288,7 @@ def get_animation_data(data_frame,
             x_range=x_range,
             y_range=y_range,
             z_range=z_range,
+            c_range=c_range,
             image=img,
             **kwargs)
         # need 'name' to make sure animation works properly
