@@ -29,8 +29,6 @@
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objs as go
-import plotly.io as pio
 
 from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from .graph_layout import get_scatter3d_layout
@@ -47,7 +45,29 @@ def get_scatter3d(data_frame,
                   y_ref=None,
                   z_ref=None,
                   **kwargs):
+    """
+    Get scatter 3D data
 
+    :param pandas.DataFrame data_frame:
+        DataFrame
+    :param str x_key:
+        Key name for x axis
+    :param str y_key:
+        Key name for y axis
+    :param str z_key:
+        Key name for z axis
+    :param str c_key:
+        Key name for color
+    :param str x_ref:
+        Key name for x reference point
+    :param str y_ref:
+        Key name for y reference point
+    :param str z_ref:
+        Key name for z reference point
+
+    :return: plotly Scatter 3D
+    :rtype: dict
+    """
     ref_name = kwargs.get('ref_name', None)
 
     if x_ref is None or y_ref is None:
@@ -85,7 +105,7 @@ def get_histogram(data_frame,
                   x_key,
                   x_label=None,
                   histnorm='probability',
-                  margin=dict(l=40, r=40, b=40, t=60)
+                  margin={'l': 40, 'r': 40, 'b': 40, 't': 60}
                   ):
     if x_label is None:
         x_label = x_key
@@ -117,7 +137,7 @@ def get_heatmap(data_frame,
                 y_key,
                 x_label=None,
                 y_label=None,
-                margin=dict(l=40, r=40, b=40, t=60)
+                margin={'l': 40, 'r': 40, 'b': 40, 't': 60}
                 ):
     if x_label is None:
         x_label = x_key
@@ -149,7 +169,7 @@ def get_scatter2d(data_frame,
                   y_label=None,
                   uirevision='no_change',
                   colormap='Jet',
-                  margin=dict(l=40, r=40, b=40, t=60),
+                  margin={'l': 40, 'r': 40, 'b': 40, 't': 60},
                   is_discrete_color=False,
                   **kwargs):
 
@@ -254,7 +274,6 @@ def get_animation_data(data_frame,
                        np.max(data_frame[host_y_key])])]
     z_range = [np.min(data_frame[z_key]),
                np.max(data_frame[z_key])]
-
     c_range = [np.min(data_frame[kwargs.get('c_key')]),
                np.max(data_frame[kwargs.get('c_key')])]
 
