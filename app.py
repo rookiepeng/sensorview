@@ -965,7 +965,8 @@ def update_heatmap(
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('config', 'data'),
-        State('vis-picker', 'value')
+        State('vis-picker', 'value'),
+        State('data-file', 'value'),
     ]
 )
 def export_scatter_3d(
@@ -979,7 +980,8 @@ def export_scatter_3d(
     categorical_key_values,
     numerical_key_values,
     ui_config,
-    vis_picker
+    vis_picker,
+    data_file
 ):
     if btn > 0:
         now = datetime.datetime.now()
@@ -1007,6 +1009,16 @@ def export_scatter_3d(
             vis_picker
         )
 
+        frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
+        frame_list = filtered_table[ui_config['slider']].unique()
+        img_list = []
+
+        for _, f_val in enumerate(frame_list):
+            img_idx = np.where(frame_idx == f_val)[0][0]
+            img_list.append(
+                './data/'+test_case+'/imgs/' +
+                data_file[0:-4]+'_'+str(img_idx)+'.jpg')
+
         fig = go.Figure(
             get_animation_data(
                 filtered_table,
@@ -1018,6 +1030,7 @@ def export_scatter_3d(
                 c_key=color_picker,
                 hover=keys_dict,
                 title=test_case,
+                image_dir=img_list,
                 height=750
             )
         )
