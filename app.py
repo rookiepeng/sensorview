@@ -56,51 +56,9 @@ import plotly.graph_objs as go
 
 from layout import get_app_layout
 
-from viz.viz import get_scatter3d_data, get_ref_scatter3d_data
-from viz.viz import get_scatter3d_layout
+from viz.viz import get_scatter3d
 from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
-
-
-def scatter3d_data(det_list,
-                   x,
-                   y,
-                   z,
-                   x_ref,
-                   y_ref,
-                   layout,
-                   keys_dict,
-                   name,
-                   linewidth=0,
-                   colormap='Jet',
-                   is_discrete_color=False,
-                   image=None):
-
-    return dict(
-        data=get_scatter3d_data(
-            det_list,
-            x,
-            y,
-            z,
-            layout['c_key'],
-            c_label=layout['c_label'],
-            linewidth=linewidth,
-            name=name,
-            hover=keys_dict,
-            c_range=layout['c_range'],
-            colormap=colormap,
-            is_discrete_color=is_discrete_color
-        )+[get_ref_scatter3d_data(
-            data_frame=det_list,
-            x_key=x_ref,
-            y_key=y_ref,
-        )],
-        layout=get_scatter3d_layout(
-            x_range=layout['x_range'],
-            y_range=layout['y_range'],
-            z_range=layout['z_range'],
-            image=image)
-    )
 
 
 def load_config(json_file):
@@ -582,7 +540,7 @@ def update_filter(
         vis_picker
     )
 
-    fig = scatter3d_data(
+    fig = get_scatter3d(
         filterd_frame,
         x_det,
         y_det,
