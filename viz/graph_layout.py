@@ -7,8 +7,6 @@ def get_scatter3d_layout(
     x_range,
     y_range,
     z_range=[-20, 20],
-    title=None,
-    template='plotly',
     **kwargs
 ):
     scale = np.min([x_range[1]-x_range[0], y_range[1] -
@@ -16,6 +14,8 @@ def get_scatter3d_layout(
 
     height = kwargs.get('height', 650)
     image = kwargs.get('image', None)
+    title = kwargs.get('title', None)
+    template = kwargs.get('template', 'plotly')
 
     if image is not None:
         img_dict = [dict(
