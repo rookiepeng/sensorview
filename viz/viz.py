@@ -47,14 +47,6 @@ def get_scatter3d(data_frame,
                   y_ref=None,
                   z_ref=None,
                   **kwargs):
-    c_label = kwargs.get('c_label', c_key)
-    c_range = kwargs.get('c_range', None)
-    linewidth = kwargs.get('linewidth', 0)
-    name = kwargs.get('name', None)
-    colormap = kwargs.get('colormap', 'Jet')
-    hover = kwargs.get('hover', None)
-    is_discrete_color = kwargs.get('is_discrete_color', False)
-    image = kwargs.get('image', None)
 
     ref_name = kwargs.get('ref_name', None)
 
