@@ -521,15 +521,6 @@ def update_filter(
         c_range = [0, 0]
         is_discrete_color = True
 
-    scatter3d_layout = dict(
-        x_range=x_range,
-        y_range=y_range,
-        z_range=z_range,
-        c_range=c_range,
-        c_key=c_key,
-        c_label=c_label,
-    )
-
     filterd_frame = filter_all(
         data,
         num_keys,
@@ -545,15 +536,22 @@ def update_filter(
         x_det,
         y_det,
         z_det,
-        x_host,
-        y_host,
-        scatter3d_layout,
-        keys_dict,
-        'Index: ' + str(slider_arg) + ' (' + slider_label+')',
+        c_key,
+        x_ref=x_host,
+        y_ref=y_host,
+        keys_dict=keys_dict,
+        name='Index: ' + str(slider_arg) + ' (' +
+        slider_label+': '+str(frame_idx[slider_arg])+')',
+        c_label=c_label,
         linewidth=linewidth,
         colormap=colormap,
         is_discrete_color=is_discrete_color,
-        image=source_encoded
+        image=source_encoded,
+        x_range=x_range,
+        y_range=y_range,
+        z_range=z_range,
+        c_range=c_range,
+        ref_name='Host Vehicle'
     )
 
     if (trigger_id == 'slider-frame') or \

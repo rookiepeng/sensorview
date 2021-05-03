@@ -23,6 +23,8 @@ def get_scatter3d_data(data_frame,
     if not is_discrete_color:
         color = data_frame[c_key]
         c_range = kwargs.get('c_range', [np.min(color), np.max(color)])
+        if c_range is None:
+            c_range = [np.min(color), np.max(color)]
 
         rows = len(data_frame.index)
         hover_str = np.full(rows, '', dtype=object)
