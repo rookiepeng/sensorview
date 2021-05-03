@@ -241,7 +241,7 @@ def get_animation_data(data_frame,
                        z_key,
                        host_x_key,
                        host_y_key,
-                       image_dir=None,
+                       img_list=None,
                        **kwargs):
 
     x_range = [np.min([np.min(data_frame[x_key]),
@@ -265,10 +265,10 @@ def get_animation_data(data_frame,
         filtered_list = data_frame[data_frame['Frame'] == frame_idx]
         filtered_list = filtered_list.reset_index()
 
-        if image_dir is not None:
+        if img_list is not None:
             try:
                 encoded_image = base64.b64encode(
-                    open(image_dir[idx], 'rb').read())
+                    open(img_list[idx], 'rb').read())
                 img = 'data:image/jpeg;base64,{}'.format(
                     encoded_image.decode())
             except FileNotFoundError:
@@ -312,9 +312,9 @@ def get_animation_data(data_frame,
         }
     ]
 
-    if image_dir is not None:
+    if img_list is not None:
         try:
-            encoded_image = base64.b64encode(open(image_dir[0], 'rb').read())
+            encoded_image = base64.b64encode(open(img_list[0], 'rb').read())
             img = 'data:image/jpeg;base64,{}'.format(
                 encoded_image.decode())
         except FileNotFoundError:

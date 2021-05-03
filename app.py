@@ -1030,7 +1030,7 @@ def export_scatter_3d(
                 c_key=color_picker,
                 hover=keys_dict,
                 title=test_case,
-                image_dir=img_list,
+                img_list=img_list,
                 height=750
             )
         )
