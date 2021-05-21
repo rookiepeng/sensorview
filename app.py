@@ -146,13 +146,22 @@ def test_case_refresh(n_clicks):
 def test_case_selection(test_case):
     if test_case is not None:
         data_files = []
-        obj = os.scandir('./data/'+test_case)
-        for entry in obj:
-            if entry.is_file():
-                if ('.pkl' in entry.name) or ('.csv' in entry.name):
+        case_dir = './data/'+test_case
+
+        for dirpath, dirnames, files in os.walk(case_dir):
+            for name in files:
+                if name.lower().endswith('.csv') or name.lower().endswith('.pkl'):
                     data_files.append({
-                        'label': entry.name,
-                        'value': entry.name})
+                        'label': os.path.join(dirpath[len(case_dir):], name),
+                        'value': {'path': dirpath[len(case_dir):], 'name': name}})
+
+        # obj = os.scandir('./data/'+test_case)
+        # for entry in obj:
+        #     if entry.is_file():
+        #         if ('.pkl' in entry.name) or ('.csv' in entry.name):
+        #             data_files.append({
+        #                 'label': entry.name,
+        #                 'value': entry.name})
 
         if os.path.exists('./data/'+test_case+'/config.json'):
             ui_config = load_config('./data/'+test_case+'/config.json')
@@ -239,12 +248,13 @@ def data_file_selection(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if trigger_id == 'data-file':
         if data_file_name is not None and test_case is not None:
-            if '.pkl' in data_file_name:
+            if '.pkl' in data_file_name['name']:
                 new_data = pd.read_pickle(
-                    './data/'+test_case+'/'+data_file_name)
+                    './data/'+test_case+data_file_name['path']+'/'+data_file_name['name'])
                 new_data = new_data.reset_index(drop=True)
-            elif '.csv' in data_file_name:
-                new_data = pd.read_csv('./data/'+test_case+'/'+data_file_name)
+            elif '.csv' in data_file_name['name']:
+                new_data = pd.read_csv(
+                    './data/'+test_case+data_file_name['path']+'/'+data_file_name['name'])
 
             vis_table = pd.DataFrame()
             vis_table['_IDS_'] = new_data.index
@@ -484,8 +494,8 @@ def update_filter(
         data = pickle.loads(redis_instance.get(
             "FRAME"+session_id+str(frame_idx[slider_arg])))
 
-        img = './data/'+test_case+'/imgs/' + \
-            data_file[0:-4]+'_'+str(slider_arg)+'.jpg'
+        img = './data/'+test_case+data_file['path']+'/imgs/' + \
+            data_file['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
