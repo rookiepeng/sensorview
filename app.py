@@ -153,7 +153,7 @@ def test_case_selection(test_case):
                 if name.lower().endswith('.csv') or name.lower().endswith('.pkl'):
                     data_files.append({
                         'label': os.path.join(dirpath[len(case_dir):], name),
-                        'value': {'path': dirpath[len(case_dir):], 'name': name}})
+                        'value': json.dumps({'path': dirpath[len(case_dir):], 'name': name})})
 
         # obj = os.scandir('./data/'+test_case)
         # for entry in obj:
@@ -248,13 +248,14 @@ def data_file_selection(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if trigger_id == 'data-file':
         if data_file_name is not None and test_case is not None:
-            if '.pkl' in data_file_name['name']:
+            data_file = json.loads(data_file_name)
+            if '.pkl' in data_file['name']:
                 new_data = pd.read_pickle(
-                    './data/'+test_case+data_file_name['path']+'/'+data_file_name['name'])
+                    './data/'+test_case+data_file['path']+'/'+data_file['name'])
                 new_data = new_data.reset_index(drop=True)
-            elif '.csv' in data_file_name['name']:
+            elif '.csv' in data_file['name']:
                 new_data = pd.read_csv(
-                    './data/'+test_case+data_file_name['path']+'/'+data_file_name['name'])
+                    './data/'+test_case+data_file['path']+'/'+data_file['name'])
 
             vis_table = pd.DataFrame()
             vis_table['_IDS_'] = new_data.index
@@ -494,8 +495,9 @@ def update_filter(
         data = pickle.loads(redis_instance.get(
             "FRAME"+session_id+str(frame_idx[slider_arg])))
 
-        img = './data/'+test_case+data_file['path']+'/imgs/' + \
-            data_file['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
+        data_name = json.loads(data_file)
+        img = './data/'+test_case+data_name['path']+'/imgs/' + \
+            data_name['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
