@@ -124,7 +124,7 @@ view3d_card = dbc.Card([
                 id='colormap-3d',
                 options=[{"value": x, "label": x}
                          for x in colorscales],
-                value='Jet',
+                value='Portland',
             ), width=2)
         ], justify="end"),
 
@@ -235,7 +235,7 @@ left2d_card = dbc.Card([
                 disabled=True,
                 options=[{"value": x, "label": x}
                          for x in colorscales],
-                value='Jet',
+                value='Portland',
                 # clearable=False,
             )),
         ]),
@@ -327,7 +327,7 @@ right2d_card = dbc.Card([
                 disabled=True,
                 options=[{"value": x, "label": x}
                          for x in colorscales],
-                value='Jet',
+                value='Portland',
                 # clearable=False,
             )),
         ]),
