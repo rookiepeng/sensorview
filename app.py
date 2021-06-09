@@ -1051,7 +1051,6 @@ def export_scatter_3d(
                 hover=keys_dict,
                 title=data_name['name'][0:-4],
                 c_label=keys_dict[color_picker]['description'],
-                c_range=c_range,
                 height=750
             )
         )
