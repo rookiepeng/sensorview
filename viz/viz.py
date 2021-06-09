@@ -376,6 +376,6 @@ def get_animation_data(data_frame,
     ]
     figure_layout['sliders'] = sliders
 
-    return dict(data=[ani_frames[0]['data'][0], ani_frames[0]['data'][1]],
+    return dict(data=ani_frames[0]['data'],
                 frames=ani_frames,
                 layout=figure_layout)
