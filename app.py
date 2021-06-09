@@ -1049,12 +1049,14 @@ def export_scatter_3d(
                 is_discrete_color=is_discrete_color,
                 colormap=colormap,
                 hover=keys_dict,
-                title=test_case,
+                title=data_name['name'][0:-4],
+                c_label=keys_dict[color_picker]['description'],
+                c_range=c_range,
                 height=750
             )
         )
 
-        fig.write_html('data/'+test_case+'/images/' +
+        fig.write_html('data/'+data_name['name'][0:-4]+'/images/' +
                        timestamp+'_3dview.html')
     return 0
 
