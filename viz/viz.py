@@ -356,12 +356,12 @@ def get_animation_data(data_frame,
             'buttons': [
                 {
                     'args': [None, frame_args(50)],
-                    'label': '&#9654;',  # play symbol
+                    'label': 'Play', #&#9654;',  # play symbol
                     'method': 'animate',
                 },
                 {
                     'args': [[None], frame_args(0)],
-                    'label': '&#9208;',  # pause symbol
+                    'label': 'Stop', #'&#9208;',  # pause symbol
                     'method': 'animate',
                 },
             ],

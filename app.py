@@ -155,14 +155,6 @@ def test_case_selection(test_case):
                         'label': os.path.join(dirpath[len(case_dir):], name),
                         'value': json.dumps({'path': dirpath[len(case_dir):], 'name': name})})
 
-        # obj = os.scandir('./data/'+test_case)
-        # for entry in obj:
-        #     if entry.is_file():
-        #         if ('.pkl' in entry.name) or ('.csv' in entry.name):
-        #             data_files.append({
-        #                 'label': entry.name,
-        #                 'value': entry.name})
-
         if os.path.exists('./data/'+test_case+'/config.json'):
             ui_config = load_config('./data/'+test_case+'/config.json')
         else:
@@ -972,6 +964,7 @@ def update_heatmap(
         State('session-id', 'data'),
         State('keys-dict', 'data'),
         State('color-picker-3d', 'value'),
+        State('colormap-3d', 'value'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -987,6 +980,7 @@ def export_scatter_3d(
     session_id,
     keys_dict,
     color_picker,
+    colormap,
     num_keys,
     cat_keys,
     categorical_key_values,
@@ -1025,11 +1019,22 @@ def export_scatter_3d(
         frame_list = filtered_table[ui_config['slider']].unique()
         img_list = []
 
+        data_name = json.loads(data_file)
         for _, f_val in enumerate(frame_list):
             img_idx = np.where(frame_idx == f_val)[0][0]
             img_list.append(
-                './data/'+test_case+'/imgs/' +
-                data_file[0:-4]+'_'+str(img_idx)+'.jpg')
+                './data/'+test_case+data_name['path']+'/imgs/' +
+                data_name['name'][0:-4]+'_'+str(img_idx)+'.jpg')
+
+        if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
+            c_range = [
+                numerical_key_values[num_keys.index(color_picker)][0],
+                numerical_key_values[num_keys.index(color_picker)][1]
+            ]
+            is_discrete_color = False
+        else:
+            c_range = [0, 0]
+            is_discrete_color = True
 
         fig = go.Figure(
             get_animation_data(
@@ -1039,10 +1044,12 @@ def export_scatter_3d(
                 z_key=z_det,
                 host_x_key=x_host,
                 host_y_key=y_host,
+                img_list=img_list,
                 c_key=color_picker,
+                is_discrete_color=is_discrete_color,
+                colormap=colormap,
                 hover=keys_dict,
                 title=test_case,
-                img_list=img_list,
                 height=750
             )
         )
