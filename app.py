@@ -274,12 +274,12 @@ def data_file_selection(
                 ex=EXPIRATION
             )
 
-            for _, f in enumerate(frame_idx):
+            grouped = new_data.groupby(ui_config['slider'])
+
+            for f, df_group in grouped:
                 redis_instance.set(
                     REDIS_KEYS["FRAME"]+session_id+str(f),
-                    pickle.dumps(new_data[
-                        new_data[ui_config['slider']] == f
-                    ]),
+                    pickle.dumps(df_group),
                     ex=EXPIRATION
                 )
 
