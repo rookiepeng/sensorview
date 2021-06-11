@@ -1,6 +1,6 @@
 """
 
-    Copyright (C) 2019 - 2021  Zhengyu Peng
+    Copyright (C) 2019 - PRESENT  Zhengyu Peng
     E-mail: zpeng.me@gmail.com
     Website: https://zpeng.me
 
@@ -1055,8 +1055,8 @@ def export_scatter_3d(
             )
         )
 
-        fig.write_html('data/'+data_name['name'][0:-4]+'/images/' +
-                       timestamp+'_3dview.html')
+        fig.write_html('data/'+test_case+'/images/' +
+                       timestamp+'_'+data_name['name'][0:-4]+'_3dview.html')
     return 0
 
 
