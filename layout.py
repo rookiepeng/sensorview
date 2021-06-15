@@ -180,7 +180,7 @@ view3d_card = dbc.Card([
                     ),
                 ],
                 label="Export",
-                direction="left",
+                right=True,
                 style={
                     "float": "right"
                 }
