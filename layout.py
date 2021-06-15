@@ -3,8 +3,6 @@ import dash_html_components as html
 
 import dash_bootstrap_components as dbc
 
-import dash_daq as daq
-
 import plotly.io as pio
 
 import uuid
@@ -110,7 +108,7 @@ filter_card = dbc.Card([
     dbc.CardBody([
         html.Div(id='dropdown-container', children=[]),
         html.Div(id='slider-container', children=[]),
-    ])
+    ], style={"overflow": "scroll", "height": "700px"})
 ], color="info", outline=True)
 
 view3d_card = dbc.Card([
