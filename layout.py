@@ -108,7 +108,7 @@ filter_card = dbc.Card([
     dbc.CardBody([
         html.Div(id='dropdown-container', children=[]),
         html.Div(id='slider-container', children=[]),
-    ], style={"overflow": "scroll", "height": "700px"})
+    ], style={"overflow": "scroll", "height": "600px"})
 ], color="info", outline=True)
 
 view3d_card = dbc.Card([
@@ -171,13 +171,20 @@ view3d_card = dbc.Card([
             )
         ]),
         html.Div([
-            dbc.Button(
-                'Export',
-                id='export-scatter3d',
-                n_clicks=0,
+            dbc.DropdownMenu(
+                [
+                    dbc.DropdownMenuItem(
+                        "Export all frames as an HTML video",
+                        id="export-scatter3d",
+                        n_clicks=0
+                    ),
+                ],
+                label="Export",
+                direction="left",
                 style={
                     "float": "right"
-                }),
+                }
+            ),
             html.Div(id='hidden-scatter3d',
                      style={'display': 'none'}),
         ]),
@@ -561,7 +568,7 @@ def get_app_layout(app):
         dbc.Row([
             dbc.Col(filter_card, width=3),
             dbc.Col(view3d_card, width=9)
-        ], className="mb-3"),
+        ], className="mb-3", align="center"),
 
         dbc.Row([
             dbc.Col(left2d_card, width=6),
@@ -571,5 +578,11 @@ def get_app_layout(app):
         dbc.Row([
                 dbc.Col(hist_card, width=6),
                 dbc.Col(heatmap_card, width=6),
-                ], className="mb-3")
+                ], className="mb-3"),
+
+        dcc.Markdown(
+            'Designed and developed by **Zhengyu Peng** \
+                | Powered by [Dash](https://plotly.com/dash/),\
+                    [Redis](https://redis.io/),\
+                        [Docker](https://www.docker.com/)'),
     ], fluid=True, style={'background-color': '#f9f8fc'})
