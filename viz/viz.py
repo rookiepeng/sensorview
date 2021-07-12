@@ -355,7 +355,7 @@ def get_animation_data(data_frame,
             'font': {'size': 10, 'color': '#455A64'},
             'buttons': [
                 {
-                    'args': [None, frame_args(50)],
+                    'args': [None, frame_args(5)],
                     'label': 'Play', #&#9654;',  # play symbol
                     'method': 'animate',
                 },
