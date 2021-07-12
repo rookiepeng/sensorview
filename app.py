@@ -148,7 +148,10 @@ def test_case_selection(test_case):
         data_files = []
         case_dir = './data/'+test_case
 
+        skip = ['imgs', 'images']
+
         for dirpath, dirnames, files in os.walk(case_dir):
+            dirnames[:] = [d for d in dirnames if d not in skip]
             for name in files:
                 if name.lower().endswith('.csv') or name.lower().endswith('.pkl'):
                     data_files.append({
