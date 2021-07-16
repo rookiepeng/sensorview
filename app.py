@@ -29,9 +29,7 @@
 
 
 import datetime
-from logging import disable
 
-import redis
 import pickle
 
 from filter import filter_all
@@ -53,12 +51,13 @@ import pandas as pd
 import os
 import plotly.graph_objs as go
 
-
 from layout import get_app_layout
 
 from viz.viz import get_scatter3d
 from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
+
+from tasks import celery_filtering_data, redis_instance
 
 
 def load_config(json_file):
@@ -78,8 +77,6 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'RadarViz'
 
-redis_instance = redis.StrictRedis.from_url(
-    os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
 REDIS_KEYS = {"DATASET": "DATASET",
@@ -466,6 +463,10 @@ def update_filter(
     vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
     frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
 
+    temp = redis_instance.get('ID')
+    if temp is not None:
+        print(pickle.loads(redis_instance.get('ID')))
+
     if trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
         if vis_table['_VIS_'][
@@ -507,16 +508,17 @@ def update_filter(
         linewidth = 0
 
     x_range = [
-        np.min([numerical_key_values[num_keys.index(x_det)][0],
-                numerical_key_values[num_keys.index(x_host)][0]]),
-        np.max([numerical_key_values[num_keys.index(x_det)][1],
-                numerical_key_values[num_keys.index(x_host)][1]])]
+        float(np.min([numerical_key_values[num_keys.index(x_det)][0],
+                      numerical_key_values[num_keys.index(x_host)][0]])),
+        float(np.max([numerical_key_values[num_keys.index(x_det)][1],
+                      numerical_key_values[num_keys.index(x_host)][1]]))]
     y_range = [
-        np.min([numerical_key_values[num_keys.index(y_det)][0],
-                numerical_key_values[num_keys.index(y_host)][0]]),
-        np.max([numerical_key_values[num_keys.index(y_det)][1],
-                numerical_key_values[num_keys.index(y_host)][1]])]
-    z_range = numerical_key_values[num_keys.index(z_det)]
+        float(np.min([numerical_key_values[num_keys.index(y_det)][0],
+                      numerical_key_values[num_keys.index(y_host)][0]])),
+        float(np.max([numerical_key_values[num_keys.index(y_det)][1],
+                      numerical_key_values[num_keys.index(y_host)][1]]))]
+    z_range = [float(numerical_key_values[num_keys.index(z_det)][0]), float(
+        numerical_key_values[num_keys.index(z_det)][1])]
 
     if keys_dict[c_key].get('type', 'numerical') == 'numerical':
         c_range = [
@@ -527,6 +529,28 @@ def update_filter(
     else:
         c_range = [0, 0]
         is_discrete_color = True
+
+    celery_filtering_data.apply_async(
+        args=[session_id,
+              test_case,
+              data_name,
+              num_keys,
+              numerical_key_values,
+              cat_keys,
+              categorical_key_values,
+              vis_picker,
+              keys_dict,
+              c_key,
+              ui_config,
+              linewidth,
+              c_label,
+              slider_label,
+              colormap,
+              is_discrete_color,
+              x_range,
+              y_range,
+              z_range,
+              c_range], serializer='json')
 
     filterd_frame = filter_all(
         data,
