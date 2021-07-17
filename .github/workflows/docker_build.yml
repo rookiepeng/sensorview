@@ -25,14 +25,14 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Docker build
-        run: docker build -t sensorview -f Dockerfile .
+        run: docker build -t radarviz -f Dockerfile .
       
       - name: Save docker image
-        run: docker save sensorview > sensorview.tar
+        run: docker save radarviz > radarviz.tar
 
       - name: Archive built module
         uses: actions/upload-artifact@v2
         if: success()
         with:
-          name: sensorview
-          path: ./sensorview.tar
+          name: radarviz
+          path: ./radarviz.tar
