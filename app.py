@@ -1267,7 +1267,7 @@ def left_hide_button(
 
 @app.callback(
     Output('buffer', 'value'),
-    [Input('buffer-interval', 'interval')],
+    Input('buffer-interval', 'n_intervals'),
     [
         State('slider-frame', 'max'),
         State('session-id', 'data'),
