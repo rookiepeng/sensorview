@@ -147,18 +147,33 @@ view3d_card = dbc.Card([
                            }
             },
         ),
-        dbc.Row([
 
+        dbc.Row([
+            dcc.Interval(
+                id='buffer-interval',
+                interval=1000,  # in milliseconds
+                disabled=False,
+                n_intervals=0
+            ),
             dbc.Col(
-                dcc.Slider(
-                    id='slider-frame',
-                    step=1,
-                    value=0,
-                    updatemode='drag',
-                    tooltip={'always_visible': False,
-                             'placement': 'top'}
-                ), width=12)
-        ], style={'margin-top': 5, 'margin-bottom': -15}),
+                dbc.Progress(id='buffer',
+                             value=0,
+                             color="danger",
+                             style={"height": "1px",
+                                    'margin-top': 0,
+                                    'margin-bottom': 5,
+                                    'margin-left': 25,
+                                    'margin-right': 25},
+                             className="mb-3"), width=12),
+            dbc.Col(dcc.Slider(
+                id='slider-frame',
+                step=1,
+                value=0,
+                updatemode='drag',
+                tooltip={'always_visible': False,
+                         'placement': 'top'}
+            ), width=12),
+        ], style={'margin-top': 0, 'margin-bottom': -15}),
         dbc.Row([
             dcc.Interval(
                 id='interval-component',
