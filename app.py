@@ -54,7 +54,7 @@ from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
 from tasks import filter_all
-from tasks import celery_filtering_data, redis_instance, celery_app, EXPIRATION
+from tasks import celery_filtering_data, redis_instance, EXPIRATION
 
 
 def load_config(json_file):
@@ -136,61 +136,64 @@ def test_case_refresh(n_clicks):
 ] + dropdown_options + dropdown_values,
     [Input('test-case', 'value')])
 def test_case_selection(test_case):
-    if test_case is not None:
-        data_files = []
-        case_dir = './data/'+test_case
 
-        skip = ['imgs', 'images']
-
-        for dirpath, dirnames, files in os.walk(case_dir):
-            dirnames[:] = [d for d in dirnames if d not in skip]
-            for name in files:
-                if name.lower().endswith('.csv') or name.lower().endswith('.pkl'):
-                    data_files.append({
-                        'label': os.path.join(dirpath[len(case_dir):], name),
-                        'value': json.dumps({'path': dirpath[len(case_dir):], 'name': name})})
-
-        if os.path.exists('./data/'+test_case+'/config.json'):
-            ui_config = load_config('./data/'+test_case+'/config.json')
-        else:
-            ui_config = load_config('config.json')
-
-        keys_dict = ui_config['keys']
-
-        num_keys = []
-        cat_keys = []
-        for _, s_item in enumerate(keys_dict):
-            if keys_dict[s_item].get('type', 'numerical') == 'numerical':
-                num_keys.append(s_item)
-            else:
-                cat_keys.append(s_item)
-
-        options = [[{
-            'label': keys_dict[f_item].get('description', f_item),
-            'value': f_item}
-            for _, f_item in enumerate(keys_dict)
-        ]]*len(dropdown_options)
-
-        return [
-            data_files[0]['value'],
-            data_files,
-            ui_config,
-            keys_dict,
-            num_keys,
-            cat_keys]+options+[
-            ui_config.get('c_3d', num_keys[2]),
-            ui_config.get('x_2d_l', num_keys[0]),
-            ui_config.get('y_2d_l', num_keys[1]),
-            ui_config.get('c_2d_l', num_keys[2]),
-            ui_config.get('x_2d_r', num_keys[0]),
-            ui_config.get('y_2d_r', num_keys[1]),
-            ui_config.get('c_2d_r', num_keys[2]),
-            ui_config.get('x_hist', num_keys[0]),
-            ui_config.get('x_heatmap', num_keys[0]),
-            ui_config.get('y_heatmap', num_keys[1]),
-        ]
-    else:
+    if test_case is None:
         raise PreventUpdate
+
+    data_files = []
+    case_dir = './data/'+test_case
+
+    skip = ['imgs', 'images']
+
+    for dirpath, dirnames, files in os.walk(case_dir):
+        dirnames[:] = [d for d in dirnames if d not in skip]
+        for name in files:
+            if name.lower().endswith('.csv') or name.lower().endswith('.pkl'):
+                data_files.append({
+                    'label': os.path.join(dirpath[len(case_dir):], name),
+                    'value': json.dumps({
+                        'path': dirpath[len(case_dir):],
+                        'name': name})})
+
+    if os.path.exists('./data/'+test_case+'/config.json'):
+        ui_config = load_config('./data/'+test_case+'/config.json')
+    else:
+        ui_config = load_config('config.json')
+
+    keys_dict = ui_config['keys']
+
+    num_keys = []
+    cat_keys = []
+    for _, s_item in enumerate(keys_dict):
+        if keys_dict[s_item].get('type', 'numerical') == 'numerical':
+            num_keys.append(s_item)
+        else:
+            cat_keys.append(s_item)
+
+    options = [[{
+        'label': keys_dict[f_item].get('description', f_item),
+        'value': f_item}
+        for _, f_item in enumerate(keys_dict)
+    ]]*len(dropdown_options)
+
+    return [
+        data_files[0]['value'],
+        data_files,
+        ui_config,
+        keys_dict,
+        num_keys,
+        cat_keys]+options+[
+        ui_config.get('c_3d', num_keys[2]),
+        ui_config.get('x_2d_l', num_keys[0]),
+        ui_config.get('y_2d_l', num_keys[1]),
+        ui_config.get('c_2d_l', num_keys[2]),
+        ui_config.get('x_2d_r', num_keys[0]),
+        ui_config.get('y_2d_r', num_keys[1]),
+        ui_config.get('c_2d_r', num_keys[2]),
+        ui_config.get('x_hist', num_keys[0]),
+        ui_config.get('x_heatmap', num_keys[0]),
+        ui_config.get('y_heatmap', num_keys[1]),
+    ]
 
 
 @ app.callback(
@@ -240,11 +243,13 @@ def data_file_selection(
             data_file = json.loads(data_file_name)
             if '.pkl' in data_file['name']:
                 new_data = pd.read_pickle(
-                    './data/'+test_case+data_file['path']+'/'+data_file['name'])
+                    './data/'+test_case +
+                    data_file['path']+'/'+data_file['name'])
                 new_data = new_data.reset_index(drop=True)
             elif '.csv' in data_file['name']:
                 new_data = pd.read_csv(
-                    './data/'+test_case+data_file['path']+'/'+data_file['name'])
+                    './data/'+test_case +
+                    data_file['path']+'/'+data_file['name'])
 
             vis_table = pd.DataFrame()
             vis_table['_IDS_'] = new_data.index
