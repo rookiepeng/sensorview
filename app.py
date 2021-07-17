@@ -34,6 +34,8 @@ import pickle
 
 from filter import filter_all
 
+# from celery.task.control import revoke
+
 import json
 import os
 
@@ -57,7 +59,7 @@ from viz.viz import get_scatter3d
 from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
-from tasks import celery_filtering_data, redis_instance
+from tasks import celery_filtering_data, redis_instance, celery_app
 
 
 def load_config(json_file):
@@ -447,6 +449,17 @@ def update_filter(
                 (click_data['points'][0]['curveNumber'] != 0)):
         raise PreventUpdate
 
+    if (trigger_id == 'slider-frame'):
+        fig_idx_redis = redis_instance.get(
+                'FIGIDX'+session_id)
+        if fig_idx_redis is not None:
+            fig_idx = pickle.loads(fig_idx_redis)
+            if slider_arg<=fig_idx:
+                # print("from pre-processed data")
+                return [pickle.loads(redis_instance.get(
+                'FIG'+session_id+str(slider_arg))), dash.no_update]
+
+
     c_key = color_picker
     c_label = keys_dict[color_picker]['description']
 
@@ -462,10 +475,6 @@ def update_filter(
 
     vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
     frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
-
-    temp = redis_instance.get('ID')
-    if temp is not None:
-        print(pickle.loads(redis_instance.get('ID')))
 
     if trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
@@ -530,27 +539,28 @@ def update_filter(
         c_range = [0, 0]
         is_discrete_color = True
 
-    celery_filtering_data.apply_async(
-        args=[session_id,
-              test_case,
-              data_name,
-              num_keys,
-              numerical_key_values,
-              cat_keys,
-              categorical_key_values,
-              vis_picker,
-              keys_dict,
-              c_key,
-              ui_config,
-              linewidth,
-              c_label,
-              slider_label,
-              colormap,
-              is_discrete_color,
-              x_range,
-              y_range,
-              z_range,
-              c_range], serializer='json')
+    if trigger_id != 'slider-frame':
+        celery_filtering_data.apply_async(
+            args=[session_id,
+                test_case,
+                data_name,
+                num_keys,
+                numerical_key_values,
+                cat_keys,
+                categorical_key_values,
+                vis_picker,
+                keys_dict,
+                c_key,
+                ui_config,
+                linewidth,
+                c_label,
+                slider_label,
+                colormap,
+                is_discrete_color,
+                x_range,
+                y_range,
+                z_range,
+                c_range], serializer='json')
 
     filterd_frame = filter_all(
         data,

@@ -1,4 +1,4 @@
-FROM python:slim
+FROM python:3.8-slim
 
 # Create a working directory.
 WORKDIR /usr/src/app
@@ -12,6 +12,8 @@ COPY . ./
 
 ENV REDIS_URL redis://redis:6379
 
+RUN chmod +x ./start.sh
+
 # Finally, run gunicorn.
-CMD ["gunicorn", "--timeout=600", "--workers=5", "--threads=2", "-b 0.0.0.0:8000", "app:server"]
+CMD ["./start.sh"]
 # CMD [ "python", "app.py"]
