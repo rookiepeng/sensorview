@@ -29,12 +29,7 @@
 
 
 import datetime
-
 import pickle
-
-from filter import filter_all
-
-# from celery.task.control import revoke
 
 import json
 import os
@@ -43,7 +38,6 @@ import dash
 from dash.dependencies import Input, Output, State, MATCH, ALL
 from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
-
 import dash_bootstrap_components as dbc
 
 import base64
@@ -59,7 +53,8 @@ from viz.viz import get_scatter3d
 from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
-from tasks import celery_filtering_data, redis_instance, celery_app
+from tasks import filter_all
+from tasks import celery_filtering_data, redis_instance, celery_app, EXPIRATION
 
 
 def load_config(json_file):
@@ -79,13 +74,11 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'RadarViz'
 
-
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
 REDIS_KEYS = {"DATASET": "DATASET",
               "FRAME_IDX": "FRAME_IDX",
               "FRAME": "FRAME",
               "VIS": "VIS"}
-EXPIRATION = 172800  # a week in seconds
 
 app.layout = get_app_layout(app)
 
@@ -1262,5 +1255,4 @@ def left_hide_button(
 
 
 if __name__ == '__main__':
-
     app.run_server(debug=True, threaded=True, processes=1, host='0.0.0.0')
