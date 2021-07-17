@@ -1282,7 +1282,7 @@ def update_buffer_indicator(
         'FIGIDX'+session_id)
     if fig_idx_redis is not None:
         fig_idx = pickle.loads(fig_idx_redis)
-        return fig_idx/max_frame
+        return fig_idx/max_frame*100
     else:
         return 0
 
