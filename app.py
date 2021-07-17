@@ -1265,5 +1265,27 @@ def left_hide_button(
         raise PreventUpdate
 
 
+@app.callback(
+    Output('buffer', 'value'),
+    [Input('buffer-interval', 'interval')],
+    [
+        State('slider-frame', 'max'),
+        State('session-id', 'data'),
+    ]
+)
+def update_buffer_indicator(
+    interval,
+    max_frame,
+    session_id
+):
+    fig_idx_redis = redis_instance.get(
+        'FIGIDX'+session_id)
+    if fig_idx_redis is not None:
+        fig_idx = pickle.loads(fig_idx_redis)
+        return fig_idx/max_frame
+    else:
+        return 0
+
+
 if __name__ == '__main__':
     app.run_server(debug=True, threaded=True, processes=1, host='0.0.0.0')
