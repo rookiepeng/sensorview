@@ -148,28 +148,34 @@ view3d_card = dbc.Card([
             },
         ),
         dbc.Row([
-            dbc.Col(
-                dbc.ButtonGroup(
-                    [dbc.Button(
-                        '<<',
-                        id='left-frame',
-                        n_clicks=0),
-                     dbc.Button(
-                        '>>',
-                        id='right-frame',
-                        n_clicks=0)
-                     ]), width=1),
+            
             dbc.Col(
                 dcc.Slider(
                     id='slider-frame',
                     step=1,
                     value=0,
                     updatemode='drag',
-                    tooltip={'always_visible': True,
-                             'placement': 'bottom'}
-                )
-            )
-        ]),
+                    tooltip={'always_visible': False,
+                             'placement': 'top'}
+                ), width=12)
+        ],style={'margin-top': 5, 'margin-bottom': -15}),
+        dbc.Row([
+        dbc.Col(
+                dbc.ButtonGroup(
+                    [dbc.Button(
+                        '<<',
+                        id='left-frame',
+                        n_clicks=0),
+                    dbc.Button(
+                        '▶',
+                        id='play-stop',
+                        n_clicks=0),
+                     dbc.Button(
+                        '>>',
+                        id='right-frame',
+                        n_clicks=0)
+                     ]), width=2),
+        ],justify="center"),
         html.Div([
             dbc.DropdownMenu(
                 [
