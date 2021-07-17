@@ -151,14 +151,14 @@ view3d_card = dbc.Card([
         dbc.Row([
             dcc.Interval(
                 id='buffer-interval',
-                interval=1000,  # in milliseconds
+                interval=2000,  # in milliseconds
                 disabled=False,
                 n_intervals=0
             ),
             dbc.Col(
                 dbc.Progress(id='buffer',
                              value=0,
-                             color="danger",
+                             color="success",
                              style={"height": "1px",
                                     'margin-top': 0,
                                     'margin-bottom': 5,
