@@ -212,6 +212,7 @@ def test_case_selection(test_case):
         Input('data-file', 'value'),
         Input('left-frame', 'n_clicks'),
         Input('right-frame', 'n_clicks'),
+        Input('interval-component', 'n_intervals')
     ],
     [
         State('test-case', 'value'),
@@ -228,6 +229,7 @@ def data_file_selection(
         data_file_name,
         left_btn,
         right_btn,
+        interval,
         test_case,
         keys_dict,
         ui_config,
@@ -358,6 +360,14 @@ def data_file_selection(
                     dash.no_update, dash.no_update]
         else:
             raise PreventUpdate
+    elif trigger_id == 'interval-component':
+        if interval > 0:
+            # print(interval)
+            return [(slider_var+1) % (slider_max+1),
+                    dash.no_update, dash.no_update,
+                    dash.no_update, dash.no_update]
+        else:
+            raise PreventUpdate
 
 
 @ app.callback(
@@ -376,6 +386,26 @@ def reset_switch_state(
         return [[], [], [], []]
     else:
         raise PreventUpdate
+
+
+@ app.callback(
+    Output('interval-component', 'disabled'),
+    [Input('play', 'n_clicks'),
+     Input('stop', 'n_clicks')])
+def play_clicked(
+        play_clicks,
+        stop_clicks):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if trigger_id == 'play':
+        if play_clicks > 0:
+            return False
+    else:
+        if stop_clicks > 0:
+            return True
+
+    raise PreventUpdate
 
 
 @ app.callback(
@@ -451,14 +481,13 @@ def update_filter(
 
     if (trigger_id == 'slider-frame'):
         fig_idx_redis = redis_instance.get(
-                'FIGIDX'+session_id)
+            'FIGIDX'+session_id)
         if fig_idx_redis is not None:
             fig_idx = pickle.loads(fig_idx_redis)
-            if slider_arg<=fig_idx:
+            if slider_arg <= fig_idx:
                 # print("from pre-processed data")
                 return [pickle.loads(redis_instance.get(
-                'FIG'+session_id+str(slider_arg))), dash.no_update]
-
+                    'FIG'+session_id+str(slider_arg))), dash.no_update]
 
     c_key = color_picker
     c_label = keys_dict[color_picker]['description']
@@ -542,25 +571,25 @@ def update_filter(
     if trigger_id != 'slider-frame':
         celery_filtering_data.apply_async(
             args=[session_id,
-                test_case,
-                data_name,
-                num_keys,
-                numerical_key_values,
-                cat_keys,
-                categorical_key_values,
-                vis_picker,
-                keys_dict,
-                c_key,
-                ui_config,
-                linewidth,
-                c_label,
-                slider_label,
-                colormap,
-                is_discrete_color,
-                x_range,
-                y_range,
-                z_range,
-                c_range], serializer='json')
+                  test_case,
+                  data_name,
+                  num_keys,
+                  numerical_key_values,
+                  cat_keys,
+                  categorical_key_values,
+                  vis_picker,
+                  keys_dict,
+                  c_key,
+                  ui_config,
+                  linewidth,
+                  c_label,
+                  slider_label,
+                  colormap,
+                  is_discrete_color,
+                  x_range,
+                  y_range,
+                  z_range,
+                  c_range], serializer='json')
 
     filterd_frame = filter_all(
         data,
