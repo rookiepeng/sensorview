@@ -236,136 +236,142 @@ def data_file_selection(
         slider_max,
         slider_var
 ):
+    if data_file_name is None:
+        raise PreventUpdate
+
+    if test_case is None:
+        raise PreventUpdate
+
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
     if trigger_id == 'data-file':
-        if data_file_name is not None and test_case is not None:
-            data_file = json.loads(data_file_name)
-            if '.pkl' in data_file['name']:
-                new_data = pd.read_pickle(
-                    './data/'+test_case +
-                    data_file['path']+'/'+data_file['name'])
-                new_data = new_data.reset_index(drop=True)
-            elif '.csv' in data_file['name']:
-                new_data = pd.read_csv(
-                    './data/'+test_case +
-                    data_file['path']+'/'+data_file['name'])
+        data_file = json.loads(data_file_name)
+        if '.pkl' in data_file['name']:
+            new_data = pd.read_pickle(
+                './data/'+test_case +
+                data_file['path']+'/'+data_file['name'])
+            new_data = new_data.reset_index(drop=True)
+        elif '.csv' in data_file['name']:
+            new_data = pd.read_csv(
+                './data/'+test_case +
+                data_file['path']+'/'+data_file['name'])
 
-            vis_table = pd.DataFrame()
-            vis_table['_IDS_'] = new_data.index
-            vis_table['_VIS_'] = 'visible'
+        vis_table = pd.DataFrame()
+        vis_table['_IDS_'] = new_data.index
+        vis_table['_VIS_'] = 'visible'
 
+        redis_instance.set(
+            REDIS_KEYS["DATASET"]+session_id,
+            pickle.dumps(new_data),
+            ex=EXPIRATION
+        )
+
+        redis_instance.set(
+            REDIS_KEYS["VIS"]+session_id,
+            pickle.dumps(vis_table),
+            ex=EXPIRATION
+        )
+
+        frame_idx = new_data[ui_config['slider']].unique()
+        frame_idx = np.sort(frame_idx)
+
+        redis_instance.set(
+            REDIS_KEYS["FRAME_IDX"]+session_id,
+            pickle.dumps(frame_idx),
+            ex=EXPIRATION
+        )
+
+        grouped = new_data.groupby(ui_config['slider'])
+
+        for f, df_group in grouped:
             redis_instance.set(
-                REDIS_KEYS["DATASET"]+session_id,
-                pickle.dumps(new_data),
+                REDIS_KEYS["FRAME"]+session_id+str(f),
+                pickle.dumps(df_group),
                 ex=EXPIRATION
             )
 
-            redis_instance.set(
-                REDIS_KEYS["VIS"]+session_id,
-                pickle.dumps(vis_table),
-                ex=EXPIRATION
+        output = [0, 0, len(frame_idx)-1]
+
+        cat_values = []
+        new_dropdown = []
+
+        for idx, d_item in enumerate(cat_keys):
+            var_list = new_data[d_item].unique()
+            value_list = var_list
+
+            new_dropdown.append(
+                dbc.Label(
+                    keys_dict[d_item]['description']
+                )
             )
-
-            frame_idx = new_data[ui_config['slider']].unique()
-            frame_idx = np.sort(frame_idx)
-
-            redis_instance.set(
-                REDIS_KEYS["FRAME_IDX"]+session_id,
-                pickle.dumps(frame_idx),
-                ex=EXPIRATION
-            )
-
-            grouped = new_data.groupby(ui_config['slider'])
-
-            for f, df_group in grouped:
-                redis_instance.set(
-                    REDIS_KEYS["FRAME"]+session_id+str(f),
-                    pickle.dumps(df_group),
-                    ex=EXPIRATION
-                )
-
-            output = [0, 0, len(frame_idx)-1]
-
-            cat_values = []
-            new_dropdown = []
-
-            for idx, d_item in enumerate(cat_keys):
-                var_list = new_data[d_item].unique()
-                value_list = var_list
-
-                new_dropdown.append(
-                    dbc.Label(
-                        keys_dict[d_item]['description']
-                    )
-                )
-                new_dropdown.append(
-                    dcc.Dropdown(
-                        id={
-                            'type': 'filter-dropdown',
-                            'index': idx
-                        },
-                        options=[{'label': i, 'value': i}
-                                 for i in var_list],
-                        value=value_list,
-                        multi=True
-                    ))
-
-                cat_values.append(value_list)
-
-            num_values = []
-            new_slider = []
-            for idx, s_item in enumerate(num_keys):
-                var_min = np.floor(np.min(new_data[s_item]))
-                var_max = np.ceil(np.max(new_data[s_item]))
-
-                new_slider.append(
-                    dbc.Label(
-                        keys_dict[s_item]['description']
-                    )
-                )
-                new_slider.append(dcc.RangeSlider(
+            new_dropdown.append(
+                dcc.Dropdown(
                     id={
-                        'type': 'filter-slider',
+                        'type': 'filter-dropdown',
                         'index': idx
                     },
-                    min=var_min,
-                    max=var_max,
-                    step=round((var_max-var_min)/100, 3),
-                    value=[var_min, var_max],
-                    tooltip={'always_visible': False}
+                    options=[{'label': i, 'value': i}
+                             for i in var_list],
+                    value=value_list,
+                    multi=True
                 ))
 
-                num_values.append([var_min, var_max])
+            cat_values.append(value_list)
 
-            output.append(new_dropdown)
-            output.append(new_slider)
+        num_values = []
+        new_slider = []
+        for idx, s_item in enumerate(num_keys):
+            var_min = np.floor(np.min(new_data[s_item]))
+            var_max = np.ceil(np.max(new_data[s_item]))
 
-            return output
-        else:
-            raise PreventUpdate
+            new_slider.append(
+                dbc.Label(
+                    keys_dict[s_item]['description']
+                )
+            )
+            new_slider.append(dcc.RangeSlider(
+                id={
+                    'type': 'filter-slider',
+                    'index': idx
+                },
+                min=var_min,
+                max=var_max,
+                step=round((var_max-var_min)/100, 3),
+                value=[var_min, var_max],
+                tooltip={'always_visible': False}
+            ))
+
+            num_values.append([var_min, var_max])
+
+        output.append(new_dropdown)
+        output.append(new_slider)
+
+        return output
+
     elif trigger_id == 'left-frame':
-        if left_btn > 0 and slider_var > slider_min:
-            return [slider_var-1,
-                    dash.no_update, dash.no_update,
-                    dash.no_update, dash.no_update]
-        else:
+        if left_btn == 0:
             raise PreventUpdate
+
+        return [(slider_var-1) % (slider_max+1),
+                dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update]
+
     elif trigger_id == 'right-frame':
-        if right_btn > 0 and slider_var < slider_max:
-            return [slider_var+1,
-                    dash.no_update, dash.no_update,
-                    dash.no_update, dash.no_update]
-        else:
+        if right_btn == 0:
             raise PreventUpdate
+
+        return [(slider_var+1) % (slider_max+1),
+                dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update]
+
     elif trigger_id == 'interval-component':
-        if interval > 0:
-            # print(interval)
-            return [(slider_var+1) % (slider_max+1),
-                    dash.no_update, dash.no_update,
-                    dash.no_update, dash.no_update]
-        else:
+        if interval == 0:
             raise PreventUpdate
+
+        return [(slider_var+1) % (slider_max+1),
+                dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update]
 
 
 @ app.callback(
