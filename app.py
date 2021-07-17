@@ -203,12 +203,15 @@ def test_case_selection(test_case):
         Output('slider-frame', 'max'),
         Output('dropdown-container', 'children'),
         Output('slider-container', 'children'),
+        Output('interval-component', 'disabled'),
     ],
     [
         Input('data-file', 'value'),
         Input('left-frame', 'n_clicks'),
         Input('right-frame', 'n_clicks'),
-        Input('interval-component', 'n_intervals')
+        Input('interval-component', 'n_intervals'),
+        Input('play', 'n_clicks'),
+        Input('stop', 'n_clicks'),
     ],
     [
         State('test-case', 'value'),
@@ -226,6 +229,8 @@ def data_file_selection(
         left_btn,
         right_btn,
         interval,
+        play_clicks,
+        stop_clicks,
         test_case,
         keys_dict,
         ui_config,
@@ -346,6 +351,7 @@ def data_file_selection(
 
         output.append(new_dropdown)
         output.append(new_slider)
+        output.append(dash.no_update)
 
         return output
 
@@ -355,7 +361,8 @@ def data_file_selection(
 
         return [(slider_var-1) % (slider_max+1),
                 dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update]
+                dash.no_update, dash.no_update,
+                dash.no_update]
 
     elif trigger_id == 'right-frame':
         if right_btn == 0:
@@ -363,15 +370,42 @@ def data_file_selection(
 
         return [(slider_var+1) % (slider_max+1),
                 dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update]
+                dash.no_update, dash.no_update,
+                dash.no_update]
 
     elif trigger_id == 'interval-component':
         if interval == 0:
             raise PreventUpdate
 
-        return [(slider_var+1) % (slider_max+1),
+        if slider_var == slider_max:
+            return [dash.no_update,
                 dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update]
+                dash.no_update, dash.no_update,
+                True]
+
+        else:
+            return [(slider_var+1) % (slider_max+1),
+                    dash.no_update, dash.no_update,
+                    dash.no_update, dash.no_update,
+                    dash.no_update]
+
+    elif trigger_id == 'play':
+        if play_clicks == 0:
+            raise PreventUpdate
+       
+        return [dash.no_update,
+            dash.no_update, dash.no_update,
+            dash.no_update, dash.no_update,
+            False]
+
+    elif trigger_id == 'stop':
+        if stop_clicks == 0:
+            raise PreventUpdate
+
+        return [dash.no_update,
+            dash.no_update, dash.no_update,
+            dash.no_update, dash.no_update,
+            True]
 
 
 @ app.callback(
@@ -392,24 +426,24 @@ def reset_switch_state(
         raise PreventUpdate
 
 
-@ app.callback(
-    Output('interval-component', 'disabled'),
-    [Input('play', 'n_clicks'),
-     Input('stop', 'n_clicks')])
-def play_clicked(
-        play_clicks,
-        stop_clicks):
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+# @ app.callback(
+#     Output('interval-component', 'disabled'),
+#     [Input('play', 'n_clicks'),
+#      Input('stop', 'n_clicks')])
+# def play_clicked(
+#         play_clicks,
+#         stop_clicks):
+#     ctx = dash.callback_context
+#     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    if trigger_id == 'play':
-        if play_clicks > 0:
-            return False
-    else:
-        if stop_clicks > 0:
-            return True
+#     if trigger_id == 'play':
+#         if play_clicks > 0:
+#             return False
+#     else:
+#         if stop_clicks > 0:
+#             return True
 
-    raise PreventUpdate
+#     raise PreventUpdate
 
 
 @ app.callback(
