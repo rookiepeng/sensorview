@@ -100,7 +100,7 @@ def get_scatter3d_data(data_frame,
             )]
     else:
         fig_data = []
-        color_list = pd.unique(data_frame[c_key]).sort()
+        color_list = pd.unique(data_frame[c_key])
 
         for c_item in color_list:
             new_list = data_frame[data_frame[c_key] == c_item]
