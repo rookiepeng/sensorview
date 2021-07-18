@@ -1235,14 +1235,15 @@ def export_heatmap(btn, fig, test_case):
 
 @app.callback(
     Output('selected-data-left', 'data'),
-    [Input('scatter2d-left', 'selectedData')])
+    Input('scatter2d-left', 'selectedData')
+)
 def select_left_figure(selectedData):
     return selectedData
 
 
 @app.callback(
     Output('left-hide-trigger', 'data'),
-    [Input('hide-left', 'n_clicks')],
+    Input('hide-left', 'n_clicks'),
     [
         State('selected-data-left', 'data'),
         State('left-hide-trigger', 'data'),
@@ -1255,29 +1256,31 @@ def left_hide_button(
     trigger_idx,
     session_id
 ):
-    if btn > 0 and selectedData is not None:
-        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
-
-        s_data = pd.DataFrame(selectedData['points'])
-        idx = s_data['id']
-        idx.index = idx
-
-        vis_idx = idx[vis_table['_VIS_'][idx] == 'visible']
-        hid_idx = idx[vis_table['_VIS_'][idx] == 'hidden']
-
-        vis_table.loc[vis_idx, '_VIS_'] = 'hidden'
-        vis_table.loc[hid_idx, '_VIS_'] = 'visible'
-
-        redis_instance.set(
-            REDIS_KEYS["VIS"]+session_id,
-            pickle.dumps(vis_table),
-            ex=EXPIRATION
-        )
-
-        return trigger_idx+1
-
-    else:
+    if btn == 0:
         raise PreventUpdate
+
+    if selectedData is None:
+        raise PreventUpdate
+
+    vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+
+    s_data = pd.DataFrame(selectedData['points'])
+    idx = s_data['id']
+    idx.index = idx
+
+    vis_idx = idx[vis_table['_VIS_'][idx] == 'visible']
+    hid_idx = idx[vis_table['_VIS_'][idx] == 'hidden']
+
+    vis_table.loc[vis_idx, '_VIS_'] = 'hidden'
+    vis_table.loc[hid_idx, '_VIS_'] = 'visible'
+
+    redis_instance.set(
+        REDIS_KEYS["VIS"]+session_id,
+        pickle.dumps(vis_table),
+        ex=EXPIRATION
+    )
+
+    return trigger_idx+1
 
 
 @app.callback(
@@ -1289,7 +1292,7 @@ def left_hide_button(
     ]
 )
 def update_buffer_indicator(
-    interval,
+    _,
     max_frame,
     session_id
 ):
