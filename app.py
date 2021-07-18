@@ -56,10 +56,7 @@ from viz.viz import get_animation_data
 from tasks import filter_all
 from tasks import celery_filtering_data, redis_instance, EXPIRATION
 
-
-def load_config(json_file):
-    with open(json_file, 'r') as read_file:
-        return json.load(read_file)
+from utils import load_config
 
 
 ###############################################################
@@ -225,7 +222,7 @@ def test_case_selection(test_case):
         State('slider-frame', 'value'),
     ])
 def data_file_selection(
-        data_file_name,
+        data_file_dict,
         left_btn,
         right_btn,
         interval,
@@ -241,7 +238,7 @@ def data_file_selection(
         slider_max,
         slider_var
 ):
-    if data_file_name is None:
+    if data_file_dict is None:
         raise PreventUpdate
 
     if test_case is None:
@@ -251,7 +248,7 @@ def data_file_selection(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if trigger_id == 'data-file':
-        data_file = json.loads(data_file_name)
+        data_file = json.loads(data_file_dict)
         if '.pkl' in data_file['name']:
             new_data = pd.read_pickle(
                 './data/'+test_case +
@@ -418,12 +415,16 @@ def data_file_selection(
     Input('data-file', 'value'),
     State('test-case', 'value'))
 def reset_switch_state(
-        data_file_name,
+        data_file_dict,
         test_case):
-    if data_file_name is not None and test_case is not None:
-        return [[], [], [], []]
-    else:
+
+    if data_file_dict is None:
         raise PreventUpdate
+
+    if test_case is None:
+        raise PreventUpdate
+
+    return [[], [], [], []]
 
 
 @ app.callback(
