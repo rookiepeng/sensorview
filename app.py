@@ -113,7 +113,7 @@ dropdown_values = [
     ],
     Input('refresh-case', 'n_clicks')
 )
-def test_case_refresh(n_clicks):
+def test_case_refresh(_):
     options = []
     obj = os.scandir('./data')
     for entry in obj:
@@ -155,7 +155,7 @@ def test_case_selection(test_case):
     if os.path.exists('./data/'+test_case+'/config.json'):
         ui_config = load_config('./data/'+test_case+'/config.json')
     else:
-        ui_config = load_config('config.json')
+        raise PreventUpdate
 
     keys_dict = ui_config['keys']
 
