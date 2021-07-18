@@ -426,26 +426,6 @@ def reset_switch_state(
         raise PreventUpdate
 
 
-# @ app.callback(
-#     Output('interval-component', 'disabled'),
-#     [Input('play', 'n_clicks'),
-#      Input('stop', 'n_clicks')])
-# def play_clicked(
-#         play_clicks,
-#         stop_clicks):
-#     ctx = dash.callback_context
-#     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-#     if trigger_id == 'play':
-#         if play_clicks > 0:
-#             return False
-#     else:
-#         if stop_clicks > 0:
-#             return True
-
-#     raise PreventUpdate
-
-
 @ app.callback(
     [
         Output('slider-frame', 'disabled'),
