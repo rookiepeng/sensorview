@@ -1,6 +1,6 @@
 """
 
-    Copyright (C) 2019 - 2021  Zhengyu Peng
+    Copyright (C) 2019 - PRESENT  Zhengyu Peng
     E-mail: zpeng.me@gmail.com
     Website: https://zpeng.me
 
@@ -356,12 +356,12 @@ def get_animation_data(data_frame,
             'buttons': [
                 {
                     'args': [None, frame_args(5)],
-                    'label': 'Play', #&#9654;',  # play symbol
+                    'label': 'Play',  # play symbol
                     'method': 'animate',
                 },
                 {
                     'args': [[None], frame_args(0)],
-                    'label': 'Stop', #'&#9208;',  # pause symbol
+                    'label': 'Stop',  # pause symbol
                     'method': 'animate',
                 },
             ],

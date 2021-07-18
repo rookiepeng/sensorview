@@ -1,3 +1,32 @@
+"""
+
+    Copyright (C) 2019 - PRESENT  Zhengyu Peng
+    E-mail: zpeng.me@gmail.com
+    Website: https://zpeng.me
+
+    `                      `
+    -:.                  -#:
+    -//:.              -###:
+    -////:.          -#####:
+    -/:.://:.      -###++##:
+    ..   `://:-  -###+. :##:
+           `:/+####+.   :##:
+    .::::::::/+###.     :##:
+    .////-----+##:    `:###:
+     `-//:.   :##:  `:###/.
+       `-//:. :##:`:###/.
+         `-//:+######/.
+           `-/+####/.
+             `+##+.
+              :##:
+              :##:
+              :##:
+              :##:
+              :##:
+               .+:
+
+"""
+
 import dash_core_components as dcc
 import dash_html_components as html
 
@@ -618,6 +647,7 @@ def get_app_layout(app):
         dcc.Markdown(
             'Designed and developed by **Zhengyu Peng** \
                 | Powered by [Dash](https://plotly.com/dash/),\
-                    [Redis](https://redis.io/),\
-                        [Docker](https://www.docker.com/)'),
+                [Redis](https://redis.io/),\
+                [Celery](https://docs.celeryproject.org/en/stable/),\
+                [Docker](https://www.docker.com/)'),
     ], fluid=True, style={'background-color': '#f9f8fc'})

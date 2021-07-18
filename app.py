@@ -379,9 +379,9 @@ def data_file_selection(
 
         if slider_var == slider_max:
             return [dash.no_update,
-                dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update,
-                True]
+                    dash.no_update, dash.no_update,
+                    dash.no_update, dash.no_update,
+                    True]
 
         else:
             return [(slider_var+1) % (slider_max+1),
@@ -392,20 +392,20 @@ def data_file_selection(
     elif trigger_id == 'play':
         if play_clicks == 0:
             raise PreventUpdate
-       
+
         return [dash.no_update,
-            dash.no_update, dash.no_update,
-            dash.no_update, dash.no_update,
-            False]
+                dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update,
+                False]
 
     elif trigger_id == 'stop':
         if stop_clicks == 0:
             raise PreventUpdate
 
         return [dash.no_update,
-            dash.no_update, dash.no_update,
-            dash.no_update, dash.no_update,
-            True]
+                dash.no_update, dash.no_update,
+                dash.no_update, dash.no_update,
+                True]
 
 
 @ app.callback(

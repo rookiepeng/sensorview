@@ -32,6 +32,7 @@ A lightweight sensor data visualization and analysis tool.
 - pandas
 - redis
 - kaleido
+- celery
 
 ### [Redis](https://redis.io/)
 
