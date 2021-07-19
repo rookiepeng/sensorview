@@ -360,7 +360,7 @@ def data_file_selection(
             linewidth = 1
         else:
             linewidth = 0
-        
+
         x_det = ui_config.get('x_3d', num_keys[0])
         y_det = ui_config.get('y_3d', num_keys[1])
         z_det = ui_config.get('z_3d', num_keys[2])
@@ -369,14 +369,14 @@ def data_file_selection(
 
         x_range = [
             float(np.min([num_values[num_keys.index(x_det)][0],
-                        num_values[num_keys.index(x_host)][0]])),
+                          num_values[num_keys.index(x_host)][0]])),
             float(np.max([num_values[num_keys.index(x_det)][1],
-                        num_values[num_keys.index(x_host)][1]]))]
+                          num_values[num_keys.index(x_host)][1]]))]
         y_range = [
             float(np.min([num_values[num_keys.index(y_det)][0],
-                        num_values[num_keys.index(y_host)][0]])),
+                          num_values[num_keys.index(y_host)][0]])),
             float(np.max([num_values[num_keys.index(y_det)][1],
-                        num_values[num_keys.index(y_host)][1]]))]
+                          num_values[num_keys.index(y_host)][1]]))]
         z_range = [float(num_values[num_keys.index(z_det)][0]), float(
             num_values[num_keys.index(z_det)][1])]
 
@@ -390,6 +390,16 @@ def data_file_selection(
             c_range = [0, 0]
             is_discrete_color = True
 
+        redis_instance.set(
+            'TASKID'+session_id,
+            pickle.dumps(0),
+            ex=EXPIRATION
+        )
+        redis_instance.set(
+            'FIGIDX'+session_id,
+            pickle.dumps(-1),
+            ex=EXPIRATION
+        )
         celery_filtering_data.apply_async(
             args=[session_id,
                   test_case,
@@ -405,7 +415,7 @@ def data_file_selection(
                   linewidth,
                   keys_dict[c_key]['description'],
                   keys_dict[ui_config['slider']
-                             ]['description'],
+                            ]['description'],
                   colormap,
                   is_discrete_color,
                   x_range,
