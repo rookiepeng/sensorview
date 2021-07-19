@@ -72,10 +72,10 @@ app.css.config.serve_locally = True
 app.title = 'SensorView'
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
-REDIS_KEYS = {"DATASET": "DATASET",
-              "FRAME_IDX": "FRAME_IDX",
-              "FRAME": "FRAME",
-              "VIS": "VIS"}
+REDIS_KEYS = {"dataset": "DATASET",
+              "frame_idx": "FRAME_IDX",
+              "frame_data": "FRAME_DATA",
+              "vis_table": "VIS_TABLE"}
 
 app.layout = get_app_layout(app)
 
@@ -172,6 +172,11 @@ def test_case_selection(test_case):
         'value': f_item}
         for _, f_item in enumerate(keys_dict)
     ]]*len(dropdown_options)
+
+    filter_kwargs = {
+        'num_keys': num_keys,
+        'cat_keys': cat_keys
+    }
 
     return [
         data_files[0]['value'],
@@ -270,13 +275,13 @@ def data_file_selection(
         vis_table['_VIS_'] = 'visible'
 
         redis_instance.set(
-            REDIS_KEYS["DATASET"]+session_id,
+            REDIS_KEYS["dataset"]+session_id,
             pickle.dumps(new_data),
             ex=EXPIRATION
         )
 
         redis_instance.set(
-            REDIS_KEYS["VIS"]+session_id,
+            REDIS_KEYS["vis_table"]+session_id,
             pickle.dumps(vis_table),
             ex=EXPIRATION
         )
@@ -285,7 +290,7 @@ def data_file_selection(
         frame_idx = np.sort(frame_idx)
 
         redis_instance.set(
-            REDIS_KEYS["FRAME_IDX"]+session_id,
+            REDIS_KEYS["frame_idx"]+session_id,
             pickle.dumps(frame_idx),
             ex=EXPIRATION
         )
@@ -294,7 +299,7 @@ def data_file_selection(
 
         for f, df_group in grouped:
             redis_instance.set(
-                REDIS_KEYS["FRAME"]+session_id+str(f),
+                REDIS_KEYS["frame_data"]+session_id+str(f),
                 pickle.dumps(df_group),
                 ex=EXPIRATION
             )
@@ -609,7 +614,7 @@ def update_filter(
                          [0]['id'], '_VIS_'] = 'visible'
 
         redis_instance.set(
-            REDIS_KEYS["VIS"]+session_id,
+            REDIS_KEYS["vis_table"]+session_id,
             pickle.dumps(vis_table),
             ex=EXPIRATION
         )
@@ -1348,7 +1353,7 @@ def left_hide_button(
     vis_table.loc[hid_idx, '_VIS_'] = 'visible'
 
     redis_instance.set(
-        REDIS_KEYS["VIS"]+session_id,
+        REDIS_KEYS["vis_table"]+session_id,
         pickle.dumps(vis_table),
         ex=EXPIRATION
     )
