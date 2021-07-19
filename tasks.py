@@ -29,6 +29,7 @@
 
 from celery import Celery
 from celery.utils.log import get_task_logger
+from flask.globals import session
 import redis
 import os
 import base64
@@ -36,6 +37,7 @@ import pickle
 import pandas as pd
 
 from viz.viz import get_scatter3d
+from utils import redis_set, redis_get
 
 
 EXPIRATION = 172800  # a week in seconds
@@ -43,7 +45,10 @@ REDIS_KEYS = {"dataset": "DATASET",
               "frame_list": "FRAME_LIST",
               "frame_data": "FRAME_DATA",
               "vis_table": "VIS_TABLE",
-              "config": "CONFIG"}
+              "config": "CONFIG",
+              "figure_idx": "FIGURE_IDX",
+              "figure": "FIGURE",
+              "task_id": "TASK_ID"}
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
@@ -118,22 +123,14 @@ def celery_filtering_data(self,
                           z_range,
                           c_range):
 
-    redis_instance.set(
-        'FIGIDX'+session_id,
-        pickle.dumps(-1),
-        ex=EXPIRATION
-    )
+    redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
 
     task_id = self.request.id
 
-    redis_instance.set(
-        'TASKID'+session_id,
-        pickle.dumps(self.request.id),
-        ex=EXPIRATION
-    )
+    redis_set(self.request.id, session_id, REDIS_KEYS['task_id'])
 
-    vis_table = pickle.loads(redis_instance.get("VIS_TABLE"+session_id))
-    frame_list = pickle.loads(redis_instance.get("FRAME_LIST"+session_id))
+    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+    frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
 
     for slider_arg in range(0, len(frame_list)):
 
@@ -147,8 +144,8 @@ def celery_filtering_data(self,
         except FileNotFoundError:
             source_encoded = None
 
-        data = pickle.loads(redis_instance.get(
-            "FRAME"+session_id+str(frame_list[slider_arg])))
+        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
+            frame_list[slider_arg]))
 
         x_det = ui_config.get('x_3d', num_keys[0])
         y_det = ui_config.get('y_3d', num_keys[1])
@@ -189,17 +186,9 @@ def celery_filtering_data(self,
             ref_name='Host Vehicle'
         )
 
-        if pickle.loads(redis_instance.get('TASKID'+session_id)) == task_id:
-            redis_instance.set(
-                'FIG'+session_id+str(slider_arg),
-                pickle.dumps(fig),
-                ex=EXPIRATION
-            )
-            redis_instance.set(
-                'FIGIDX'+session_id,
-                pickle.dumps(slider_arg),
-                ex=EXPIRATION
-            )
+        if redis_get(session_id, REDIS_KEYS['task_id']) == task_id:
+            redis_set(fig, session_id, REDIS_KEYS['figure'], str(slider_arg))
+            redis_set(slider_arg, session_id, REDIS_KEYS['figure_idx'])
         else:
             logger.info('Task '+str(task_id)+' terminated by a new task.')
             return

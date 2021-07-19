@@ -54,7 +54,7 @@ from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
 from tasks import filter_all
-from tasks import celery_filtering_data, redis_instance, EXPIRATION, REDIS_KEYS
+from tasks import celery_filtering_data, REDIS_KEYS
 
 from utils import load_config, redis_set, redis_get
 
@@ -171,10 +171,10 @@ def test_case_selection(test_case, session_id):
         for _, f_item in enumerate(keys_dict)
     ]]*len(dropdown_options)
 
-    filter_kwargs = {
-        'num_keys': num_keys,
-        'cat_keys': cat_keys
-    }
+    # filter_kwargs = {
+    #     'num_keys': num_keys,
+    #     'cat_keys': cat_keys
+    # }
 
     return [
         data_files[0]['value'],
@@ -281,12 +281,9 @@ def data_file_selection(
 
         frame_group = new_data.groupby(config['slider'])
 
-        for i_f, frame_data in frame_group:
-            redis_instance.set(
-                REDIS_KEYS["frame_data"]+session_id+str(i_f),
-                pickle.dumps(frame_data),
-                ex=EXPIRATION
-            )
+        for frame_idx, frame_data in frame_group:
+            redis_set(frame_data, session_id,
+                      REDIS_KEYS["frame_data"], str(frame_idx))
 
         output = [0, 0, len(frame_list)-1]
 
@@ -379,16 +376,8 @@ def data_file_selection(
             c_range = [0, 0]
             is_discrete_color = True
 
-        redis_instance.set(
-            'TASKID'+session_id,
-            pickle.dumps(0),
-            ex=EXPIRATION
-        )
-        redis_instance.set(
-            'FIGIDX'+session_id,
-            pickle.dumps(-1),
-            ex=EXPIRATION
-        )
+        redis_set(0, session_id, REDIS_KEYS['task_id'])
+        redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
             args=[session_id,
                   test_case,
@@ -561,14 +550,14 @@ def update_filter(
         raise PreventUpdate
 
     if (trigger_id == 'slider-frame'):
-        fig_idx_redis = redis_instance.get(
-            'FIGIDX'+session_id)
-        if fig_idx_redis is not None:
-            fig_idx = pickle.loads(fig_idx_redis)
+        fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
+        if fig_idx is not None:
             if slider_arg <= fig_idx:
                 # print("from pre-processed data")
-                return [pickle.loads(redis_instance.get(
-                    'FIG'+session_id+str(slider_arg))), dash.no_update]
+                return [redis_get(session_id,
+                                  REDIS_KEYS['figure'],
+                                  str(slider_arg)),
+                        dash.no_update]
 
     c_key = color_picker
     c_label = keys_dict[color_picker]['description']
@@ -583,8 +572,8 @@ def update_filter(
     x_host = config.get('x_ref', None)
     y_host = config.get('y_ref', None)
 
-    vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
-    frame_list = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
+    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+    frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
 
     if trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
@@ -597,18 +586,14 @@ def update_filter(
             vis_table.at[click_data['points']
                          [0]['id'], '_VIS_'] = 'visible'
 
-        redis_instance.set(
-            REDIS_KEYS["vis_table"]+session_id,
-            pickle.dumps(vis_table),
-            ex=EXPIRATION
-        )
+        redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
 
     if overlay_sw:
-        data = pickle.loads(redis_instance.get("DATASET"+session_id))
+        data = redis_get(session_id, REDIS_KEYS["dataset"])
         source_encoded = None
     else:
-        data = pickle.loads(redis_instance.get(
-            "FRAME"+session_id+str(frame_list[slider_arg])))
+        data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
+            frame_list[slider_arg]))
 
         data_name = json.loads(data_file)
         img = './data/'+test_case+data_name['path']+'/imgs/' + \
@@ -780,8 +765,8 @@ def update_left_graph(
         linewidth = 0
 
     if left_sw:
-        data = pickle.loads(redis_instance.get("DATASET"+session_id))
-        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
         filtered_table = filter_all(
             data,
@@ -890,8 +875,8 @@ def update_right_graph(
         linewidth = 0
 
     if right_sw:
-        data = pickle.loads(redis_instance.get("DATASET"+session_id))
-        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
         filtered_table = filter_all(
             data,
             num_keys,
@@ -984,8 +969,8 @@ def update_histogram(
     y_key = y_histogram
 
     if histogram_sw:
-        data = pickle.loads(redis_instance.get("DATASET"+session_id))
-        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
         filtered_table = filter_all(
             data,
             num_keys,
@@ -1064,8 +1049,8 @@ def update_heatmap(
         y_key = y_heat
         y_label = keys_dict[y_heat]['description']
 
-        data = pickle.loads(redis_instance.get("DATASET"+session_id))
-        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
         filtered_table = filter_all(
             data,
@@ -1143,8 +1128,8 @@ def export_scatter_3d(
         if not os.path.exists('data/'+test_case+'/images'):
             os.makedirs('data/'+test_case+'/images')
 
-        data = pickle.loads(redis_instance.get("DATASET"+session_id))
-        vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
         x_det = config.get('x_3d', num_keys[0])
         y_det = config.get('y_3d', num_keys[1])
@@ -1162,7 +1147,7 @@ def export_scatter_3d(
             vis_picker
         )
 
-        frame_list = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
+        frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
         frame_list = filtered_table[config['slider']].unique()
         img_list = []
 
@@ -1324,7 +1309,7 @@ def left_hide_button(
     if selectedData is None:
         raise PreventUpdate
 
-    vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
     s_data = pd.DataFrame(selectedData['points'])
     idx = s_data['id']
@@ -1336,11 +1321,7 @@ def left_hide_button(
     vis_table.loc[vis_idx, '_VIS_'] = 'hidden'
     vis_table.loc[hid_idx, '_VIS_'] = 'visible'
 
-    redis_instance.set(
-        REDIS_KEYS["vis_table"]+session_id,
-        pickle.dumps(vis_table),
-        ex=EXPIRATION
-    )
+    redis_set(vis_table, session_id, REDIS_KEYS['vis_table'])
 
     return trigger_idx+1
 
@@ -1361,14 +1342,8 @@ def update_buffer_indicator(
     if max_frame is None:
         raise PreventUpdate
 
-    fig_idx_redis = redis_instance.get(
-        'FIGIDX'+session_id)
-    if fig_idx_redis is not None:
-        fig_idx = pickle.loads(fig_idx_redis)
-
-        if fig_idx is None:
-            return 0
-
+    fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
+    if fig_idx is not None:
         return fig_idx/max_frame*100
     else:
         return 0
