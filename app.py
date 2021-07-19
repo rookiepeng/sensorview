@@ -305,7 +305,7 @@ def data_file_selection(
         new_dropdown = []
 
         for idx, d_item in enumerate(cat_keys):
-            var_list = new_data[d_item].unique()
+            var_list = new_data[d_item].unique().tolist()
             value_list = var_list
 
             new_dropdown.append(
@@ -390,11 +390,11 @@ def data_file_selection(
             c_range = [0, 0]
             is_discrete_color = True
 
-        # redis_instance.set(
-        #     'TASKID'+session_id,
-        #     pickle.dumps(0),
-        #     ex=EXPIRATION
-        # )
+        redis_instance.set(
+            'TASKID'+session_id,
+            pickle.dumps(0),
+            ex=EXPIRATION
+        )
         redis_instance.set(
             'FIGIDX'+session_id,
             pickle.dumps(-1),
@@ -1369,6 +1369,9 @@ def update_buffer_indicator(
     max_frame,
     session_id
 ):
+    if max_frame is None:
+        raise PreventUpdate
+
     fig_idx_redis = redis_instance.get(
         'FIGIDX'+session_id)
     if fig_idx_redis is not None:
