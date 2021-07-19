@@ -127,8 +127,9 @@ def test_case_refresh(_):
     Output('num-key-list', 'data'),
     Output('cat-key-list', 'data')
 ] + dropdown_options + dropdown_values,
-    [Input('test-case', 'value')])
-def test_case_selection(test_case):
+    [Input('test-case', 'value')],
+    State('session-id', 'data'))
+def test_case_selection(test_case, session_id):
 
     if test_case is None:
         raise PreventUpdate
@@ -149,11 +150,12 @@ def test_case_selection(test_case):
                         'name': name})})
 
     if os.path.exists('./data/'+test_case+'/config.json'):
-        ui_config = load_config('./data/'+test_case+'/config.json')
+        config = load_config('./data/'+test_case+'/config.json')
+        redis_set(config, session_id, REDIS_KEYS['config'])
     else:
         raise PreventUpdate
 
-    keys_dict = ui_config['keys']
+    keys_dict = config['keys']
 
     num_keys = []
     cat_keys = []
@@ -177,20 +179,20 @@ def test_case_selection(test_case):
     return [
         data_files[0]['value'],
         data_files,
-        ui_config,
+        config,
         keys_dict,
         num_keys,
         cat_keys]+options+[
-        ui_config.get('c_3d', num_keys[2]),
-        ui_config.get('x_2d_l', num_keys[0]),
-        ui_config.get('y_2d_l', num_keys[1]),
-        ui_config.get('c_2d_l', num_keys[2]),
-        ui_config.get('x_2d_r', num_keys[0]),
-        ui_config.get('y_2d_r', num_keys[1]),
-        ui_config.get('c_2d_r', num_keys[2]),
-        ui_config.get('x_hist', num_keys[0]),
-        ui_config.get('x_heatmap', num_keys[0]),
-        ui_config.get('y_heatmap', num_keys[1]),
+        config.get('c_3d', num_keys[2]),
+        config.get('x_2d_l', num_keys[0]),
+        config.get('y_2d_l', num_keys[1]),
+        config.get('c_2d_l', num_keys[2]),
+        config.get('x_2d_r', num_keys[0]),
+        config.get('y_2d_r', num_keys[1]),
+        config.get('c_2d_r', num_keys[2]),
+        config.get('x_hist', num_keys[0]),
+        config.get('x_heatmap', num_keys[0]),
+        config.get('y_heatmap', num_keys[1]),
     ]
 
 
@@ -234,7 +236,7 @@ def data_file_selection(
         stop_clicks,
         test_case,
         keys_dict,
-        ui_config,
+        config,
         session_id,
         num_keys,
         cat_keys,
@@ -266,8 +268,8 @@ def data_file_selection(
                 './data/'+test_case +
                 data_file['path']+'/'+data_file['name'])
 
-        frame_idx = new_data[ui_config['slider']].unique()
-        frame_idx = np.sort(frame_idx)
+        frame_list = new_data[config['slider']].unique()
+        frame_list = np.sort(frame_list)
 
         vis_table = pd.DataFrame()
         vis_table['_IDS_'] = new_data.index
@@ -275,18 +277,18 @@ def data_file_selection(
 
         redis_set(new_data, session_id, REDIS_KEYS["dataset"])
         redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
-        redis_set(frame_idx, session_id, REDIS_KEYS["frame_idx"])
+        redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
 
-        grouped = new_data.groupby(ui_config['slider'])
+        frame_group = new_data.groupby(config['slider'])
 
-        for f, df_group in grouped:
+        for i_f, frame_data in frame_group:
             redis_instance.set(
-                REDIS_KEYS["frame_data"]+session_id+str(f),
-                pickle.dumps(df_group),
+                REDIS_KEYS["frame_data"]+session_id+str(i_f),
+                pickle.dumps(frame_data),
                 ex=EXPIRATION
             )
 
-        output = [0, 0, len(frame_idx)-1]
+        output = [0, 0, len(frame_list)-1]
 
         cat_values = []
         new_dropdown = []
@@ -348,11 +350,11 @@ def data_file_selection(
         else:
             linewidth = 0
 
-        x_det = ui_config.get('x_3d', num_keys[0])
-        y_det = ui_config.get('y_3d', num_keys[1])
-        z_det = ui_config.get('z_3d', num_keys[2])
-        x_host = ui_config.get('x_ref', None)
-        y_host = ui_config.get('y_ref', None)
+        x_det = config.get('x_3d', num_keys[0])
+        y_det = config.get('y_3d', num_keys[1])
+        z_det = config.get('z_3d', num_keys[2])
+        x_host = config.get('x_ref', None)
+        y_host = config.get('y_ref', None)
 
         x_range = [
             float(np.min([num_values[num_keys.index(x_det)][0],
@@ -398,10 +400,10 @@ def data_file_selection(
                   vis_picker,
                   keys_dict,
                   c_key,
-                  ui_config,
+                  config,
                   linewidth,
                   keys_dict[c_key]['description'],
-                  keys_dict[ui_config['slider']
+                  keys_dict[config['slider']
                             ]['description'],
                   colormap,
                   is_discrete_color,
@@ -545,7 +547,7 @@ def update_filter(
     num_keys,
     cat_keys,
     trigger_idx,
-    ui_config,
+    config,
     session_id,
     test_case,
     data_file,
@@ -571,18 +573,18 @@ def update_filter(
     c_key = color_picker
     c_label = keys_dict[color_picker]['description']
 
-    slider_key = ui_config['slider']
-    slider_label = keys_dict[ui_config['slider']
+    slider_key = config['slider']
+    slider_label = keys_dict[config['slider']
                              ]['description']
 
-    x_det = ui_config.get('x_3d', num_keys[0])
-    y_det = ui_config.get('y_3d', num_keys[1])
-    z_det = ui_config.get('z_3d', num_keys[2])
-    x_host = ui_config.get('x_ref', None)
-    y_host = ui_config.get('y_ref', None)
+    x_det = config.get('x_3d', num_keys[0])
+    y_det = config.get('y_3d', num_keys[1])
+    z_det = config.get('z_3d', num_keys[2])
+    x_host = config.get('x_ref', None)
+    y_host = config.get('y_ref', None)
 
     vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
-    frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
+    frame_list = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
 
     if trigger_id == 'scatter3d' and visible_sw and \
             click_data['points'][0]['curveNumber'] == 0:
@@ -606,7 +608,7 @@ def update_filter(
         source_encoded = None
     else:
         data = pickle.loads(redis_instance.get(
-            "FRAME"+session_id+str(frame_idx[slider_arg])))
+            "FRAME"+session_id+str(frame_list[slider_arg])))
 
         data_name = json.loads(data_file)
         img = './data/'+test_case+data_name['path']+'/imgs/' + \
@@ -659,7 +661,7 @@ def update_filter(
                   vis_picker,
                   keys_dict,
                   c_key,
-                  ui_config,
+                  config,
                   linewidth,
                   c_label,
                   slider_label,
@@ -690,7 +692,7 @@ def update_filter(
         y_ref=y_host,
         hover=keys_dict,
         name='Index: ' + str(slider_arg) + ' (' +
-        slider_label+': '+str(frame_idx[slider_arg])+')',
+        slider_label+': '+str(frame_list[slider_arg])+')',
         c_label=c_label,
         linewidth=linewidth,
         colormap=colormap,
@@ -1130,7 +1132,7 @@ def export_scatter_3d(
     cat_keys,
     categorical_key_values,
     numerical_key_values,
-    ui_config,
+    config,
     vis_picker,
     data_file
 ):
@@ -1144,11 +1146,11 @@ def export_scatter_3d(
         data = pickle.loads(redis_instance.get("DATASET"+session_id))
         vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
 
-        x_det = ui_config.get('x_3d', num_keys[0])
-        y_det = ui_config.get('y_3d', num_keys[1])
-        z_det = ui_config.get('z_3d', num_keys[2])
-        x_host = ui_config.get('x_ref', None)
-        y_host = ui_config.get('y_ref', None)
+        x_det = config.get('x_3d', num_keys[0])
+        y_det = config.get('y_3d', num_keys[1])
+        z_det = config.get('z_3d', num_keys[2])
+        x_host = config.get('x_ref', None)
+        y_host = config.get('y_ref', None)
 
         filtered_table = filter_all(
             data,
@@ -1160,13 +1162,13 @@ def export_scatter_3d(
             vis_picker
         )
 
-        frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
-        frame_list = filtered_table[ui_config['slider']].unique()
+        frame_list = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
+        frame_list = filtered_table[config['slider']].unique()
         img_list = []
 
         data_name = json.loads(data_file)
         for _, f_val in enumerate(frame_list):
-            img_idx = np.where(frame_idx == f_val)[0][0]
+            img_idx = np.where(frame_list == f_val)[0][0]
             img_list.append(
                 './data/'+test_case+data_name['path']+'/imgs/' +
                 data_name['name'][0:-4]+'_'+str(img_idx)+'.jpg')
