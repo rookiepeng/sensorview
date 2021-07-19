@@ -40,9 +40,10 @@ from viz.viz import get_scatter3d
 
 EXPIRATION = 172800  # a week in seconds
 REDIS_KEYS = {"dataset": "DATASET",
-              "frame_idx": "FRAME_IDX",
+              "frame_list": "FRAME_LIST",
               "frame_data": "FRAME_DATA",
-              "vis_table": "VIS_TABLE"}
+              "vis_table": "VIS_TABLE",
+              "config": "CONFIG"}
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
@@ -132,9 +133,9 @@ def celery_filtering_data(self,
     )
 
     vis_table = pickle.loads(redis_instance.get("VIS_TABLE"+session_id))
-    frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
+    frame_list = pickle.loads(redis_instance.get("FRAME_LIST"+session_id))
 
-    for slider_arg in range(0, len(frame_idx)):
+    for slider_arg in range(0, len(frame_list)):
 
         img = './data/'+test_case+data_name['path']+'/imgs/' + \
             data_name['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
@@ -147,7 +148,7 @@ def celery_filtering_data(self,
             source_encoded = None
 
         data = pickle.loads(redis_instance.get(
-            "FRAME"+session_id+str(frame_idx[slider_arg])))
+            "FRAME"+session_id+str(frame_list[slider_arg])))
 
         x_det = ui_config.get('x_3d', num_keys[0])
         y_det = ui_config.get('y_3d', num_keys[1])
@@ -175,7 +176,7 @@ def celery_filtering_data(self,
             y_ref=y_host,
             hover=keys_dict,
             name='Index: ' + str(slider_arg) + ' (' +
-            slider_label+': '+str(frame_idx[slider_arg])+')',
+            slider_label+': '+str(frame_list[slider_arg])+')',
             c_label=c_label,
             linewidth=linewidth,
             colormap=colormap,
