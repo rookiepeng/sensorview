@@ -113,6 +113,12 @@ def celery_filtering_data(self,
                           z_range,
                           c_range):
 
+    redis_instance.set(
+        'FIGIDX'+session_id,
+        pickle.dumps(-1),
+        ex=EXPIRATION
+    )
+
     task_id = self.request.id
 
     redis_instance.set(
