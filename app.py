@@ -217,9 +217,12 @@ def test_case_selection(test_case):
         State('session-id', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
-        State('slider-frame', 'min'),
         State('slider-frame', 'max'),
         State('slider-frame', 'value'),
+        State('vis-picker', 'value'),
+        State('color-picker-3d', 'value'),
+        State('outline-switch', 'value'),
+        State('colormap-3d', 'value'),
     ])
 def data_file_selection(
         data_file_dict,
@@ -234,9 +237,12 @@ def data_file_selection(
         session_id,
         num_keys,
         cat_keys,
-        slider_min,
         slider_max,
-        slider_var
+        slider_var,
+        vis_picker,
+        c_key,
+        outline_sw,
+        colormap
 ):
     if data_file_dict is None:
         raise PreventUpdate
@@ -349,6 +355,63 @@ def data_file_selection(
         output.append(new_dropdown)
         output.append(new_slider)
         output.append(dash.no_update)
+
+        if outline_sw:
+            linewidth = 1
+        else:
+            linewidth = 0
+        
+        x_det = ui_config.get('x_3d', num_keys[0])
+        y_det = ui_config.get('y_3d', num_keys[1])
+        z_det = ui_config.get('z_3d', num_keys[2])
+        x_host = ui_config.get('x_ref', None)
+        y_host = ui_config.get('y_ref', None)
+
+        x_range = [
+            float(np.min([num_values[num_keys.index(x_det)][0],
+                        num_values[num_keys.index(x_host)][0]])),
+            float(np.max([num_values[num_keys.index(x_det)][1],
+                        num_values[num_keys.index(x_host)][1]]))]
+        y_range = [
+            float(np.min([num_values[num_keys.index(y_det)][0],
+                        num_values[num_keys.index(y_host)][0]])),
+            float(np.max([num_values[num_keys.index(y_det)][1],
+                        num_values[num_keys.index(y_host)][1]]))]
+        z_range = [float(num_values[num_keys.index(z_det)][0]), float(
+            num_values[num_keys.index(z_det)][1])]
+
+        if keys_dict[c_key].get('type', 'numerical') == 'numerical':
+            c_range = [
+                num_values[num_keys.index(c_key)][0],
+                num_values[num_keys.index(c_key)][1]
+            ]
+            is_discrete_color = False
+        else:
+            c_range = [0, 0]
+            is_discrete_color = True
+
+        celery_filtering_data.apply_async(
+            args=[session_id,
+                  test_case,
+                  data_file,
+                  num_keys,
+                  num_values,
+                  cat_keys,
+                  cat_values,
+                  vis_picker,
+                  keys_dict,
+                  c_key,
+                  ui_config,
+                  linewidth,
+                  keys_dict[c_key]['description'],
+                  keys_dict[ui_config['slider']
+                             ]['description'],
+                  colormap,
+                  is_discrete_color,
+                  x_range,
+                  y_range,
+                  z_range,
+                  c_range], serializer='json')
 
         return output
 
@@ -1300,6 +1363,10 @@ def update_buffer_indicator(
         'FIGIDX'+session_id)
     if fig_idx_redis is not None:
         fig_idx = pickle.loads(fig_idx_redis)
+
+        if fig_idx is None:
+            return 0
+
         return fig_idx/max_frame*100
     else:
         return 0
