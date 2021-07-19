@@ -390,11 +390,11 @@ def data_file_selection(
             c_range = [0, 0]
             is_discrete_color = True
 
-        redis_instance.set(
-            'TASKID'+session_id,
-            pickle.dumps(0),
-            ex=EXPIRATION
-        )
+        # redis_instance.set(
+        #     'TASKID'+session_id,
+        #     pickle.dumps(0),
+        #     ex=EXPIRATION
+        # )
         redis_instance.set(
             'FIGIDX'+session_id,
             pickle.dumps(-1),
