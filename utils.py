@@ -39,11 +39,11 @@ def load_config(json_file):
         return json.load(read_file)
 
 
-def redis_set(data, session_id, key_major, key_minor=None):
+def redis_set(data, id, key_major, key_minor=None):
     if key_minor is None:
-        key_str = key_major+session_id
+        key_str = key_major+id
     else:
-        key_str = key_major+session_id+key_minor
+        key_str = key_major+id+key_minor
     redis_instance.set(
         key_str,
         pickle.dumps(data),
@@ -51,9 +51,14 @@ def redis_set(data, session_id, key_major, key_minor=None):
     )
 
 
-def redis_get(session_id, key_major, key_minor=None):
+def redis_get(id, key_major, key_minor=None):
     if key_minor is None:
-        key_str = key_major+session_id
+        key_str = key_major+id
     else:
-        key_str = key_major+session_id+key_minor
-    return pickle.loads(redis_instance.get(key_str))
+        key_str = key_major+id+key_minor
+
+    val = redis_instance.get(key_str)
+    if val is not None:
+        return pickle.loads(val)
+    else:
+        return None

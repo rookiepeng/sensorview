@@ -39,6 +39,10 @@ from viz.viz import get_scatter3d
 
 
 EXPIRATION = 172800  # a week in seconds
+REDIS_KEYS = {"dataset": "DATASET",
+              "frame_idx": "FRAME_IDX",
+              "frame_data": "FRAME_DATA",
+              "vis_table": "VIS_TABLE"}
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
@@ -127,7 +131,7 @@ def celery_filtering_data(self,
         ex=EXPIRATION
     )
 
-    vis_table = pickle.loads(redis_instance.get("VIS"+session_id))
+    vis_table = pickle.loads(redis_instance.get("VIS_TABLE"+session_id))
     frame_idx = pickle.loads(redis_instance.get("FRAME_IDX"+session_id))
 
     for slider_arg in range(0, len(frame_idx)):

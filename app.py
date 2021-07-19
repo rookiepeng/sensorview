@@ -54,9 +54,9 @@ from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
 from tasks import filter_all
-from tasks import celery_filtering_data, redis_instance, EXPIRATION
+from tasks import celery_filtering_data, redis_instance, EXPIRATION, REDIS_KEYS
 
-from utils import load_config
+from utils import load_config, redis_set, redis_get
 
 
 ###############################################################
@@ -72,10 +72,6 @@ app.css.config.serve_locally = True
 app.title = 'SensorView'
 
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
-REDIS_KEYS = {"dataset": "DATASET",
-              "frame_idx": "FRAME_IDX",
-              "frame_data": "FRAME_DATA",
-              "vis_table": "VIS_TABLE"}
 
 app.layout = get_app_layout(app)
 
@@ -270,30 +266,16 @@ def data_file_selection(
                 './data/'+test_case +
                 data_file['path']+'/'+data_file['name'])
 
+        frame_idx = new_data[ui_config['slider']].unique()
+        frame_idx = np.sort(frame_idx)
+
         vis_table = pd.DataFrame()
         vis_table['_IDS_'] = new_data.index
         vis_table['_VIS_'] = 'visible'
 
-        redis_instance.set(
-            REDIS_KEYS["dataset"]+session_id,
-            pickle.dumps(new_data),
-            ex=EXPIRATION
-        )
-
-        redis_instance.set(
-            REDIS_KEYS["vis_table"]+session_id,
-            pickle.dumps(vis_table),
-            ex=EXPIRATION
-        )
-
-        frame_idx = new_data[ui_config['slider']].unique()
-        frame_idx = np.sort(frame_idx)
-
-        redis_instance.set(
-            REDIS_KEYS["frame_idx"]+session_id,
-            pickle.dumps(frame_idx),
-            ex=EXPIRATION
-        )
+        redis_set(new_data, session_id, REDIS_KEYS["dataset"])
+        redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
+        redis_set(frame_idx, session_id, REDIS_KEYS["frame_idx"])
 
         grouped = new_data.groupby(ui_config['slider'])
 
