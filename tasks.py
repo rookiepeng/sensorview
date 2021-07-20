@@ -88,7 +88,7 @@ def filter_all(
 def celery_filtering_data(self,
                           session_id,
                           case,
-                          data_name,
+                          file,
                           num_keys,
                           numerical_key_values,
                           cat_keys,
@@ -120,8 +120,8 @@ def celery_filtering_data(self,
 
     for slider_arg in range(0, len(frame_list)):
 
-        img = './data/'+case+data_name['path']+'/imgs/' + \
-            data_name['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
+        img = './data/'+case+file['path']+'/imgs/' + \
+            file['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
