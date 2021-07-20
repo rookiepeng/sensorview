@@ -283,7 +283,7 @@ def data_file_selection(
 
         # redis_set(new_data, session_id, REDIS_KEYS["dataset"])
         redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
-        # redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
+        redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
 
         # frame_group = new_data.groupby(config['slider'])
 
@@ -604,10 +604,13 @@ def update_filter(
         file = json.loads(file)
         # data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
         #     frame_list[slider_arg]))
-        data = pd.read_feather('./data/'+case +
-                               file['path']+'/' +
-                               file['feather_name'])
-        frame_group = data.groupby(config['slider'])
+        temp_data = pd.read_feather('./data/'+case +
+                                    file['path']+'/' +
+                                    file['feather_name'])
+        print(temp_data)
+        frame_group = temp_data.groupby(config['slider'])
+        print(config['slider'])
+        print(frame_list[slider_arg])
         data = frame_group.get_group(frame_list[slider_arg])
 
         img = './data/'+case+file['path']+'/imgs/' + \

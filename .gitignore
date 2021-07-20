@@ -38,3 +38,4 @@ figures/
 cache/
 
 images/
+*.feather
