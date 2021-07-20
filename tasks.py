@@ -111,7 +111,7 @@ def celery_filtering_data(self,
 
     task_id = self.request.id
 
-    redis_set(self.request.id, session_id, REDIS_KEYS['task_id'])
+    redis_set(task_id, session_id, REDIS_KEYS['task_id'])
 
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
@@ -130,8 +130,6 @@ def celery_filtering_data(self,
         except FileNotFoundError:
             source_encoded = None
 
-        # data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
-        #     frame_list[slider_arg]))
         data = frame_group.get_group(frame_list[slider_arg])
 
         x_det = ui_config.get('x_3d', num_keys[0])
@@ -177,5 +175,5 @@ def celery_filtering_data(self,
             redis_set(fig, session_id, REDIS_KEYS['figure'], str(slider_arg))
             redis_set(slider_arg, session_id, REDIS_KEYS['figure_idx'])
         else:
-            logger.info('Task '+str(task_id)+' terminated by a new task.')
+            logger.info('Task '+str(task_id)+' terminated by a new task')
             return
