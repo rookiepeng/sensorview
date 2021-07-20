@@ -106,9 +106,9 @@ dropdown_values = [
         Output('case-picker', 'options'),
         Output('case-picker', 'value'),
     ],
-    Input('refresh-case', 'n_clicks')
+    Input('refresh-button', 'n_clicks')
 )
-def test_case_refresh(_):
+def refresh_button_clicked(_):
     options = []
     obj = os.scandir('./data')
     for entry in obj:
@@ -124,10 +124,9 @@ def test_case_refresh(_):
     Output('num-key-list', 'data'),
     Output('cat-key-list', 'data')
 ] + dropdown_options + dropdown_values,
-    [Input('case-picker', 'value')],
+    Input('case-picker', 'value'),
     State('session-id', 'data'))
-def test_case_selection(test_case, session_id):
-
+def case_selected(test_case, session_id):
     if test_case is None:
         raise PreventUpdate
 
