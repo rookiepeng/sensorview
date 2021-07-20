@@ -32,6 +32,7 @@ from celery.utils.log import get_task_logger
 import os
 import base64
 import pandas as pd
+import json
 
 from viz.viz import get_scatter3d
 from utils import redis_set, redis_get, REDIS_KEYS
@@ -115,7 +116,11 @@ def celery_filtering_data(self,
 
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
-    dataset = redis_get(session_id, REDIS_KEYS["dataset"])
+    # dataset = redis_get(session_id, REDIS_KEYS["dataset"])
+    file = json.loads(file)
+    dataset = pd.read_feather('./data/'+case +
+                            file['path']+'/' +
+                            file['feather_name'])
     frame_group = dataset.groupby(config['slider'])
 
     for slider_arg in range(0, len(frame_list)):

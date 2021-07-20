@@ -138,12 +138,20 @@ def case_selected(case, session_id):
     for dirpath, dirnames, files in os.walk(case_dir):
         dirnames[:] = [d for d in dirnames if d not in skip]
         for name in files:
-            if name.lower().endswith('.csv') or name.lower().endswith('.pkl'):
+            if name.lower().endswith('.csv'):
                 data_files.append({
                     'label': os.path.join(dirpath[len(case_dir):], name),
                     'value': json.dumps({
                         'path': dirpath[len(case_dir):],
-                        'name': name})})
+                        'name': name,
+                        'feather_name': name.replace('.csv', '.feather')})})
+            elif name.lower().endswith('.pkl'):
+                data_files.append({
+                    'label': os.path.join(dirpath[len(case_dir):], name),
+                    'value': json.dumps({
+                        'path': dirpath[len(case_dir):],
+                        'name': name,
+                        'feather_name': name.replace('.pkl', '.feather')})})
 
     if os.path.exists('./data/'+case+'/config.json'):
         config = load_config('./data/'+case+'/config.json')
@@ -256,10 +264,15 @@ def data_file_selection(
                 './data/'+case +
                 file['path']+'/'+file['name'])
             new_data = new_data.reset_index(drop=True)
+
         elif '.csv' in file['name']:
             new_data = pd.read_csv(
                 './data/'+case +
                 file['path']+'/'+file['name'])
+
+        new_data.to_feather('./data/'+case +
+                            file['path']+'/' +
+                            file['feather_name'])
 
         frame_list = new_data[config['slider']].unique()
         frame_list = np.sort(frame_list)
@@ -268,15 +281,15 @@ def data_file_selection(
         vis_table['_IDS_'] = new_data.index
         vis_table['_VIS_'] = 'visible'
 
-        redis_set(new_data, session_id, REDIS_KEYS["dataset"])
+        # redis_set(new_data, session_id, REDIS_KEYS["dataset"])
         redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
-        redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
+        # redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
 
-        frame_group = new_data.groupby(config['slider'])
+        # frame_group = new_data.groupby(config['slider'])
 
-        for frame_idx, frame_data in frame_group:
-            redis_set(frame_data, session_id,
-                      REDIS_KEYS["frame_data"], str(frame_idx))
+        # for frame_idx, frame_data in frame_group:
+        #     redis_set(frame_data, session_id,
+        #               REDIS_KEYS["frame_data"], str(frame_idx))
 
         output = [0, 0, len(frame_list)-1]
 
@@ -581,15 +594,24 @@ def update_filter(
         redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
 
     if overlay_sw:
-        data = redis_get(session_id, REDIS_KEYS["dataset"])
+        file = json.loads(file)
+        # data = redis_get(session_id, REDIS_KEYS["dataset"])
+        data = pd.read_feather('./data/'+case +
+                               file['path']+'/' +
+                               file['feather_name'])
         source_encoded = None
     else:
-        data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
-            frame_list[slider_arg]))
+        file = json.loads(file)
+        # data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
+        #     frame_list[slider_arg]))
+        data = pd.read_feather('./data/'+case +
+                               file['path']+'/' +
+                               file['feather_name'])
+        frame_group = data.groupby(config['slider'])
+        data = frame_group.get_group(frame_list[slider_arg])
 
-        data_name = json.loads(file)
-        img = './data/'+case+data_name['path']+'/imgs/' + \
-            data_name['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
+        img = './data/'+case+file['path']+'/imgs/' + \
+            file['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
@@ -630,7 +652,7 @@ def update_filter(
         celery_filtering_data.apply_async(
             args=[session_id,
                   case,
-                  data_name,
+                  file,
                   num_keys,
                   numerical_key_values,
                   cat_keys,
@@ -723,7 +745,9 @@ def update_filter(
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
-        State('vis-picker', 'value')
+        State('vis-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
     ]
 )
 def update_left_graph(
@@ -740,7 +764,9 @@ def update_left_graph(
     categorical_key_values,
     numerical_key_values,
     session_id,
-    vis_picker
+    vis_picker,
+    case,
+    file
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
@@ -757,7 +783,11 @@ def update_left_graph(
         linewidth = 0
 
     if left_sw:
-        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        # data = redis_get(session_id, REDIS_KEYS['dataset'])
+        file = json.loads(file)
+        data = pd.read_feather('./data/'+case +
+                               file['path']+'/' +
+                               file['feather_name'])
         vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
         filtered_table = filter_all(
@@ -833,7 +863,9 @@ def update_left_graph(
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
-        State('vis-picker', 'value')
+        State('vis-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
     ]
 )
 def update_right_graph(
@@ -850,7 +882,9 @@ def update_right_graph(
     categorical_key_values,
     numerical_key_values,
     session_id,
-    vis_picker
+    vis_picker,
+    case,
+    file
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
@@ -867,7 +901,11 @@ def update_right_graph(
         linewidth = 0
 
     if right_sw:
-        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        # data = redis_get(session_id, REDIS_KEYS['dataset'])
+        file = json.loads(file)
+        data = pd.read_feather('./data/'+case +
+                               file['path']+'/' +
+                               file['feather_name'])
         vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
         filtered_table = filter_all(
             data,
@@ -938,7 +976,9 @@ def update_right_graph(
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
-        State('vis-picker', 'value')
+        State('vis-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
     ]
 )
 def update_histogram(
@@ -952,7 +992,9 @@ def update_histogram(
     categorical_key_values,
     numerical_key_values,
     session_id,
-    vis_picker
+    vis_picker,
+    case,
+    file
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
@@ -961,7 +1003,11 @@ def update_histogram(
     y_key = y_histogram
 
     if histogram_sw:
-        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        # data = redis_get(session_id, REDIS_KEYS['dataset'])
+        file = json.loads(file)
+        data = pd.read_feather('./data/'+case +
+                               file['path']+'/' +
+                               file['feather_name'])
         vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
         filtered_table = filter_all(
             data,
@@ -1017,7 +1063,9 @@ def update_histogram(
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
-        State('vis-picker', 'value')
+        State('vis-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
     ]
 )
 def update_heatmap(
@@ -1031,7 +1079,9 @@ def update_heatmap(
     categorical_key_values,
     numerical_key_values,
     session_id,
-    vis_picker
+    vis_picker,
+    case,
+    file
 ):
     if heat_sw:
         config = redis_get(session_id, REDIS_KEYS['config'])
@@ -1041,7 +1091,11 @@ def update_heatmap(
         y_key = y_heat
         y_label = keys_dict[y_heat]['description']
 
-        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        # data = redis_get(session_id, REDIS_KEYS['dataset'])
+        file = json.loads(file)
+        data = pd.read_feather('./data/'+case +
+                               file['path']+'/' +
+                               file['feather_name'])
         vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
         filtered_table = filter_all(
@@ -1118,7 +1172,11 @@ def export_scatter_3d(
         if not os.path.exists('data/'+case+'/images'):
             os.makedirs('data/'+case+'/images')
 
-        data = redis_get(session_id, REDIS_KEYS['dataset'])
+        # data = redis_get(session_id, REDIS_KEYS['dataset'])
+        file = json.loads(file)
+        data = pd.read_feather('./data/'+case +
+                               file['path']+'/' +
+                               file['feather_name'])
         vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
         x_det = config.get('x_3d', num_keys[0])
