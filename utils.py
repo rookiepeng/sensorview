@@ -31,7 +31,18 @@
 import json
 import pickle
 
-from tasks import redis_instance, EXPIRATION
+EXPIRATION = 172800  # a week in seconds
+REDIS_KEYS = {"dataset": "DATASET",
+              "frame_list": "FRAME_LIST",
+              "frame_data": "FRAME_DATA",
+              "vis_table": "VIS_TABLE",
+              "config": "CONFIG",
+              "figure_idx": "FIGURE_IDX",
+              "figure": "FIGURE",
+              "task_id": "TASK_ID"}
+
+redis_instance = redis.StrictRedis.from_url(
+    os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
 
 
 def load_config(json_file):
