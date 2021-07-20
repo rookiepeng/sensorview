@@ -87,7 +87,7 @@ def filter_all(
 @celery_app.task(bind=True)
 def celery_filtering_data(self,
                           session_id,
-                          test_case,
+                          case,
                           data_name,
                           num_keys,
                           numerical_key_values,
@@ -120,7 +120,7 @@ def celery_filtering_data(self,
 
     for slider_arg in range(0, len(frame_list)):
 
-        img = './data/'+test_case+data_name['path']+'/imgs/' + \
+        img = './data/'+case+data_name['path']+'/imgs/' + \
             data_name['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
 
         try:
