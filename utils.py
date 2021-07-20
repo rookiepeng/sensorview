@@ -32,7 +32,7 @@ import os
 import json
 import pickle
 
-EXPIRATION = 172800  # a week in seconds
+EXPIRATION = 172800  # 2 days in seconds
 REDIS_KEYS = {"dataset": "DATASET",
               "frame_list": "FRAME_LIST",
               "frame_data": "FRAME_DATA",
