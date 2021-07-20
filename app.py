@@ -126,12 +126,12 @@ def refresh_button_clicked(_):
 ] + dropdown_options + dropdown_values,
     Input('case-picker', 'value'),
     State('session-id', 'data'))
-def case_selected(test_case, session_id):
-    if test_case is None:
+def case_selected(case, session_id):
+    if case is None:
         raise PreventUpdate
 
     data_files = []
-    case_dir = './data/'+test_case
+    case_dir = './data/'+case
 
     skip = ['imgs', 'images']
 
@@ -145,8 +145,8 @@ def case_selected(test_case, session_id):
                         'path': dirpath[len(case_dir):],
                         'name': name})})
 
-    if os.path.exists('./data/'+test_case+'/config.json'):
-        config = load_config('./data/'+test_case+'/config.json')
+    if os.path.exists('./data/'+case+'/config.json'):
+        config = load_config('./data/'+case+'/config.json')
         redis_set(config, session_id, REDIS_KEYS['config'])
     else:
         raise PreventUpdate
@@ -220,13 +220,13 @@ def case_selected(test_case, session_id):
         State('colormap-3d', 'value'),
     ])
 def data_file_selection(
-        data_file_dict,
+        file,
         left_btn,
         right_btn,
         interval,
         play_clicks,
         stop_clicks,
-        test_case,
+        case,
         session_id,
         num_keys,
         cat_keys,
@@ -237,10 +237,10 @@ def data_file_selection(
         outline_sw,
         colormap
 ):
-    if data_file_dict is None:
+    if file is None:
         raise PreventUpdate
 
-    if test_case is None:
+    if case is None:
         raise PreventUpdate
 
     ctx = dash.callback_context
@@ -250,16 +250,16 @@ def data_file_selection(
     keys_dict = config['keys']
 
     if trigger_id == 'file-picker':
-        data_file = json.loads(data_file_dict)
-        if '.pkl' in data_file['name']:
+        file = json.loads(file)
+        if '.pkl' in file['name']:
             new_data = pd.read_pickle(
-                './data/'+test_case +
-                data_file['path']+'/'+data_file['name'])
+                './data/'+case +
+                file['path']+'/'+file['name'])
             new_data = new_data.reset_index(drop=True)
-        elif '.csv' in data_file['name']:
+        elif '.csv' in file['name']:
             new_data = pd.read_csv(
-                './data/'+test_case +
-                data_file['path']+'/'+data_file['name'])
+                './data/'+case +
+                file['path']+'/'+file['name'])
 
         frame_list = new_data[config['slider']].unique()
         frame_list = np.sort(frame_list)
@@ -373,8 +373,8 @@ def data_file_selection(
         redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
             args=[session_id,
-                  test_case,
-                  data_file,
+                  case,
+                  file,
                   num_keys,
                   num_values,
                   cat_keys,
@@ -459,13 +459,13 @@ def data_file_selection(
     Input('file-picker', 'value'),
     State('case-picker', 'value'))
 def reset_switch_state(
-        data_file_dict,
-        test_case):
+        file,
+        case):
 
-    if data_file_dict is None:
+    if file is None:
         raise PreventUpdate
 
-    if test_case is None:
+    if case is None:
         raise PreventUpdate
 
     return [[], [], [], []]
@@ -527,8 +527,8 @@ def update_filter(
     cat_keys,
     trigger_idx,
     session_id,
-    test_case,
-    data_file,
+    case,
+    file,
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -587,8 +587,8 @@ def update_filter(
         data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
             frame_list[slider_arg]))
 
-        data_name = json.loads(data_file)
-        img = './data/'+test_case+data_name['path']+'/imgs/' + \
+        data_name = json.loads(file)
+        img = './data/'+case+data_name['path']+'/imgs/' + \
             data_name['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
 
         try:
@@ -629,7 +629,7 @@ def update_filter(
     if trigger_id != 'slider-frame':
         celery_filtering_data.apply_async(
             args=[session_id,
-                  test_case,
+                  case,
                   data_name,
                   num_keys,
                   numerical_key_values,
@@ -1098,7 +1098,7 @@ def update_heatmap(
 )
 def export_scatter_3d(
     btn,
-    test_case,
+    case,
     session_id,
     color_picker,
     colormap,
@@ -1107,7 +1107,7 @@ def export_scatter_3d(
     categorical_key_values,
     numerical_key_values,
     vis_picker,
-    data_file
+    file
 ):
     if btn > 0:
         config = redis_get(session_id, REDIS_KEYS['config'])
@@ -1115,8 +1115,8 @@ def export_scatter_3d(
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        if not os.path.exists('data/'+test_case+'/images'):
-            os.makedirs('data/'+test_case+'/images')
+        if not os.path.exists('data/'+case+'/images'):
+            os.makedirs('data/'+case+'/images')
 
         data = redis_get(session_id, REDIS_KEYS['dataset'])
         vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
@@ -1141,11 +1141,11 @@ def export_scatter_3d(
         frame_list = filtered_table[config['slider']].unique()
         img_list = []
 
-        data_name = json.loads(data_file)
+        data_name = json.loads(file)
         for _, f_val in enumerate(frame_list):
             img_idx = np.where(frame_list == f_val)[0][0]
             img_list.append(
-                './data/'+test_case+data_name['path']+'/imgs/' +
+                './data/'+case+data_name['path']+'/imgs/' +
                 data_name['name'][0:-4]+'_'+str(img_idx)+'.jpg')
 
         if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
@@ -1177,7 +1177,7 @@ def export_scatter_3d(
             )
         )
 
-        fig.write_html('data/'+test_case+'/images/' +
+        fig.write_html('data/'+case+'/images/' +
                        timestamp+'_'+data_name['name'][0:-4]+'_3dview.html')
     return 0
 
@@ -1190,16 +1190,16 @@ def export_scatter_3d(
         State('case-picker', 'value')
     ]
 )
-def export_left_scatter_2d(btn, fig, test_case):
+def export_left_scatter_2d(btn, fig, case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        if not os.path.exists('data/'+test_case+'/images'):
-            os.makedirs('data/'+test_case+'/images')
+        if not os.path.exists('data/'+case+'/images'):
+            os.makedirs('data/'+case+'/images')
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+test_case+'/images/' +
+        temp_fig.write_image('data/'+case+'/images/' +
                              timestamp+'_fig_left.png', scale=2)
     return 0
 
@@ -1212,16 +1212,16 @@ def export_left_scatter_2d(btn, fig, test_case):
         State('case-picker', 'value')
     ]
 )
-def export_right_scatter_2d(btn, fig, test_case):
+def export_right_scatter_2d(btn, fig, case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        if not os.path.exists('data/'+test_case+'/images'):
-            os.makedirs('data/'+test_case+'/images')
+        if not os.path.exists('data/'+case+'/images'):
+            os.makedirs('data/'+case+'/images')
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+test_case+'/images/' +
+        temp_fig.write_image('data/'+case+'/images/' +
                              timestamp+'_fig_right.png', scale=2)
     return 0
 
@@ -1234,16 +1234,16 @@ def export_right_scatter_2d(btn, fig, test_case):
         State('case-picker', 'value')
     ]
 )
-def export_histogram(btn, fig, test_case):
+def export_histogram(btn, fig, case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        if not os.path.exists('data/'+test_case+'/images'):
-            os.makedirs('data/'+test_case+'/images')
+        if not os.path.exists('data/'+case+'/images'):
+            os.makedirs('data/'+case+'/images')
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+test_case+'/images/' +
+        temp_fig.write_image('data/'+case+'/images/' +
                              timestamp+'_histogram.png', scale=2)
     return 0
 
@@ -1256,16 +1256,16 @@ def export_histogram(btn, fig, test_case):
         State('case-picker', 'value')
     ]
 )
-def export_heatmap(btn, fig, test_case):
+def export_heatmap(btn, fig, case):
     if btn > 0:
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        if not os.path.exists('data/'+test_case+'/images'):
-            os.makedirs('data/'+test_case+'/images')
+        if not os.path.exists('data/'+case+'/images'):
+            os.makedirs('data/'+case+'/images')
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+test_case+'/images/' +
+        temp_fig.write_image('data/'+case+'/images/' +
                              timestamp+'_heatmap.png', scale=2)
     return 0
 
