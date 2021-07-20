@@ -259,20 +259,28 @@ def data_file_selection(
 
     if trigger_id == 'file-picker':
         file = json.loads(file)
-        if '.pkl' in file['name']:
-            new_data = pd.read_pickle(
-                './data/'+case +
-                file['path']+'/'+file['name'])
-            new_data = new_data.reset_index(drop=True)
 
-        elif '.csv' in file['name']:
-            new_data = pd.read_csv(
-                './data/'+case +
-                file['path']+'/'+file['name'])
-
-        new_data.to_feather('./data/'+case +
+        if os.path.exists('./data/'+case +
                             file['path']+'/' +
-                            file['feather_name'])
+                            file['feather_name']):
+            new_data=pd.read_feather('./data/'+case +
+                                file['path']+'/' +
+                                file['feather_name'])
+        else:
+            if '.pkl' in file['name']:
+                new_data = pd.read_pickle(
+                    './data/'+case +
+                    file['path']+'/'+file['name'])
+                new_data = new_data.reset_index(drop=True)
+
+            elif '.csv' in file['name']:
+                new_data = pd.read_csv(
+                    './data/'+case +
+                    file['path']+'/'+file['name'])
+
+            new_data.to_feather('./data/'+case +
+                                file['path']+'/' +
+                                file['feather_name'])
 
         frame_list = new_data[config['slider']].unique()
         frame_list = np.sort(frame_list)
