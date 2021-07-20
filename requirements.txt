@@ -5,6 +5,7 @@ gunicorn
 flask
 numpy
 pandas
+pyarrow
 redis
 kaleido
 celery
