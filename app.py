@@ -121,7 +121,6 @@ def test_case_refresh(_):
 @ app.callback([
     Output('data-file', 'value'),
     Output('data-file', 'options'),
-    Output('config', 'data'),
     Output('keys-dict', 'data'),
     Output('num-key-list', 'data'),
     Output('cat-key-list', 'data')
@@ -178,7 +177,6 @@ def test_case_selection(test_case, session_id):
     return [
         data_files[0]['value'],
         data_files,
-        config,
         keys_dict,
         num_keys,
         cat_keys]+options+[
@@ -215,7 +213,6 @@ def test_case_selection(test_case, session_id):
     [
         State('test-case', 'value'),
         State('keys-dict', 'data'),
-        State('config', 'data'),
         State('session-id', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
@@ -235,7 +232,6 @@ def data_file_selection(
         stop_clicks,
         test_case,
         keys_dict,
-        config,
         session_id,
         num_keys,
         cat_keys,
@@ -254,6 +250,8 @@ def data_file_selection(
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    config = redis_get(session_id, REDIS_KEYS['config'])
 
     if trigger_id == 'data-file':
         data_file = json.loads(data_file_dict)
@@ -514,7 +512,6 @@ def overlay_switch_changed(overlay):
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State('filter-trigger', 'data'),
-        State('config', 'data'),
         State('session-id', 'data'),
         State('test-case', 'value'),
         State('data-file', 'value'),
@@ -535,13 +532,14 @@ def update_filter(
     num_keys,
     cat_keys,
     trigger_idx,
-    config,
     session_id,
     test_case,
     data_file,
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    config = redis_get(session_id, REDIS_KEYS['config'])
 
     if trigger_id == 'scatter3d' and \
             ((not visible_sw) or
@@ -1100,7 +1098,6 @@ def update_heatmap(
         State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
-        State('config', 'data'),
         State('vis-picker', 'value'),
         State('data-file', 'value'),
     ]
@@ -1116,11 +1113,11 @@ def export_scatter_3d(
     cat_keys,
     categorical_key_values,
     numerical_key_values,
-    config,
     vis_picker,
     data_file
 ):
     if btn > 0:
+        config = redis_get(session_id, REDIS_KEYS['config'])
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
