@@ -121,7 +121,6 @@ def test_case_refresh(_):
 @ app.callback([
     Output('data-file', 'value'),
     Output('data-file', 'options'),
-    Output('keys-dict', 'data'),
     Output('num-key-list', 'data'),
     Output('cat-key-list', 'data')
 ] + dropdown_options + dropdown_values,
@@ -177,7 +176,6 @@ def test_case_selection(test_case, session_id):
     return [
         data_files[0]['value'],
         data_files,
-        keys_dict,
         num_keys,
         cat_keys]+options+[
         config.get('c_3d', num_keys[2]),
@@ -212,7 +210,6 @@ def test_case_selection(test_case, session_id):
     ],
     [
         State('test-case', 'value'),
-        State('keys-dict', 'data'),
         State('session-id', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
@@ -231,7 +228,6 @@ def data_file_selection(
         play_clicks,
         stop_clicks,
         test_case,
-        keys_dict,
         session_id,
         num_keys,
         cat_keys,
@@ -252,6 +248,7 @@ def data_file_selection(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     config = redis_get(session_id, REDIS_KEYS['config'])
+    keys_dict = config['keys']
 
     if trigger_id == 'data-file':
         data_file = json.loads(data_file_dict)
@@ -507,7 +504,6 @@ def overlay_switch_changed(overlay):
         Input('left-hide-trigger', 'data'),
     ],
     [
-        State('keys-dict', 'data'),
         State('visible-switch', 'value'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
@@ -527,7 +523,6 @@ def update_filter(
     outline_sw,
     click_data,
     left_hide_trigger,
-    keys_dict,
     visible_sw,
     num_keys,
     cat_keys,
@@ -540,6 +535,7 @@ def update_filter(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     config = redis_get(session_id, REDIS_KEYS['config'])
+    keys_dict = config['keys']
 
     if trigger_id == 'scatter3d' and \
             ((not visible_sw) or
@@ -723,7 +719,6 @@ def update_filter(
         Input('outline-switch', 'value'),
     ],
     [
-        State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -741,7 +736,6 @@ def update_left_graph(
     color_left,
     colormap,
     outline_sw,
-    keys_dict,
     num_keys,
     cat_keys,
     categorical_key_values,
@@ -749,6 +743,8 @@ def update_left_graph(
     session_id,
     vis_picker
 ):
+    config = redis_get(session_id, REDIS_KEYS['config'])
+    keys_dict = config['keys']
     x_key = x_left
     y_key = y_left
     c_key = color_left
@@ -833,7 +829,6 @@ def update_left_graph(
         Input('outline-switch', 'value'),
     ],
     [
-        State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -851,7 +846,6 @@ def update_right_graph(
     color_right,
     colormap,
     outline_sw,
-    keys_dict,
     num_keys,
     cat_keys,
     categorical_key_values,
@@ -859,6 +853,8 @@ def update_right_graph(
     session_id,
     vis_picker
 ):
+    config = redis_get(session_id, REDIS_KEYS['config'])
+    keys_dict = config['keys']
     x_key = x_right
     y_key = y_right
     c_key = color_right
@@ -938,7 +934,6 @@ def update_right_graph(
         Input('y-histogram', 'value'),
     ],
     [
-        State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -953,7 +948,6 @@ def update_histogram(
     histogram_sw,
     x_histogram,
     y_histogram,
-    keys_dict,
     num_keys,
     cat_keys,
     categorical_key_values,
@@ -961,6 +955,8 @@ def update_histogram(
     session_id,
     vis_picker
 ):
+    config = redis_get(session_id, REDIS_KEYS['config'])
+    keys_dict = config['keys']
     x_key = x_histogram
     x_label = keys_dict[x_histogram]['description']
     y_key = y_histogram
@@ -1017,7 +1013,6 @@ def update_histogram(
         Input('y-heatmap', 'value'),
     ],
     [
-        State('keys-dict', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -1032,7 +1027,6 @@ def update_heatmap(
     heat_sw,
     x_heat,
     y_heat,
-    keys_dict,
     num_keys,
     cat_keys,
     categorical_key_values,
@@ -1041,6 +1035,8 @@ def update_heatmap(
     vis_picker
 ):
     if heat_sw:
+        config = redis_get(session_id, REDIS_KEYS['config'])
+        keys_dict = config['keys']
         x_key = x_heat
         x_label = keys_dict[x_heat]['description']
         y_key = y_heat
@@ -1091,7 +1087,6 @@ def update_heatmap(
     [
         State('test-case', 'value'),
         State('session-id', 'data'),
-        State('keys-dict', 'data'),
         State('color-picker-3d', 'value'),
         State('colormap-3d', 'value'),
         State('num-key-list', 'data'),
@@ -1106,7 +1101,6 @@ def export_scatter_3d(
     btn,
     test_case,
     session_id,
-    keys_dict,
     color_picker,
     colormap,
     num_keys,
@@ -1118,6 +1112,7 @@ def export_scatter_3d(
 ):
     if btn > 0:
         config = redis_get(session_id, REDIS_KEYS['config'])
+        keys_dict = config['keys']
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
