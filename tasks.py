@@ -96,7 +96,7 @@ def celery_filtering_data(self,
                           vis_picker,
                           keys_dict,
                           c_key,
-                          ui_config,
+                          config,
                           linewidth,
                           c_label,
                           slider_label,
@@ -116,7 +116,7 @@ def celery_filtering_data(self,
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
     dataset = redis_get(session_id, REDIS_KEYS["dataset"])
-    frame_group = dataset.groupby(ui_config['slider'])
+    frame_group = dataset.groupby(config['slider'])
 
     for slider_arg in range(0, len(frame_list)):
 
@@ -132,11 +132,11 @@ def celery_filtering_data(self,
 
         data = frame_group.get_group(frame_list[slider_arg])
 
-        x_det = ui_config.get('x_3d', num_keys[0])
-        y_det = ui_config.get('y_3d', num_keys[1])
-        z_det = ui_config.get('z_3d', num_keys[2])
-        x_host = ui_config.get('x_ref', None)
-        y_host = ui_config.get('y_ref', None)
+        x_det = config.get('x_3d', num_keys[0])
+        y_det = config.get('y_3d', num_keys[1])
+        z_det = config.get('z_3d', num_keys[2])
+        x_host = config.get('x_ref', None)
+        y_host = config.get('y_ref', None)
 
         filterd_frame = filter_all(
             data,

@@ -64,7 +64,7 @@ testcase_card = dbc.Card([
             )),
             dbc.Col(dbc.Button(
                 'Refresh',
-                id='refresh-case',
+                id='refresh-button',
                 color="success",
                 className="mr-1",
                 n_clicks=0,
