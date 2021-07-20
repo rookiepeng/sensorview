@@ -117,7 +117,7 @@ def celery_filtering_data(self,
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
     # dataset = redis_get(session_id, REDIS_KEYS["dataset"])
-    file = json.loads(file)
+    # file = json.loads(file)
     dataset = pd.read_feather('./data/'+case +
                             file['path']+'/' +
                             file['feather_name'])
