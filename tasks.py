@@ -115,6 +115,8 @@ def celery_filtering_data(self,
 
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
+    dataset = redis_get(session_id, REDIS_KEYS["dataset"])
+    frame_group = dataset.groupby(ui_config['slider'])
 
     for slider_arg in range(0, len(frame_list)):
 
@@ -128,8 +130,9 @@ def celery_filtering_data(self,
         except FileNotFoundError:
             source_encoded = None
 
-        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
-            frame_list[slider_arg]))
+        # data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
+        #     frame_list[slider_arg]))
+        data = frame_group[slider_arg]
 
         x_det = ui_config.get('x_3d', num_keys[0])
         y_det = ui_config.get('y_3d', num_keys[1])
