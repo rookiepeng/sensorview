@@ -132,7 +132,7 @@ def celery_filtering_data(self,
 
         # data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
         #     frame_list[slider_arg]))
-        data = frame_group[slider_arg]
+        data = frame_group[frame_list[slider_arg]]
 
         x_det = ui_config.get('x_3d', num_keys[0])
         y_det = ui_config.get('y_3d', num_keys[1])
