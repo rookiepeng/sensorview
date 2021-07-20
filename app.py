@@ -285,11 +285,11 @@ def data_file_selection(
         redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
         redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
 
-        # frame_group = new_data.groupby(config['slider'])
+        frame_group = new_data.groupby(config['slider'])
 
-        # for frame_idx, frame_data in frame_group:
-        #     redis_set(frame_data, session_id,
-        #               REDIS_KEYS["frame_data"], str(frame_idx))
+        for frame_idx, frame_data in frame_group:
+            redis_set(frame_data, session_id,
+                      REDIS_KEYS["frame_data"], str(frame_idx))
 
         output = [0, 0, len(frame_list)-1]
 
@@ -602,16 +602,15 @@ def update_filter(
         source_encoded = None
     else:
         file = json.loads(file)
-        # data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
-        #     frame_list[slider_arg]))
-        temp_data = pd.read_feather('./data/'+case +
-                                    file['path']+'/' +
-                                    file['feather_name'])
-        print(temp_data)
-        frame_group = temp_data.groupby(config['slider'])
-        print(config['slider'])
-        print(frame_list[slider_arg])
-        data = frame_group.get_group(frame_list[slider_arg])
+        data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
+            frame_list[slider_arg]))
+        # temp_data = pd.read_feather('./data/'+case +
+        #                             file['path']+'/' +
+        #                             file['feather_name'])
+
+        # frame_group = temp_data.groupby(config['slider'])
+
+        # data = frame_group.get_group(frame_list[slider_arg])
 
         img = './data/'+case+file['path']+'/imgs/' + \
             file['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
