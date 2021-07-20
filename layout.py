@@ -60,7 +60,7 @@ testcase_card = dbc.Card([
     dbc.CardBody([
         dbc.Row([
             dbc.Col(dbc.Select(
-                id='test-case',
+                id='case-picker',
             )),
             dbc.Col(dbc.Button(
                 'Refresh',
@@ -78,7 +78,7 @@ datafile_card = dbc.Card([
     dbc.CardHeader("Data File"),
     dbc.CardBody([
         dbc.Select(
-            id='data-file',
+            id='file-picker',
         ),
     ])
 ], color="primary", inverse=True)
@@ -145,7 +145,7 @@ view3d_card = dbc.Card([
     dbc.CardBody([
         dbc.Row([
             dbc.Col(dbc.Select(
-                id='color-picker-3d',
+                id='c-picker-3d',
             ), width=2),
             dbc.Col(dbc.Select(
                 id='colormap-3d',
@@ -285,17 +285,17 @@ left2d_card = dbc.Card([
 
         dbc.Row([
             dbc.Col(dbc.Select(
-                id='x-scatter2d-left',
+                id='x-picker-2d-left',
                 disabled=True,
                 # clearable=False,
             )),
             dbc.Col(dbc.Select(
-                id='y-scatter2d-left',
+                id='y-picker-2d-left',
                 disabled=True,
                 # clearable=False,
             )),
             dbc.Col(dbc.Select(
-                id='color-scatter2d-left',
+                id='c-picker-2d-left',
                 disabled=True,
                 # clearable=False,
             )),
@@ -377,17 +377,17 @@ right2d_card = dbc.Card([
 
         dbc.Row([
             dbc.Col(dbc.Select(
-                id='x-scatter2d-right',
+                id='x-picker-2d-right',
                 disabled=True,
                 # clearable=False,
             )),
             dbc.Col(dbc.Select(
-                id='y-scatter2d-right',
+                id='y-picker-2d-right',
                 disabled=True,
                 # clearable=False,
             )),
             dbc.Col(dbc.Select(
-                id='color-scatter2d-right',
+                id='c-picker-2d-right',
                 disabled=True,
                 # clearable=False,
             )),
@@ -463,7 +463,7 @@ hist_card = dbc.Card([
 
         dbc.Row([
             dbc.Col(dbc.Select(
-                id='x-histogram',
+                id='x-picker-histogram',
                 disabled=True,
                 # clearable=False,
             )),
@@ -545,12 +545,12 @@ heatmap_card = dbc.Card([
 
         dbc.Row([
             dbc.Col(dbc.Select(
-                id='x-heatmap',
+                id='x-picker-heatmap',
                 disabled=True,
                 # clearable=False,
             )),
             dbc.Col(dbc.Select(
-                id='y-heatmap',
+                id='y-picker-heatmap',
                 disabled=True,
                 # clearable=False,
             ))

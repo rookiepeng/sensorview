@@ -75,36 +75,36 @@ REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
 app.layout = get_app_layout(app)
 
 dropdown_options = [
-    Output('color-picker-3d', 'options'),
-    Output('x-scatter2d-left', 'options'),
-    Output('y-scatter2d-left', 'options'),
-    Output('color-scatter2d-left', 'options'),
-    Output('x-scatter2d-right', 'options'),
-    Output('y-scatter2d-right', 'options'),
-    Output('color-scatter2d-right', 'options'),
-    Output('x-histogram', 'options'),
-    Output('x-heatmap', 'options'),
-    Output('y-heatmap', 'options'),
+    Output('c-picker-3d', 'options'),
+    Output('x-picker-2d-left', 'options'),
+    Output('y-picker-2d-left', 'options'),
+    Output('c-picker-2d-left', 'options'),
+    Output('x-picker-2d-right', 'options'),
+    Output('y-picker-2d-right', 'options'),
+    Output('c-picker-2d-right', 'options'),
+    Output('x-picker-histogram', 'options'),
+    Output('x-picker-heatmap', 'options'),
+    Output('y-picker-heatmap', 'options'),
 ]
 
 dropdown_values = [
-    Output('color-picker-3d', 'value'),
-    Output('x-scatter2d-left', 'value'),
-    Output('y-scatter2d-left', 'value'),
-    Output('color-scatter2d-left', 'value'),
-    Output('x-scatter2d-right', 'value'),
-    Output('y-scatter2d-right', 'value'),
-    Output('color-scatter2d-right', 'value'),
-    Output('x-histogram', 'value'),
-    Output('x-heatmap', 'value'),
-    Output('y-heatmap', 'value'),
+    Output('c-picker-3d', 'value'),
+    Output('x-picker-2d-left', 'value'),
+    Output('y-picker-2d-left', 'value'),
+    Output('c-picker-2d-left', 'value'),
+    Output('x-picker-2d-right', 'value'),
+    Output('y-picker-2d-right', 'value'),
+    Output('c-picker-2d-right', 'value'),
+    Output('x-picker-histogram', 'value'),
+    Output('x-picker-heatmap', 'value'),
+    Output('y-picker-heatmap', 'value'),
 ]
 
 
 @ app.callback(
     [
-        Output('test-case', 'options'),
-        Output('test-case', 'value'),
+        Output('case-picker', 'options'),
+        Output('case-picker', 'value'),
     ],
     Input('refresh-case', 'n_clicks')
 )
@@ -119,12 +119,12 @@ def test_case_refresh(_):
 
 
 @ app.callback([
-    Output('data-file', 'value'),
-    Output('data-file', 'options'),
+    Output('file-picker', 'value'),
+    Output('file-picker', 'options'),
     Output('num-key-list', 'data'),
     Output('cat-key-list', 'data')
 ] + dropdown_options + dropdown_values,
-    [Input('test-case', 'value')],
+    [Input('case-picker', 'value')],
     State('session-id', 'data'))
 def test_case_selection(test_case, session_id):
 
@@ -201,7 +201,7 @@ def test_case_selection(test_case, session_id):
         Output('interval-component', 'disabled'),
     ],
     [
-        Input('data-file', 'value'),
+        Input('file-picker', 'value'),
         Input('left-frame', 'n_clicks'),
         Input('right-frame', 'n_clicks'),
         Input('interval-component', 'n_intervals'),
@@ -209,14 +209,14 @@ def test_case_selection(test_case, session_id):
         Input('stop', 'n_clicks'),
     ],
     [
-        State('test-case', 'value'),
+        State('case-picker', 'value'),
         State('session-id', 'data'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State('slider-frame', 'max'),
         State('slider-frame', 'value'),
         State('vis-picker', 'value'),
-        State('color-picker-3d', 'value'),
+        State('c-picker-3d', 'value'),
         State('outline-switch', 'value'),
         State('colormap-3d', 'value'),
     ])
@@ -250,7 +250,7 @@ def data_file_selection(
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
-    if trigger_id == 'data-file':
+    if trigger_id == 'file-picker':
         data_file = json.loads(data_file_dict)
         if '.pkl' in data_file['name']:
             new_data = pd.read_pickle(
@@ -457,8 +457,8 @@ def data_file_selection(
         Output('histogram-switch', 'value'),
         Output('heat-switch', 'value'),
     ],
-    Input('data-file', 'value'),
-    State('test-case', 'value'))
+    Input('file-picker', 'value'),
+    State('case-picker', 'value'))
 def reset_switch_state(
         data_file_dict,
         test_case):
@@ -497,7 +497,7 @@ def overlay_switch_changed(overlay):
         Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         Input('colormap-3d', 'value'),
         Input('vis-picker', 'value'),
-        Input('color-picker-3d', 'value'),
+        Input('c-picker-3d', 'value'),
         Input('overlay-switch', 'value'),
         Input('outline-switch', 'value'),
         Input('scatter3d', 'clickData'),
@@ -509,8 +509,8 @@ def overlay_switch_changed(overlay):
         State('cat-key-list', 'data'),
         State('filter-trigger', 'data'),
         State('session-id', 'data'),
-        State('test-case', 'value'),
-        State('data-file', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
     ])
 def update_filter(
     slider_arg,
@@ -703,18 +703,18 @@ def update_filter(
 @ app.callback(
     [
         Output('scatter2d-left', 'figure'),
-        Output('x-scatter2d-left', 'disabled'),
-        Output('y-scatter2d-left', 'disabled'),
-        Output('color-scatter2d-left', 'disabled'),
+        Output('x-picker-2d-left', 'disabled'),
+        Output('y-picker-2d-left', 'disabled'),
+        Output('c-picker-2d-left', 'disabled'),
         Output('colormap-scatter2d-left', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
         Input('left-hide-trigger', 'data'),
         Input('left-switch', 'value'),
-        Input('x-scatter2d-left', 'value'),
-        Input('y-scatter2d-left', 'value'),
-        Input('color-scatter2d-left', 'value'),
+        Input('x-picker-2d-left', 'value'),
+        Input('y-picker-2d-left', 'value'),
+        Input('c-picker-2d-left', 'value'),
         Input('colormap-scatter2d-left', 'value'),
         Input('outline-switch', 'value'),
     ],
@@ -813,18 +813,18 @@ def update_left_graph(
 @ app.callback(
     [
         Output('scatter2d-right', 'figure'),
-        Output('x-scatter2d-right', 'disabled'),
-        Output('y-scatter2d-right', 'disabled'),
-        Output('color-scatter2d-right', 'disabled'),
+        Output('x-picker-2d-right', 'disabled'),
+        Output('y-picker-2d-right', 'disabled'),
+        Output('c-picker-2d-right', 'disabled'),
         Output('colormap-scatter2d-right', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
         Input('left-hide-trigger', 'data'),
         Input('right-switch', 'value'),
-        Input('x-scatter2d-right', 'value'),
-        Input('y-scatter2d-right', 'value'),
-        Input('color-scatter2d-right', 'value'),
+        Input('x-picker-2d-right', 'value'),
+        Input('y-picker-2d-right', 'value'),
+        Input('c-picker-2d-right', 'value'),
         Input('colormap-scatter2d-right', 'value'),
         Input('outline-switch', 'value'),
     ],
@@ -923,14 +923,14 @@ def update_right_graph(
 @ app.callback(
     [
         Output('histogram', 'figure'),
-        Output('x-histogram', 'disabled'),
+        Output('x-picker-histogram', 'disabled'),
         Output('y-histogram', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
         Input('left-hide-trigger', 'data'),
         Input('histogram-switch', 'value'),
-        Input('x-histogram', 'value'),
+        Input('x-picker-histogram', 'value'),
         Input('y-histogram', 'value'),
     ],
     [
@@ -1002,15 +1002,15 @@ def update_histogram(
 @ app.callback(
     [
         Output('heatmap', 'figure'),
-        Output('x-heatmap', 'disabled'),
-        Output('y-heatmap', 'disabled'),
+        Output('x-picker-heatmap', 'disabled'),
+        Output('y-picker-heatmap', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
         Input('left-hide-trigger', 'data'),
         Input('heat-switch', 'value'),
-        Input('x-heatmap', 'value'),
-        Input('y-heatmap', 'value'),
+        Input('x-picker-heatmap', 'value'),
+        Input('y-picker-heatmap', 'value'),
     ],
     [
         State('num-key-list', 'data'),
@@ -1085,16 +1085,16 @@ def update_heatmap(
     Output('hidden-scatter3d', 'children'),
     Input('export-scatter3d', 'n_clicks'),
     [
-        State('test-case', 'value'),
+        State('case-picker', 'value'),
         State('session-id', 'data'),
-        State('color-picker-3d', 'value'),
+        State('c-picker-3d', 'value'),
         State('colormap-3d', 'value'),
         State('num-key-list', 'data'),
         State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('vis-picker', 'value'),
-        State('data-file', 'value'),
+        State('file-picker', 'value'),
     ]
 )
 def export_scatter_3d(
@@ -1188,7 +1188,7 @@ def export_scatter_3d(
     Input('export-scatter2d-left', 'n_clicks'),
     [
         State('scatter2d-left', 'figure'),
-        State('test-case', 'value')
+        State('case-picker', 'value')
     ]
 )
 def export_left_scatter_2d(btn, fig, test_case):
@@ -1210,7 +1210,7 @@ def export_left_scatter_2d(btn, fig, test_case):
     Input('export-scatter2d-right', 'n_clicks'),
     [
         State('scatter2d-right', 'figure'),
-        State('test-case', 'value')
+        State('case-picker', 'value')
     ]
 )
 def export_right_scatter_2d(btn, fig, test_case):
@@ -1232,7 +1232,7 @@ def export_right_scatter_2d(btn, fig, test_case):
     Input('export-histogram', 'n_clicks'),
     [
         State('histogram', 'figure'),
-        State('test-case', 'value')
+        State('case-picker', 'value')
     ]
 )
 def export_histogram(btn, fig, test_case):
@@ -1254,7 +1254,7 @@ def export_histogram(btn, fig, test_case):
     Input('export-heatmap', 'n_clicks'),
     [
         State('heatmap', 'figure'),
-        State('test-case', 'value')
+        State('case-picker', 'value')
     ]
 )
 def export_heatmap(btn, fig, test_case):
