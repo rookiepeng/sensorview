@@ -54,9 +54,9 @@ from viz.viz import get_scatter2d, get_histogram, get_heatmap
 from viz.viz import get_animation_data
 
 from tasks import filter_all
-from tasks import celery_filtering_data, REDIS_KEYS
+from tasks import celery_filtering_data
 
-from utils import load_config, redis_set, redis_get
+from utils import load_config, redis_set, redis_get, REDIS_KEYS
 
 
 ###############################################################
