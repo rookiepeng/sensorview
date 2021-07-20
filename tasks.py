@@ -32,7 +32,6 @@ from celery.utils.log import get_task_logger
 import os
 import base64
 import pandas as pd
-import json
 
 from viz.viz import get_scatter3d
 from utils import redis_set, redis_get, REDIS_KEYS
