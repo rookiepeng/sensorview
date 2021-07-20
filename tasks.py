@@ -29,11 +29,8 @@
 
 from celery import Celery
 from celery.utils.log import get_task_logger
-from flask.globals import session
-import redis
 import os
 import base64
-import pickle
 import pandas as pd
 
 from viz.viz import get_scatter3d
