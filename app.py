@@ -359,35 +359,6 @@ def data_file_selection(
         else:
             linewidth = 0
 
-        x_det = config.get('x_3d', num_keys[0])
-        y_det = config.get('y_3d', num_keys[1])
-        z_det = config.get('z_3d', num_keys[2])
-        x_host = config.get('x_ref', None)
-        y_host = config.get('y_ref', None)
-
-        x_range = [
-            float(np.min([num_values[num_keys.index(x_det)][0],
-                          num_values[num_keys.index(x_host)][0]])),
-            float(np.max([num_values[num_keys.index(x_det)][1],
-                          num_values[num_keys.index(x_host)][1]]))]
-        y_range = [
-            float(np.min([num_values[num_keys.index(y_det)][0],
-                          num_values[num_keys.index(y_host)][0]])),
-            float(np.max([num_values[num_keys.index(y_det)][1],
-                          num_values[num_keys.index(y_host)][1]]))]
-        z_range = [float(num_values[num_keys.index(z_det)][0]), float(
-            num_values[num_keys.index(z_det)][1])]
-
-        if keys_dict[c_key].get('type', 'numerical') == 'numerical':
-            c_range = [
-                num_values[num_keys.index(c_key)][0],
-                num_values[num_keys.index(c_key)][1]
-            ]
-            is_discrete_color = False
-        else:
-            c_range = [0, 0]
-            is_discrete_color = True
-
         redis_set(0, session_id, REDIS_KEYS['task_id'])
         redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
@@ -399,19 +370,13 @@ def data_file_selection(
                   cat_keys,
                   cat_values,
                   vis_picker,
-                  keys_dict,
                   c_key,
                   config,
                   linewidth,
                   keys_dict[c_key]['description'],
                   keys_dict[config['slider']
                             ]['description'],
-                  colormap,
-                  is_discrete_color,
-                  x_range,
-                  y_range,
-                  z_range,
-                  c_range], serializer='json')
+                  colormap], serializer='json')
 
         return output
 
@@ -658,18 +623,12 @@ def update_filter(
                   cat_keys,
                   categorical_key_values,
                   vis_picker,
-                  keys_dict,
                   c_key,
                   config,
                   linewidth,
                   c_label,
                   slider_label,
-                  colormap,
-                  is_discrete_color,
-                  x_range,
-                  y_range,
-                  z_range,
-                  c_range], serializer='json')
+                  colormap], serializer='json')
 
     filterd_frame = filter_all(
         data,
@@ -784,7 +743,6 @@ def update_left_graph(
         linewidth = 0
 
     if left_sw:
-        # data = redis_get(session_id, REDIS_KEYS['dataset'])
         file = json.loads(file)
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
@@ -905,7 +863,6 @@ def update_right_graph(
         linewidth = 0
 
     if right_sw:
-        # data = redis_get(session_id, REDIS_KEYS['dataset'])
         file = json.loads(file)
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
@@ -1008,7 +965,6 @@ def update_histogram(
     y_key = y_histogram
 
     if histogram_sw:
-        # data = redis_get(session_id, REDIS_KEYS['dataset'])
         file = json.loads(file)
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
@@ -1097,7 +1053,6 @@ def update_heatmap(
         y_key = y_heat
         y_label = keys_dict[y_heat]['description']
 
-        # data = redis_get(session_id, REDIS_KEYS['dataset'])
         file = json.loads(file)
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
@@ -1179,7 +1134,6 @@ def export_scatter_3d(
         if not os.path.exists('data/'+case+'/images'):
             os.makedirs('data/'+case+'/images')
 
-        # data = redis_get(session_id, REDIS_KEYS['dataset'])
         file = json.loads(file)
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
