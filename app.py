@@ -121,8 +121,6 @@ def refresh_button_clicked(_):
 @ app.callback([
     Output('file-picker', 'value'),
     Output('file-picker', 'options'),
-    Output('num-key-list', 'data'),
-    Output('cat-key-list', 'data')
 ] + dropdown_options + dropdown_values,
     Input('case-picker', 'value'),
     State('session-id', 'data'))
@@ -175,16 +173,15 @@ def case_selected(case, session_id):
         for _, f_item in enumerate(keys_dict)
     ]]*len(dropdown_options)
 
-    # filter_kwargs = {
-    #     'num_keys': num_keys,
-    #     'cat_keys': cat_keys
-    # }
+    filter_kwargs = {
+        'num_keys': num_keys,
+        'cat_keys': cat_keys
+    }
+    redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
 
     return [
         data_files[0]['value'],
-        data_files,
-        num_keys,
-        cat_keys]+options+[
+        data_files]+options+[
         config.get('c_3d', num_keys[2]),
         config.get('x_2d_l', num_keys[0]),
         config.get('y_2d_l', num_keys[1]),
@@ -218,8 +215,6 @@ def case_selected(case, session_id):
     [
         State('case-picker', 'value'),
         State('session-id', 'data'),
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State('slider-frame', 'max'),
         State('slider-frame', 'value'),
         State('vis-picker', 'value'),
@@ -236,8 +231,6 @@ def data_file_selection(
         stop_clicks,
         case,
         session_id,
-        num_keys,
-        cat_keys,
         slider_max,
         slider_var,
         vis_picker,
@@ -255,17 +248,21 @@ def data_file_selection(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     config = redis_get(session_id, REDIS_KEYS['config'])
+    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+
     keys_dict = config['keys']
 
     if trigger_id == 'file-picker':
         file = json.loads(file)
 
         if os.path.exists('./data/'+case +
-                            file['path']+'/' +
-                            file['feather_name']):
-            new_data=pd.read_feather('./data/'+case +
-                                file['path']+'/' +
-                                file['feather_name'])
+                          file['path']+'/' +
+                          file['feather_name']):
+            new_data = pd.read_feather('./data/'+case +
+                                       file['path']+'/' +
+                                       file['feather_name'])
         else:
             if '.pkl' in file['name']:
                 new_data = pd.read_pickle(
@@ -282,16 +279,13 @@ def data_file_selection(
                                 file['path']+'/' +
                                 file['feather_name'])
 
-        frame_list = new_data[config['slider']].unique()
-        frame_list = np.sort(frame_list)
+        frame_list = np.sort(new_data[config['slider']].unique())
+        redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
 
         vis_table = pd.DataFrame()
         vis_table['_IDS_'] = new_data.index
         vis_table['_VIS_'] = 'visible'
-
-        # redis_set(new_data, session_id, REDIS_KEYS["dataset"])
         redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
-        redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
 
         frame_group = new_data.groupby(config['slider'])
 
@@ -351,6 +345,10 @@ def data_file_selection(
             ))
 
             num_values.append([var_min, var_max])
+
+        filter_kwargs['num_values'] = num_values
+        filter_kwargs['cat_values'] = cat_values
+        redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
 
         output.append(new_dropdown)
         output.append(new_slider)
@@ -525,8 +523,6 @@ def overlay_switch_changed(overlay):
     ],
     [
         State('visible-switch', 'value'),
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State('filter-trigger', 'data'),
         State('session-id', 'data'),
         State('case-picker', 'value'),
@@ -544,8 +540,6 @@ def update_filter(
     click_data,
     left_hide_trigger,
     visible_sw,
-    num_keys,
-    cat_keys,
     trigger_idx,
     session_id,
     case,
@@ -556,6 +550,10 @@ def update_filter(
 
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
 
     if trigger_id == 'scatter3d' and \
             ((not visible_sw) or
@@ -603,7 +601,6 @@ def update_filter(
 
     if overlay_sw:
         file = json.loads(file)
-        # data = redis_get(session_id, REDIS_KEYS["dataset"])
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
                                file['feather_name'])
@@ -612,13 +609,6 @@ def update_filter(
         file = json.loads(file)
         data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
             frame_list[slider_arg]))
-        # temp_data = pd.read_feather('./data/'+case +
-        #                             file['path']+'/' +
-        #                             file['feather_name'])
-
-        # frame_group = temp_data.groupby(config['slider'])
-
-        # data = frame_group.get_group(frame_list[slider_arg])
 
         img = './data/'+case+file['path']+'/imgs/' + \
             file['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
@@ -750,8 +740,6 @@ def update_filter(
         Input('outline-switch', 'value'),
     ],
     [
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
@@ -769,8 +757,6 @@ def update_left_graph(
     color_left,
     colormap,
     outline_sw,
-    num_keys,
-    cat_keys,
     categorical_key_values,
     numerical_key_values,
     session_id,
@@ -780,6 +766,11 @@ def update_left_graph(
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+
     x_key = x_left
     y_key = y_left
     c_key = color_left
@@ -868,8 +859,6 @@ def update_left_graph(
         Input('outline-switch', 'value'),
     ],
     [
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
@@ -898,6 +887,11 @@ def update_right_graph(
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+
     x_key = x_right
     y_key = y_right
     c_key = color_right
@@ -981,8 +975,6 @@ def update_right_graph(
         Input('y-histogram', 'value'),
     ],
     [
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
@@ -997,8 +989,6 @@ def update_histogram(
     histogram_sw,
     x_histogram,
     y_histogram,
-    num_keys,
-    cat_keys,
     categorical_key_values,
     numerical_key_values,
     session_id,
@@ -1008,6 +998,11 @@ def update_histogram(
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+
     x_key = x_histogram
     x_label = keys_dict[x_histogram]['description']
     y_key = y_histogram
@@ -1068,8 +1063,6 @@ def update_histogram(
         Input('y-picker-heatmap', 'value'),
     ],
     [
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
@@ -1084,8 +1077,6 @@ def update_heatmap(
     heat_sw,
     x_heat,
     y_heat,
-    num_keys,
-    cat_keys,
     categorical_key_values,
     numerical_key_values,
     session_id,
@@ -1096,6 +1087,11 @@ def update_heatmap(
     if heat_sw:
         config = redis_get(session_id, REDIS_KEYS['config'])
         keys_dict = config['keys']
+
+        filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+        cat_keys = filter_kwargs['cat_keys']
+        num_keys = filter_kwargs['num_keys']
+
         x_key = x_heat
         x_label = keys_dict[x_heat]['description']
         y_key = y_heat
@@ -1152,8 +1148,6 @@ def update_heatmap(
         State('session-id', 'data'),
         State('c-picker-3d', 'value'),
         State('colormap-3d', 'value'),
-        State('num-key-list', 'data'),
-        State('cat-key-list', 'data'),
         State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('vis-picker', 'value'),
@@ -1166,8 +1160,6 @@ def export_scatter_3d(
     session_id,
     color_picker,
     colormap,
-    num_keys,
-    cat_keys,
     categorical_key_values,
     numerical_key_values,
     vis_picker,
@@ -1176,6 +1168,11 @@ def export_scatter_3d(
     if btn > 0:
         config = redis_get(session_id, REDIS_KEYS['config'])
         keys_dict = config['keys']
+
+        filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+        cat_keys = filter_kwargs['cat_keys']
+        num_keys = filter_kwargs['num_keys']
+
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
 
