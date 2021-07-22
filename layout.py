@@ -591,8 +591,6 @@ heatmap_card = dbc.Card([
 
 def get_app_layout(app):
     return dbc.Container([
-        dcc.Store(id='num-key-list'),
-        dcc.Store(id='cat-key-list'),
         dcc.Store(id='selected-data-left'),
         dcc.Store(id='selected-data-right'),
         dcc.Store(id='session-id', data=str(uuid.uuid4())),

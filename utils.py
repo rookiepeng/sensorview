@@ -40,7 +40,8 @@ REDIS_KEYS = {"dataset": "DATASET",
               "config": "CONFIG",
               "figure_idx": "FIGURE_IDX",
               "figure": "FIGURE",
-              "task_id": "TASK_ID"}
+              "task_id": "TASK_ID",
+              "filter_kwargs": "FILTGER_KWARGS"}
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
