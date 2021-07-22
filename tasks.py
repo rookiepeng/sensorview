@@ -32,6 +32,7 @@ from celery.utils.log import get_task_logger
 import os
 import base64
 import pandas as pd
+import numpy as np
 
 from viz.viz import get_scatter3d
 from utils import redis_set, redis_get, REDIS_KEYS
@@ -90,22 +91,16 @@ def celery_filtering_data(self,
                           case,
                           file,
                           num_keys,
-                          numerical_key_values,
+                          num_values,
                           cat_keys,
-                          categorical_key_values,
+                          cat_values,
                           vis_picker,
-                          keys_dict,
                           c_key,
                           config,
                           linewidth,
                           c_label,
                           slider_label,
-                          colormap,
-                          is_discrete_color,
-                          x_range,
-                          y_range,
-                          z_range,
-                          c_range):
+                          colormap):
 
     redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
 
@@ -113,14 +108,44 @@ def celery_filtering_data(self,
 
     redis_set(task_id, session_id, REDIS_KEYS['task_id'])
 
+    keys_dict = config['keys']
+
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
-    # dataset = redis_get(session_id, REDIS_KEYS["dataset"])
-    # file = json.loads(file)
+
     dataset = pd.read_feather('./data/'+case +
-                            file['path']+'/' +
-                            file['feather_name'])
+                              file['path']+'/' +
+                              file['feather_name'])
     frame_group = dataset.groupby(config['slider'])
+
+    x_det = config.get('x_3d', num_keys[0])
+    y_det = config.get('y_3d', num_keys[1])
+    z_det = config.get('z_3d', num_keys[2])
+    x_host = config.get('x_ref', None)
+    y_host = config.get('y_ref', None)
+
+    x_range = [
+        float(np.min([num_values[num_keys.index(x_det)][0],
+                      num_values[num_keys.index(x_host)][0]])),
+        float(np.max([num_values[num_keys.index(x_det)][1],
+                      num_values[num_keys.index(x_host)][1]]))]
+    y_range = [
+        float(np.min([num_values[num_keys.index(y_det)][0],
+                      num_values[num_keys.index(y_host)][0]])),
+        float(np.max([num_values[num_keys.index(y_det)][1],
+                      num_values[num_keys.index(y_host)][1]]))]
+    z_range = [float(num_values[num_keys.index(z_det)][0]), float(
+        num_values[num_keys.index(z_det)][1])]
+
+    if keys_dict[c_key].get('type', 'numerical') == 'numerical':
+        c_range = [
+            num_values[num_keys.index(c_key)][0],
+            num_values[num_keys.index(c_key)][1]
+        ]
+        is_discrete_color = False
+    else:
+        c_range = [0, 0]
+        is_discrete_color = True
 
     for slider_arg in range(0, len(frame_list)):
 
@@ -145,9 +170,9 @@ def celery_filtering_data(self,
         filterd_frame = filter_all(
             data,
             num_keys,
-            numerical_key_values,
+            num_values,
             cat_keys,
-            categorical_key_values,
+            cat_values,
             vis_table,
             vis_picker
         )
