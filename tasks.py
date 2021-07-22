@@ -90,13 +90,8 @@ def celery_filtering_data(self,
                           session_id,
                           case,
                           file,
-                          num_keys,
-                          num_values,
-                          cat_keys,
-                          cat_values,
                           vis_picker,
                           c_key,
-                          config,
                           linewidth,
                           c_label,
                           slider_label,
@@ -108,7 +103,14 @@ def celery_filtering_data(self,
 
     redis_set(task_id, session_id, REDIS_KEYS['task_id'])
 
+    config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    num_values = filter_kwargs['num_values']
+    cat_values = filter_kwargs['cat_values']
 
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
