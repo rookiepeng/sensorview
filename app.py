@@ -365,13 +365,8 @@ def data_file_selection(
             args=[session_id,
                   case,
                   file,
-                  num_keys,
-                  num_values,
-                  cat_keys,
-                  cat_values,
                   vis_picker,
                   c_key,
-                  config,
                   linewidth,
                   keys_dict[c_key]['description'],
                   keys_dict[config['slider']
@@ -519,6 +514,9 @@ def update_filter(
     filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
+    filter_kwargs['num_values'] = numerical_key_values
+    filter_kwargs['cat_values'] = categorical_key_values
+    redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
 
     if trigger_id == 'scatter3d' and \
             ((not visible_sw) or
@@ -618,13 +616,8 @@ def update_filter(
             args=[session_id,
                   case,
                   file,
-                  num_keys,
-                  numerical_key_values,
-                  cat_keys,
-                  categorical_key_values,
                   vis_picker,
                   c_key,
-                  config,
                   linewidth,
                   c_label,
                   slider_label,
