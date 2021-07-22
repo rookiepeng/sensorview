@@ -490,15 +490,15 @@ def overlay_switch_changed(overlay):
     ])
 def update_filter(
     slider_arg,
-    categorical_key_values,
-    numerical_key_values,
+    cat_values,
+    num_values,
     colormap,
     vis_picker,
     color_picker,
     overlay_sw,
     outline_sw,
     click_data,
-    left_hide_trigger,
+    _,
     visible_sw,
     trigger_idx,
     session_id,
@@ -514,8 +514,8 @@ def update_filter(
     filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
-    filter_kwargs['num_values'] = numerical_key_values
-    filter_kwargs['cat_values'] = categorical_key_values
+    filter_kwargs['num_values'] = num_values
+    filter_kwargs['cat_values'] = cat_values
     redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
 
     if trigger_id == 'scatter3d' and \
@@ -589,22 +589,22 @@ def update_filter(
         linewidth = 0
 
     x_range = [
-        float(np.min([numerical_key_values[num_keys.index(x_det)][0],
-                      numerical_key_values[num_keys.index(x_host)][0]])),
-        float(np.max([numerical_key_values[num_keys.index(x_det)][1],
-                      numerical_key_values[num_keys.index(x_host)][1]]))]
+        float(np.min([num_values[num_keys.index(x_det)][0],
+                      num_values[num_keys.index(x_host)][0]])),
+        float(np.max([num_values[num_keys.index(x_det)][1],
+                      num_values[num_keys.index(x_host)][1]]))]
     y_range = [
-        float(np.min([numerical_key_values[num_keys.index(y_det)][0],
-                      numerical_key_values[num_keys.index(y_host)][0]])),
-        float(np.max([numerical_key_values[num_keys.index(y_det)][1],
-                      numerical_key_values[num_keys.index(y_host)][1]]))]
-    z_range = [float(numerical_key_values[num_keys.index(z_det)][0]), float(
-        numerical_key_values[num_keys.index(z_det)][1])]
+        float(np.min([num_values[num_keys.index(y_det)][0],
+                      num_values[num_keys.index(y_host)][0]])),
+        float(np.max([num_values[num_keys.index(y_det)][1],
+                      num_values[num_keys.index(y_host)][1]]))]
+    z_range = [float(num_values[num_keys.index(z_det)][0]), float(
+        num_values[num_keys.index(z_det)][1])]
 
     if keys_dict[c_key].get('type', 'numerical') == 'numerical':
         c_range = [
-            numerical_key_values[num_keys.index(c_key)][0],
-            numerical_key_values[num_keys.index(c_key)][1]
+            num_values[num_keys.index(c_key)][0],
+            num_values[num_keys.index(c_key)][1]
         ]
         is_discrete_color = False
     else:
@@ -626,9 +626,9 @@ def update_filter(
     filterd_frame = filter_all(
         data,
         num_keys,
-        numerical_key_values,
+        num_values,
         cat_keys,
-        categorical_key_values,
+        cat_values,
         vis_table,
         vis_picker
     )
@@ -701,16 +701,16 @@ def update_filter(
     ]
 )
 def update_left_graph(
-    trigger_idx,
-    left_hide_trigger,
+    unused1,
+    unused2,
     left_sw,
     x_left,
     y_left,
     color_left,
     colormap,
     outline_sw,
-    categorical_key_values,
-    numerical_key_values,
+    cat_values,
+    num_values,
     session_id,
     vis_picker,
     case,
@@ -745,9 +745,9 @@ def update_left_graph(
         filtered_table = filter_all(
             data,
             num_keys,
-            numerical_key_values,
+            num_values,
             cat_keys,
-            categorical_key_values,
+            cat_values,
             vis_table,
             vis_picker
         )
@@ -819,8 +819,8 @@ def update_left_graph(
     ]
 )
 def update_right_graph(
-    trigger_idx,
-    left_hide_trigger,
+    unused1,
+    unused2,
     right_sw,
     x_right,
     y_right,
@@ -829,8 +829,8 @@ def update_right_graph(
     outline_sw,
     num_keys,
     cat_keys,
-    categorical_key_values,
-    numerical_key_values,
+    cat_values,
+    num_values,
     session_id,
     vis_picker,
     case,
@@ -864,9 +864,9 @@ def update_right_graph(
         filtered_table = filter_all(
             data,
             num_keys,
-            numerical_key_values,
+            num_values,
             cat_keys,
-            categorical_key_values,
+            cat_values,
             vis_table,
             vis_picker
         )
@@ -934,13 +934,13 @@ def update_right_graph(
     ]
 )
 def update_histogram(
-    trigger_idx,
-    left_hide_trigger,
+    unused1,
+    unused2,
     histogram_sw,
     x_histogram,
     y_histogram,
-    categorical_key_values,
-    numerical_key_values,
+    cat_values,
+    num_values,
     session_id,
     vis_picker,
     case,
@@ -966,9 +966,9 @@ def update_histogram(
         filtered_table = filter_all(
             data,
             num_keys,
-            numerical_key_values,
+            num_values,
             cat_keys,
-            categorical_key_values,
+            cat_values,
             vis_table,
             vis_picker
         )
@@ -1021,13 +1021,13 @@ def update_histogram(
     ]
 )
 def update_heatmap(
-    trigger_idx,
-    left_hide_trigger,
+    unused1,
+    unused2,
     heat_sw,
     x_heat,
     y_heat,
-    categorical_key_values,
-    numerical_key_values,
+    cat_values,
+    num_values,
     session_id,
     vis_picker,
     case,
@@ -1055,9 +1055,9 @@ def update_heatmap(
         filtered_table = filter_all(
             data,
             num_keys,
-            numerical_key_values,
+            num_values,
             cat_keys,
-            categorical_key_values,
+            cat_values,
             vis_table,
             vis_picker
         )
@@ -1108,8 +1108,8 @@ def export_scatter_3d(
     session_id,
     color_picker,
     colormap,
-    categorical_key_values,
-    numerical_key_values,
+    cat_values,
+    num_values,
     vis_picker,
     file
 ):
@@ -1142,9 +1142,9 @@ def export_scatter_3d(
         filtered_table = filter_all(
             data,
             num_keys,
-            numerical_key_values,
+            num_values,
             cat_keys,
-            categorical_key_values,
+            cat_values,
             vis_table,
             vis_picker
         )
@@ -1162,8 +1162,8 @@ def export_scatter_3d(
 
         if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
             c_range = [
-                numerical_key_values[num_keys.index(color_picker)][0],
-                numerical_key_values[num_keys.index(color_picker)][1]
+                num_values[num_keys.index(color_picker)][0],
+                num_values[num_keys.index(color_picker)][1]
             ]
             is_discrete_color = False
         else:
