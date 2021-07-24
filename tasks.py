@@ -51,7 +51,7 @@ def filter_all(
         cat_list,
         cat_values,
         visible_table=None,
-        vis_list=None,
+        visible_list=None,
 ):
 
     for f_idx, f_name in enumerate(num_list):
@@ -77,9 +77,9 @@ def filter_all(
 
             condition = condition & val_condition
 
-    if len(vis_list) == 1:
-        condition = condition & (visible_table['_VIS_'] == vis_list[0])
-    elif not vis_list:
+    if len(visible_list) == 1:
+        condition = condition & (visible_table['_VIS_'] == visible_list[0])
+    elif not visible_list:
         condition = condition & False
 
     return data.loc[condition]
@@ -90,7 +90,7 @@ def celery_filtering_data(self,
                           session_id,
                           case,
                           file,
-                          vis_picker,
+                          visible_picker,
                           c_key,
                           linewidth,
                           c_label,
@@ -176,7 +176,7 @@ def celery_filtering_data(self,
             cat_keys,
             cat_values,
             visible_table,
-            vis_picker
+            visible_picker
         )
 
         fig = get_scatter3d(
