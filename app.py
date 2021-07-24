@@ -482,7 +482,7 @@ def overlay_switch_changed(overlay):
         Input('left-hide-trigger', 'data'),
     ],
     [
-        State('visible-switch', 'value'),
+        State('click-hide-switch', 'value'),
         State('filter-trigger', 'data'),
         State('session-id', 'data'),
         State('case-picker', 'value'),
@@ -499,7 +499,7 @@ def update_filter(
     outline_sw,
     click_data,
     _,
-    visible_sw,
+    click_hide,
     trigger_idx,
     session_id,
     case,
@@ -519,7 +519,7 @@ def update_filter(
     redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
 
     if trigger_id == 'scatter3d' and \
-            ((not visible_sw) or
+            ((not click_hide) or
                 (click_data['points'][0]['curveNumber'] != 0)):
         raise PreventUpdate
 
@@ -549,7 +549,7 @@ def update_filter(
     vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
 
-    if trigger_id == 'scatter3d' and visible_sw and \
+    if trigger_id == 'scatter3d' and click_hide and \
             click_data['points'][0]['curveNumber'] == 0:
         if vis_table['_VIS_'][
             click_data['points'][0]['id']
@@ -662,7 +662,7 @@ def update_filter(
             (trigger_id == 'outline-switch'):
         filter_trig = dash.no_update
     elif trigger_id == 'scatter3d':
-        if visible_sw and \
+        if click_hide and \
                 click_data['points'][0]['curveNumber'] == 0:
             filter_trig = trigger_idx+1
         else:

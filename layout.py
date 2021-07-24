@@ -113,7 +113,7 @@ filter_card = dbc.Card([
                          "value": True},
                     ],
                     value=[],
-                    id="visible-switch",
+                    id="click-hide-switch",
                     switch=True,
                 ),
             ]
