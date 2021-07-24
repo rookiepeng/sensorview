@@ -50,7 +50,7 @@ def filter_all(
         num_values,
         cat_list,
         cat_values,
-        vis_table=None,
+        visible_table=None,
         vis_list=None,
 ):
 
@@ -78,7 +78,7 @@ def filter_all(
             condition = condition & val_condition
 
     if len(vis_list) == 1:
-        condition = condition & (vis_table['_VIS_'] == vis_list[0])
+        condition = condition & (visible_table['_VIS_'] == vis_list[0])
     elif not vis_list:
         condition = condition & False
 
@@ -112,7 +112,7 @@ def celery_filtering_data(self,
     num_values = filter_kwargs['num_values']
     cat_values = filter_kwargs['cat_values']
 
-    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
 
     dataset = pd.read_feather('./data/'+case +
@@ -175,7 +175,7 @@ def celery_filtering_data(self,
             num_values,
             cat_keys,
             cat_values,
-            vis_table,
+            visible_table,
             vis_picker
         )
 

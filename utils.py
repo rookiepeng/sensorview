@@ -36,7 +36,7 @@ EXPIRATION = 172800  # 2 days in seconds
 REDIS_KEYS = {"dataset": "DATASET",
               "frame_list": "FRAME_LIST",
               "frame_data": "FRAME_DATA",
-              "vis_table": "VIS_TABLE",
+              "visible_table": "VIS_TABLE",
               "config": "CONFIG",
               "figure_idx": "FIGURE_IDX",
               "figure": "FIGURE",
