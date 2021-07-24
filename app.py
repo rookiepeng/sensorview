@@ -692,8 +692,6 @@ def update_filter(
         Input('outline-switch', 'value'),
     ],
     [
-        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value'),
         State('case-picker', 'value'),
@@ -709,8 +707,6 @@ def update_left_graph(
     color_left,
     colormap,
     outline_sw,
-    cat_values,
-    num_values,
     session_id,
     vis_picker,
     case,
@@ -722,6 +718,8 @@ def update_left_graph(
     filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
 
     x_key = x_left
     y_key = y_left
@@ -810,8 +808,6 @@ def update_left_graph(
         Input('outline-switch', 'value'),
     ],
     [
-        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value'),
         State('case-picker', 'value'),
@@ -827,10 +823,6 @@ def update_right_graph(
     color_right,
     colormap,
     outline_sw,
-    num_keys,
-    cat_keys,
-    cat_values,
-    num_values,
     session_id,
     vis_picker,
     case,
@@ -842,6 +834,8 @@ def update_right_graph(
     filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
 
     x_key = x_right
     y_key = y_right
@@ -925,8 +919,6 @@ def update_right_graph(
         Input('y-histogram', 'value'),
     ],
     [
-        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value'),
         State('case-picker', 'value'),
@@ -939,8 +931,6 @@ def update_histogram(
     histogram_sw,
     x_histogram,
     y_histogram,
-    cat_values,
-    num_values,
     session_id,
     vis_picker,
     case,
@@ -952,6 +942,8 @@ def update_histogram(
     filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
 
     x_key = x_histogram
     x_label = keys_dict[x_histogram]['description']
@@ -1012,8 +1004,6 @@ def update_histogram(
         Input('y-picker-heatmap', 'value'),
     ],
     [
-        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('session-id', 'data'),
         State('vis-picker', 'value'),
         State('case-picker', 'value'),
@@ -1026,8 +1016,6 @@ def update_heatmap(
     heat_sw,
     x_heat,
     y_heat,
-    cat_values,
-    num_values,
     session_id,
     vis_picker,
     case,
@@ -1040,6 +1028,8 @@ def update_heatmap(
         filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
         cat_keys = filter_kwargs['cat_keys']
         num_keys = filter_kwargs['num_keys']
+        cat_values = filter_kwargs['cat_values']
+        num_values = filter_kwargs['num_values']
 
         x_key = x_heat
         x_label = keys_dict[x_heat]['description']
@@ -1096,8 +1086,6 @@ def update_heatmap(
         State('session-id', 'data'),
         State('c-picker-3d', 'value'),
         State('colormap-3d', 'value'),
-        State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        State({'type': 'filter-slider', 'index': ALL}, 'value'),
         State('vis-picker', 'value'),
         State('file-picker', 'value'),
     ]
@@ -1108,8 +1096,6 @@ def export_scatter_3d(
     session_id,
     color_picker,
     colormap,
-    cat_values,
-    num_values,
     vis_picker,
     file
 ):
@@ -1120,6 +1106,8 @@ def export_scatter_3d(
         filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
         cat_keys = filter_kwargs['cat_keys']
         num_keys = filter_kwargs['num_keys']
+        cat_values = filter_kwargs['cat_values']
+        num_values = filter_kwargs['num_values']
 
         now = datetime.datetime.now()
         timestamp = now.strftime('%Y%m%d_%H%M%S')
