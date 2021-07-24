@@ -151,7 +151,8 @@ view3d_card = dbc.Card([
             ), width=2),
             dbc.Col(dbc.Select(
                 id='colormap-3d',
-                options=[{'value': x, 'label': x}
+                options=[{'value': x,
+                          'label': x}
                          for x in colorscales],
                 value='Portland',
             ), width=2)
@@ -238,18 +239,14 @@ view3d_card = dbc.Card([
         ], justify='center'),
         html.Div([
             dbc.DropdownMenu(
-                [
-                    dbc.DropdownMenuItem(
-                        'Export all frames as an HTML video',
-                        id='export-scatter3d',
-                        n_clicks=0
-                    ),
-                ],
+                [dbc.DropdownMenuItem(
+                    'Export all frames as an HTML video',
+                    id='export-scatter3d',
+                    n_clicks=0
+                )],
                 label='Export',
                 right=True,
-                style={
-                    'float': 'right'
-                }
+                style={'float': 'right'}
             ),
             html.Div(id='hidden-scatter3d',
                      style={'display': 'none'}),
@@ -289,25 +286,22 @@ left2d_card = dbc.Card([
             dbc.Col(dbc.Select(
                 id='x-picker-2d-left',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-picker-2d-left',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='c-picker-2d-left',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='colormap-scatter2d-left',
                 disabled=True,
-                options=[{'value': x, 'label': x}
+                options=[{'value': x,
+                          'label': x}
                          for x in colorscales],
                 value='Portland',
-                # clearable=False,
             )),
         ]),
 
@@ -339,9 +333,7 @@ left2d_card = dbc.Card([
                         'Export',
                         id='export-scatter2d-left',
                         n_clicks=0,
-                        style={
-                            'float': 'right'
-                        })),
+                        style={'float': 'right'})),
                 ]),
             ],
             type='default',
@@ -363,9 +355,7 @@ right2d_card = dbc.Card([
                     value=[],
                     id='right-switch',
                     switch=True,
-                    style={
-                        'float': 'right'
-                    }
+                    style={'float': 'right'}
                 )
             )]),
     ),
@@ -381,17 +371,14 @@ right2d_card = dbc.Card([
             dbc.Col(dbc.Select(
                 id='x-picker-2d-right',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-picker-2d-right',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='c-picker-2d-right',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='colormap-scatter2d-right',
@@ -399,7 +386,6 @@ right2d_card = dbc.Card([
                 options=[{'value': x, 'label': x}
                          for x in colorscales],
                 value='Portland',
-                # clearable=False,
             )),
         ]),
 
@@ -415,7 +401,8 @@ right2d_card = dbc.Card([
                         'data': [{
                             'mode': 'markers',
                             'type': 'scattergl',
-                            'x': [], 'y': []
+                            'x': [],
+                            'y': []
                         }],
                         'layout': {
                             'uirevision': 'no_change'
@@ -427,9 +414,7 @@ right2d_card = dbc.Card([
                         'Export',
                         id='export-scatter2d-right',
                         n_clicks=0,
-                        style={
-                            'float': 'right'
-                        }))
+                        style={'float': 'right'}))
                 ]),
             ],
             type='default',
@@ -451,9 +436,7 @@ hist_card = dbc.Card([
                     value=[],
                     id='histogram-switch',
                     switch=True,
-                    style={
-                        'float': 'right'
-                    }
+                    style={'float': 'right'}
                 )
             )]),
     ),
@@ -467,7 +450,6 @@ hist_card = dbc.Card([
             dbc.Col(dbc.Select(
                 id='x-picker-histogram',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-histogram',
@@ -482,7 +464,6 @@ hist_card = dbc.Card([
                 ],
                 value='density',
                 disabled=True,
-                # clearable=False,
             )),
         ]),
 
@@ -509,9 +490,7 @@ hist_card = dbc.Card([
                             'Export',
                             id='export-histogram',
                             n_clicks=0,
-                            style={
-                                'float': 'right'
-                            })),
+                            style={'float': 'right'})),
                 ]),
             ],
             type='default',
@@ -533,9 +512,7 @@ heatmap_card = dbc.Card([
                     value=[],
                     id='heat-switch',
                     switch=True,
-                    style={
-                        'float': 'right'
-                    }
+                    style={'float': 'right'}
                 )
             )]),
     ),
@@ -549,12 +526,10 @@ heatmap_card = dbc.Card([
             dbc.Col(dbc.Select(
                 id='x-picker-heatmap',
                 disabled=True,
-                # clearable=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-picker-heatmap',
                 disabled=True,
-                # clearable=False,
             ))
         ]),
 
@@ -581,9 +556,7 @@ heatmap_card = dbc.Card([
                             'Export',
                             id='export-heatmap',
                             n_clicks=0,
-                            style={
-                                'float': 'right'
-                            })),
+                            style={'float': 'right'})),
                 ]),
             ],
             type='default',
