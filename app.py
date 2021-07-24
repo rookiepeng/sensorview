@@ -70,7 +70,7 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'RadarViz'
 
-REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
+REDIS_HASH_NAME = os.environ.get('DASH_APP_NAME', app.title)
 
 app.layout = get_app_layout(app)
 
@@ -182,7 +182,7 @@ def case_selected(case, session_id):
         'num_keys': num_keys,
         'cat_keys': cat_keys
     }
-    redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
+    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
     return [
         data_files[0]['value'],
@@ -253,7 +253,7 @@ def data_file_selection(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     config = redis_get(session_id, REDIS_KEYS['config'])
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
 
@@ -295,18 +295,18 @@ def data_file_selection(
                                 file['feather_name'])
 
         frame_list = np.sort(new_data[config['slider']].unique())
-        redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
+        redis_set(frame_list, session_id, REDIS_KEYS['frame_list'])
 
         visible_table = pd.DataFrame()
         visible_table['_IDS_'] = new_data.index
         visible_table['_VIS_'] = 'visible'
-        redis_set(visible_table, session_id, REDIS_KEYS["visible_table"])
+        redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
         frame_group = new_data.groupby(config['slider'])
 
         for frame_idx, frame_data in frame_group:
             redis_set(frame_data, session_id,
-                      REDIS_KEYS["frame_data"],
+                      REDIS_KEYS['frame_data'],
                       str(frame_idx))
 
         output = [0, 0, len(frame_list)-1]
@@ -361,7 +361,7 @@ def data_file_selection(
 
         filter_kwargs['num_values'] = num_values
         filter_kwargs['cat_values'] = cat_values
-        redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
+        redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
         output.append(new_dropdown)
         output.append(new_slider)
@@ -524,12 +524,12 @@ def update_filter(
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     filter_kwargs['num_values'] = num_values
     filter_kwargs['cat_values'] = cat_values
-    redis_set(filter_kwargs, session_id, REDIS_KEYS["filter_kwargs"])
+    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
     if trigger_id == 'scatter3d' and \
             ((not click_hide) or
@@ -572,7 +572,7 @@ def update_filter(
             visible_table.at[click_data['points']
                              [0]['id'], '_VIS_'] = 'visible'
 
-        redis_set(visible_table, session_id, REDIS_KEYS["visible_table"])
+        redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
     if overlay_sw:
         file = json.loads(file)
@@ -584,7 +584,7 @@ def update_filter(
         source_encoded = None
     else:
         file = json.loads(file)
-        data = redis_get(session_id, REDIS_KEYS["frame_data"], str(
+        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
             frame_list[slider_arg]))
 
         img = './data/'+case+file['path']+'/imgs/' + \
@@ -729,7 +729,7 @@ def update_left_graph(
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
@@ -849,7 +849,7 @@ def update_right_graph(
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
@@ -961,7 +961,7 @@ def update_histogram(
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
@@ -1049,7 +1049,7 @@ def update_heatmap(
         config = redis_get(session_id, REDIS_KEYS['config'])
         keys_dict = config['keys']
 
-        filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+        filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
         cat_keys = filter_kwargs['cat_keys']
         num_keys = filter_kwargs['num_keys']
         cat_values = filter_kwargs['cat_values']
@@ -1131,7 +1131,7 @@ def export_scatter_3d(
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
