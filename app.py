@@ -217,7 +217,7 @@ def case_selected(case, session_id):
         State('session-id', 'data'),
         State('slider-frame', 'max'),
         State('slider-frame', 'value'),
-        State('vis-picker', 'value'),
+        State('visible-picker', 'value'),
         State('c-picker-3d', 'value'),
         State('outline-switch', 'value'),
         State('colormap-3d', 'value'),
@@ -474,7 +474,7 @@ def overlay_switch_changed(overlay):
         Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         Input('colormap-3d', 'value'),
-        Input('vis-picker', 'value'),
+        Input('visible-picker', 'value'),
         Input('c-picker-3d', 'value'),
         Input('overlay-switch', 'value'),
         Input('outline-switch', 'value'),
@@ -693,7 +693,7 @@ def update_filter(
     ],
     [
         State('session-id', 'data'),
-        State('vis-picker', 'value'),
+        State('visible-picker', 'value'),
         State('case-picker', 'value'),
         State('file-picker', 'value'),
     ]
@@ -809,7 +809,7 @@ def update_left_graph(
     ],
     [
         State('session-id', 'data'),
-        State('vis-picker', 'value'),
+        State('visible-picker', 'value'),
         State('case-picker', 'value'),
         State('file-picker', 'value'),
     ]
@@ -920,7 +920,7 @@ def update_right_graph(
     ],
     [
         State('session-id', 'data'),
-        State('vis-picker', 'value'),
+        State('visible-picker', 'value'),
         State('case-picker', 'value'),
         State('file-picker', 'value'),
     ]
@@ -1005,7 +1005,7 @@ def update_histogram(
     ],
     [
         State('session-id', 'data'),
-        State('vis-picker', 'value'),
+        State('visible-picker', 'value'),
         State('case-picker', 'value'),
         State('file-picker', 'value'),
     ]
@@ -1086,7 +1086,7 @@ def update_heatmap(
         State('session-id', 'data'),
         State('c-picker-3d', 'value'),
         State('colormap-3d', 'value'),
-        State('vis-picker', 'value'),
+        State('visible-picker', 'value'),
         State('file-picker', 'value'),
     ]
 )

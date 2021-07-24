@@ -128,7 +128,7 @@ filter_card = dbc.Card([
                         {"label": "Show hidden", "value": "hidden"},
                     ],
                     value=["visible"],
-                    id="vis-picker",
+                    id="visible-picker",
                 ),
             ]
         ),
