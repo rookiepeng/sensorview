@@ -282,10 +282,10 @@ def data_file_selection(
         frame_list = np.sort(new_data[config['slider']].unique())
         redis_set(frame_list, session_id, REDIS_KEYS["frame_list"])
 
-        vis_table = pd.DataFrame()
-        vis_table['_IDS_'] = new_data.index
-        vis_table['_VIS_'] = 'visible'
-        redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
+        visible_table = pd.DataFrame()
+        visible_table['_IDS_'] = new_data.index
+        visible_table['_VIS_'] = 'visible'
+        redis_set(visible_table, session_id, REDIS_KEYS["visible_table"])
 
         frame_group = new_data.groupby(config['slider'])
 
@@ -546,21 +546,21 @@ def update_filter(
     x_host = config.get('x_ref', None)
     y_host = config.get('y_ref', None)
 
-    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
 
     if trigger_id == 'scatter3d' and click_hide and \
             click_data['points'][0]['curveNumber'] == 0:
-        if vis_table['_VIS_'][
+        if visible_table['_VIS_'][
             click_data['points'][0]['id']
         ] == 'visible':
-            vis_table.at[click_data['points']
-                         [0]['id'], '_VIS_'] = 'hidden'
+            visible_table.at[click_data['points']
+                             [0]['id'], '_VIS_'] = 'hidden'
         else:
-            vis_table.at[click_data['points']
-                         [0]['id'], '_VIS_'] = 'visible'
+            visible_table.at[click_data['points']
+                             [0]['id'], '_VIS_'] = 'visible'
 
-        redis_set(vis_table, session_id, REDIS_KEYS["vis_table"])
+        redis_set(visible_table, session_id, REDIS_KEYS["visible_table"])
 
     if overlay_sw:
         file = json.loads(file)
@@ -629,7 +629,7 @@ def update_filter(
         num_values,
         cat_keys,
         cat_values,
-        vis_table,
+        visible_table,
         vis_picker
     )
 
@@ -738,7 +738,7 @@ def update_left_graph(
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
                                file['feather_name'])
-        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
         filtered_table = filter_all(
             data,
@@ -746,7 +746,7 @@ def update_left_graph(
             num_values,
             cat_keys,
             cat_values,
-            vis_table,
+            visible_table,
             vis_picker
         )
 
@@ -854,14 +854,14 @@ def update_right_graph(
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
                                file['feather_name'])
-        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
         filtered_table = filter_all(
             data,
             num_keys,
             num_values,
             cat_keys,
             cat_values,
-            vis_table,
+            visible_table,
             vis_picker
         )
 
@@ -954,14 +954,14 @@ def update_histogram(
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
                                file['feather_name'])
-        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
         filtered_table = filter_all(
             data,
             num_keys,
             num_values,
             cat_keys,
             cat_values,
-            vis_table,
+            visible_table,
             vis_picker
         )
 
@@ -1040,7 +1040,7 @@ def update_heatmap(
         data = pd.read_feather('./data/'+case +
                                file['path']+'/' +
                                file['feather_name'])
-        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
         filtered_table = filter_all(
             data,
@@ -1048,7 +1048,7 @@ def update_heatmap(
             num_values,
             cat_keys,
             cat_values,
-            vis_table,
+            visible_table,
             vis_picker
         )
 
@@ -1121,7 +1121,7 @@ def export_scatter_3d(
     data = pd.read_feather('./data/'+case +
                            file['path']+'/' +
                            file['feather_name'])
-    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
     x_det = config.get('x_3d', num_keys[0])
     y_det = config.get('y_3d', num_keys[1])
@@ -1135,7 +1135,7 @@ def export_scatter_3d(
         num_values,
         cat_keys,
         cat_values,
-        vis_table,
+        visible_table,
         vis_picker
     )
 
@@ -1309,19 +1309,19 @@ def left_hide_button(
     if selectedData is None:
         raise PreventUpdate
 
-    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
     s_data = pd.DataFrame(selectedData['points'])
     idx = s_data['id']
     idx.index = idx
 
-    vis_idx = idx[vis_table['_VIS_'][idx] == 'visible']
-    hid_idx = idx[vis_table['_VIS_'][idx] == 'hidden']
+    vis_idx = idx[visible_table['_VIS_'][idx] == 'visible']
+    hid_idx = idx[visible_table['_VIS_'][idx] == 'hidden']
 
-    vis_table.loc[vis_idx, '_VIS_'] = 'hidden'
-    vis_table.loc[hid_idx, '_VIS_'] = 'visible'
+    visible_table.loc[vis_idx, '_VIS_'] = 'hidden'
+    visible_table.loc[hid_idx, '_VIS_'] = 'visible'
 
-    redis_set(vis_table, session_id, REDIS_KEYS['vis_table'])
+    redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
     return trigger_idx+1
 
