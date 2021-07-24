@@ -124,8 +124,10 @@ filter_card = dbc.Card([
                 dbc.Label("Visibility options"),
                 dbc.Checklist(
                     options=[
-                        {"label": "Show visible", "value": "visible"},
-                        {"label": "Show hidden", "value": "hidden"},
+                        {"label": "Show visible",
+                         "value": "visible"},
+                        {"label": "Show hidden",
+                         "value": "hidden"},
                     ],
                     value=["visible"],
                     id="visible-picker",
@@ -214,22 +216,22 @@ view3d_card = dbc.Card([
                 dbc.ButtonGroup(
                     [dbc.Button(
                         '<<',
-                        id='left-frame',
+                        id='previous-button',
                         color="dark",
                         n_clicks=0),
                      dbc.Button(
                         '▷',
-                        id='play',
+                        id='play-button',
                         color="primary",
                         n_clicks=0),
                      dbc.Button(
                         '◼',
-                        id='stop',
+                        id='stop-button',
                         color="danger",
                         n_clicks=0),
                      dbc.Button(
                         '>>',
-                        id='right-frame',
+                        id='next-button',
                         color="dark",
                         n_clicks=0)
                      ]), width=2),
