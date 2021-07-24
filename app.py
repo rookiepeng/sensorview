@@ -1099,86 +1099,88 @@ def export_scatter_3d(
     vis_picker,
     file
 ):
-    if btn > 0:
-        config = redis_get(session_id, REDIS_KEYS['config'])
-        keys_dict = config['keys']
+    if btn == 0:
+        raise PreventUpdate
 
-        filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
-        cat_keys = filter_kwargs['cat_keys']
-        num_keys = filter_kwargs['num_keys']
-        cat_values = filter_kwargs['cat_values']
-        num_values = filter_kwargs['num_values']
+    config = redis_get(session_id, REDIS_KEYS['config'])
+    keys_dict = config['keys']
 
-        now = datetime.datetime.now()
-        timestamp = now.strftime('%Y%m%d_%H%M%S')
+    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
 
-        if not os.path.exists('data/'+case+'/images'):
-            os.makedirs('data/'+case+'/images')
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        file = json.loads(file)
-        data = pd.read_feather('./data/'+case +
-                               file['path']+'/' +
-                               file['feather_name'])
-        vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
 
-        x_det = config.get('x_3d', num_keys[0])
-        y_det = config.get('y_3d', num_keys[1])
-        z_det = config.get('z_3d', num_keys[2])
-        x_host = config.get('x_ref', None)
-        y_host = config.get('y_ref', None)
+    file = json.loads(file)
+    data = pd.read_feather('./data/'+case +
+                           file['path']+'/' +
+                           file['feather_name'])
+    vis_table = redis_get(session_id, REDIS_KEYS['vis_table'])
 
-        filtered_table = filter_all(
-            data,
-            num_keys,
-            num_values,
-            cat_keys,
-            cat_values,
-            vis_table,
-            vis_picker
+    x_det = config.get('x_3d', num_keys[0])
+    y_det = config.get('y_3d', num_keys[1])
+    z_det = config.get('z_3d', num_keys[2])
+    x_host = config.get('x_ref', None)
+    y_host = config.get('y_ref', None)
+
+    filtered_table = filter_all(
+        data,
+        num_keys,
+        num_values,
+        cat_keys,
+        cat_values,
+        vis_table,
+        vis_picker
+    )
+
+    frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
+    frame_list = filtered_table[config['slider']].unique()
+    img_list = []
+
+    data_name = json.loads(file)
+    for _, f_val in enumerate(frame_list):
+        img_idx = np.where(frame_list == f_val)[0][0]
+        img_list.append(
+            './data/'+case+data_name['path']+'/imgs/' +
+            data_name['name'][0:-4]+'_'+str(img_idx)+'.jpg')
+
+    if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
+        c_range = [
+            num_values[num_keys.index(color_picker)][0],
+            num_values[num_keys.index(color_picker)][1]
+        ]
+        is_discrete_color = False
+    else:
+        c_range = [0, 0]
+        is_discrete_color = True
+
+    fig = go.Figure(
+        get_animation_data(
+            filtered_table,
+            x_key=x_det,
+            y_key=y_det,
+            z_key=z_det,
+            host_x_key=x_host,
+            host_y_key=y_host,
+            img_list=img_list,
+            c_key=color_picker,
+            is_discrete_color=is_discrete_color,
+            colormap=colormap,
+            hover=keys_dict,
+            title=data_name['name'][0:-4],
+            c_label=keys_dict[color_picker]['description'],
+            height=750
         )
+    )
 
-        frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
-        frame_list = filtered_table[config['slider']].unique()
-        img_list = []
-
-        data_name = json.loads(file)
-        for _, f_val in enumerate(frame_list):
-            img_idx = np.where(frame_list == f_val)[0][0]
-            img_list.append(
-                './data/'+case+data_name['path']+'/imgs/' +
-                data_name['name'][0:-4]+'_'+str(img_idx)+'.jpg')
-
-        if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
-            c_range = [
-                num_values[num_keys.index(color_picker)][0],
-                num_values[num_keys.index(color_picker)][1]
-            ]
-            is_discrete_color = False
-        else:
-            c_range = [0, 0]
-            is_discrete_color = True
-
-        fig = go.Figure(
-            get_animation_data(
-                filtered_table,
-                x_key=x_det,
-                y_key=y_det,
-                z_key=z_det,
-                host_x_key=x_host,
-                host_y_key=y_host,
-                img_list=img_list,
-                c_key=color_picker,
-                is_discrete_color=is_discrete_color,
-                colormap=colormap,
-                hover=keys_dict,
-                title=data_name['name'][0:-4],
-                c_label=keys_dict[color_picker]['description'],
-                height=750
-            )
-        )
-
-        fig.write_html('data/'+case+'/images/' +
-                       timestamp+'_'+data_name['name'][0:-4]+'_3dview.html')
+    fig.write_html('data/'+case+'/images/' +
+                   timestamp+'_'+data_name['name'][0:-4]+'_3dview.html')
     return 0
 
 
@@ -1191,16 +1193,18 @@ def export_scatter_3d(
     ]
 )
 def export_left_scatter_2d(btn, fig, case):
-    if btn > 0:
-        now = datetime.datetime.now()
-        timestamp = now.strftime('%Y%m%d_%H%M%S')
+    if btn == 0:
+        raise PreventUpdate
 
-        if not os.path.exists('data/'+case+'/images'):
-            os.makedirs('data/'+case+'/images')
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+case+'/images/' +
-                             timestamp+'_fig_left.png', scale=2)
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_fig_left.png', scale=2)
     return 0
 
 
@@ -1213,16 +1217,18 @@ def export_left_scatter_2d(btn, fig, case):
     ]
 )
 def export_right_scatter_2d(btn, fig, case):
-    if btn > 0:
-        now = datetime.datetime.now()
-        timestamp = now.strftime('%Y%m%d_%H%M%S')
+    if btn == 0:
+        raise PreventUpdate
 
-        if not os.path.exists('data/'+case+'/images'):
-            os.makedirs('data/'+case+'/images')
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+case+'/images/' +
-                             timestamp+'_fig_right.png', scale=2)
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_fig_right.png', scale=2)
     return 0
 
 
@@ -1235,16 +1241,18 @@ def export_right_scatter_2d(btn, fig, case):
     ]
 )
 def export_histogram(btn, fig, case):
-    if btn > 0:
-        now = datetime.datetime.now()
-        timestamp = now.strftime('%Y%m%d_%H%M%S')
+    if btn == 0:
+        raise PreventUpdate
 
-        if not os.path.exists('data/'+case+'/images'):
-            os.makedirs('data/'+case+'/images')
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+case+'/images/' +
-                             timestamp+'_histogram.png', scale=2)
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_histogram.png', scale=2)
     return 0
 
 
@@ -1257,16 +1265,18 @@ def export_histogram(btn, fig, case):
     ]
 )
 def export_heatmap(btn, fig, case):
-    if btn > 0:
-        now = datetime.datetime.now()
-        timestamp = now.strftime('%Y%m%d_%H%M%S')
+    if btn == 0:
+        raise PreventUpdate
 
-        if not os.path.exists('data/'+case+'/images'):
-            os.makedirs('data/'+case+'/images')
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-        temp_fig = go.Figure(fig)
-        temp_fig.write_image('data/'+case+'/images/' +
-                             timestamp+'_heatmap.png', scale=2)
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_heatmap.png', scale=2)
     return 0
 
 
