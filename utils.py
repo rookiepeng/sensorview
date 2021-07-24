@@ -33,15 +33,15 @@ import json
 import pickle
 
 EXPIRATION = 172800  # 2 days in seconds
-REDIS_KEYS = {"dataset": "DATASET",
-              "frame_list": "FRAME_LIST",
-              "frame_data": "FRAME_DATA",
-              "visible_table": "VIS_TABLE",
-              "config": "CONFIG",
-              "figure_idx": "FIGURE_IDX",
-              "figure": "FIGURE",
-              "task_id": "TASK_ID",
-              "filter_kwargs": "FILTGER_KWARGS"}
+REDIS_KEYS = {'dataset': 'DATASET',
+              'frame_list': 'FRAME_LIST',
+              'frame_data': 'FRAME_DATA',
+              'visible_table': 'VIS_TABLE',
+              'config': 'CONFIG',
+              'figure_idx': 'FIGURE_IDX',
+              'figure': 'FIGURE',
+              'task_id': 'TASK_ID',
+              'filter_kwargs': 'FILTGER_KWARGS'}
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))

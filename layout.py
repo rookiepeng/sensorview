@@ -56,7 +56,7 @@ colorscales = ['Blackbody',
 
 
 testcase_card = dbc.Card([
-    dbc.CardHeader("Test Case"),
+    dbc.CardHeader('Test Case'),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(dbc.Select(
@@ -65,55 +65,55 @@ testcase_card = dbc.Card([
             dbc.Col(dbc.Button(
                 'Refresh',
                 id='refresh-button',
-                color="success",
-                className="mr-1",
+                color='success',
+                className='mr-1',
                 n_clicks=0,
                 style={
-                    "float": "right"
+                    'float': 'right'
                 }), width=2)
         ]),
-    ])], color="primary", inverse=True)
+    ])], color='primary', inverse=True)
 
 datafile_card = dbc.Card([
-    dbc.CardHeader("Data File"),
+    dbc.CardHeader('Data File'),
     dbc.CardBody([
         dbc.Select(
             id='file-picker',
         ),
     ])
-], color="primary", inverse=True)
+], color='primary', inverse=True)
 
 
 filter_card = dbc.Card([
-    dbc.CardHeader("Control"),
+    dbc.CardHeader('Control'),
     dbc.CardBody([
         dbc.FormGroup(
             [
                 dbc.Checklist(
                     options=[
-                        {"label": "Add outline to scatters",
-                         "value": True},
+                        {'label': 'Add outline to scatters',
+                         'value': True},
                     ],
                     value=[],
-                    id="outline-switch",
+                    id='outline-switch',
                     switch=True,
                 ),
                 dbc.Checklist(
                     options=[
-                        {"label": "Overlay all frames",
-                         "value": True},
+                        {'label': 'Overlay all frames',
+                         'value': True},
                     ],
                     value=[],
-                    id="overlay-switch",
+                    id='overlay-switch',
                     switch=True,
                 ),
                 dbc.Checklist(
                     options=[
-                        {"label": "Click to change visibility",
-                         "value": True},
+                        {'label': 'Click to change visibility',
+                         'value': True},
                     ],
                     value=[],
-                    id="click-hide-switch",
+                    id='click-hide-switch',
                     switch=True,
                 ),
             ]
@@ -121,29 +121,29 @@ filter_card = dbc.Card([
 
         dbc.FormGroup(
             [
-                dbc.Label("Visibility options"),
+                dbc.Label('Visibility options'),
                 dbc.Checklist(
                     options=[
-                        {"label": "Show visible",
-                         "value": "visible"},
-                        {"label": "Show hidden",
-                         "value": "hidden"},
+                        {'label': 'Show visible',
+                         'value': 'visible'},
+                        {'label': 'Show hidden',
+                         'value': 'hidden'},
                     ],
-                    value=["visible"],
-                    id="visible-picker",
+                    value=['visible'],
+                    id='visible-picker',
                 ),
             ]
         ),
     ]),
-    dbc.CardHeader("Filter"),
+    dbc.CardHeader('Filter'),
     dbc.CardBody([
         html.Div(id='dropdown-container', children=[]),
         html.Div(id='slider-container', children=[]),
-    ], style={"overflow": "scroll", "height": "600px"})
-], color="info", outline=True)
+    ], style={'overflow': 'scroll', 'height': '600px'})
+], color='info', outline=True)
 
 view3d_card = dbc.Card([
-    dbc.CardHeader("3D View"),
+    dbc.CardHeader('3D View'),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(dbc.Select(
@@ -151,11 +151,11 @@ view3d_card = dbc.Card([
             ), width=2),
             dbc.Col(dbc.Select(
                 id='colormap-3d',
-                options=[{"value": x, "label": x}
+                options=[{'value': x, 'label': x}
                          for x in colorscales],
                 value='Portland',
             ), width=2)
-        ], justify="end"),
+        ], justify='end'),
 
         dcc.Graph(
             id='scatter3d',
@@ -189,13 +189,13 @@ view3d_card = dbc.Card([
             dbc.Col(
                 dbc.Progress(id='buffer',
                              value=0,
-                             color="success",
-                             style={"height": "1px",
+                             color='success',
+                             style={'height': '1px',
                                     'margin-top': 0,
                                     'margin-bottom': 5,
                                     'margin-left': 25,
                                     'margin-right': 25},
-                             className="mb-3"), width=12),
+                             className='mb-3'), width=12),
             dbc.Col(dcc.Slider(
                 id='slider-frame',
                 step=1,
@@ -217,44 +217,44 @@ view3d_card = dbc.Card([
                     [dbc.Button(
                         '<<',
                         id='previous-button',
-                        color="dark",
+                        color='dark',
                         n_clicks=0),
                      dbc.Button(
                         '▷',
                         id='play-button',
-                        color="primary",
+                        color='primary',
                         n_clicks=0),
                      dbc.Button(
                         '◼',
                         id='stop-button',
-                        color="danger",
+                        color='danger',
                         n_clicks=0),
                      dbc.Button(
                         '>>',
                         id='next-button',
-                        color="dark",
+                        color='dark',
                         n_clicks=0)
                      ]), width=2),
-        ], justify="center"),
+        ], justify='center'),
         html.Div([
             dbc.DropdownMenu(
                 [
                     dbc.DropdownMenuItem(
-                        "Export all frames as an HTML video",
-                        id="export-scatter3d",
+                        'Export all frames as an HTML video',
+                        id='export-scatter3d',
                         n_clicks=0
                     ),
                 ],
-                label="Export",
+                label='Export',
                 right=True,
                 style={
-                    "float": "right"
+                    'float': 'right'
                 }
             ),
             html.Div(id='hidden-scatter3d',
                      style={'display': 'none'}),
         ]),
-    ])], color="success", outline=True)
+    ])], color='success', outline=True)
 
 
 left2d_card = dbc.Card([
@@ -265,14 +265,14 @@ left2d_card = dbc.Card([
             dbc.Col(
                 dbc.Checklist(
                     options=[
-                        {"label": "Enable",
-                         "value": True},
+                        {'label': 'Enable',
+                         'value': True},
                     ],
                     value=[],
-                    id="left-switch",
+                    id='left-switch',
                     switch=True,
                     style={
-                        "float": "right"
+                        'float': 'right'
                     }
                 )
             )]),
@@ -304,7 +304,7 @@ left2d_card = dbc.Card([
             dbc.Col(dbc.Select(
                 id='colormap-scatter2d-left',
                 disabled=True,
-                options=[{"value": x, "label": x}
+                options=[{'value': x, 'label': x}
                          for x in colorscales],
                 value='Portland',
                 # clearable=False,
@@ -340,7 +340,7 @@ left2d_card = dbc.Card([
                         id='export-scatter2d-left',
                         n_clicks=0,
                         style={
-                            "float": "right"
+                            'float': 'right'
                         })),
                 ]),
             ],
@@ -357,14 +357,14 @@ right2d_card = dbc.Card([
             dbc.Col(
                 dbc.Checklist(
                     options=[
-                        {"label": "Enable",
-                         "value": True},
+                        {'label': 'Enable',
+                         'value': True},
                     ],
                     value=[],
-                    id="right-switch",
+                    id='right-switch',
                     switch=True,
                     style={
-                        "float": "right"
+                        'float': 'right'
                     }
                 )
             )]),
@@ -396,7 +396,7 @@ right2d_card = dbc.Card([
             dbc.Col(dbc.Select(
                 id='colormap-scatter2d-right',
                 disabled=True,
-                options=[{"value": x, "label": x}
+                options=[{'value': x, 'label': x}
                          for x in colorscales],
                 value='Portland',
                 # clearable=False,
@@ -428,7 +428,7 @@ right2d_card = dbc.Card([
                         id='export-scatter2d-right',
                         n_clicks=0,
                         style={
-                            "float": "right"
+                            'float': 'right'
                         }))
                 ]),
             ],
@@ -445,14 +445,14 @@ hist_card = dbc.Card([
             dbc.Col(
                 dbc.Checklist(
                     options=[
-                        {"label": "Enable",
-                         "value": True},
+                        {'label': 'Enable',
+                         'value': True},
                     ],
                     value=[],
-                    id="histogram-switch",
+                    id='histogram-switch',
                     switch=True,
                     style={
-                        "float": "right"
+                        'float': 'right'
                     }
                 )
             )]),
@@ -510,7 +510,7 @@ hist_card = dbc.Card([
                             id='export-histogram',
                             n_clicks=0,
                             style={
-                                "float": "right"
+                                'float': 'right'
                             })),
                 ]),
             ],
@@ -527,14 +527,14 @@ heatmap_card = dbc.Card([
             dbc.Col(
                 dbc.Checklist(
                     options=[
-                        {"label": "Enable",
-                         "value": True},
+                        {'label': 'Enable',
+                         'value': True},
                     ],
                     value=[],
-                    id="heat-switch",
+                    id='heat-switch',
                     switch=True,
                     style={
-                        "float": "right"
+                        'float': 'right'
                     }
                 )
             )]),
@@ -582,7 +582,7 @@ heatmap_card = dbc.Card([
                             id='export-heatmap',
                             n_clicks=0,
                             style={
-                                "float": "right"
+                                'float': 'right'
                             })),
                 ]),
             ],
@@ -625,22 +625,22 @@ def get_app_layout(app):
                     testcase_card,
                     datafile_card
                 ])
-            )], className="mb-3"),
+            )], className='mb-3'),
 
         dbc.Row([
             dbc.Col(filter_card, width=3),
             dbc.Col(view3d_card, width=9)
-        ], className="mb-3", align="center"),
+        ], className='mb-3', align='center'),
 
         dbc.Row([
             dbc.Col(left2d_card, width=6),
             dbc.Col(right2d_card, width=6)
-        ], className="mb-3"),
+        ], className='mb-3'),
 
         dbc.Row([
                 dbc.Col(hist_card, width=6),
                 dbc.Col(heatmap_card, width=6),
-                ], className="mb-3"),
+                ], className='mb-3'),
 
         dcc.Markdown(
             'Designed and developed by **Zhengyu Peng** \
