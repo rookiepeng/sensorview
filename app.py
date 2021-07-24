@@ -233,7 +233,7 @@ def data_file_selection(
         session_id,
         slider_max,
         slider_var,
-        vis_picker,
+        visible_list,
         c_key,
         outline_sw,
         colormap
@@ -365,7 +365,7 @@ def data_file_selection(
             args=[session_id,
                   case,
                   file,
-                  vis_picker,
+                  visible_list,
                   c_key,
                   linewidth,
                   keys_dict[c_key]['description'],
@@ -493,7 +493,7 @@ def update_filter(
     cat_values,
     num_values,
     colormap,
-    vis_picker,
+    visible_list,
     color_picker,
     overlay_sw,
     outline_sw,
@@ -616,7 +616,7 @@ def update_filter(
             args=[session_id,
                   case,
                   file,
-                  vis_picker,
+                  visible_list,
                   c_key,
                   linewidth,
                   c_label,
@@ -630,7 +630,7 @@ def update_filter(
         cat_keys,
         cat_values,
         visible_table,
-        vis_picker
+        visible_list
     )
 
     fig = get_scatter3d(
@@ -708,7 +708,7 @@ def update_left_graph(
     colormap,
     outline_sw,
     session_id,
-    vis_picker,
+    visible_list,
     case,
     file
 ):
@@ -747,7 +747,7 @@ def update_left_graph(
             cat_keys,
             cat_values,
             visible_table,
-            vis_picker
+            visible_list
         )
 
         left_fig = get_scatter2d(
@@ -824,7 +824,7 @@ def update_right_graph(
     colormap,
     outline_sw,
     session_id,
-    vis_picker,
+    visible_list,
     case,
     file
 ):
@@ -862,7 +862,7 @@ def update_right_graph(
             cat_keys,
             cat_values,
             visible_table,
-            vis_picker
+            visible_list
         )
 
         right_fig = get_scatter2d(
@@ -932,7 +932,7 @@ def update_histogram(
     x_histogram,
     y_histogram,
     session_id,
-    vis_picker,
+    visible_list,
     case,
     file
 ):
@@ -962,7 +962,7 @@ def update_histogram(
             cat_keys,
             cat_values,
             visible_table,
-            vis_picker
+            visible_list
         )
 
         histogram_fig = get_histogram(
@@ -1017,7 +1017,7 @@ def update_heatmap(
     x_heat,
     y_heat,
     session_id,
-    vis_picker,
+    visible_list,
     case,
     file
 ):
@@ -1049,7 +1049,7 @@ def update_heatmap(
             cat_keys,
             cat_values,
             visible_table,
-            vis_picker
+            visible_list
         )
 
         heat_fig = get_heatmap(
@@ -1096,7 +1096,7 @@ def export_scatter_3d(
     session_id,
     color_picker,
     colormap,
-    vis_picker,
+    visible_list,
     file
 ):
     if btn == 0:
@@ -1136,7 +1136,7 @@ def export_scatter_3d(
         cat_keys,
         cat_values,
         visible_table,
-        vis_picker
+        visible_list
     )
 
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
