@@ -113,7 +113,8 @@ def refresh_button_clicked(_):
     obj = os.scandir('./data')
     for entry in obj:
         if entry.is_dir():
-            options.append({'label': entry.name, 'value': entry.name})
+            options.append({'label': entry.name,
+                            'value': entry.name})
 
     return [options, options[0]['value']]
 
@@ -151,8 +152,12 @@ def case_selected(case, session_id):
                         'name': name,
                         'feather_name': name.replace('.pkl', '.feather')})})
 
-    if os.path.exists('./data/'+case+'/config.json'):
-        config = load_config('./data/'+case+'/config.json')
+    if os.path.exists('./data/' +
+                      case +
+                      '/config.json'):
+        config = load_config('./data/' +
+                             case +
+                             '/config.json')
         redis_set(config, session_id, REDIS_KEYS['config'])
     else:
         raise PreventUpdate
@@ -257,26 +262,36 @@ def data_file_selection(
     if trigger_id == 'file-picker':
         file = json.loads(file)
 
-        if os.path.exists('./data/'+case +
-                          file['path']+'/' +
+        if os.path.exists('./data/' +
+                          case +
+                          file['path'] +
+                          '/' +
                           file['feather_name']):
-            new_data = pd.read_feather('./data/'+case +
-                                       file['path']+'/' +
+            new_data = pd.read_feather('./data/' +
+                                       case +
+                                       file['path'] +
+                                       '/' +
                                        file['feather_name'])
         else:
             if '.pkl' in file['name']:
-                new_data = pd.read_pickle(
-                    './data/'+case +
-                    file['path']+'/'+file['name'])
+                new_data = pd.read_pickle('./data/' +
+                                          case +
+                                          file['path'] +
+                                          '/' +
+                                          file['name'])
                 new_data = new_data.reset_index(drop=True)
 
             elif '.csv' in file['name']:
-                new_data = pd.read_csv(
-                    './data/'+case +
-                    file['path']+'/'+file['name'])
+                new_data = pd.read_csv('./data/' +
+                                       case +
+                                       file['path'] +
+                                       '/' +
+                                       file['name'])
 
-            new_data.to_feather('./data/'+case +
-                                file['path']+'/' +
+            new_data.to_feather('./data/' +
+                                case +
+                                file['path'] +
+                                '/' +
                                 file['feather_name'])
 
         frame_list = np.sort(new_data[config['slider']].unique())
@@ -291,7 +306,8 @@ def data_file_selection(
 
         for frame_idx, frame_data in frame_group:
             redis_set(frame_data, session_id,
-                      REDIS_KEYS["frame_data"], str(frame_idx))
+                      REDIS_KEYS["frame_data"],
+                      str(frame_idx))
 
         output = [0, 0, len(frame_list)-1]
 
@@ -309,11 +325,10 @@ def data_file_selection(
             )
             new_dropdown.append(
                 dcc.Dropdown(
-                    id={
-                        'type': 'filter-dropdown',
-                        'index': idx
-                    },
-                    options=[{'label': i, 'value': i}
+                    id={'type': 'filter-dropdown',
+                        'index': idx},
+                    options=[{'label': i,
+                              'value': i}
                              for i in var_list],
                     value=value_list,
                     multi=True
@@ -333,10 +348,8 @@ def data_file_selection(
                 )
             )
             new_slider.append(dcc.RangeSlider(
-                id={
-                    'type': 'filter-slider',
-                    'index': idx
-                },
+                id={'type': 'filter-slider',
+                    'index': idx},
                 min=var_min,
                 max=var_max,
                 step=round((var_max-var_min)/100, 3),
@@ -527,7 +540,6 @@ def update_filter(
         fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
         if fig_idx is not None:
             if slider_arg <= fig_idx:
-                # print("from pre-processed data")
                 return [redis_get(session_id,
                                   REDIS_KEYS['figure'],
                                   str(slider_arg)),
@@ -564,8 +576,10 @@ def update_filter(
 
     if overlay_sw:
         file = json.loads(file)
-        data = pd.read_feather('./data/'+case +
-                               file['path']+'/' +
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
                                file['feather_name'])
         source_encoded = None
     else:
@@ -735,8 +749,10 @@ def update_left_graph(
 
     if left_sw:
         file = json.loads(file)
-        data = pd.read_feather('./data/'+case +
-                               file['path']+'/' +
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
                                file['feather_name'])
         visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
@@ -770,8 +786,10 @@ def update_left_graph(
 
     else:
         left_fig = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
+            'data': [{'mode': 'markers',
+                      'type': 'scattergl',
+                      'x': [],
+                      'y': []}
                      ],
             'layout': {
             }}
@@ -851,8 +869,10 @@ def update_right_graph(
 
     if right_sw:
         file = json.loads(file)
-        data = pd.read_feather('./data/'+case +
-                               file['path']+'/' +
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
                                file['feather_name'])
         visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
         filtered_table = filter_all(
@@ -885,8 +905,10 @@ def update_right_graph(
 
     else:
         right_fig = {
-            'data': [{'mode': 'markers', 'type': 'scattergl',
-                      'x': [], 'y': []}
+            'data': [{'mode': 'markers',
+                      'type': 'scattergl',
+                      'x': [],
+                      'y': []}
                      ],
             'layout': {
             }}
@@ -951,8 +973,10 @@ def update_histogram(
 
     if histogram_sw:
         file = json.loads(file)
-        data = pd.read_feather('./data/'+case +
-                               file['path']+'/' +
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
                                file['feather_name'])
         visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
         filtered_table = filter_all(
@@ -1037,8 +1061,10 @@ def update_heatmap(
         y_label = keys_dict[y_heat]['description']
 
         file = json.loads(file)
-        data = pd.read_feather('./data/'+case +
-                               file['path']+'/' +
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
                                file['feather_name'])
         visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
@@ -1114,12 +1140,18 @@ def export_scatter_3d(
     now = datetime.datetime.now()
     timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-    if not os.path.exists('data/'+case+'/images'):
-        os.makedirs('data/'+case+'/images')
+    if not os.path.exists('data/' +
+                          case +
+                          '/images'):
+        os.makedirs('data/' +
+                    case +
+                    '/images')
 
     file = json.loads(file)
-    data = pd.read_feather('./data/'+case +
-                           file['path']+'/' +
+    data = pd.read_feather('./data/' +
+                           case +
+                           file['path'] +
+                           '/' +
                            file['feather_name'])
     visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
@@ -1146,9 +1178,14 @@ def export_scatter_3d(
     data_name = json.loads(file)
     for _, f_val in enumerate(frame_list):
         img_idx = np.where(frame_list == f_val)[0][0]
-        img_list.append(
-            './data/'+case+data_name['path']+'/imgs/' +
-            data_name['name'][0:-4]+'_'+str(img_idx)+'.jpg')
+        img_list.append('./data/' +
+                        case +
+                        data_name['path'] +
+                        '/imgs/' +
+                        data_name['name'][0:-4] +
+                        '_' +
+                        str(img_idx) +
+                        '.jpg')
 
     if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
         c_range = [
@@ -1179,8 +1216,13 @@ def export_scatter_3d(
         )
     )
 
-    fig.write_html('data/'+case+'/images/' +
-                   timestamp+'_'+data_name['name'][0:-4]+'_3dview.html')
+    fig.write_html('data/' +
+                   case +
+                   '/images/' +
+                   timestamp +
+                   '_' +
+                   data_name['name'][0:-4] +
+                   '_3dview.html')
     return 0
 
 
