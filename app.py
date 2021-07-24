@@ -211,11 +211,11 @@ def case_selected(case, session_id):
     ],
     [
         Input('file-picker', 'value'),
-        Input('left-frame', 'n_clicks'),
-        Input('right-frame', 'n_clicks'),
+        Input('previous-button', 'n_clicks'),
+        Input('next-button', 'n_clicks'),
         Input('interval-component', 'n_intervals'),
-        Input('play', 'n_clicks'),
-        Input('stop', 'n_clicks'),
+        Input('play-button', 'n_clicks'),
+        Input('stop-button', 'n_clicks'),
     ],
     [
         State('case-picker', 'value'),
@@ -388,7 +388,7 @@ def data_file_selection(
 
         return output
 
-    elif trigger_id == 'left-frame':
+    elif trigger_id == 'previous-button':
         if left_btn == 0:
             raise PreventUpdate
 
@@ -397,7 +397,7 @@ def data_file_selection(
                 dash.no_update, dash.no_update,
                 dash.no_update]
 
-    elif trigger_id == 'right-frame':
+    elif trigger_id == 'next-button':
         if right_btn == 0:
             raise PreventUpdate
 
@@ -422,7 +422,7 @@ def data_file_selection(
                     dash.no_update, dash.no_update,
                     dash.no_update]
 
-    elif trigger_id == 'play':
+    elif trigger_id == 'play-button':
         if play_clicks == 0:
             raise PreventUpdate
 
@@ -431,7 +431,7 @@ def data_file_selection(
                 dash.no_update, dash.no_update,
                 False]
 
-    elif trigger_id == 'stop':
+    elif trigger_id == 'stop-button':
         if stop_clicks == 0:
             raise PreventUpdate
 
@@ -466,8 +466,8 @@ def reset_switch_state(
 @ app.callback(
     [
         Output('slider-frame', 'disabled'),
-        Output('left-frame', 'disabled'),
-        Output('right-frame', 'disabled'),
+        Output('previous-button', 'disabled'),
+        Output('next-button', 'disabled'),
     ],
     Input('overlay-switch', 'value'))
 def overlay_switch_changed(overlay):
