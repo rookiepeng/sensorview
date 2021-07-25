@@ -498,6 +498,142 @@ hist_card = dbc.Card([
     ])])
 
 
+violin_card = dbc.Card([
+    dbc.CardHeader(
+        dbc.Row([
+            dbc.Col(
+                dbc.Label('Violin')),
+            dbc.Col(
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Enable',
+                         'value': True},
+                    ],
+                    value=[],
+                    id='violin-switch',
+                    switch=True,
+                    style={'float': 'right'}
+                )
+            )]),
+    ),
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(html.Label('x-axis')),
+            dbc.Col(html.Label('y-axis')),
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Select(
+                id='x-picker-violin',
+                disabled=True,
+            )),
+            dbc.Col(dbc.Select(
+                id='y-violin',
+                options=[{
+                    'label': 'Probability',
+                    'value': 'probability'
+                },
+                    {
+                    'label': 'Density',
+                    'value': 'density'
+                },
+                ],
+                value='density',
+                disabled=True,
+            )),
+        ]),
+
+        dcc.Loading(
+            id='loading_violin',
+            children=[
+                dcc.Graph(
+                    id='violin',
+                    config={
+                        'displaylogo': False
+                    }
+                ),
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button(
+                            'Export',
+                            id='export-violin',
+                            n_clicks=0,
+                            style={'float': 'right'})),
+                ]),
+            ],
+            type='default',
+        ),
+    ])])
+
+
+parallel_card = dbc.Card([
+    dbc.CardHeader(
+        dbc.Row([
+            dbc.Col(
+                dbc.Label('Parallel Categories')),
+            dbc.Col(
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Enable',
+                         'value': True},
+                    ],
+                    value=[],
+                    id='parallel-switch',
+                    switch=True,
+                    style={'float': 'right'}
+                )
+            )]),
+    ),
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(html.Label('x-axis')),
+            dbc.Col(html.Label('y-axis')),
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Select(
+                id='x-picker-parallel',
+                disabled=True,
+            )),
+            dbc.Col(dbc.Select(
+                id='y-parallel',
+                options=[{
+                    'label': 'Probability',
+                    'value': 'probability'
+                },
+                    {
+                    'label': 'Density',
+                    'value': 'density'
+                },
+                ],
+                value='density',
+                disabled=True,
+            )),
+        ]),
+
+        dcc.Loading(
+            id='loading_parallel',
+            children=[
+                dcc.Graph(
+                    id='parallel',
+                    config={
+                        'displaylogo': False
+                    }
+                ),
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button(
+                            'Export',
+                            id='export-parallel',
+                            n_clicks=0,
+                            style={'float': 'right'})),
+                ]),
+            ],
+            type='default',
+        ),
+    ])])
+
+
 heatmap_card = dbc.Card([
     dbc.CardHeader(
         dbc.Row([
@@ -564,7 +700,7 @@ heatmap_card = dbc.Card([
     ])])
 
 
-tab1_content = html.Div([
+scatter_tab = html.Div([
     dbc.Row([
             dbc.Col(filter_card, width=3),
             dbc.Col(view3d_card, width=9)
@@ -576,15 +712,21 @@ tab1_content = html.Div([
             ], className='mb-3'),
 ])
 
-tab2_content = dbc.Row([
-    dbc.Col(hist_card, width=6),
-    dbc.Col(heatmap_card, width=6),
-], className='mb-3')
+statistical_tab = html.Div([
+    dbc.Row([
+        dbc.Col(hist_card, width=6),
+        dbc.Col(violin_card, width=6),
+    ], className='mb-3'),
+    dbc.Row([
+        dbc.Col(parallel_card, width=6),
+        dbc.Col(heatmap_card, width=6),
+    ], className='mb-3')
+])
 
 tabs = dbc.Tabs(
     [
-        dbc.Tab(tab1_content, label="Scatter"),
-        dbc.Tab(tab2_content, label="Statistical"),
+        dbc.Tab(scatter_tab, label="Scatter"),
+        dbc.Tab(statistical_tab, label="Statistical"),
     ]
 )
 
