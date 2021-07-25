@@ -603,17 +603,22 @@ def update_filter(
         linewidth = 0
 
     x_range = [
-        float(np.min([num_values[num_keys.index(x_det)][0],
-                      num_values[num_keys.index(x_host)][0]])),
-        float(np.max([num_values[num_keys.index(x_det)][1],
-                      num_values[num_keys.index(x_host)][1]]))]
+        float(
+            np.min([num_values[num_keys.index(x_det)][0],
+                    num_values[num_keys.index(x_host)][0]])),
+        float(
+            np.max([num_values[num_keys.index(x_det)][1],
+                    num_values[num_keys.index(x_host)][1]]))]
     y_range = [
-        float(np.min([num_values[num_keys.index(y_det)][0],
-                      num_values[num_keys.index(y_host)][0]])),
-        float(np.max([num_values[num_keys.index(y_det)][1],
-                      num_values[num_keys.index(y_host)][1]]))]
-    z_range = [float(num_values[num_keys.index(z_det)][0]), float(
-        num_values[num_keys.index(z_det)][1])]
+        float(
+            np.min([num_values[num_keys.index(y_det)][0],
+                    num_values[num_keys.index(y_host)][0]])),
+        float(
+            np.max([num_values[num_keys.index(y_det)][1],
+                    num_values[num_keys.index(y_host)][1]]))]
+    z_range = [
+        float(num_values[num_keys.index(z_det)][0]),
+        float(num_values[num_keys.index(z_det)][1])]
 
     if keys_dict[c_key].get('type', 'numerical') == 'numerical':
         c_range = [
