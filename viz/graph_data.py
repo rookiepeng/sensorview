@@ -47,9 +47,9 @@ def get_scatter3d_data(data_frame,
     colormap = kwargs.get('colormap', 'Jet')
     name = kwargs.get('name', None)
     hover = kwargs.get('hover', None)
-    is_discrete_color = kwargs.get('is_discrete_color', False)
+    c_type = kwargs.get('c_type', 'numerical')
 
-    if not is_discrete_color:
+    if c_type == 'numerical':
         color = data_frame[c_key]
         c_range = kwargs.get('c_range', [np.min(color), np.max(color)])
         if c_range is None:
@@ -98,7 +98,7 @@ def get_scatter3d_data(data_frame,
                     )
                 ),
             )]
-    else:
+    elif c_type == 'categorical':
         fig_data = []
         color_list = pd.unique(data_frame[c_key])
 

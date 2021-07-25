@@ -620,16 +620,6 @@ def update_filter(
         float(num_values[num_keys.index(z_det)][0]),
         float(num_values[num_keys.index(z_det)][1])]
 
-    if keys_dict[c_key].get('type', 'numerical') == 'numerical':
-        c_range = [
-            float(num_values[num_keys.index(c_key)][0]),
-            float(num_values[num_keys.index(c_key)][1])
-        ]
-        is_discrete_color = False
-    else:
-        c_range = [0, 0]
-        is_discrete_color = True
-
     if trigger_id != 'slider-frame':
         celery_filtering_data.apply_async(
             args=[session_id,
@@ -666,12 +656,11 @@ def update_filter(
         c_label=c_label,
         linewidth=linewidth,
         colormap=colormap,
-        is_discrete_color=is_discrete_color,
+        c_type=keys_dict[c_key].get('type', 'numerical'),
         image=source_encoded,
         x_range=x_range,
         y_range=y_range,
         z_range=z_range,
-        c_range=c_range,
         ref_name='Host Vehicle'
     )
 
@@ -781,8 +770,7 @@ def update_left_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            is_discrete_color=(keys_dict[c_key].get(
-                'type', 'numerical') == 'categorical')
+            c_type=keys_dict[c_key].get('type', 'numerical')
         )
         left_x_disabled = False
         left_y_disabled = False
@@ -900,8 +888,7 @@ def update_right_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            is_discrete_color=(keys_dict[c_key].get(
-                'type', 'numerical') == 'categorical')
+            c_type=keys_dict[c_key].get('type', 'numerical')
         )
         right_x_disabled = False
         right_y_disabled = False
@@ -1192,16 +1179,6 @@ def export_scatter_3d(
                         str(img_idx) +
                         '.jpg')
 
-    if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
-        c_range = [
-            num_values[num_keys.index(color_picker)][0],
-            num_values[num_keys.index(color_picker)][1]
-        ]
-        is_discrete_color = False
-    else:
-        c_range = [0, 0]
-        is_discrete_color = True
-
     fig = go.Figure(
         get_animation_data(
             filtered_table,
@@ -1212,7 +1189,7 @@ def export_scatter_3d(
             host_y_key=y_host,
             img_list=img_list,
             c_key=color_picker,
-            is_discrete_color=is_discrete_color,
+            c_type=keys_dict[color_picker].get('type', 'numerical'),
             colormap=colormap,
             hover=keys_dict,
             title=data_name['name'][0:-4],
