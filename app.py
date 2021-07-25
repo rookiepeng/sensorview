@@ -622,8 +622,8 @@ def update_filter(
 
     if keys_dict[c_key].get('type', 'numerical') == 'numerical':
         c_range = [
-            num_values[num_keys.index(c_key)][0],
-            num_values[num_keys.index(c_key)][1]
+            float(num_values[num_keys.index(c_key)][0]),
+            float(num_values[num_keys.index(c_key)][1])
         ]
         is_discrete_color = False
     else:
