@@ -714,7 +714,6 @@ def update_left_graph(
     file
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
-    keys_dict = config['keys']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -725,9 +724,9 @@ def update_left_graph(
     x_key = x_left
     y_key = y_left
     c_key = color_left
-    x_label = keys_dict[x_left]['description']
-    y_label = keys_dict[y_left]['description']
-    c_label = keys_dict[color_left]['description']
+    x_label = config['keys'][x_left]['description']
+    y_label = config['keys'][y_left]['description']
+    c_label = config['keys'][color_left]['description']
 
     if outline_enable:
         linewidth = 1
@@ -763,7 +762,7 @@ def update_left_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            c_type=keys_dict[c_key].get('type', 'numerical')
+            c_type=config['keys'][c_key].get('type', 'numerical')
         )
         left_x_disabled = False
         left_y_disabled = False
@@ -944,7 +943,6 @@ def update_histogram(
     file
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
-    keys_dict = config['keys']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -953,7 +951,7 @@ def update_histogram(
     num_values = filter_kwargs['num_values']
 
     x_key = x_histogram
-    x_label = keys_dict[x_histogram]['description']
+    x_label = config['keys'][x_histogram]['description']
     y_key = y_histogram
 
     if histogram_sw:
@@ -1032,7 +1030,6 @@ def update_heatmap(
 ):
     if heat_sw:
         config = redis_get(session_id, REDIS_KEYS['config'])
-        keys_dict = config['keys']
 
         filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
         cat_keys = filter_kwargs['cat_keys']
@@ -1041,9 +1038,9 @@ def update_heatmap(
         num_values = filter_kwargs['num_values']
 
         x_key = x_heat
-        x_label = keys_dict[x_heat]['description']
+        x_label = config['keys'][x_heat]['description']
         y_key = y_heat
-        y_label = keys_dict[y_heat]['description']
+        y_label = config['keys'][y_heat]['description']
 
         file = json.loads(file)
         data = pd.read_feather('./data/' +
@@ -1114,7 +1111,6 @@ def export_scatter_3d(
         raise PreventUpdate
 
     config = redis_get(session_id, REDIS_KEYS['config'])
-    keys_dict = config['keys']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -1182,11 +1178,11 @@ def export_scatter_3d(
             host_y_key=y_host,
             img_list=img_list,
             c_key=c_key,
-            c_type=keys_dict[c_key].get('type', 'numerical'),
+            c_type=config['keys'][c_key].get('type', 'numerical'),
             colormap=colormap,
-            hover=keys_dict,
+            hover=config['keys'],
             title=data_name['name'][0:-4],
-            c_label=keys_dict[c_key]['description'],
+            c_label=config['keys'][c_key]['description'],
             height=750
         )
     )
