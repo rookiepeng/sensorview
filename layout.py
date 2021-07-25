@@ -444,6 +444,7 @@ hist_card = dbc.Card([
         dbc.Row([
             dbc.Col(html.Label('x-axis')),
             dbc.Col(html.Label('y-axis')),
+            dbc.Col(html.Label('color')),
         ]),
 
         dbc.Row([
@@ -463,6 +464,10 @@ hist_card = dbc.Card([
                 },
                 ],
                 value='density',
+                disabled=True,
+            )),
+            dbc.Col(dbc.Select(
+                id='c-picker-histogram',
                 disabled=True,
             )),
         ]),

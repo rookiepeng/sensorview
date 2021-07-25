@@ -45,6 +45,7 @@ import numpy as np
 import pandas as pd
 import os
 import plotly.graph_objs as go
+import plotly.express as px
 
 from layout import get_app_layout
 
@@ -100,6 +101,14 @@ dropdown_values = [
     Output('y-picker-heatmap', 'value'),
 ]
 
+dropdown_categorical_options = [
+    Output('c-picker-histogram', 'options'),
+]
+
+dropdown_categorical_values = [
+    Output('c-picker-histogram', 'value'),
+]
+
 
 @ app.callback(
     [
@@ -122,7 +131,10 @@ def refresh_button_clicked(_):
 @ app.callback([
     Output('file-picker', 'value'),
     Output('file-picker', 'options'),
-] + dropdown_options + dropdown_values,
+] + dropdown_options +
+    dropdown_values +
+    dropdown_categorical_options +
+    dropdown_categorical_values,
     Input('case-picker', 'value'),
     State('session-id', 'data'))
 def case_selected(case, session_id):
@@ -176,6 +188,14 @@ def case_selected(case, session_id):
         for _, item in enumerate(config['keys'])
     ]]*len(dropdown_options)
 
+    cat_options = [{
+        'label': 'None',
+        'value': 'None'}]+[[{
+            'label': config['keys'][item].get('description', item),
+            'value': item}
+            for _, item in enumerate(cat_keys)
+        ]]*len(dropdown_categorical_options)
+
     filter_kwargs = {'num_keys': num_keys,
                      'cat_keys': cat_keys}
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
@@ -183,6 +203,7 @@ def case_selected(case, session_id):
     return [data_files[0]['value'],
             data_files] +\
         options +\
+        cat_options +\
         [config.get('c_3d', num_keys[2]),
          config.get('x_2d_l', num_keys[0]),
          config.get('y_2d_l', num_keys[1]),
@@ -192,7 +213,8 @@ def case_selected(case, session_id):
          config.get('c_2d_r', num_keys[2]),
          config.get('x_hist', num_keys[0]),
          config.get('x_heatmap', num_keys[0]),
-         config.get('y_heatmap', num_keys[1])]
+         config.get('y_heatmap', num_keys[1])] +\
+        [cat_keys[0]]
 
 
 @ app.callback(
@@ -916,6 +938,7 @@ def update_right_graph(
         Output('histogram', 'figure'),
         Output('x-picker-histogram', 'disabled'),
         Output('y-histogram', 'disabled'),
+        Output('c-picker-histogram', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
@@ -923,6 +946,7 @@ def update_right_graph(
         Input('histogram-switch', 'value'),
         Input('x-picker-histogram', 'value'),
         Input('y-histogram', 'value'),
+        Input('c-picker-histogram', 'value'),
     ],
     [
         State('session-id', 'data'),
@@ -937,6 +961,7 @@ def update_histogram(
     histogram_sw,
     x_histogram,
     y_histogram,
+    c_histogram,
     session_id,
     visible_list,
     case,
@@ -972,14 +997,24 @@ def update_histogram(
             visible_list
         )
 
-        histogram_fig = get_histogram(
-            filtered_table,
-            x_key,
-            x_label,
-            y_key
-        )
+        # histogram_fig = get_histogram(
+        #     filtered_table,
+        #     x_key,
+        #     x_label,
+        #     y_key
+        # )
+        if c_histogram == 'None':
+            histogram_fig = px.histogram(filtered_table,
+                                         x=x_key,
+                                         labels={x_key: x_label})
+        else:
+            histogram_fig = px.histogram(filtered_table,
+                                         x=x_key,
+                                         color=c_histogram,
+                                         labels={x_key: x_label})
         histogram_x_disabled = False
         histogram_y_disabled = False
+        histogram_c_disabled = False
     else:
         histogram_fig = {
             'data': [{'type': 'histogram',
@@ -989,11 +1024,13 @@ def update_histogram(
             }}
         histogram_x_disabled = True
         histogram_y_disabled = True
+        histogram_c_disabled = True
 
     return [
         histogram_fig,
         histogram_x_disabled,
         histogram_y_disabled,
+        histogram_c_disabled
     ]
 
 
