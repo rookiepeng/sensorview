@@ -1006,11 +1006,13 @@ def update_histogram(
         if c_histogram == 'None':
             histogram_fig = px.histogram(filtered_table,
                                          x=x_key,
+                                         histnorm=y_key,
                                          labels={x_key: x_label})
         else:
             histogram_fig = px.histogram(filtered_table,
                                          x=x_key,
                                          color=c_histogram,
+                                         histnorm=y_key,
                                          labels={x_key: x_label})
         histogram_x_disabled = False
         histogram_y_disabled = False
