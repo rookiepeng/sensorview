@@ -564,8 +564,7 @@ heatmap_card = dbc.Card([
     ])])
 
 
-tab1_content = dbc.Row([
-
+tab1_content = html.Div([
     dbc.Row([
             dbc.Col(filter_card, width=3),
             dbc.Col(view3d_card, width=9)
@@ -575,11 +574,6 @@ tab1_content = dbc.Row([
             dbc.Col(left2d_card, width=6),
             dbc.Col(right2d_card, width=6)
             ], className='mb-3'),
-
-    # dbc.Row([
-    #         dbc.Col(hist_card, width=6),
-    #         dbc.Col(heatmap_card, width=6),
-    #         ], className='mb-3'),
 ])
 
 tab2_content = dbc.Row([
@@ -616,20 +610,6 @@ def get_app_layout(app):
             )], className='mb-3'),
 
         tabs,
-        # dbc.Row([
-        #     dbc.Col(filter_card, width=3),
-        #     dbc.Col(view3d_card, width=9)
-        # ], className='mb-3', align='center'),
-
-        # dbc.Row([
-        #     dbc.Col(left2d_card, width=6),
-        #     dbc.Col(right2d_card, width=6)
-        # ], className='mb-3'),
-
-        # dbc.Row([
-        #         dbc.Col(hist_card, width=6),
-        #         dbc.Col(heatmap_card, width=6),
-        #         ], className='mb-3'),
 
         dcc.Markdown(
             'Designed and developed by **Zhengyu Peng** \
