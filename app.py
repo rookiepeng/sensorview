@@ -188,13 +188,13 @@ def case_selected(case, session_id):
         for _, item in enumerate(config['keys'])
     ]]*len(dropdown_options)
 
-    cat_options = [{
+    cat_options = [[{
         'label': 'None',
-        'value': 'None'}]+[[{
+        'value': 'None'}]+[{
             'label': config['keys'][item].get('description', item),
             'value': item}
             for _, item in enumerate(cat_keys)
-        ]]*len(dropdown_categorical_options)
+    ]]*len(dropdown_categorical_options)
 
     filter_kwargs = {'num_keys': num_keys,
                      'cat_keys': cat_keys}
