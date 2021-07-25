@@ -50,7 +50,7 @@ import plotly.express as px
 from layout import get_app_layout
 
 from viz.viz import get_scatter3d
-from viz.viz import get_scatter2d, get_histogram, get_heatmap
+from viz.viz import get_scatter2d, get_heatmap
 from viz.viz import get_animation_data
 
 from tasks import filter_all
@@ -214,7 +214,7 @@ def case_selected(case, session_id):
          config.get('x_heatmap', num_keys[0]),
          config.get('y_heatmap', num_keys[1])] +\
         cat_options +\
-        [cat_keys[0]]
+        ['None']
 
 
 @ app.callback(
@@ -1003,17 +1003,27 @@ def update_histogram(
         #     x_label,
         #     y_key
         # )
+        if y_key == 'probability':
+            y_label = 'Probability'
+        else:
+            y_label = 'Count'
         if c_histogram == 'None':
             histogram_fig = px.histogram(filtered_table,
                                          x=x_key,
                                          histnorm=y_key,
-                                         labels={x_key: x_label})
+                                         opacity=0.7,
+                                        #  labels={x_key: x_label},
+                                         xaxis=dict(title=x_label),
+                                         yaxis=dict(title=y_label))
         else:
             histogram_fig = px.histogram(filtered_table,
                                          x=x_key,
                                          color=c_histogram,
                                          histnorm=y_key,
-                                         labels={x_key: x_label})
+                                         opacity=0.7,
+                                        #  labels={x_key: x_label},
+                                         xaxis=dict(title=x_label),
+                                         yaxis=dict(title=y_label))
         histogram_x_disabled = False
         histogram_y_disabled = False
         histogram_c_disabled = False
