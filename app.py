@@ -203,7 +203,6 @@ def case_selected(case, session_id):
     return [data_files[0]['value'],
             data_files] +\
         options +\
-        cat_options +\
         [config.get('c_3d', num_keys[2]),
          config.get('x_2d_l', num_keys[0]),
          config.get('y_2d_l', num_keys[1]),
@@ -214,6 +213,7 @@ def case_selected(case, session_id):
          config.get('x_hist', num_keys[0]),
          config.get('x_heatmap', num_keys[0]),
          config.get('y_heatmap', num_keys[1])] +\
+         cat_options +\
         [cat_keys[0]]
 
 
