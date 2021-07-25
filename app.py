@@ -213,7 +213,7 @@ def case_selected(case, session_id):
          config.get('x_hist', num_keys[0]),
          config.get('x_heatmap', num_keys[0]),
          config.get('y_heatmap', num_keys[1])] +\
-         cat_options +\
+        cat_options +\
         [cat_keys[0]]
 
 
