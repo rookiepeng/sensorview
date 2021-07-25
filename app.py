@@ -162,20 +162,18 @@ def case_selected(case, session_id):
     else:
         raise PreventUpdate
 
-    keys_dict = config['keys']
-
     num_keys = []
     cat_keys = []
-    for _, s_item in enumerate(keys_dict):
-        if keys_dict[s_item].get('type', 'numerical') == 'numerical':
-            num_keys.append(s_item)
+    for _, item in enumerate(config['keys']):
+        if config['keys'][item].get('type', 'numerical') == 'numerical':
+            num_keys.append(item)
         else:
-            cat_keys.append(s_item)
+            cat_keys.append(item)
 
     options = [[{
-        'label': keys_dict[f_item].get('description', f_item),
-        'value': f_item}
-        for _, f_item in enumerate(keys_dict)
+        'label': config['keys'][item].get('description', item),
+        'value': item}
+        for _, item in enumerate(config['keys'])
     ]]*len(dropdown_options)
 
     filter_kwargs = {
@@ -240,7 +238,7 @@ def data_file_selection(
         slider_var,
         visible_list,
         c_key,
-        outline_sw,
+        outline_enable,
         colormap
 ):
     if file is None:
@@ -338,13 +336,13 @@ def data_file_selection(
 
         num_values = []
         new_slider = []
-        for idx, s_item in enumerate(num_keys):
-            var_min = np.floor(np.min(new_data[s_item]))
-            var_max = np.ceil(np.max(new_data[s_item]))
+        for idx, item in enumerate(num_keys):
+            var_min = np.floor(np.min(new_data[item]))
+            var_max = np.ceil(np.max(new_data[item]))
 
             new_slider.append(
                 dbc.Label(
-                    keys_dict[s_item]['description']
+                    keys_dict[item]['description']
                 )
             )
             new_slider.append(dcc.RangeSlider(
@@ -367,7 +365,7 @@ def data_file_selection(
         output.append(new_slider)
         output.append(dash.no_update)
 
-        if outline_sw:
+        if outline_enable:
             linewidth = 1
         else:
             linewidth = 0
@@ -507,9 +505,9 @@ def update_filter(
     num_values,
     colormap,
     visible_list,
-    color_picker,
-    overlay_sw,
-    outline_sw,
+    c_key,
+    overlay_enable,
+    outline_enable,
     click_data,
     _,
     click_hide,
@@ -545,10 +543,8 @@ def update_filter(
                                   str(slider_arg)),
                         dash.no_update]
 
-    c_key = color_picker
-    c_label = keys_dict[color_picker]['description']
+    c_label = keys_dict[c_key]['description']
 
-    slider_key = config['slider']
     slider_label = keys_dict[config['slider']
                              ]['description']
 
@@ -574,7 +570,7 @@ def update_filter(
 
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
-    if overlay_sw:
+    if overlay_enable:
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
@@ -597,7 +593,7 @@ def update_filter(
         except FileNotFoundError:
             source_encoded = None
 
-    if outline_sw:
+    if outline_enable:
         linewidth = 1
     else:
         linewidth = 0
@@ -714,7 +710,7 @@ def update_left_graph(
     y_left,
     color_left,
     colormap,
-    outline_sw,
+    outline_enable,
     session_id,
     visible_list,
     case,
@@ -736,7 +732,7 @@ def update_left_graph(
     y_label = keys_dict[y_left]['description']
     c_label = keys_dict[color_left]['description']
 
-    if outline_sw:
+    if outline_enable:
         linewidth = 1
     else:
         linewidth = 0
@@ -833,7 +829,7 @@ def update_right_graph(
     y_right,
     color_right,
     colormap,
-    outline_sw,
+    outline_enable,
     session_id,
     visible_list,
     case,
@@ -855,7 +851,7 @@ def update_right_graph(
     y_label = keys_dict[y_right]['description']
     c_label = keys_dict[color_right]['description']
 
-    if outline_sw:
+    if outline_enable:
         linewidth = 1
     else:
         linewidth = 0
@@ -1112,7 +1108,7 @@ def export_scatter_3d(
     btn,
     case,
     session_id,
-    color_picker,
+    c_key,
     colormap,
     visible_list,
     file
@@ -1188,12 +1184,12 @@ def export_scatter_3d(
             host_x_key=x_host,
             host_y_key=y_host,
             img_list=img_list,
-            c_key=color_picker,
-            c_type=keys_dict[color_picker].get('type', 'numerical'),
+            c_key=c_key,
+            c_type=keys_dict[c_key].get('type', 'numerical'),
             colormap=colormap,
             hover=keys_dict,
             title=data_name['name'][0:-4],
-            c_label=keys_dict[color_picker]['description'],
+            c_label=keys_dict[c_key]['description'],
             height=750
         )
     )
