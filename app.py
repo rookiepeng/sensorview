@@ -176,26 +176,23 @@ def case_selected(case, session_id):
         for _, item in enumerate(config['keys'])
     ]]*len(dropdown_options)
 
-    filter_kwargs = {
-        'num_keys': num_keys,
-        'cat_keys': cat_keys
-    }
+    filter_kwargs = {'num_keys': num_keys,
+                     'cat_keys': cat_keys}
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-    return [
-        data_files[0]['value'],
-        data_files]+options+[
-        config.get('c_3d', num_keys[2]),
-        config.get('x_2d_l', num_keys[0]),
-        config.get('y_2d_l', num_keys[1]),
-        config.get('c_2d_l', num_keys[2]),
-        config.get('x_2d_r', num_keys[0]),
-        config.get('y_2d_r', num_keys[1]),
-        config.get('c_2d_r', num_keys[2]),
-        config.get('x_hist', num_keys[0]),
-        config.get('x_heatmap', num_keys[0]),
-        config.get('y_heatmap', num_keys[1]),
-    ]
+    return [data_files[0]['value'],
+            data_files] +\
+        options +\
+        [config.get('c_3d', num_keys[2]),
+         config.get('x_2d_l', num_keys[0]),
+         config.get('y_2d_l', num_keys[1]),
+         config.get('c_2d_l', num_keys[2]),
+         config.get('x_2d_r', num_keys[0]),
+         config.get('y_2d_r', num_keys[1]),
+         config.get('c_2d_r', num_keys[2]),
+         config.get('x_hist', num_keys[0]),
+         config.get('x_heatmap', num_keys[0]),
+         config.get('y_heatmap', num_keys[1])]
 
 
 @ app.callback(
