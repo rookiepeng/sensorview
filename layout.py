@@ -704,7 +704,7 @@ scatter_tab = html.Div([
     dbc.Row([
             dbc.Col(filter_card, width=3),
             dbc.Col(view3d_card, width=9)
-            ], className='mb-3', align='center'),
+            ], className='mb-3', align='start'),
 
     dbc.Row([
             dbc.Col(left2d_card, width=6),
