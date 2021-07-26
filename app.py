@@ -222,6 +222,11 @@ def case_selected(case, session_id):
                      'cat_keys': cat_keys}
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
+    if len(cat_keys) == 0:
+        init_cat_key = None
+    else:
+        init_cat_key = cat_keys[0]
+
     return [data_files[0]['value'],
             data_files] +\
         options +\
@@ -239,7 +244,7 @@ def case_selected(case, session_id):
         cat_c_options +\
         ['None']*len(dropdown_categorical_c_values) +\
         cat_options +\
-        [cat_keys[0]]*len(dropdown_categorical_values)
+        [init_cat_key]*len(dropdown_categorical_values)
 
 
 @ app.callback(
@@ -415,7 +420,11 @@ def data_file_selection(
                         'value': i}
                        for i in cat_keys])
 
-        output.append([cat_keys[0]])
+        if len(cat_keys) == 0:
+            init_cat_key = None
+        else:
+            init_cat_key = cat_keys[0]
+        output.append([init_cat_key])
 
         if outline_enable:
             linewidth = 1
@@ -1117,6 +1126,9 @@ def update_violin(
     num_values = filter_kwargs['num_values']
 
     x_key = x_violin
+    if x_violin is None:
+        raise PreventUpdate
+
     x_label = config['keys'][x_violin].get('description', x_key)
     y_key = y_violin
     y_label = config['keys'][y_violin].get('description', y_key)
@@ -1217,7 +1229,7 @@ def update_parallel(
     cat_values = filter_kwargs['cat_values']
     num_values = filter_kwargs['num_values']
 
-    if parallel_sw:
+    if parallel_sw and len(dim_parallel) > 0:
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
