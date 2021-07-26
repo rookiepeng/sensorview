@@ -87,6 +87,7 @@ dropdown_options = [
     Output('x-picker-heatmap', 'options'),
     Output('y-picker-heatmap', 'options'),
     Output('y-picker-violin', 'options'),
+    Output('c-picker-parallel', 'options'),
 ]
 
 dropdown_values = [
@@ -101,6 +102,7 @@ dropdown_values = [
     Output('x-picker-heatmap', 'value'),
     Output('y-picker-heatmap', 'value'),
     Output('y-picker-violin', 'value'),
+    Output('c-picker-parallel', 'value'),
 ]
 
 dropdown_categorical_c_options = [
@@ -1142,6 +1144,7 @@ def update_violin(
                                    x=x_key,
                                    y=y_key,
                                    box=True,
+                                   violinmode='group',
                                    labels={x_key: x_label,
                                            y_key: y_label})
         else:
@@ -1150,6 +1153,7 @@ def update_violin(
                                    y=y_key,
                                    color=c_violin,
                                    box=True,
+                                   violinmode='group',
                                    labels={x_key: x_label,
                                            y_key: y_label})
         violin_x_disabled = False
@@ -1178,12 +1182,14 @@ def update_violin(
     [
         Output('parallel', 'figure'),
         Output('dim-picker-parallel', 'disabled'),
+        Output('c-picker-parallel', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
         Input('left-hide-trigger', 'data'),
         Input('parallel-switch', 'value'),
         Input('dim-picker-parallel', 'value'),
+        Input('c-picker-parallel', 'value'),
     ],
     [
         State('session-id', 'data'),
@@ -1196,7 +1202,8 @@ def update_parallel(
     unused1,
     unused2,
     parallel_sw,
-    dim_violin,
+    dim_parallel,
+    c_key,
     session_id,
     visible_list,
     case,
@@ -1229,9 +1236,11 @@ def update_parallel(
         )
 
         parallel_fig = px.parallel_categories(filtered_table,
-                                              dimensions=dim_violin)
+                                              color=c_key,
+                                              dimensions=dim_parallel)
 
         parallel_dim_disabled = False
+        parallel_c_disabled = False
     else:
         parallel_fig = {
             'data': [{'type': 'histogram',
@@ -1240,10 +1249,12 @@ def update_parallel(
             'layout': {
             }}
         parallel_dim_disabled = True
+        parallel_c_disabled = True
 
     return [
         parallel_fig,
         parallel_dim_disabled,
+        parallel_c_disabled
     ]
 
 

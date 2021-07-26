@@ -586,15 +586,20 @@ parallel_card = dbc.Card([
     ),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.Label('x-axis')),
-            dbc.Col(html.Label('y-axis')),
+            dbc.Col(html.Label('dimensions')),
+            dbc.Col(html.Label('color')),
         ]),
 
         dbc.Row([
-            dcc.Dropdown(
+            dbc.Col(
+                dcc.Dropdown(
                     id='dim-picker-parallel',
                     multi=True
-                ),
+                )),
+            dbc.Col(dbc.Select(
+                    id='c-picker-parallel',
+                    disabled=True,
+                    )),
         ]),
 
         dcc.Loading(
