@@ -235,6 +235,7 @@ def case_selected(case, session_id):
          config.get('x_hist', num_keys[0]),
          config.get('x_heatmap', num_keys[0]),
          config.get('y_heatmap', num_keys[1]),
+         num_keys[0],
          num_keys[0]] +\
         cat_c_options +\
         ['None']*len(dropdown_categorical_c_values) +\
