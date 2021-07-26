@@ -1244,15 +1244,27 @@ def update_parallel(
             colorscale = []
             unique_list = np.sort(filtered_table[c_key].unique())
 
-            if np.issubdtype(unique_list.dtype, np.integer) or np.issubdtype(unique_list.dtype, np.floating):
-                parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
-                                                          line={'color': filtered_table[c_key], 'colorbar':dict(
-                                                              title=c_key)},
-                                                          hoveron='color', hoverinfo='count+probability',
-                                                          arrangement='freeform')])
+            if np.issubdtype(unique_list.dtype, np.integer) or \
+                    np.issubdtype(unique_list.dtype, np.floating):
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table[c_key],
+                                           'colorbar':dict(
+                                         title=c_key)},
+                                     hoveron='color',
+                                     hoverinfo='count+probability',
+                                     arrangement='freeform')])
             else:
-                parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
-                                                          arrangement='freeform')])
+                filtered_table['_C_'] = np.zeros_like(filtered_table[c_key])
+                for idx, var in enumerate(unique_list):
+                    filtered_table.loc[filtered_table[c_key]
+                                       == var, '_C_'] = idx
+
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table['_C_']},
+                                     hoverinfo='count+probability',
+                                     arrangement='freeform')])
         else:
             parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
                                                       arrangement='freeform')])
