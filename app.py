@@ -997,33 +997,27 @@ def update_histogram(
             visible_list
         )
 
-        # histogram_fig = get_histogram(
-        #     filtered_table,
-        #     x_key,
-        #     x_label,
-        #     y_key
-        # )
         if y_key == 'probability':
             y_label = 'Probability'
-        else:
-            y_label = 'Count'
+        elif y_key == 'density':
+            y_label = 'Density'
         if c_histogram == 'None':
             histogram_fig = px.histogram(filtered_table,
                                          x=x_key,
                                          histnorm=y_key,
-                                         opacity=0.7,
+                                         opacity=1,
+                                         barmode='overlay',
                                          labels={x_key: x_label,
-                                                 'density': 'Count',
-                                                 'probability': 'Probability'})
+                                                 y_key: y_label})
         else:
             histogram_fig = px.histogram(filtered_table,
                                          x=x_key,
                                          color=c_histogram,
                                          histnorm=y_key,
                                          opacity=0.7,
+                                         barmode='overlay',
                                          labels={x_key: x_label,
-                                                 'density': 'Count',
-                                                 'probability': 'Probability'})
+                                                 y_key: y_label})
         histogram_x_disabled = False
         histogram_y_disabled = False
         histogram_c_disabled = False
