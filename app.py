@@ -1093,7 +1093,10 @@ def update_violin(
     x_key = x_violin
     x_label = config['keys'][x_violin].get('description', x_key)
     y_key = y_violin
-    y_label = config['keys'][y_violin].get('description', y_key)
+    if y_key == 'None':
+        y_label = y_key
+    else:
+        y_label = config['keys'][y_violin].get('description', y_key)
 
     if violin_sw:
         file = json.loads(file)
@@ -1419,6 +1422,30 @@ def export_histogram(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_histogram.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('dummy-export-violin', 'data'),
+    Input('export-violin', 'n_clicks'),
+    [
+        State('violin', 'figure'),
+        State('case-picker', 'value')
+    ]
+)
+def export_violin(btn, fig, case):
+    if btn == 0:
+        raise PreventUpdate
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_violin.png', scale=2)
     return 0
 
 

@@ -741,6 +741,7 @@ def get_app_layout(app):
         dcc.Store(id='dummy-export-scatter2d-left'),
         dcc.Store(id='dummy-export-scatter2d-right'),
         dcc.Store(id='dummy-export-histogram'),
+        dcc.Store(id='dummy-export-violin'),
         dcc.Store(id='dummy-export-heatmap'),
 
         dbc.Row([
