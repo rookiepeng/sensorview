@@ -416,7 +416,7 @@ def data_file_selection(
                         'value': i}
                        for i in cat_keys])
 
-        output.append([])
+        output.append([cat_keys[0]])
 
         if outline_enable:
             linewidth = 1
