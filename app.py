@@ -237,7 +237,7 @@ def case_selected(case, session_id):
         cat_c_options +\
         ['None']*len(dropdown_categorical_c_values) +\
         cat_options +\
-        [num_keys[0]]*len(dropdown_categorical_values)
+        [cat_keys[0]]*len(dropdown_categorical_values)
 
 
 @ app.callback(
