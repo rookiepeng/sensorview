@@ -1091,9 +1091,9 @@ def update_violin(
     num_values = filter_kwargs['num_values']
 
     x_key = x_violin
-    x_label = config['keys'][x_violin]['description']
+    x_label = config['keys'][x_violin].get('description', x_key)
     y_key = y_violin
-    y_label = config['keys'][y_violin]['description']
+    y_label = config['keys'][y_violin].get('description', y_key)
 
     if violin_sw:
         file = json.loads(file)

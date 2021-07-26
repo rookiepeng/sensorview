@@ -525,6 +525,7 @@ violin_card = dbc.Card([
         dbc.Row([
             dbc.Col(html.Label('x-axis')),
             dbc.Col(html.Label('y-axis')),
+            dbc.Col(html.Label('color')),
         ]),
 
         dbc.Row([
