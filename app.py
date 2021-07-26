@@ -86,6 +86,7 @@ dropdown_options = [
     Output('x-picker-histogram', 'options'),
     Output('x-picker-heatmap', 'options'),
     Output('y-picker-heatmap', 'options'),
+    Output('y-picker-violin', 'options'),
 ]
 
 dropdown_values = [
@@ -99,14 +100,19 @@ dropdown_values = [
     Output('x-picker-histogram', 'value'),
     Output('x-picker-heatmap', 'value'),
     Output('y-picker-heatmap', 'value'),
+    Output('y-picker-violin', 'value'),
 ]
 
 dropdown_categorical_options = [
     Output('c-picker-histogram', 'options'),
+    Output('x-picker-violin', 'options'),
+    Output('c-picker-violin', 'options'),
 ]
 
 dropdown_categorical_values = [
     Output('c-picker-histogram', 'value'),
+    Output('x-picker-violin', 'value'),
+    Output('c-picker-violin', 'value'),
 ]
 
 
@@ -212,9 +218,10 @@ def case_selected(case, session_id):
          config.get('c_2d_r', num_keys[2]),
          config.get('x_hist', num_keys[0]),
          config.get('x_heatmap', num_keys[0]),
-         config.get('y_heatmap', num_keys[1])] +\
+         config.get('y_heatmap', num_keys[1]),
+         num_keys[0]] +\
         cat_options +\
-        ['None']
+        ['None']*len(dropdown_categorical_values)
 
 
 @ app.callback(
@@ -463,6 +470,7 @@ def data_file_selection(
         Output('left-switch', 'value'),
         Output('right-switch', 'value'),
         Output('histogram-switch', 'value'),
+        Output('violin-switch', 'value'),
         Output('heat-switch', 'value'),
     ],
     Input('file-picker', 'value'),
@@ -477,7 +485,7 @@ def reset_switch_state(
     if case is None:
         raise PreventUpdate
 
-    return [[], [], [], []]
+    return [[], [], [], [], []]
 
 
 @ app.callback(
@@ -1037,6 +1045,108 @@ def update_histogram(
         histogram_x_disabled,
         histogram_y_disabled,
         histogram_c_disabled
+    ]
+
+
+@ app.callback(
+    [
+        Output('violin', 'figure'),
+        Output('x-picker-violin', 'disabled'),
+        Output('y-picker-violin', 'disabled'),
+        Output('c-picker-violin', 'disabled'),
+    ],
+    [
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
+        Input('violin-switch', 'value'),
+        Input('x-picker-violin', 'value'),
+        Input('y-picker-violin', 'value'),
+        Input('c-picker-violin', 'value'),
+    ],
+    [
+        State('session-id', 'data'),
+        State('visible-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
+    ]
+)
+def update_violin(
+    unused1,
+    unused2,
+    violin_sw,
+    x_violin,
+    y_violin,
+    c_violin,
+    session_id,
+    visible_list,
+    case,
+    file
+):
+    config = redis_get(session_id, REDIS_KEYS['config'])
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
+
+    x_key = x_violin
+    x_label = config['keys'][x_violin]['description']
+    y_key = y_violin
+    y_label = config['keys'][y_violin]['description']
+
+    if violin_sw:
+        file = json.loads(file)
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
+                               file['feather_name'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+        filtered_table = filter_all(
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list
+        )
+
+        if c_violin == 'None':
+            violin_fig = px.violin(filtered_table,
+                                   x=x_key,
+                                   y=y_key,
+                                   box=True,
+                                   labels={x_key: x_label,
+                                           y_key: y_label})
+        else:
+            violin_fig = px.violin(filtered_table,
+                                   x=x_key,
+                                   y=y_key,
+                                   color=c_violin,
+                                   box=True,
+                                   labels={x_key: x_label,
+                                           y_key: y_label})
+        violin_x_disabled = False
+        violin_y_disabled = False
+        violin_c_disabled = False
+    else:
+        violin_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+            }}
+        violin_x_disabled = True
+        violin_y_disabled = True
+        violin_c_disabled = True
+
+    return [
+        violin_fig,
+        violin_x_disabled,
+        violin_y_disabled,
+        violin_c_disabled
     ]
 
 

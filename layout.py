@@ -533,17 +533,11 @@ violin_card = dbc.Card([
                 disabled=True,
             )),
             dbc.Col(dbc.Select(
-                id='y-violin',
-                options=[{
-                    'label': 'Probability',
-                    'value': 'probability'
-                },
-                    {
-                    'label': 'Density',
-                    'value': 'density'
-                },
-                ],
-                value='density',
+                id='y-picker-violin',
+                disabled=True,
+            )),
+            dbc.Col(dbc.Select(
+                id='c-picker-violin',
                 disabled=True,
             )),
         ]),
