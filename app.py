@@ -1237,7 +1237,7 @@ def update_parallel(
         )
 
         parallel_fig = px.parallel_categories(filtered_table,
-                                              color=c_key,
+                                            #   color=c_key,
                                               dimensions=dim_parallel)
 
         parallel_dim_disabled = False
