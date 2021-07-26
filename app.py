@@ -248,6 +248,8 @@ def case_selected(case, session_id):
         Output('dropdown-container', 'children'),
         Output('slider-container', 'children'),
         Output('interval-component', 'disabled'),
+        Output('dim-picker-parallel', 'options'),
+        Output('dim-picker-parallel', 'value'),
     ],
     [
         Input('file-picker', 'value'),
@@ -407,6 +409,12 @@ def data_file_selection(
         output.append(new_slider)
         output.append(dash.no_update)
 
+        output.append([{'label': i,
+                        'value': i}
+                       for i in cat_keys])
+
+        output.append([])
+
         if outline_enable:
             linewidth = 1
         else:
@@ -435,7 +443,7 @@ def data_file_selection(
         return [(slider_var-1) % (slider_max+1),
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                dash.no_update]
+                dash.no_update, dash.no_update, dash.no_update]
 
     elif trigger_id == 'next-button':
         if right_btn == 0:
@@ -444,7 +452,7 @@ def data_file_selection(
         return [(slider_var+1) % (slider_max+1),
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                dash.no_update]
+                dash.no_update, dash.no_update, dash.no_update]
 
     elif trigger_id == 'interval-component':
         if interval == 0:
@@ -454,13 +462,13 @@ def data_file_selection(
             return [dash.no_update,
                     dash.no_update, dash.no_update,
                     dash.no_update, dash.no_update,
-                    True]
+                    True, dash.no_update, dash.no_update]
 
         else:
             return [(slider_var+1) % (slider_max+1),
                     dash.no_update, dash.no_update,
                     dash.no_update, dash.no_update,
-                    dash.no_update]
+                    dash.no_update, dash.no_update, dash.no_update]
 
     elif trigger_id == 'play-button':
         if play_clicks == 0:
@@ -469,7 +477,7 @@ def data_file_selection(
         return [dash.no_update,
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                False]
+                False, dash.no_update, dash.no_update]
 
     elif trigger_id == 'stop-button':
         if stop_clicks == 0:
@@ -478,7 +486,7 @@ def data_file_selection(
         return [dash.no_update,
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                True]
+                True, dash.no_update, dash.no_update]
 
 
 @ app.callback(
@@ -1163,6 +1171,79 @@ def update_violin(
         violin_x_disabled,
         violin_y_disabled,
         violin_c_disabled
+    ]
+
+
+@ app.callback(
+    [
+        Output('parallel', 'figure'),
+        Output('dim-picker-parallel', 'disabled'),
+    ],
+    [
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
+        Input('parallel-switch', 'value'),
+        Input('dim-picker-parallel', 'value'),
+    ],
+    [
+        State('session-id', 'data'),
+        State('visible-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
+    ]
+)
+def update_parallel(
+    unused1,
+    unused2,
+    parallel_sw,
+    dim_violin,
+    session_id,
+    visible_list,
+    case,
+    file
+):
+    config = redis_get(session_id, REDIS_KEYS['config'])
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
+
+    if parallel_sw:
+        file = json.loads(file)
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
+                               file['feather_name'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+        filtered_table = filter_all(
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list
+        )
+
+        parallel_fig = px.parallel_categories(filtered_table,
+                                              dimensions=dim_violin)
+
+        parallel_dim_disabled = False
+    else:
+        parallel_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+            }}
+        parallel_dim_disabled = True
+
+    return [
+        parallel_fig,
+        parallel_dim_disabled,
     ]
 
 

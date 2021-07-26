@@ -591,24 +591,10 @@ parallel_card = dbc.Card([
         ]),
 
         dbc.Row([
-            dbc.Col(dbc.Select(
-                id='x-picker-parallel',
-                disabled=True,
-            )),
-            dbc.Col(dbc.Select(
-                id='y-parallel',
-                options=[{
-                    'label': 'Probability',
-                    'value': 'probability'
-                },
-                    {
-                    'label': 'Density',
-                    'value': 'density'
-                },
-                ],
-                value='density',
-                disabled=True,
-            )),
+            dcc.Dropdown(
+                    id='dim-picker-parallel',
+                    multi=True
+                ),
         ]),
 
         dcc.Loading(
