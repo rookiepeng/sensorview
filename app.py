@@ -1012,18 +1012,18 @@ def update_histogram(
                                          x=x_key,
                                          histnorm=y_key,
                                          opacity=0.7,
-                                        #  labels={x_key: x_label},
-                                         xaxis=dict(title=x_label),
-                                         yaxis=dict(title=y_label))
+                                         labels={x_key: x_label,
+                                                 'density': 'Count',
+                                                 'probability': 'Probability'})
         else:
             histogram_fig = px.histogram(filtered_table,
                                          x=x_key,
                                          color=c_histogram,
                                          histnorm=y_key,
                                          opacity=0.7,
-                                        #  labels={x_key: x_label},
-                                         xaxis=dict(title=x_label),
-                                         yaxis=dict(title=y_label))
+                                         labels={x_key: x_label,
+                                                 'density': 'Count',
+                                                 'probability': 'Probability'})
         histogram_x_disabled = False
         histogram_y_disabled = False
         histogram_c_disabled = False
