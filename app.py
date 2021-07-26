@@ -103,16 +103,22 @@ dropdown_values = [
     Output('y-picker-violin', 'value'),
 ]
 
-dropdown_categorical_options = [
+dropdown_categorical_c_options = [
     Output('c-picker-histogram', 'options'),
-    Output('x-picker-violin', 'options'),
     Output('c-picker-violin', 'options'),
 ]
 
-dropdown_categorical_values = [
+dropdown_categorical_c_values = [
     Output('c-picker-histogram', 'value'),
-    Output('x-picker-violin', 'value'),
     Output('c-picker-violin', 'value'),
+]
+
+dropdown_categorical_options = [
+    Output('x-picker-violin', 'options'),
+]
+
+dropdown_categorical_values = [
+    Output('x-picker-violin', 'value'),
 ]
 
 
@@ -139,6 +145,8 @@ def refresh_button_clicked(_):
     Output('file-picker', 'options'),
 ] + dropdown_options +
     dropdown_values +
+    dropdown_categorical_c_options +
+    dropdown_categorical_c_values +
     dropdown_categorical_options +
     dropdown_categorical_values,
     Input('case-picker', 'value'),
@@ -194,12 +202,18 @@ def case_selected(case, session_id):
         for _, item in enumerate(config['keys'])
     ]]*len(dropdown_options)
 
-    cat_options = [[{
+    cat_c_options = [[{
         'label': 'None',
         'value': 'None'}]+[{
             'label': config['keys'][item].get('description', item),
             'value': item}
             for _, item in enumerate(cat_keys)
+    ]]*len(dropdown_categorical_c_options)
+
+    cat_options = [[{
+        'label': config['keys'][item].get('description', item),
+        'value': item}
+        for _, item in enumerate(cat_keys)
     ]]*len(dropdown_categorical_options)
 
     filter_kwargs = {'num_keys': num_keys,
@@ -220,8 +234,10 @@ def case_selected(case, session_id):
          config.get('x_heatmap', num_keys[0]),
          config.get('y_heatmap', num_keys[1]),
          num_keys[0]] +\
+        cat_c_options +\
+        ['None']*len(dropdown_categorical_c_values) +\
         cat_options +\
-        ['None']*len(dropdown_categorical_values)
+        [num_keys[0]]*len(dropdown_categorical_values)
 
 
 @ app.callback(
@@ -1093,10 +1109,7 @@ def update_violin(
     x_key = x_violin
     x_label = config['keys'][x_violin].get('description', x_key)
     y_key = y_violin
-    if y_key == 'None':
-        y_label = y_key
-    else:
-        y_label = config['keys'][y_violin].get('description', y_key)
+    y_label = config['keys'][y_violin].get('description', y_key)
 
     if violin_sw:
         file = json.loads(file)
