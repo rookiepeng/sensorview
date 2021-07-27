@@ -87,7 +87,6 @@ dropdown_options = [
     Output('x-picker-heatmap', 'options'),
     Output('y-picker-heatmap', 'options'),
     Output('y-picker-violin', 'options'),
-    Output('c-picker-parallel', 'options'),
 ]
 
 dropdown_values = [
@@ -102,17 +101,18 @@ dropdown_values = [
     Output('x-picker-heatmap', 'value'),
     Output('y-picker-heatmap', 'value'),
     Output('y-picker-violin', 'value'),
-    Output('c-picker-parallel', 'value'),
 ]
 
 dropdown_categorical_c_options = [
     Output('c-picker-histogram', 'options'),
     Output('c-picker-violin', 'options'),
+    Output('c-picker-parallel', 'options'),
 ]
 
 dropdown_categorical_c_values = [
     Output('c-picker-histogram', 'value'),
     Output('c-picker-violin', 'value'),
+    Output('c-picker-parallel', 'value'),
 ]
 
 dropdown_categorical_options = [
@@ -222,6 +222,11 @@ def case_selected(case, session_id):
                      'cat_keys': cat_keys}
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
+    if len(cat_keys) == 0:
+        init_cat_key = None
+    else:
+        init_cat_key = cat_keys[0]
+
     return [data_files[0]['value'],
             data_files] +\
         options +\
@@ -235,12 +240,11 @@ def case_selected(case, session_id):
          config.get('x_hist', num_keys[0]),
          config.get('x_heatmap', num_keys[0]),
          config.get('y_heatmap', num_keys[1]),
-         num_keys[0],
          num_keys[0]] +\
         cat_c_options +\
         ['None']*len(dropdown_categorical_c_values) +\
         cat_options +\
-        [cat_keys[0]]*len(dropdown_categorical_values)
+        [init_cat_key]*len(dropdown_categorical_values)
 
 
 @ app.callback(
@@ -416,7 +420,11 @@ def data_file_selection(
                         'value': i}
                        for i in cat_keys])
 
-        output.append([cat_keys[0]])
+        if len(cat_keys) == 0:
+            init_cat_key = None
+        else:
+            init_cat_key = cat_keys[0]
+        output.append([init_cat_key])
 
         if outline_enable:
             linewidth = 1
@@ -1118,6 +1126,9 @@ def update_violin(
     num_values = filter_kwargs['num_values']
 
     x_key = x_violin
+    if x_violin is None:
+        raise PreventUpdate
+
     x_label = config['keys'][x_violin].get('description', x_key)
     y_key = y_violin
     y_label = config['keys'][y_violin].get('description', y_key)
@@ -1218,7 +1229,7 @@ def update_parallel(
     cat_values = filter_kwargs['cat_values']
     num_values = filter_kwargs['num_values']
 
-    if parallel_sw:
+    if parallel_sw and len(dim_parallel) > 0:
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
@@ -1236,9 +1247,39 @@ def update_parallel(
             visible_list
         )
 
-        parallel_fig = px.parallel_categories(filtered_table,
-                                            #   color=c_key,
-                                              dimensions=dim_parallel)
+        dims = []
+        for _, dim_key in enumerate(dim_parallel):
+            dims.append(go.parcats.Dimension(
+                values=filtered_table[dim_key], label=dim_key))
+
+        if c_key != 'None':
+            colorscale = []
+            unique_list = np.sort(filtered_table[c_key].unique())
+
+            if np.issubdtype(unique_list.dtype, np.integer) or \
+                    np.issubdtype(unique_list.dtype, np.floating):
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table[c_key],
+                                           'colorbar':dict(
+                                         title=c_key)},
+                                     hoveron='color',
+                                     hoverinfo='count+probability',
+                                     arrangement='freeform')])
+            else:
+                filtered_table['_C_'] = np.zeros_like(filtered_table[c_key])
+                for idx, var in enumerate(unique_list):
+                    filtered_table.loc[filtered_table[c_key]
+                                       == var, '_C_'] = idx
+
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table['_C_']},
+                                     hoverinfo='count+probability',
+                                     arrangement='freeform')])
+        else:
+            parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
+                                                      arrangement='freeform')])
 
         parallel_dim_disabled = False
         parallel_c_disabled = False
@@ -1552,6 +1593,86 @@ def export_violin(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_violin.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('dummy-export-parallel', 'data'),
+    Input('export-parallel', 'n_clicks'),
+    [
+        State('parallel', 'figure'),
+        State('case-picker', 'value')
+    ]
+)
+def export_parallel(btn, fig, case):
+    if btn == 0:
+        raise PreventUpdate
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_parallel.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('dummy-export-data', 'data'),
+    Input('export-data', 'n_clicks'),
+    [
+        State('session-id', 'data'),
+        State('visible-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
+    ]
+)
+def export_data(btn,
+                session_id,
+                visible_list,
+                case,
+                file):
+    if btn == 0:
+        raise PreventUpdate
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+    config = redis_get(session_id, REDIS_KEYS['config'])
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
+
+    file = json.loads(file)
+    data = pd.read_feather('./data/' +
+                           case +
+                           file['path'] +
+                           '/' +
+                           file['feather_name'])
+    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+
+    filtered_table = filter_all(
+        data,
+        num_keys,
+        num_values,
+        cat_keys,
+        cat_values,
+        visible_table,
+        visible_list
+    )
+
+    filtered_table.to_pickle('./data/' +
+                             case +
+                             file['path'] +
+                             '/' +
+                             file['name'][0:-4]+'_filtered.pkl')
+
     return 0
 
 
