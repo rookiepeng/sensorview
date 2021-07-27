@@ -521,7 +521,7 @@ def reset_switch_state(
     if case is None:
         raise PreventUpdate
 
-    return [[], [], [], [], []. []]
+    return [[], [], [], [], [], []]
 
 
 @ app.callback(
