@@ -227,10 +227,15 @@ def case_selected(case, session_id):
     else:
         init_cat_key = cat_keys[0]
 
+    if len(num_keys) == 0:
+        output_dropdown_values = [None]*len(dropdown_values)
+    else:
+        output_dropdown_values = [num_keys[x % len(num_keys)]
+                                  for x in range(0, len(dropdown_values))]
+
     return [data_files[0]['value'], data_files] +\
         options +\
-        [num_keys[x % len(num_keys)]
-            for x in range(0, len(dropdown_values))] +\
+        output_dropdown_values +\
         cat_c_options +\
         ['None']*len(dropdown_categorical_c_values) +\
         cat_options +\
