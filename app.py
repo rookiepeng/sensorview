@@ -59,7 +59,7 @@ from tasks import celery_filtering_data
 from utils import load_config, redis_set, redis_get, REDIS_KEYS
 
 
-###############################################################
+""" Initialize Dash App """
 app = dash.Dash(__name__,
                 meta_tags=[{
                     'name': 'viewport',
@@ -69,12 +69,14 @@ app = dash.Dash(__name__,
 server = app.server
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
-app.title = 'RadarViz'
-
-REDIS_HASH_NAME = os.environ.get('DASH_APP_NAME', app.title)
-
+app.title = 'SensorView'
 app.layout = get_app_layout(app)
 
+""" Global Variables """
+REDIS_HASH_NAME = os.environ.get('DASH_APP_NAME', app.title)
+SPECIAL_FOLDERS = ['imgs', 'images']
+
+# options for dropdown components with all the keys
 DROPDOWN_OPTIONS_ALL = [
     Output('c-picker-3d', 'options'),
     Output('x-picker-2d-left', 'options'),
@@ -89,6 +91,7 @@ DROPDOWN_OPTIONS_ALL = [
     Output('y-picker-violin', 'options'),
 ]
 
+# values for dropdown components with all the keys
 DROPDOWN_VALUES_ALL = [
     Output('c-picker-3d', 'value'),
     Output('x-picker-2d-left', 'value'),
@@ -103,25 +106,33 @@ DROPDOWN_VALUES_ALL = [
     Output('y-picker-violin', 'value'),
 ]
 
+# options for dropdown components with categorical keys
 DROPDOWN_OPTIONS_CAT = [
     Output('x-picker-violin', 'options'),
 ]
 
+# values for dropdown components with categorical keys
 DROPDOWN_VALUES_CAT = [
     Output('x-picker-violin', 'value'),
 ]
 
+# options for dropdown components with categorical keys and `None`
+# for color dropdown components
 DROPDOWN_OPTIONS_CAT_COLOR = [
     Output('c-picker-histogram', 'options'),
     Output('c-picker-violin', 'options'),
     Output('c-picker-parallel', 'options'),
 ]
 
+# values for dropdown components with categorical keys and `None`
+# for color dropdown components
 DROPDOWN_VALUES_CAT_COLOR = [
     Output('c-picker-histogram', 'value'),
     Output('c-picker-violin', 'value'),
     Output('c-picker-parallel', 'value'),
 ]
+
+""" Callbacks """
 
 
 @ app.callback(
@@ -160,10 +171,8 @@ def case_selected(case, session_id):
     data_files = []
     case_dir = './data/'+case
 
-    skip = ['imgs', 'images']
-
     for dirpath, dirnames, files in os.walk(case_dir):
-        dirnames[:] = [d for d in dirnames if d not in skip]
+        dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
         for name in files:
             if name.lower().endswith('.csv'):
                 data_files.append({
@@ -197,14 +206,27 @@ def case_selected(case, session_id):
             num_keys.append(item)
         else:
             cat_keys.append(item)
+    filter_kwargs = {'num_keys': num_keys,
+                     'cat_keys': cat_keys}
+    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-    options = [[{
+    # options for `DROPDOWN_OPTIONS_ALL`
+    options_all = [[{
         'label': config['keys'][item].get('description', item),
         'value': item}
         for _, item in enumerate(config['keys'])
     ]]*len(DROPDOWN_OPTIONS_ALL)
 
-    cat_c_options = [[{
+    # values for `DROPDOWN_VALUES_ALL`
+    all_keys = num_keys+cat_keys
+    if len(all_keys) == 0:
+        values_all = [None]*len(DROPDOWN_VALUES_ALL)
+    else:
+        values_all = [all_keys[x % len(all_keys)]
+                      for x in range(0, len(DROPDOWN_VALUES_ALL))]
+
+    # options for `DROPDOWN_OPTIONS_CAT_COLOR`
+    options_cat_color = [[{
         'label': 'None',
         'value': 'None'}]+[{
             'label': config['keys'][item].get('description', item),
@@ -212,35 +234,29 @@ def case_selected(case, session_id):
             for _, item in enumerate(cat_keys)
     ]]*len(DROPDOWN_OPTIONS_CAT_COLOR)
 
-    cat_options = [[{
+    # values for `DROPDOWN_VALUES_CAT_COLOR`
+    values_cat_color = ['None']*len(DROPDOWN_VALUES_CAT_COLOR)
+
+    # options for `DROPDOWN_OPTIONS_CAT`
+    options_cat = [[{
         'label': config['keys'][item].get('description', item),
         'value': item}
         for _, item in enumerate(cat_keys)
     ]]*len(DROPDOWN_OPTIONS_CAT)
 
-    filter_kwargs = {'num_keys': num_keys,
-                     'cat_keys': cat_keys}
-    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
-
+    # values for `DROPDOWN_VALUES_CAT`
     if len(cat_keys) == 0:
-        init_cat_key = None
+        values_cat = [None]*len(DROPDOWN_VALUES_CAT)
     else:
-        init_cat_key = cat_keys[0]
-
-    total_keys = num_keys+cat_keys
-    if len(total_keys) == 0:
-        output_dropdown_values = [None]*len(DROPDOWN_VALUES_ALL)
-    else:
-        output_dropdown_values = [total_keys[x % len(total_keys)]
-                                  for x in range(0, len(DROPDOWN_VALUES_ALL))]
+        values_cat = [cat_keys[0]]*len(DROPDOWN_VALUES_CAT)
 
     return [data_files[0]['value'], data_files] +\
-        options +\
-        output_dropdown_values +\
-        cat_c_options +\
-        ['None']*len(DROPDOWN_VALUES_CAT_COLOR) +\
-        cat_options +\
-        [init_cat_key]*len(DROPDOWN_VALUES_CAT)
+        options_all +\
+        values_all +\
+        options_cat_color +\
+        values_cat_color +\
+        options_cat +\
+        values_cat
 
 
 @ app.callback(
@@ -272,7 +288,7 @@ def case_selected(case, session_id):
         State('outline-switch', 'value'),
         State('colormap-3d', 'value'),
     ])
-def data_file_selection(
+def file_selected(
         file,
         left_btn,
         right_btn,
@@ -417,10 +433,10 @@ def data_file_selection(
                        for i in cat_keys])
 
         if len(cat_keys) == 0:
-            init_cat_key = None
+            values_cat = None
         else:
-            init_cat_key = cat_keys[0]
-        output.append([init_cat_key])
+            values_cat = cat_keys[0]
+        output.append([values_cat])
 
         if outline_enable:
             linewidth = 1

@@ -16,4 +16,3 @@ RUN chmod +x ./start.sh
 
 # Finally, run gunicorn.
 CMD ["./start.sh"]
-# CMD [ "python", "app.py"]
