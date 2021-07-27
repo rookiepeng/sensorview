@@ -243,11 +243,6 @@ view3d_card = dbc.Card([
                     'Export all frames as an HTML video',
                     id='export-scatter3d',
                     n_clicks=0
-                ),
-                    dbc.DropdownMenuItem(
-                    'Export filtered data',
-                    id='export-data',
-                    n_clicks=0
                 )],
                 label='Export',
                 right=True,
@@ -738,9 +733,7 @@ def get_app_layout(app):
         dcc.Store(id='dummy-export-scatter2d-right'),
         dcc.Store(id='dummy-export-histogram'),
         dcc.Store(id='dummy-export-violin'),
-        dcc.Store(id='dummy-export-parallel'),
         dcc.Store(id='dummy-export-heatmap'),
-        dcc.Store(id='dummy-export-data'),
 
         dbc.Row([
             dbc.Col(
