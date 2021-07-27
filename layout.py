@@ -488,10 +488,7 @@ hist_card = dbc.Card([
                     figure={
                         'data': [{'type': 'histogram',
                                   'x': []}
-                                 ],
-                        'layout': {
-                            'uirevision': 'no_change'
-                        }
+                                 ]
                     },
                 ),
                 dbc.Row([
@@ -676,10 +673,7 @@ heatmap_card = dbc.Card([
                     figure={
                         'data': [{'type': 'histogram2dcontour',
                                   'x': []}
-                                 ],
-                        'layout': {
-                            'uirevision': 'no_change'
-                        }
+                                 ]
                     },
                 ),
                 dbc.Row([
