@@ -45,11 +45,12 @@ import numpy as np
 import pandas as pd
 import os
 import plotly.graph_objs as go
+import plotly.express as px
 
 from layout import get_app_layout
 
 from viz.viz import get_scatter3d
-from viz.viz import get_scatter2d, get_histogram, get_heatmap
+from viz.viz import get_scatter2d, get_heatmap
 from viz.viz import get_animation_data
 
 from tasks import filter_all
@@ -85,6 +86,7 @@ dropdown_options = [
     Output('x-picker-histogram', 'options'),
     Output('x-picker-heatmap', 'options'),
     Output('y-picker-heatmap', 'options'),
+    Output('y-picker-violin', 'options'),
 ]
 
 dropdown_values = [
@@ -98,6 +100,27 @@ dropdown_values = [
     Output('x-picker-histogram', 'value'),
     Output('x-picker-heatmap', 'value'),
     Output('y-picker-heatmap', 'value'),
+    Output('y-picker-violin', 'value'),
+]
+
+dropdown_categorical_c_options = [
+    Output('c-picker-histogram', 'options'),
+    Output('c-picker-violin', 'options'),
+    Output('c-picker-parallel', 'options'),
+]
+
+dropdown_categorical_c_values = [
+    Output('c-picker-histogram', 'value'),
+    Output('c-picker-violin', 'value'),
+    Output('c-picker-parallel', 'value'),
+]
+
+dropdown_categorical_options = [
+    Output('x-picker-violin', 'options'),
+]
+
+dropdown_categorical_values = [
+    Output('x-picker-violin', 'value'),
 ]
 
 
@@ -122,7 +145,12 @@ def refresh_button_clicked(_):
 @ app.callback([
     Output('file-picker', 'value'),
     Output('file-picker', 'options'),
-] + dropdown_options + dropdown_values,
+] + dropdown_options +
+    dropdown_values +
+    dropdown_categorical_c_options +
+    dropdown_categorical_c_values +
+    dropdown_categorical_options +
+    dropdown_categorical_values,
     Input('case-picker', 'value'),
     State('session-id', 'data'))
 def case_selected(case, session_id):
@@ -162,42 +190,61 @@ def case_selected(case, session_id):
     else:
         raise PreventUpdate
 
-    keys_dict = config['keys']
-
     num_keys = []
     cat_keys = []
-    for _, s_item in enumerate(keys_dict):
-        if keys_dict[s_item].get('type', 'numerical') == 'numerical':
-            num_keys.append(s_item)
+    for _, item in enumerate(config['keys']):
+        if config['keys'][item].get('type', 'numerical') == 'numerical':
+            num_keys.append(item)
         else:
-            cat_keys.append(s_item)
+            cat_keys.append(item)
 
     options = [[{
-        'label': keys_dict[f_item].get('description', f_item),
-        'value': f_item}
-        for _, f_item in enumerate(keys_dict)
+        'label': config['keys'][item].get('description', item),
+        'value': item}
+        for _, item in enumerate(config['keys'])
     ]]*len(dropdown_options)
 
-    filter_kwargs = {
-        'num_keys': num_keys,
-        'cat_keys': cat_keys
-    }
+    cat_c_options = [[{
+        'label': 'None',
+        'value': 'None'}]+[{
+            'label': config['keys'][item].get('description', item),
+            'value': item}
+            for _, item in enumerate(cat_keys)
+    ]]*len(dropdown_categorical_c_options)
+
+    cat_options = [[{
+        'label': config['keys'][item].get('description', item),
+        'value': item}
+        for _, item in enumerate(cat_keys)
+    ]]*len(dropdown_categorical_options)
+
+    filter_kwargs = {'num_keys': num_keys,
+                     'cat_keys': cat_keys}
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-    return [
-        data_files[0]['value'],
-        data_files]+options+[
-        config.get('c_3d', num_keys[2]),
-        config.get('x_2d_l', num_keys[0]),
-        config.get('y_2d_l', num_keys[1]),
-        config.get('c_2d_l', num_keys[2]),
-        config.get('x_2d_r', num_keys[0]),
-        config.get('y_2d_r', num_keys[1]),
-        config.get('c_2d_r', num_keys[2]),
-        config.get('x_hist', num_keys[0]),
-        config.get('x_heatmap', num_keys[0]),
-        config.get('y_heatmap', num_keys[1]),
-    ]
+    if len(cat_keys) == 0:
+        init_cat_key = None
+    else:
+        init_cat_key = cat_keys[0]
+
+    return [data_files[0]['value'],
+            data_files] +\
+        options +\
+        [config.get('c_3d', num_keys[2]),
+         config.get('x_2d_l', num_keys[0]),
+         config.get('y_2d_l', num_keys[1]),
+         config.get('c_2d_l', num_keys[2]),
+         config.get('x_2d_r', num_keys[0]),
+         config.get('y_2d_r', num_keys[1]),
+         config.get('c_2d_r', num_keys[2]),
+         config.get('x_hist', num_keys[0]),
+         config.get('x_heatmap', num_keys[0]),
+         config.get('y_heatmap', num_keys[1]),
+         num_keys[0]] +\
+        cat_c_options +\
+        ['None']*len(dropdown_categorical_c_values) +\
+        cat_options +\
+        [init_cat_key]*len(dropdown_categorical_values)
 
 
 @ app.callback(
@@ -208,6 +255,8 @@ def case_selected(case, session_id):
         Output('dropdown-container', 'children'),
         Output('slider-container', 'children'),
         Output('interval-component', 'disabled'),
+        Output('dim-picker-parallel', 'options'),
+        Output('dim-picker-parallel', 'value'),
     ],
     [
         Input('file-picker', 'value'),
@@ -240,7 +289,7 @@ def data_file_selection(
         slider_var,
         visible_list,
         c_key,
-        outline_sw,
+        outline_enable,
         colormap
 ):
     if file is None:
@@ -338,13 +387,13 @@ def data_file_selection(
 
         num_values = []
         new_slider = []
-        for idx, s_item in enumerate(num_keys):
-            var_min = np.floor(np.min(new_data[s_item]))
-            var_max = np.ceil(np.max(new_data[s_item]))
+        for idx, item in enumerate(num_keys):
+            var_min = np.floor(np.min(new_data[item]))
+            var_max = np.ceil(np.max(new_data[item]))
 
             new_slider.append(
                 dbc.Label(
-                    keys_dict[s_item]['description']
+                    keys_dict[item]['description']
                 )
             )
             new_slider.append(dcc.RangeSlider(
@@ -367,7 +416,17 @@ def data_file_selection(
         output.append(new_slider)
         output.append(dash.no_update)
 
-        if outline_sw:
+        output.append([{'label': i,
+                        'value': i}
+                       for i in cat_keys])
+
+        if len(cat_keys) == 0:
+            init_cat_key = None
+        else:
+            init_cat_key = cat_keys[0]
+        output.append([init_cat_key])
+
+        if outline_enable:
             linewidth = 1
         else:
             linewidth = 0
@@ -395,7 +454,7 @@ def data_file_selection(
         return [(slider_var-1) % (slider_max+1),
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                dash.no_update]
+                dash.no_update, dash.no_update, dash.no_update]
 
     elif trigger_id == 'next-button':
         if right_btn == 0:
@@ -404,7 +463,7 @@ def data_file_selection(
         return [(slider_var+1) % (slider_max+1),
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                dash.no_update]
+                dash.no_update, dash.no_update, dash.no_update]
 
     elif trigger_id == 'interval-component':
         if interval == 0:
@@ -414,13 +473,13 @@ def data_file_selection(
             return [dash.no_update,
                     dash.no_update, dash.no_update,
                     dash.no_update, dash.no_update,
-                    True]
+                    True, dash.no_update, dash.no_update]
 
         else:
             return [(slider_var+1) % (slider_max+1),
                     dash.no_update, dash.no_update,
                     dash.no_update, dash.no_update,
-                    dash.no_update]
+                    dash.no_update, dash.no_update, dash.no_update]
 
     elif trigger_id == 'play-button':
         if play_clicks == 0:
@@ -429,7 +488,7 @@ def data_file_selection(
         return [dash.no_update,
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                False]
+                False, dash.no_update, dash.no_update]
 
     elif trigger_id == 'stop-button':
         if stop_clicks == 0:
@@ -438,7 +497,7 @@ def data_file_selection(
         return [dash.no_update,
                 dash.no_update, dash.no_update,
                 dash.no_update, dash.no_update,
-                True]
+                True, dash.no_update, dash.no_update]
 
 
 @ app.callback(
@@ -446,6 +505,8 @@ def data_file_selection(
         Output('left-switch', 'value'),
         Output('right-switch', 'value'),
         Output('histogram-switch', 'value'),
+        Output('violin-switch', 'value'),
+        Output('parallel-switch', 'value'),
         Output('heat-switch', 'value'),
     ],
     Input('file-picker', 'value'),
@@ -460,7 +521,7 @@ def reset_switch_state(
     if case is None:
         raise PreventUpdate
 
-    return [[], [], [], []]
+    return [[], [], [], [], [], []]
 
 
 @ app.callback(
@@ -507,9 +568,9 @@ def update_filter(
     num_values,
     colormap,
     visible_list,
-    color_picker,
-    overlay_sw,
-    outline_sw,
+    c_key,
+    overlay_enable,
+    outline_enable,
     click_data,
     _,
     click_hide,
@@ -545,10 +606,8 @@ def update_filter(
                                   str(slider_arg)),
                         dash.no_update]
 
-    c_key = color_picker
-    c_label = keys_dict[color_picker]['description']
+    c_label = keys_dict[c_key]['description']
 
-    slider_key = config['slider']
     slider_label = keys_dict[config['slider']
                              ]['description']
 
@@ -574,7 +633,7 @@ def update_filter(
 
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
-    if overlay_sw:
+    if overlay_enable:
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
@@ -597,33 +656,28 @@ def update_filter(
         except FileNotFoundError:
             source_encoded = None
 
-    if outline_sw:
+    if outline_enable:
         linewidth = 1
     else:
         linewidth = 0
 
     x_range = [
-        float(np.min([num_values[num_keys.index(x_det)][0],
-                      num_values[num_keys.index(x_host)][0]])),
-        float(np.max([num_values[num_keys.index(x_det)][1],
-                      num_values[num_keys.index(x_host)][1]]))]
+        float(
+            np.min([num_values[num_keys.index(x_det)][0],
+                    num_values[num_keys.index(x_host)][0]])),
+        float(
+            np.max([num_values[num_keys.index(x_det)][1],
+                    num_values[num_keys.index(x_host)][1]]))]
     y_range = [
-        float(np.min([num_values[num_keys.index(y_det)][0],
-                      num_values[num_keys.index(y_host)][0]])),
-        float(np.max([num_values[num_keys.index(y_det)][1],
-                      num_values[num_keys.index(y_host)][1]]))]
-    z_range = [float(num_values[num_keys.index(z_det)][0]), float(
-        num_values[num_keys.index(z_det)][1])]
-
-    if keys_dict[c_key].get('type', 'numerical') == 'numerical':
-        c_range = [
-            num_values[num_keys.index(c_key)][0],
-            num_values[num_keys.index(c_key)][1]
-        ]
-        is_discrete_color = False
-    else:
-        c_range = [0, 0]
-        is_discrete_color = True
+        float(
+            np.min([num_values[num_keys.index(y_det)][0],
+                    num_values[num_keys.index(y_host)][0]])),
+        float(
+            np.max([num_values[num_keys.index(y_det)][1],
+                    num_values[num_keys.index(y_host)][1]]))]
+    z_range = [
+        float(num_values[num_keys.index(z_det)][0]),
+        float(num_values[num_keys.index(z_det)][1])]
 
     if trigger_id != 'slider-frame':
         celery_filtering_data.apply_async(
@@ -661,12 +715,11 @@ def update_filter(
         c_label=c_label,
         linewidth=linewidth,
         colormap=colormap,
-        is_discrete_color=is_discrete_color,
+        c_type=keys_dict[c_key].get('type', 'numerical'),
         image=source_encoded,
         x_range=x_range,
         y_range=y_range,
         z_range=z_range,
-        c_range=c_range,
         ref_name='Host Vehicle'
     )
 
@@ -720,14 +773,13 @@ def update_left_graph(
     y_left,
     color_left,
     colormap,
-    outline_sw,
+    outline_enable,
     session_id,
     visible_list,
     case,
     file
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
-    keys_dict = config['keys']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -738,11 +790,11 @@ def update_left_graph(
     x_key = x_left
     y_key = y_left
     c_key = color_left
-    x_label = keys_dict[x_left]['description']
-    y_label = keys_dict[y_left]['description']
-    c_label = keys_dict[color_left]['description']
+    x_label = config['keys'][x_left]['description']
+    y_label = config['keys'][y_left]['description']
+    c_label = config['keys'][color_left]['description']
 
-    if outline_sw:
+    if outline_enable:
         linewidth = 1
     else:
         linewidth = 0
@@ -776,8 +828,7 @@ def update_left_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            is_discrete_color=(keys_dict[c_key].get(
-                'type', 'numerical') == 'categorical')
+            c_type=config['keys'][c_key].get('type', 'numerical')
         )
         left_x_disabled = False
         left_y_disabled = False
@@ -840,7 +891,7 @@ def update_right_graph(
     y_right,
     color_right,
     colormap,
-    outline_sw,
+    outline_enable,
     session_id,
     visible_list,
     case,
@@ -862,7 +913,7 @@ def update_right_graph(
     y_label = keys_dict[y_right]['description']
     c_label = keys_dict[color_right]['description']
 
-    if outline_sw:
+    if outline_enable:
         linewidth = 1
     else:
         linewidth = 0
@@ -895,8 +946,7 @@ def update_right_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            is_discrete_color=(keys_dict[c_key].get(
-                'type', 'numerical') == 'categorical')
+            c_type=keys_dict[c_key].get('type', 'numerical')
         )
         right_x_disabled = False
         right_y_disabled = False
@@ -932,6 +982,7 @@ def update_right_graph(
         Output('histogram', 'figure'),
         Output('x-picker-histogram', 'disabled'),
         Output('y-histogram', 'disabled'),
+        Output('c-picker-histogram', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
@@ -939,6 +990,7 @@ def update_right_graph(
         Input('histogram-switch', 'value'),
         Input('x-picker-histogram', 'value'),
         Input('y-histogram', 'value'),
+        Input('c-picker-histogram', 'value'),
     ],
     [
         State('session-id', 'data'),
@@ -953,13 +1005,13 @@ def update_histogram(
     histogram_sw,
     x_histogram,
     y_histogram,
+    c_histogram,
     session_id,
     visible_list,
     case,
     file
 ):
     config = redis_get(session_id, REDIS_KEYS['config'])
-    keys_dict = config['keys']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -968,7 +1020,7 @@ def update_histogram(
     num_values = filter_kwargs['num_values']
 
     x_key = x_histogram
-    x_label = keys_dict[x_histogram]['description']
+    x_label = config['keys'][x_histogram]['description']
     y_key = y_histogram
 
     if histogram_sw:
@@ -989,14 +1041,30 @@ def update_histogram(
             visible_list
         )
 
-        histogram_fig = get_histogram(
-            filtered_table,
-            x_key,
-            x_label,
-            y_key
-        )
+        if y_key == 'probability':
+            y_label = 'Probability'
+        elif y_key == 'density':
+            y_label = 'Density'
+        if c_histogram == 'None':
+            histogram_fig = px.histogram(filtered_table,
+                                         x=x_key,
+                                         histnorm=y_key,
+                                         opacity=1,
+                                         barmode='overlay',
+                                         labels={x_key: x_label,
+                                                 y_key: y_label})
+        else:
+            histogram_fig = px.histogram(filtered_table,
+                                         x=x_key,
+                                         color=c_histogram,
+                                         histnorm=y_key,
+                                         opacity=0.7,
+                                         barmode='overlay',
+                                         labels={x_key: x_label,
+                                                 y_key: y_label})
         histogram_x_disabled = False
         histogram_y_disabled = False
+        histogram_c_disabled = False
     else:
         histogram_fig = {
             'data': [{'type': 'histogram',
@@ -1006,11 +1074,230 @@ def update_histogram(
             }}
         histogram_x_disabled = True
         histogram_y_disabled = True
+        histogram_c_disabled = True
 
     return [
         histogram_fig,
         histogram_x_disabled,
         histogram_y_disabled,
+        histogram_c_disabled
+    ]
+
+
+@ app.callback(
+    [
+        Output('violin', 'figure'),
+        Output('x-picker-violin', 'disabled'),
+        Output('y-picker-violin', 'disabled'),
+        Output('c-picker-violin', 'disabled'),
+    ],
+    [
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
+        Input('violin-switch', 'value'),
+        Input('x-picker-violin', 'value'),
+        Input('y-picker-violin', 'value'),
+        Input('c-picker-violin', 'value'),
+    ],
+    [
+        State('session-id', 'data'),
+        State('visible-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
+    ]
+)
+def update_violin(
+    unused1,
+    unused2,
+    violin_sw,
+    x_violin,
+    y_violin,
+    c_violin,
+    session_id,
+    visible_list,
+    case,
+    file
+):
+    config = redis_get(session_id, REDIS_KEYS['config'])
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
+
+    x_key = x_violin
+    if x_violin is None:
+        raise PreventUpdate
+
+    x_label = config['keys'][x_violin].get('description', x_key)
+    y_key = y_violin
+    y_label = config['keys'][y_violin].get('description', y_key)
+
+    if violin_sw:
+        file = json.loads(file)
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
+                               file['feather_name'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+        filtered_table = filter_all(
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list
+        )
+
+        if c_violin == 'None':
+            violin_fig = px.violin(filtered_table,
+                                   x=x_key,
+                                   y=y_key,
+                                   box=True,
+                                   violinmode='group',
+                                   labels={x_key: x_label,
+                                           y_key: y_label})
+        else:
+            violin_fig = px.violin(filtered_table,
+                                   x=x_key,
+                                   y=y_key,
+                                   color=c_violin,
+                                   box=True,
+                                   violinmode='group',
+                                   labels={x_key: x_label,
+                                           y_key: y_label})
+        violin_x_disabled = False
+        violin_y_disabled = False
+        violin_c_disabled = False
+    else:
+        violin_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+            }}
+        violin_x_disabled = True
+        violin_y_disabled = True
+        violin_c_disabled = True
+
+    return [
+        violin_fig,
+        violin_x_disabled,
+        violin_y_disabled,
+        violin_c_disabled
+    ]
+
+
+@ app.callback(
+    [
+        Output('parallel', 'figure'),
+        Output('dim-picker-parallel', 'disabled'),
+        Output('c-picker-parallel', 'disabled'),
+    ],
+    [
+        Input('filter-trigger', 'data'),
+        Input('left-hide-trigger', 'data'),
+        Input('parallel-switch', 'value'),
+        Input('dim-picker-parallel', 'value'),
+        Input('c-picker-parallel', 'value'),
+    ],
+    [
+        State('session-id', 'data'),
+        State('visible-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
+    ]
+)
+def update_parallel(
+    unused1,
+    unused2,
+    parallel_sw,
+    dim_parallel,
+    c_key,
+    session_id,
+    visible_list,
+    case,
+    file
+):
+    config = redis_get(session_id, REDIS_KEYS['config'])
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
+
+    if parallel_sw and len(dim_parallel) > 0:
+        file = json.loads(file)
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
+                               file['feather_name'])
+        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+        filtered_table = filter_all(
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list
+        )
+
+        dims = []
+        for _, dim_key in enumerate(dim_parallel):
+            dims.append(go.parcats.Dimension(
+                values=filtered_table[dim_key], label=dim_key))
+
+        if c_key != 'None':
+            colorscale = []
+            unique_list = np.sort(filtered_table[c_key].unique())
+
+            if np.issubdtype(unique_list.dtype, np.integer) or \
+                    np.issubdtype(unique_list.dtype, np.floating):
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table[c_key],
+                                           'colorbar':dict(
+                                         title=c_key)},
+                                     hoveron='color',
+                                     hoverinfo='count+probability',
+                                     arrangement='freeform')])
+            else:
+                filtered_table['_C_'] = np.zeros_like(filtered_table[c_key])
+                for idx, var in enumerate(unique_list):
+                    filtered_table.loc[filtered_table[c_key]
+                                       == var, '_C_'] = idx
+
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table['_C_']},
+                                     hoverinfo='count+probability',
+                                     arrangement='freeform')])
+        else:
+            parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
+                                                      arrangement='freeform')])
+
+        parallel_dim_disabled = False
+        parallel_c_disabled = False
+    else:
+        parallel_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+            }}
+        parallel_dim_disabled = True
+        parallel_c_disabled = True
+
+    return [
+        parallel_fig,
+        parallel_dim_disabled,
+        parallel_c_disabled
     ]
 
 
@@ -1047,7 +1334,6 @@ def update_heatmap(
 ):
     if heat_sw:
         config = redis_get(session_id, REDIS_KEYS['config'])
-        keys_dict = config['keys']
 
         filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
         cat_keys = filter_kwargs['cat_keys']
@@ -1056,9 +1342,9 @@ def update_heatmap(
         num_values = filter_kwargs['num_values']
 
         x_key = x_heat
-        x_label = keys_dict[x_heat]['description']
+        x_label = config['keys'][x_heat]['description']
         y_key = y_heat
-        y_label = keys_dict[y_heat]['description']
+        y_label = config['keys'][y_heat]['description']
 
         file = json.loads(file)
         data = pd.read_feather('./data/' +
@@ -1120,7 +1406,7 @@ def export_scatter_3d(
     btn,
     case,
     session_id,
-    color_picker,
+    c_key,
     colormap,
     visible_list,
     file
@@ -1129,7 +1415,6 @@ def export_scatter_3d(
         raise PreventUpdate
 
     config = redis_get(session_id, REDIS_KEYS['config'])
-    keys_dict = config['keys']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -1187,16 +1472,6 @@ def export_scatter_3d(
                         str(img_idx) +
                         '.jpg')
 
-    if keys_dict[color_picker].get('type', 'numerical') == 'numerical':
-        c_range = [
-            num_values[num_keys.index(color_picker)][0],
-            num_values[num_keys.index(color_picker)][1]
-        ]
-        is_discrete_color = False
-    else:
-        c_range = [0, 0]
-        is_discrete_color = True
-
     fig = go.Figure(
         get_animation_data(
             filtered_table,
@@ -1206,12 +1481,12 @@ def export_scatter_3d(
             host_x_key=x_host,
             host_y_key=y_host,
             img_list=img_list,
-            c_key=color_picker,
-            is_discrete_color=is_discrete_color,
+            c_key=c_key,
+            c_type=config['keys'][c_key].get('type', 'numerical'),
             colormap=colormap,
-            hover=keys_dict,
+            hover=config['keys'],
             title=data_name['name'][0:-4],
-            c_label=keys_dict[color_picker]['description'],
+            c_label=config['keys'][c_key]['description'],
             height=750
         )
     )
@@ -1295,6 +1570,110 @@ def export_histogram(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_histogram.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('dummy-export-violin', 'data'),
+    Input('export-violin', 'n_clicks'),
+    [
+        State('violin', 'figure'),
+        State('case-picker', 'value')
+    ]
+)
+def export_violin(btn, fig, case):
+    if btn == 0:
+        raise PreventUpdate
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_violin.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('dummy-export-parallel', 'data'),
+    Input('export-parallel', 'n_clicks'),
+    [
+        State('parallel', 'figure'),
+        State('case-picker', 'value')
+    ]
+)
+def export_parallel(btn, fig, case):
+    if btn == 0:
+        raise PreventUpdate
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_parallel.png', scale=2)
+    return 0
+
+
+@ app.callback(
+    Output('dummy-export-data', 'data'),
+    Input('export-data', 'n_clicks'),
+    [
+        State('session-id', 'data'),
+        State('visible-picker', 'value'),
+        State('case-picker', 'value'),
+        State('file-picker', 'value'),
+    ]
+)
+def export_data(btn,
+                session_id,
+                visible_list,
+                case,
+                file):
+    if btn == 0:
+        raise PreventUpdate
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+    config = redis_get(session_id, REDIS_KEYS['config'])
+
+    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
+
+    file = json.loads(file)
+    data = pd.read_feather('./data/' +
+                           case +
+                           file['path'] +
+                           '/' +
+                           file['feather_name'])
+    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+
+    filtered_table = filter_all(
+        data,
+        num_keys,
+        num_values,
+        cat_keys,
+        cat_values,
+        visible_table,
+        visible_list
+    )
+
+    filtered_table.to_pickle('./data/' +
+                             case +
+                             file['path'] +
+                             '/' +
+                             file['name'][0:-4]+'_filtered.pkl')
+
     return 0
 
 

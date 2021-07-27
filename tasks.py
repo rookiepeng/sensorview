@@ -139,16 +139,6 @@ def celery_filtering_data(self,
     z_range = [float(num_values[num_keys.index(z_det)][0]), float(
         num_values[num_keys.index(z_det)][1])]
 
-    if keys_dict[c_key].get('type', 'numerical') == 'numerical':
-        c_range = [
-            num_values[num_keys.index(c_key)][0],
-            num_values[num_keys.index(c_key)][1]
-        ]
-        is_discrete_color = False
-    else:
-        c_range = [0, 0]
-        is_discrete_color = True
-
     for slider_arg in range(0, len(frame_list)):
 
         img = './data/'+case+file['path']+'/imgs/' + \
@@ -191,14 +181,13 @@ def celery_filtering_data(self,
             name='Index: ' + str(slider_arg) + ' (' +
             slider_label+': '+str(frame_list[slider_arg])+')',
             c_label=c_label,
+            c_type=keys_dict[c_key].get('type', 'numerical'),
             linewidth=linewidth,
             colormap=colormap,
-            is_discrete_color=is_discrete_color,
             image=source_encoded,
             x_range=x_range,
             y_range=y_range,
             z_range=z_range,
-            c_range=c_range,
             ref_name='Host Vehicle'
         )
 

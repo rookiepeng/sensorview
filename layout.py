@@ -243,6 +243,11 @@ view3d_card = dbc.Card([
                     'Export all frames as an HTML video',
                     id='export-scatter3d',
                     n_clicks=0
+                ),
+                    dbc.DropdownMenuItem(
+                    'Export filtered data',
+                    id='export-data',
+                    n_clicks=0
                 )],
                 label='Export',
                 right=True,
@@ -444,6 +449,7 @@ hist_card = dbc.Card([
         dbc.Row([
             dbc.Col(html.Label('x-axis')),
             dbc.Col(html.Label('y-axis')),
+            dbc.Col(html.Label('color')),
         ]),
 
         dbc.Row([
@@ -463,6 +469,10 @@ hist_card = dbc.Card([
                 },
                 ],
                 value='density',
+                disabled=True,
+            )),
+            dbc.Col(dbc.Select(
+                id='c-picker-histogram',
                 disabled=True,
             )),
         ]),
@@ -489,6 +499,128 @@ hist_card = dbc.Card([
                         dbc.Button(
                             'Export',
                             id='export-histogram',
+                            n_clicks=0,
+                            style={'float': 'right'})),
+                ]),
+            ],
+            type='default',
+        ),
+    ])])
+
+
+violin_card = dbc.Card([
+    dbc.CardHeader(
+        dbc.Row([
+            dbc.Col(
+                dbc.Label('Violin')),
+            dbc.Col(
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Enable',
+                         'value': True},
+                    ],
+                    value=[],
+                    id='violin-switch',
+                    switch=True,
+                    style={'float': 'right'}
+                )
+            )]),
+    ),
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(html.Label('x-axis')),
+            dbc.Col(html.Label('y-axis')),
+            dbc.Col(html.Label('color')),
+        ]),
+
+        dbc.Row([
+            dbc.Col(dbc.Select(
+                id='x-picker-violin',
+                disabled=True,
+            )),
+            dbc.Col(dbc.Select(
+                id='y-picker-violin',
+                disabled=True,
+            )),
+            dbc.Col(dbc.Select(
+                id='c-picker-violin',
+                disabled=True,
+            )),
+        ]),
+
+        dcc.Loading(
+            id='loading_violin',
+            children=[
+                dcc.Graph(
+                    id='violin',
+                    config={
+                        'displaylogo': False
+                    }
+                ),
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button(
+                            'Export',
+                            id='export-violin',
+                            n_clicks=0,
+                            style={'float': 'right'})),
+                ]),
+            ],
+            type='default',
+        ),
+    ])])
+
+
+parallel_card = dbc.Card([
+    dbc.CardHeader(
+        dbc.Row([
+            dbc.Col(
+                dbc.Label('Parallel Categories')),
+            dbc.Col(
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Enable',
+                         'value': True},
+                    ],
+                    value=[],
+                    id='parallel-switch',
+                    switch=True,
+                    style={'float': 'right'}
+                )
+            )]),
+    ),
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(html.Label('dimensions')),
+            dbc.Col(html.Label('color')),
+        ]),
+
+        dbc.Row([
+            dbc.Col(
+                dcc.Dropdown(
+                    id='dim-picker-parallel',
+                    multi=True
+                )),
+            dbc.Col(dbc.Select(
+                    id='c-picker-parallel',
+                    disabled=True,
+                    )),
+        ]),
+
+        dcc.Loading(
+            id='loading_parallel',
+            children=[
+                dcc.Graph(
+                    id='parallel',
+                    config={
+                        'displaylogo': False
+                    }
+                ),
+                dbc.Row([
+                    dbc.Col(
+                        dbc.Button(
+                            'Export',
+                            id='export-parallel',
                             n_clicks=0,
                             style={'float': 'right'})),
                 ]),
@@ -564,6 +696,37 @@ heatmap_card = dbc.Card([
     ])])
 
 
+scatter_tab = html.Div([
+    dbc.Row([
+            dbc.Col(filter_card, width=3),
+            dbc.Col(view3d_card, width=9)
+            ], className='mb-3', align='start'),
+
+    dbc.Row([
+            dbc.Col(left2d_card, width=6),
+            dbc.Col(right2d_card, width=6)
+            ], className='mb-3'),
+])
+
+statistical_tab = html.Div([
+    dbc.Row([
+        dbc.Col(hist_card, width=6),
+        dbc.Col(violin_card, width=6),
+    ], className='mb-3'),
+    dbc.Row([
+        dbc.Col(parallel_card, width=6),
+        dbc.Col(heatmap_card, width=6),
+    ], className='mb-3')
+])
+
+tabs = dbc.Tabs(
+    [
+        dbc.Tab(scatter_tab, label="Scatter"),
+        dbc.Tab(statistical_tab, label="Statistical"),
+    ]
+)
+
+
 def get_app_layout(app):
     return dbc.Container([
         dcc.Store(id='selected-data-left'),
@@ -574,7 +737,10 @@ def get_app_layout(app):
         dcc.Store(id='dummy-export-scatter2d-left'),
         dcc.Store(id='dummy-export-scatter2d-right'),
         dcc.Store(id='dummy-export-histogram'),
+        dcc.Store(id='dummy-export-violin'),
+        dcc.Store(id='dummy-export-parallel'),
         dcc.Store(id='dummy-export-heatmap'),
+        dcc.Store(id='dummy-export-data'),
 
         dbc.Jumbotron([
             dbc.Row([
@@ -600,20 +766,7 @@ def get_app_layout(app):
                 ])
             )], className='mb-3'),
 
-        dbc.Row([
-            dbc.Col(filter_card, width=3),
-            dbc.Col(view3d_card, width=9)
-        ], className='mb-3', align='center'),
-
-        dbc.Row([
-            dbc.Col(left2d_card, width=6),
-            dbc.Col(right2d_card, width=6)
-        ], className='mb-3'),
-
-        dbc.Row([
-                dbc.Col(hist_card, width=6),
-                dbc.Col(heatmap_card, width=6),
-                ], className='mb-3'),
+        tabs,
 
         dcc.Markdown(
             'Designed and developed by **Zhengyu Peng** \
