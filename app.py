@@ -506,6 +506,7 @@ def data_file_selection(
         Output('right-switch', 'value'),
         Output('histogram-switch', 'value'),
         Output('violin-switch', 'value'),
+        Output('parallel-switch', 'value'),
         Output('heat-switch', 'value'),
     ],
     Input('file-picker', 'value'),
@@ -520,7 +521,7 @@ def reset_switch_state(
     if case is None:
         raise PreventUpdate
 
-    return [[], [], [], [], []]
+    return [[], [], [], [], []. []]
 
 
 @ app.callback(
