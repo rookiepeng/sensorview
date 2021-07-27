@@ -674,6 +674,14 @@ def update_filter(
         float(num_values[num_keys.index(z_det)][0]),
         float(num_values[num_keys.index(z_det)][1])]
 
+    if keys_dict[c_key].get('type', 'numerical') == 'numerical':
+        c_range = [
+            num_values[num_keys.index(c_key)][0],
+            num_values[num_keys.index(c_key)][1]
+        ]
+    else:
+        c_range = [0, 0]
+
     if trigger_id != 'slider-frame':
         celery_filtering_data.apply_async(
             args=[session_id,
@@ -715,6 +723,7 @@ def update_filter(
         x_range=x_range,
         y_range=y_range,
         z_range=z_range,
+        c_range=c_range,
         ref_name='Host Vehicle'
     )
 
