@@ -139,7 +139,6 @@ def get_scatter2d(data_frame,
                   uirevision='no_change',
                   colormap='Jet',
                   margin={'l': 40, 'r': 40, 'b': 40, 't': 60},
-                  is_discrete_color=False,
                   **kwargs):
 
     linewidth = kwargs.get('linewidth', 0)
@@ -151,8 +150,9 @@ def get_scatter2d(data_frame,
         y_label = y_key
 
     c_label = kwargs.get('c_label', c_key)
+    c_type = kwargs.get('c_type', 'numerical')
 
-    if not is_discrete_color:
+    if c_type == 'numerical':
         return dict(
             data=[dict(
                 type='scattergl',
@@ -181,7 +181,7 @@ def get_scatter2d(data_frame,
                 uirevision=uirevision,
             )
         )
-    else:
+    elif c_type == 'categorical':
         data = []
         color_list = pd.unique(data_frame[c_key])
         for c_item in color_list:
