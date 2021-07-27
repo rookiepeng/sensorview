@@ -69,7 +69,7 @@ app = dash.Dash(__name__,
 server = app.server
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
-app.title = 'SensorView'
+app.title = 'RadarViz'
 app.layout = get_app_layout(app)
 
 """ Global Variables """
