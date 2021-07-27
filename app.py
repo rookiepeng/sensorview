@@ -227,10 +227,11 @@ def case_selected(case, session_id):
     else:
         init_cat_key = cat_keys[0]
 
-    if len(num_keys) == 0:
+    total_keys = num_keys+cat_keys
+    if len(total_keys) == 0:
         output_dropdown_values = [None]*len(dropdown_values)
     else:
-        output_dropdown_values = [num_keys[x % len(num_keys)]
+        output_dropdown_values = [total_keys[x % len(total_keys)]
                                   for x in range(0, len(dropdown_values))]
 
     return [data_files[0]['value'], data_files] +\
@@ -1054,7 +1055,7 @@ def update_histogram(
                                          x=x_key,
                                          histnorm=y_key,
                                          opacity=1,
-                                         barmode='overlay',
+                                         barmode='stack',
                                          labels={x_key: x_label,
                                                  y_key: y_label})
         else:
@@ -1062,8 +1063,8 @@ def update_histogram(
                                          x=x_key,
                                          color=c_histogram,
                                          histnorm=y_key,
-                                         opacity=0.7,
-                                         barmode='overlay',
+                                         opacity=1,
+                                         barmode='stack',
                                          labels={x_key: x_label,
                                                  y_key: y_label})
         histogram_x_disabled = False

@@ -101,43 +101,12 @@ def get_scatter3d(data_frame,
     )
 
 
-def get_histogram(data_frame,
-                  x_key,
-                  x_label=None,
-                  histnorm='probability',
-                  margin={'l': 40, 'r': 40, 'b': 40, 't': 60}
-                  ):
-    if x_label is None:
-        x_label = x_key
-
-    if histnorm == 'probability':
-        y_label = 'Probability'
-    else:
-        y_label = 'Count'
-
-    return dict(
-        data=[dict(
-            type='histogram',
-            x=data_frame[x_key],
-            histnorm=histnorm,
-            opacity=0.75,
-        )],
-        layout=dict(
-            barmode='overlay',
-            xaxis=dict(title=x_label),
-            yaxis=dict(title=y_label),
-            margin=margin,
-            uirevision='no_change',
-        )
-    )
-
-
 def get_heatmap(data_frame,
                 x_key,
                 y_key,
                 x_label=None,
                 y_label=None,
-                margin={'l': 40, 'r': 40, 'b': 40, 't': 60}
+                # margin={'l': 40, 'r': 40, 'b': 40, 't': 60}
                 ):
     if x_label is None:
         x_label = x_key
@@ -155,8 +124,8 @@ def get_heatmap(data_frame,
         layout=dict(
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
-            margin=margin,
-            uirevision='no_change',
+            # margin=margin,
+            # uirevision='no_change',
         )
     )
 
