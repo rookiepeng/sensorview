@@ -541,13 +541,15 @@ def reset_switch_state(
         Output('slider-frame', 'disabled'),
         Output('previous-button', 'disabled'),
         Output('next-button', 'disabled'),
+        Output('play-button', 'disabled'),
+        Output('stop-button', 'disabled'),
     ],
     Input('overlay-switch', 'value'))
 def overlay_switch_changed(overlay):
     if overlay:
-        return [True]*3
+        return [True]*5
     else:
-        return [False]*3
+        return [False]*5
 
 
 @ app.callback(
