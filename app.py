@@ -75,7 +75,7 @@ REDIS_HASH_NAME = os.environ.get('DASH_APP_NAME', app.title)
 
 app.layout = get_app_layout(app)
 
-dropdown_options = [
+DROPDOWN_OPTIONS_ALL = [
     Output('c-picker-3d', 'options'),
     Output('x-picker-2d-left', 'options'),
     Output('y-picker-2d-left', 'options'),
@@ -89,7 +89,7 @@ dropdown_options = [
     Output('y-picker-violin', 'options'),
 ]
 
-dropdown_values = [
+DROPDOWN_VALUES_ALL = [
     Output('c-picker-3d', 'value'),
     Output('x-picker-2d-left', 'value'),
     Output('y-picker-2d-left', 'value'),
@@ -103,24 +103,24 @@ dropdown_values = [
     Output('y-picker-violin', 'value'),
 ]
 
-dropdown_categorical_c_options = [
+DROPDOWN_OPTIONS_CAT = [
+    Output('x-picker-violin', 'options'),
+]
+
+DROPDOWN_VALUES_CAT = [
+    Output('x-picker-violin', 'value'),
+]
+
+DROPDOWN_OPTIONS_CAT_COLOR = [
     Output('c-picker-histogram', 'options'),
     Output('c-picker-violin', 'options'),
     Output('c-picker-parallel', 'options'),
 ]
 
-dropdown_categorical_c_values = [
+DROPDOWN_VALUES_CAT_COLOR = [
     Output('c-picker-histogram', 'value'),
     Output('c-picker-violin', 'value'),
     Output('c-picker-parallel', 'value'),
-]
-
-dropdown_categorical_options = [
-    Output('x-picker-violin', 'options'),
-]
-
-dropdown_categorical_values = [
-    Output('x-picker-violin', 'value'),
 ]
 
 
@@ -144,13 +144,13 @@ def refresh_button_clicked(_):
 
 @ app.callback([
     Output('file-picker', 'value'),
-    Output('file-picker', 'options'),
-] + dropdown_options +
-    dropdown_values +
-    dropdown_categorical_c_options +
-    dropdown_categorical_c_values +
-    dropdown_categorical_options +
-    dropdown_categorical_values,
+    Output('file-picker', 'options')] +
+    DROPDOWN_OPTIONS_ALL +
+    DROPDOWN_VALUES_ALL +
+    DROPDOWN_OPTIONS_CAT_COLOR +
+    DROPDOWN_VALUES_CAT_COLOR +
+    DROPDOWN_OPTIONS_CAT +
+    DROPDOWN_VALUES_CAT,
     Input('case-picker', 'value'),
     State('session-id', 'data'))
 def case_selected(case, session_id):
@@ -202,7 +202,7 @@ def case_selected(case, session_id):
         'label': config['keys'][item].get('description', item),
         'value': item}
         for _, item in enumerate(config['keys'])
-    ]]*len(dropdown_options)
+    ]]*len(DROPDOWN_OPTIONS_ALL)
 
     cat_c_options = [[{
         'label': 'None',
@@ -210,13 +210,13 @@ def case_selected(case, session_id):
             'label': config['keys'][item].get('description', item),
             'value': item}
             for _, item in enumerate(cat_keys)
-    ]]*len(dropdown_categorical_c_options)
+    ]]*len(DROPDOWN_OPTIONS_CAT_COLOR)
 
     cat_options = [[{
         'label': config['keys'][item].get('description', item),
         'value': item}
         for _, item in enumerate(cat_keys)
-    ]]*len(dropdown_categorical_options)
+    ]]*len(DROPDOWN_OPTIONS_CAT)
 
     filter_kwargs = {'num_keys': num_keys,
                      'cat_keys': cat_keys}
@@ -229,18 +229,18 @@ def case_selected(case, session_id):
 
     total_keys = num_keys+cat_keys
     if len(total_keys) == 0:
-        output_dropdown_values = [None]*len(dropdown_values)
+        output_dropdown_values = [None]*len(DROPDOWN_VALUES_ALL)
     else:
         output_dropdown_values = [total_keys[x % len(total_keys)]
-                                  for x in range(0, len(dropdown_values))]
+                                  for x in range(0, len(DROPDOWN_VALUES_ALL))]
 
     return [data_files[0]['value'], data_files] +\
         options +\
         output_dropdown_values +\
         cat_c_options +\
-        ['None']*len(dropdown_categorical_c_values) +\
+        ['None']*len(DROPDOWN_VALUES_CAT_COLOR) +\
         cat_options +\
-        [init_cat_key]*len(dropdown_categorical_values)
+        [init_cat_key]*len(DROPDOWN_VALUES_CAT)
 
 
 @ app.callback(
