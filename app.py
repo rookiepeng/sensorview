@@ -227,20 +227,10 @@ def case_selected(case, session_id):
     else:
         init_cat_key = cat_keys[0]
 
-    return [data_files[0]['value'],
-            data_files] +\
+    return [data_files[0]['value'], data_files] +\
         options +\
-        [config.get('c_3d', num_keys[2]),
-         config.get('x_2d_l', num_keys[0]),
-         config.get('y_2d_l', num_keys[1]),
-         config.get('c_2d_l', num_keys[2]),
-         config.get('x_2d_r', num_keys[0]),
-         config.get('y_2d_r', num_keys[1]),
-         config.get('c_2d_r', num_keys[2]),
-         config.get('x_hist', num_keys[0]),
-         config.get('x_heatmap', num_keys[0]),
-         config.get('y_heatmap', num_keys[1]),
-         num_keys[0]] +\
+        [num_keys[x % len(num_keys)]
+            for x in range(0, len(dropdown_values))] +\
         cat_c_options +\
         ['None']*len(dropdown_categorical_c_values) +\
         cat_options +\
