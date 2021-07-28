@@ -852,7 +852,7 @@ def filter_changed(
                                file['path'] +
                                '/' +
                                file['feather_name'])
-        source_encoded = None
+        img_encoded = None
     else:
         # get a single frame data from Redis
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
@@ -869,11 +869,10 @@ def filter_changed(
 
         # encode image frame
         try:
-            encoded_image = base64.b64encode(open(img_path, 'rb').read())
-            source_encoded = 'data:image/jpeg;base64,{}'.format(
-                encoded_image.decode())
+            encoding = base64.b64encode(open(img_path, 'rb').read())
+            img_encoded = 'data:image/jpeg;base64,{}'.format(encoding.decode())
         except FileNotFoundError:
-            source_encoded = None
+            img_encoded = None
 
     # set outline width
     if outline_enable:
@@ -966,7 +965,7 @@ def filter_changed(
         linewidth=linewidth,
         colormap=colormap,
         c_type=keys_dict[c_key].get('type', KEY_TYPES['NUM']),
-        image=source_encoded,
+        image=img_encoded,
         x_range=x_range,
         y_range=y_range,
         z_range=z_range,
