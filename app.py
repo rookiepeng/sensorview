@@ -143,6 +143,20 @@ DROPDOWN_VALUES_CAT_COLOR = [
     Input('refresh-button', 'n_clicks')
 )
 def refresh_button_clicked(_):
+    """
+    Callback when the refresh button is clicked
+
+    :param _:
+        Number of clicks
+
+    :return:
+        [
+            Test case options,
+            Test case default value
+        ]
+    :rtype: list
+    """
+
     options = []
     obj = os.scandir('./data')
     for entry in obj:
@@ -165,6 +179,21 @@ def refresh_button_clicked(_):
     Input('case-picker', 'value'),
     State('session-id', 'data'))
 def case_selected(case, session_id):
+    """
+    Callback when a test case is selected
+
+    :param str case:
+        Selected test case
+    :param str session_id:
+        Session id
+
+    :return:
+        [
+            Test file default value
+        ]
+    :rtype: list
+    """
+
     if case is None:
         raise PreventUpdate
 
