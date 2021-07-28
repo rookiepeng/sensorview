@@ -731,7 +731,7 @@ def overlay_switch_changed(overlay):
         State('case-picker', 'value'),
         State('file-picker', 'value'),
     ])
-def update_filter(
+def filter_changed(
     slider_arg,
     cat_values,
     num_values,
