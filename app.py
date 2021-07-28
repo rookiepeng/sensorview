@@ -149,11 +149,10 @@ def refresh_button_clicked(_):
     :param _:
         Number of clicks
 
-    :return:
-        [
-            Test case options,
-            Test case default value
-        ]
+    :return: [
+        Test case options,
+        Test case default value
+    ]
     :rtype: list
     """
 
@@ -187,10 +186,16 @@ def case_selected(case, session_id):
     :param str session_id:
         Session id
 
-    :return:
-        [
-            Test file default value
-        ]
+    :return: [
+        Test file default value,
+        Test file option lists,
+        Options for dropdown components with all the keys,
+        Values for dropdown components with all the keys,
+        Options for dropdown components with categorical keys and `None`,
+        Values for dropdown components with categorical keys and `None`,
+        Options for dropdown components with categorical keys,
+        Values for dropdown components with categorical keys
+    ]
     :rtype: list
     """
 
@@ -228,6 +233,7 @@ def case_selected(case, session_id):
     else:
         raise PreventUpdate
 
+    # extract keys and save to Redis
     num_keys = []
     cat_keys = []
     for _, item in enumerate(config['keys']):
@@ -333,6 +339,51 @@ def file_selected(
         outline_enable,
         colormap
 ):
+    """
+    Callback when a data file is selected
+
+    :param json file
+        json string of the selected file
+        `path`, `name`, `feather_name`
+    :param int left_btn
+        number of clicks from next button
+    :param int right_btn
+        number of clicks from previous button
+    :param int interval
+        number of intervals
+    :param int play_clicks
+        number of clicks from play button
+    :param int stop_clicks
+        number of clicks from stop button
+    :param str case
+        case name
+    :param str session_id
+        session id
+    :param int slider_max
+        maximum number of slider
+    :param int slider_var
+        current slider position
+    :param list visible_list
+        list of visibility [`visible', 'hidden']
+    :param str c_key
+        key for the colormap
+    :param boolean outline_enable
+        flag to enable outline for the scatters
+    :param str colormap
+        colormap name
+
+    :return: [
+        Set default slider value to 0,
+        Minimal slider range,
+        Maximal slider range,
+        Dropdown layouts,
+        Slider layouts,
+        Enable/disable interval component,
+        Dimensions picker options for parallel categories plot,
+        Dimensions picker default value
+    ]
+    :rtype: list
+    """
     if file is None:
         raise PreventUpdate
 
@@ -342,16 +393,20 @@ def file_selected(
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    # get keys from Redis
     config = redis_get(session_id, REDIS_KEYS['config'])
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
-
     keys_dict = config['keys']
 
     if trigger_id == 'file-picker':
+        # load data from selected file (supoprt .csv or .pickle)
+        #   - check if there is a .feather file with the same name
+        #   - if the .feather file exits, load through the .feather file
+        #   - otherwise, load the file and save the DataFrame into a
+        #     .feather file
         file = json.loads(file)
-
         if os.path.exists('./data/' +
                           case +
                           file['path'] +
@@ -384,16 +439,21 @@ def file_selected(
                                 '/' +
                                 file['feather_name'])
 
+        # get the list of frames and save to Redis
         frame_list = np.sort(new_data[config['slider']].unique())
         redis_set(frame_list, session_id, REDIS_KEYS['frame_list'])
 
+        # create the visibility table and save to Redis
+        #   the visibility table is used to indicate if the data point is
+        #   `visible` or `hidden`
         visible_table = pd.DataFrame()
         visible_table['_IDS_'] = new_data.index
         visible_table['_VIS_'] = 'visible'
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
+        # group the DataFrame by frame and save the grouped data one by one
+        # into Redis
         frame_group = new_data.groupby(config['slider'])
-
         for frame_idx, frame_data in frame_group:
             redis_set(frame_data, session_id,
                       REDIS_KEYS['frame_data'],
