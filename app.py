@@ -56,7 +56,7 @@ from viz.viz import get_animation_data
 from tasks import filter_all
 from tasks import celery_filtering_data
 
-from utils import load_config, redis_set, redis_get, REDIS_KEYS
+from utils import load_config, redis_set, redis_get, REDIS_KEYS, KEY_TYPES
 
 
 """ Initialize Dash App """
@@ -75,8 +75,6 @@ app.layout = get_app_layout(app)
 """ Global Variables """
 REDIS_HASH_NAME = os.environ.get('DASH_APP_NAME', app.title)
 SPECIAL_FOLDERS = ['imgs', 'images']
-KEY_TYPES = {'CAT': 'categorical',
-             'NUM': 'numerical'}
 
 # options for dropdown components with all the keys
 DROPDOWN_OPTIONS_ALL = [
@@ -844,6 +842,7 @@ def filter_changed(
 
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
+    # prepare figure key word arguments
     fig_kwargs = dict()
     fig_kwargs['image'] = None
     if overlay_enable:
@@ -886,10 +885,17 @@ def filter_changed(
     slider_label = keys_dict[config['slider']
                              ]['description']
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
+    fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
+        'description', fig_kwargs['x_key'])
     fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
+    fig_kwargs['y_label'] = keys_dict[fig_kwargs['y_key']].get(
+        'description', fig_kwargs['y_key'])
     fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
+    fig_kwargs['z_label'] = keys_dict[fig_kwargs['z_key']].get(
+        'description', fig_kwargs['z_key'])
     fig_kwargs['c_key'] = c_key
-    fig_kwargs['c_label'] = keys_dict[c_key]['description']
+    fig_kwargs['c_label'] = keys_dict[fig_kwargs['c_key']].get(
+        'description', fig_kwargs['c_key'])
     fig_kwargs['x_ref'] = config.get('x_ref', None)
     fig_kwargs['y_ref'] = config.get('y_ref', None)
 
@@ -940,7 +946,6 @@ def filter_changed(
         visible_list
     )
 
-    # generate the graph
     fig_kwargs['name'] = 'Index: ' +\
         str(slider_arg) +\
         ' (' +\
@@ -951,8 +956,9 @@ def filter_changed(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
+    fig_kwargs['hover'] = keys_dict
 
-        # invoke celery task
+    # invoke celery task
     if trigger_id != 'slider-frame':
         celery_filtering_data.apply_async(
             args=[session_id,
@@ -965,6 +971,7 @@ def filter_changed(
                   slider_label,
                   fig_kwargs['colormap']], serializer='json')
 
+    # generate the graph
     fig = get_scatter3d(
         filterd_frame,
         **fig_kwargs

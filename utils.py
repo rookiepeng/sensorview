@@ -42,6 +42,8 @@ REDIS_KEYS = {'dataset': 'DATASET',
               'figure': 'FIGURE',
               'task_id': 'TASK_ID',
               'filter_kwargs': 'FILTGER_KWARGS'}
+KEY_TYPES = {'CAT': 'categorical',
+             'NUM': 'numerical'}
 
 redis_instance = redis.StrictRedis.from_url(
     os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))

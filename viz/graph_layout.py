@@ -46,6 +46,10 @@ def get_scatter3d_layout(
     title = kwargs.get('title', None)
     template = kwargs.get('template', 'plotly')
 
+    x_label = kwargs.get('x_label', None)
+    y_label = kwargs.get('y_label', None)
+    z_label = kwargs.get('z_label', None)
+
     if image is not None:
         img_dict = [dict(
             source=image,
@@ -63,16 +67,15 @@ def get_scatter3d_layout(
 
     return dict(
         title=title,
-        # template=pio.templates['plotly_dark'],
         template=pio.templates[template],
         height=height,
         scene=dict(xaxis=dict(range=x_range,
-                              title='Lateral (m)',
+                              title=x_label,
                               autorange=False),
                    yaxis=dict(range=y_range,
-                              title='Longitudinal (m)', autorange=False),
+                              title=y_label, autorange=False),
                    zaxis=dict(range=z_range,
-                              title='Height (m)', autorange=False),
+                              title=z_label, autorange=False),
                    aspectmode='manual',
                    aspectratio=dict(x=(x_range[1]-x_range[0])/scale,
                                     y=(y_range[1]-y_range[0])/scale,
