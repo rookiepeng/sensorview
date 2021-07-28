@@ -761,10 +761,22 @@ def filter_changed(
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    # no update if:
+    #   - triggered from 3D scatter, and
+    #   - click_hide switch is disabled or the reference point is clicked
     if trigger_id == 'scatter3d' and \
             ((not click_hide) or
                 (click_data['points'][0]['curveNumber'] != 0)):
         raise PreventUpdate
+
+    if trigger_id == 'slider-frame':
+        fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
+        if fig_idx is not None:
+            if slider_arg <= fig_idx:
+                return [redis_get(session_id,
+                                  REDIS_KEYS['figure'],
+                                  str(slider_arg)),
+                        dash.no_update]
 
     # get config from Redis
     config = redis_get(session_id, REDIS_KEYS['config'])
@@ -777,15 +789,6 @@ def filter_changed(
     filter_kwargs['num_values'] = num_values
     filter_kwargs['cat_values'] = cat_values
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
-
-    if trigger_id == 'slider-frame':
-        fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
-        if fig_idx is not None:
-            if slider_arg <= fig_idx:
-                return [redis_get(session_id,
-                                  REDIS_KEYS['figure'],
-                                  str(slider_arg)),
-                        dash.no_update]
 
     c_label = keys_dict[c_key]['description']
 
