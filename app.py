@@ -748,12 +748,29 @@ def filter_changed(
     case,
     file,
 ):
+    """
+    Callback when filter changed
+
+    :param int slider_arg
+
+    :return: [
+    ]
+    :rtype: list
+    """
+
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
+    if trigger_id == 'scatter3d' and \
+            ((not click_hide) or
+                (click_data['points'][0]['curveNumber'] != 0)):
+        raise PreventUpdate
+
+    # get config from Redis
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
+    # save filter key word arguments to Redis
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
@@ -761,12 +778,7 @@ def filter_changed(
     filter_kwargs['cat_values'] = cat_values
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-    if trigger_id == 'scatter3d' and \
-            ((not click_hide) or
-                (click_data['points'][0]['curveNumber'] != 0)):
-        raise PreventUpdate
-
-    if (trigger_id == 'slider-frame'):
+    if trigger_id == 'slider-frame':
         fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
         if fig_idx is not None:
             if slider_arg <= fig_idx:
