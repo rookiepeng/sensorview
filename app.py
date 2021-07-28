@@ -558,6 +558,7 @@ def file_selected(
         if left_btn == 0:
             raise PreventUpdate
 
+        # previous button is clicked
         return [(slider_var-1) % (slider_max+1),
                 dash.no_update,
                 dash.no_update,
@@ -571,6 +572,7 @@ def file_selected(
         if right_btn == 0:
             raise PreventUpdate
 
+        # next button is clicked
         return [(slider_var+1) % (slider_max+1),
                 dash.no_update,
                 dash.no_update,
@@ -584,6 +586,7 @@ def file_selected(
         if interval == 0:
             raise PreventUpdate
 
+        # triggerred from interval
         if slider_var == slider_max:
             return [dash.no_update,
                     dash.no_update,
@@ -608,6 +611,7 @@ def file_selected(
         if play_clicks == 0:
             raise PreventUpdate
 
+        # play button is clicked
         return [dash.no_update,
                 dash.no_update,
                 dash.no_update,
@@ -621,6 +625,7 @@ def file_selected(
         if stop_clicks == 0:
             raise PreventUpdate
 
+        # stop button is clicked
         return [dash.no_update,
                 dash.no_update,
                 dash.no_update,
@@ -642,9 +647,7 @@ def file_selected(
     ],
     Input('file-picker', 'value'),
     State('case-picker', 'value'))
-def reset_switch_state(
-        file,
-        case):
+def reset_switch_state(file, case):
 
     if file is None:
         raise PreventUpdate
