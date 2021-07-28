@@ -844,6 +844,7 @@ def filter_changed(
 
     # prepare figure key word arguments
     fig_kwargs = dict()
+    fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
     if overlay_enable:
         # overlay all the frames
@@ -956,7 +957,6 @@ def filter_changed(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
-    fig_kwargs['hover'] = keys_dict
 
     # invoke celery task
     if trigger_id != 'slider-frame':
@@ -1019,7 +1019,7 @@ def filter_changed(
         State('file-picker', 'value'),
     ]
 )
-def update_left_graph(
+def update_scatter2d_left(
     unused1,
     unused2,
     left_sw,
@@ -1033,6 +1033,43 @@ def update_left_graph(
     case,
     file
 ):
+    """
+    Update left 2D scatter graph
+
+    :param int unused1
+        unused trigger data
+    :param int unused2
+        unused trigger data
+    :param boolean left_sw
+        flag to indicate if this graph is enabled or disabled
+    :param str x_left
+        key for the x-axis
+    :param str y_left
+        key for the y-axis
+    :param str color_left
+        key for the color
+    :param str colormap
+        colormap name
+    :param boolean outline_enable
+        flag to enable outline for the scatters
+    :param str session_id
+        session id
+    :param list visible_list
+        visibility list
+    :param str case
+        case name
+    :param json file
+        selected file
+
+    :return: [
+        2D Scatter graph,
+        X axis picker enable/disable,
+        Y axis picker enable/disable,
+        Color picker enable/disable,
+        Colormap picker enable/disable
+    ]
+    :rtype: list
+    """
     config = redis_get(session_id, REDIS_KEYS['config'])
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
@@ -1137,7 +1174,7 @@ def update_left_graph(
         State('file-picker', 'value'),
     ]
 )
-def update_right_graph(
+def update_scatter2d_right(
     unused1,
     unused2,
     right_sw,
@@ -1151,6 +1188,43 @@ def update_right_graph(
     case,
     file
 ):
+    """
+    Update right 2D scatter graph
+
+    :param int unused1
+        unused trigger data
+    :param int unused2
+        unused trigger data
+    :param boolean left_sw
+        flag to indicate if this graph is enabled or disabled
+    :param str x_left
+        key for the x-axis
+    :param str y_left
+        key for the y-axis
+    :param str color_left
+        key for the color
+    :param str colormap
+        colormap name
+    :param boolean outline_enable
+        flag to enable outline for the scatters
+    :param str session_id
+        session id
+    :param list visible_list
+        visibility list
+    :param str case
+        case name
+    :param json file
+        selected file
+
+    :return: [
+        2D Scatter graph,
+        X axis picker enable/disable,
+        Y axis picker enable/disable,
+        Color picker enable/disable,
+        Colormap picker enable/disable
+    ]
+    :rtype: list
+    """
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
@@ -1265,6 +1339,38 @@ def update_histogram(
     case,
     file
 ):
+    """
+    Update histogram
+
+    :param int unused1
+        unused trigger data
+    :param int unused2
+        unused trigger data
+    :param boolean histogram_sw
+        flag to indicate if this graph is enabled or disabled
+    :param str x_histogram
+        key for the x-axis
+    :param str y_histogram
+        key for the y-axis
+    :param str c_histogram
+        key for the color
+    :param str session_id
+        session id
+    :param list visible_list
+        visibility list
+    :param str case
+        case name
+    :param json file
+        selected file
+
+    :return: [
+        Histogram graph,
+        X axis picker enable/disable,
+        Y axis picker enable/disable,
+        Color picker enable/disable,
+    ]
+    :rtype: list
+    """
     config = redis_get(session_id, REDIS_KEYS['config'])
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
@@ -1372,6 +1478,38 @@ def update_violin(
     case,
     file
 ):
+    """
+    Update violin plot
+
+    :param int unused1
+        unused trigger data
+    :param int unused2
+        unused trigger data
+    :param boolean violin_sw
+        flag to indicate if this graph is enabled or disabled
+    :param str x_violin
+        key for the x-axis
+    :param str y_violin
+        key for the y-axis
+    :param str c_violin
+        key for the color
+    :param str session_id
+        session id
+    :param list visible_list
+        visibility list
+    :param str case
+        case name
+    :param json file
+        selected file
+
+    :return: [
+        Violin graph,
+        X axis picker enable/disable,
+        Y axis picker enable/disable,
+        Color picker enable/disable,
+    ]
+    :rtype: list
+    """
     config = redis_get(session_id, REDIS_KEYS['config'])
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
@@ -1476,7 +1614,35 @@ def update_parallel(
     case,
     file
 ):
+    """
+    Update parallel categories diagram
 
+    :param int unused1
+        unused trigger data
+    :param int unused2
+        unused trigger data
+    :param boolean parallel_sw
+        flag to indicate if this graph is enabled or disabled
+    :param str dim_parallel
+        keys of the dimensions
+    :param str c_key
+        key for the color
+    :param str session_id
+        session id
+    :param list visible_list
+        visibility list
+    :param str case
+        case name
+    :param json file
+        selected file
+
+    :return: [
+        Parallel categories diagram,
+        Dimensions picker enable/disable,
+        Color picker enable/disable,
+    ]
+    :rtype: list
+    """
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
@@ -1584,6 +1750,35 @@ def update_heatmap(
     case,
     file
 ):
+    """
+    Update heatmap
+
+    :param int unused1
+        unused trigger data
+    :param int unused2
+        unused trigger data
+    :param boolean heat_sw
+        flag to indicate if this graph is enabled or disabled
+    :param str x_heat
+        key for the x-axis
+    :param str y_heat
+        key for the y-axis
+    :param str session_id
+        session id
+    :param list visible_list
+        visibility list
+    :param str case
+        case name
+    :param json file
+        selected file
+
+    :return: [
+        Heatmap,
+        X axis picker enable/disable,
+        Y axis picker enable/disable
+    ]
+    :rtype: list
+    """
     if heat_sw:
         config = redis_get(session_id, REDIS_KEYS['config'])
 
