@@ -2212,7 +2212,11 @@ def left_hide_button(
     ]
 )
 def update_buffer_indicator(
-    _,
+    unused1,
+    unused2,
+    unused3,
+    unused4,
+    unused5,
     max_frame,
     session_id
 ):
