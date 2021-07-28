@@ -459,11 +459,8 @@ def file_selected(
                       REDIS_KEYS['frame_data'],
                       str(frame_idx))
 
-        output = [0, 0, len(frame_list)-1]
-
         cat_values = []
         new_dropdown = []
-
         for idx, d_item in enumerate(cat_keys):
             var_list = new_data[d_item].unique().tolist()
             value_list = var_list
@@ -513,19 +510,10 @@ def file_selected(
         filter_kwargs['cat_values'] = cat_values
         redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-        output.append(new_dropdown)
-        output.append(new_slider)
-        output.append(dash.no_update)
-
-        output.append([{'label': i,
-                        'value': i}
-                       for i in cat_keys])
-
         if len(cat_keys) == 0:
             values_cat = None
         else:
             values_cat = cat_keys[0]
-        output.append([values_cat])
 
         if outline_enable:
             linewidth = 1
@@ -546,25 +534,40 @@ def file_selected(
                             ]['description'],
                   colormap], serializer='json')
 
-        return output
+        return [0,
+                0,
+                len(frame_list)-1,
+                new_dropdown,
+                new_slider,
+                dash.no_update,
+                [{'label': ck, 'value': ck} for ck in cat_keys],
+                [values_cat]]
 
     elif trigger_id == 'previous-button':
         if left_btn == 0:
             raise PreventUpdate
 
         return [(slider_var-1) % (slider_max+1),
-                dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update, dash.no_update]
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update]
 
     elif trigger_id == 'next-button':
         if right_btn == 0:
             raise PreventUpdate
 
         return [(slider_var+1) % (slider_max+1),
-                dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update, dash.no_update]
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update]
 
     elif trigger_id == 'interval-component':
         if interval == 0:
@@ -572,33 +575,49 @@ def file_selected(
 
         if slider_var == slider_max:
             return [dash.no_update,
-                    dash.no_update, dash.no_update,
-                    dash.no_update, dash.no_update,
-                    True, dash.no_update, dash.no_update]
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    True,
+                    dash.no_update,
+                    dash.no_update]
 
         else:
             return [(slider_var+1) % (slider_max+1),
-                    dash.no_update, dash.no_update,
-                    dash.no_update, dash.no_update,
-                    dash.no_update, dash.no_update, dash.no_update]
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update]
 
     elif trigger_id == 'play-button':
         if play_clicks == 0:
             raise PreventUpdate
 
         return [dash.no_update,
-                dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update,
-                False, dash.no_update, dash.no_update]
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                False,
+                dash.no_update,
+                dash.no_update]
 
     elif trigger_id == 'stop-button':
         if stop_clicks == 0:
             raise PreventUpdate
 
         return [dash.no_update,
-                dash.no_update, dash.no_update,
-                dash.no_update, dash.no_update,
-                True, dash.no_update, dash.no_update]
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                True,
+                dash.no_update,
+                dash.no_update]
 
 
 @ app.callback(
