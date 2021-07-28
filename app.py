@@ -844,6 +844,8 @@ def filter_changed(
 
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
+    fig_kwargs = dict()
+    fig_kwargs['image'] = None
     if overlay_enable:
         # overlay all the frames
         # get data from .feather file on the disk
@@ -852,7 +854,7 @@ def filter_changed(
                                file['path'] +
                                '/' +
                                file['feather_name'])
-        img_encoded = None
+        fig_kwargs['image'] = None
     else:
         # get a single frame data from Redis
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
@@ -870,60 +872,62 @@ def filter_changed(
         # encode image frame
         try:
             encoding = base64.b64encode(open(img_path, 'rb').read())
-            img_encoded = 'data:image/jpeg;base64,{}'.format(encoding.decode())
+            fig_kwargs['image'] = 'data:image/jpeg;base64,{}'.format(
+                encoding.decode())
         except FileNotFoundError:
-            img_encoded = None
+            fig_kwargs['image'] = None
 
     # set outline width
     if outline_enable:
-        linewidth = 1
+        fig_kwargs['linewidth'] = 1
     else:
-        linewidth = 0
+        fig_kwargs['linewidth'] = 0
 
-    c_label = keys_dict[c_key]['description']
     slider_label = keys_dict[config['slider']
                              ]['description']
-    x_det = config.get('x_3d', num_keys[0])
-    y_det = config.get('y_3d', num_keys[1])
-    z_det = config.get('z_3d', num_keys[2])
-    x_host = config.get('x_ref', None)
-    y_host = config.get('y_ref', None)
+    fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
+    fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
+    fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
+    fig_kwargs['c_key'] = c_key
+    fig_kwargs['c_label'] = keys_dict[c_key]['description']
+    fig_kwargs['x_ref'] = config.get('x_ref', None)
+    fig_kwargs['y_ref'] = config.get('y_ref', None)
 
     # set graph's range the same for all the frames
-    if (x_host is not None) and (y_host is not None):
-        x_range = [
-            min([num_values[num_keys.index(x_det)][0],
-                 num_values[num_keys.index(x_host)][0]]),
-            max([num_values[num_keys.index(x_det)][1],
-                 num_values[num_keys.index(x_host)][1]])
+    if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
+        fig_kwargs['x_range'] = [
+            min([num_values[num_keys.index(fig_kwargs['x_key'])][0],
+                 num_values[num_keys.index(fig_kwargs['x_ref'])][0]]),
+            max([num_values[num_keys.index(fig_kwargs['x_key'])][1],
+                 num_values[num_keys.index(fig_kwargs['x_ref'])][1]])
         ]
-        y_range = [
-            min([num_values[num_keys.index(y_det)][0],
-                 num_values[num_keys.index(y_host)][0]]),
-            max([num_values[num_keys.index(y_det)][1],
-                 num_values[num_keys.index(y_host)][1]])
+        fig_kwargs['y_range'] = [
+            min([num_values[num_keys.index(fig_kwargs['y_key'])][0],
+                 num_values[num_keys.index(fig_kwargs['y_ref'])][0]]),
+            max([num_values[num_keys.index(fig_kwargs['y_key'])][1],
+                 num_values[num_keys.index(fig_kwargs['y_ref'])][1]])
         ]
     else:
-        x_range = [
-            num_values[num_keys.index(x_det)][0],
-            num_values[num_keys.index(x_det)][1]
+        fig_kwargs['x_range'] = [
+            num_values[num_keys.index(fig_kwargs['x_key'])][0],
+            num_values[num_keys.index(fig_kwargs['x_key'])][1]
         ]
-        y_range = [
-            num_values[num_keys.index(y_det)][0],
-            num_values[num_keys.index(y_det)][1]
+        fig_kwargs['y_range'] = [
+            num_values[num_keys.index(fig_kwargs['y_key'])][0],
+            num_values[num_keys.index(fig_kwargs['y_key'])][1]
         ]
-    z_range = [
-        num_values[num_keys.index(z_det)][0],
-        num_values[num_keys.index(z_det)][1]
+    fig_kwargs['z_range'] = [
+        num_values[num_keys.index(fig_kwargs['z_key'])][0],
+        num_values[num_keys.index(fig_kwargs['z_key'])][1]
     ]
 
     if keys_dict[c_key].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
-        c_range = [
+        fig_kwargs['c_range'] = [
             num_values[num_keys.index(c_key)][0],
             num_values[num_keys.index(c_key)][1]
         ]
     else:
-        c_range = [0, 0]
+        fig_kwargs['c_range'] = [0, 0]
 
     # invoke celery task
     if trigger_id != 'slider-frame':
@@ -933,8 +937,8 @@ def filter_changed(
                   file,
                   visible_list,
                   c_key,
-                  linewidth,
-                  c_label,
+                  fig_kwargs['linewidth'],
+                  fig_kwargs['c_label'],
                   slider_label,
                   colormap], serializer='json')
 
@@ -950,34 +954,20 @@ def filter_changed(
     )
 
     # generate the graph
-    fig_name = 'Index: ' +\
+    fig_kwargs['name'] = 'Index: ' +\
         str(slider_arg) +\
         ' (' +\
         slider_label +\
         ': ' +\
         str(frame_list[slider_arg]) +\
         ')'
+    fig_kwargs['colormap'] = colormap
+    fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
+    fig_kwargs['ref_name'] = 'Host Vehicle'
 
     fig = get_scatter3d(
         filterd_frame,
-        x_det,
-        y_det,
-        z_det,
-        c_key,
-        x_ref=x_host,
-        y_ref=y_host,
-        hover=keys_dict,
-        name=fig_name,
-        c_label=c_label,
-        linewidth=linewidth,
-        colormap=colormap,
-        c_type=keys_dict[c_key].get('type', KEY_TYPES['NUM']),
-        image=img_encoded,
-        x_range=x_range,
-        y_range=y_range,
-        z_range=z_range,
-        c_range=c_range,
-        ref_name='Host Vehicle'
+        **fig_kwargs
     )
 
     if (trigger_id == 'slider-frame') or \
