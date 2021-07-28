@@ -782,8 +782,14 @@ def update_filter(
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
             frame_list[slider_arg]))
 
-        img = './data/'+case+file['path']+'/imgs/' + \
-            file['name'][0:-4] + '_'+str(slider_arg)+'.jpg'
+        img = './data/' +\
+            case +\
+            file['path'] +\
+            '/imgs/' + \
+            file['name'][0:-4] + \
+            '_' +\
+            str(slider_arg) +\
+            '.jpg'
 
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
