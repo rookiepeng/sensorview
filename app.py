@@ -950,6 +950,14 @@ def filter_changed(
     )
 
     # generate the graph
+    fig_name = 'Index: ' +\
+        str(slider_arg) +\
+        ' (' +\
+        slider_label +\
+        ': ' +\
+        str(frame_list[slider_arg]) +\
+        ')'
+
     fig = get_scatter3d(
         filterd_frame,
         x_det,
@@ -959,8 +967,7 @@ def filter_changed(
         x_ref=x_host,
         y_ref=y_host,
         hover=keys_dict,
-        name='Index: ' + str(slider_arg) + ' (' +
-        slider_label+': '+str(frame_list[slider_arg])+')',
+        name=fig_name,
         c_label=c_label,
         linewidth=linewidth,
         colormap=colormap,
