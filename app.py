@@ -858,7 +858,7 @@ def filter_changed(
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
             frame_list[slider_arg]))
 
-        img = './data/' +\
+        img_path = './data/' +\
             case +\
             file['path'] +\
             '/imgs/' + \
@@ -869,7 +869,7 @@ def filter_changed(
 
         # encode image frame
         try:
-            encoded_image = base64.b64encode(open(img, 'rb').read())
+            encoded_image = base64.b64encode(open(img_path, 'rb').read())
             source_encoded = 'data:image/jpeg;base64,{}'.format(
                 encoded_image.decode())
         except FileNotFoundError:
