@@ -75,6 +75,8 @@ app.layout = get_app_layout(app)
 """ Global Variables """
 REDIS_HASH_NAME = os.environ.get('DASH_APP_NAME', app.title)
 SPECIAL_FOLDERS = ['imgs', 'images']
+KEY_TYPES = {'CAT': 'categorical',
+             'NUM': 'numerical'}
 
 # options for dropdown components with all the keys
 DROPDOWN_OPTIONS_ALL = [
@@ -237,7 +239,8 @@ def case_selected(case, session_id):
     num_keys = []
     cat_keys = []
     for _, item in enumerate(config['keys']):
-        if config['keys'][item].get('type', 'numerical') == 'numerical':
+        if config['keys'][item].get(
+                'type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
             num_keys.append(item)
         else:
             cat_keys.append(item)
@@ -459,6 +462,8 @@ def file_selected(
                       REDIS_KEYS['frame_data'],
                       str(frame_idx))
 
+        # create dropdown layouts
+        # obtain categorical values
         cat_values = []
         new_dropdown = []
         for idx, d_item in enumerate(cat_keys):
@@ -483,6 +488,8 @@ def file_selected(
 
             cat_values.append(value_list)
 
+        # create slider layouts
+        # obtain numerical values
         num_values = []
         new_slider = []
         for idx, item in enumerate(num_keys):
@@ -506,20 +513,18 @@ def file_selected(
 
             num_values.append([var_min, var_max])
 
+        # save categorical values and numerical values to Redis
         filter_kwargs['num_values'] = num_values
         filter_kwargs['cat_values'] = cat_values
         redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-        if len(cat_keys) == 0:
-            values_cat = None
-        else:
-            values_cat = cat_keys[0]
-
+        # outline width
         if outline_enable:
             linewidth = 1
         else:
             linewidth = 0
 
+        # invoke celery task
         redis_set(0, session_id, REDIS_KEYS['task_id'])
         redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
@@ -533,6 +538,12 @@ def file_selected(
                   keys_dict[config['slider']
                             ]['description'],
                   colormap], serializer='json')
+
+        # dimensions picker default value
+        if len(cat_keys) == 0:
+            values_cat = None
+        else:
+            values_cat = cat_keys[0]
 
         return [0,
                 0,
@@ -801,7 +812,7 @@ def update_filter(
         float(num_values[num_keys.index(z_det)][0]),
         float(num_values[num_keys.index(z_det)][1])]
 
-    if keys_dict[c_key].get('type', 'numerical') == 'numerical':
+    if keys_dict[c_key].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
         c_range = [
             num_values[num_keys.index(c_key)][0],
             num_values[num_keys.index(c_key)][1]
@@ -845,7 +856,7 @@ def update_filter(
         c_label=c_label,
         linewidth=linewidth,
         colormap=colormap,
-        c_type=keys_dict[c_key].get('type', 'numerical'),
+        c_type=keys_dict[c_key].get('type', KEY_TYPES['NUM']),
         image=source_encoded,
         x_range=x_range,
         y_range=y_range,
@@ -959,7 +970,7 @@ def update_left_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            c_type=config['keys'][c_key].get('type', 'numerical')
+            c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM'])
         )
         left_x_disabled = False
         left_y_disabled = False
@@ -1077,7 +1088,7 @@ def update_right_graph(
             c_label,
             colormap=colormap,
             linewidth=linewidth,
-            c_type=keys_dict[c_key].get('type', 'numerical')
+            c_type=keys_dict[c_key].get('type', KEY_TYPES['NUM'])
         )
         right_x_disabled = False
         right_y_disabled = False
@@ -1613,7 +1624,7 @@ def export_scatter_3d(
             host_y_key=y_host,
             img_list=img_list,
             c_key=c_key,
-            c_type=config['keys'][c_key].get('type', 'numerical'),
+            c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM']),
             colormap=colormap,
             hover=config['keys'],
             title=data_name['name'][0:-4],
