@@ -105,8 +105,7 @@ def get_heatmap(data_frame,
                 x_key,
                 y_key,
                 x_label=None,
-                y_label=None,
-                # margin={'l': 40, 'r': 40, 'b': 40, 't': 60}
+                y_label=None
                 ):
     if x_label is None:
         x_label = x_key
@@ -124,8 +123,6 @@ def get_heatmap(data_frame,
         layout=dict(
             xaxis=dict(title=x_label),
             yaxis=dict(title=y_label),
-            # margin=margin,
-            # uirevision='no_change',
         )
     )
 
