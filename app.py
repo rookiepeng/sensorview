@@ -648,7 +648,25 @@ def file_selected(
     Input('file-picker', 'value'),
     State('case-picker', 'value'))
 def reset_switch_state(file, case):
+    """
+    Reset all the enable switches when a new file is selected
 
+    :param json file
+        json string of the selected file
+        `path`, `name`, `feather_name`
+    :param str case
+        case name
+
+    :return: [
+        Left figure enable switch,
+        Right figure enable switch,
+        Histogram figure enable switch,
+        Violin figure enable switch,
+        Parallel categories figure enable switch,
+        Heatmap figure enable switch
+    ]
+    :rtype: list
+    """
     if file is None:
         raise PreventUpdate
 
