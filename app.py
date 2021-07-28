@@ -137,7 +137,7 @@ DROPDOWN_VALUES_CAT_COLOR = [
 """ Callbacks """
 
 
-@ app.callback(
+@app.callback(
     [
         Output('case-picker', 'options'),
         Output('case-picker', 'value'),
@@ -168,7 +168,7 @@ def refresh_button_clicked(_):
     return [options, options[0]['value']]
 
 
-@ app.callback([
+@app.callback([
     Output('file-picker', 'value'),
     Output('file-picker', 'options')] +
     DROPDOWN_OPTIONS_ALL +
@@ -297,7 +297,7 @@ def case_selected(case, session_id):
         values_cat
 
 
-@ app.callback(
+@app.callback(
     [
         Output('slider-frame', 'value'),
         Output('slider-frame', 'min'),
@@ -493,8 +493,9 @@ def file_selected(
         num_values = []
         new_slider = []
         for idx, item in enumerate(num_keys):
-            var_min = np.floor(np.min(new_data[item]))
-            var_max = np.ceil(np.max(new_data[item]))
+            # use `.tolist()` to convert numpy type ot python type
+            var_min = np.floor(np.min(new_data[item])).tolist()
+            var_max = np.ceil(np.max(new_data[item])).tolist()
 
             new_slider.append(
                 dbc.Label(
@@ -636,7 +637,7 @@ def file_selected(
                 dash.no_update]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('left-switch', 'value'),
         Output('right-switch', 'value'),
@@ -676,7 +677,7 @@ def reset_switch_state(file, case):
     return [[], [], [], [], [], []]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('slider-frame', 'disabled'),
         Output('previous-button', 'disabled'),
@@ -707,7 +708,7 @@ def overlay_switch_changed(overlay):
         return [False]*5
 
 
-@ app.callback(
+@app.callback(
     [
         Output('scatter3d', 'figure'),
         Output('filter-trigger', 'data'),
@@ -752,14 +753,45 @@ def filter_changed(
     Callback when filter changed
 
     :param int slider_arg
+        slider position
+    :param list cat_values
+        selected categorical keys
+    :param list num_values
+        sliders range
+    :param str colormap
+        colormap name
+    :param list visible_list
+        visibility list
+    :param str c_key
+        key for color
+    :param boolean overlay_enable
+        flag to overlay all frames
+    :param boolean outline_enable
+        flag to enable outline for the scatters
+    :param json click_data
+        properties of the clicked data point
+    _
+    :param boolean click_hide
+        flag to hide the data when clicked
+    :param int trigger_idx
+        current trigger value
+    :param str session_id
+        session id
+    :param str case
+        case name
+    :param json file
+        selected file
 
     :return: [
+        Scatter 3D graph,
+        Filter trigger value (to trigger other graphs)
     ]
     :rtype: list
     """
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    file = json.loads(file)
 
     # no update if:
     #   - triggered from 3D scatter, and
@@ -769,6 +801,8 @@ def filter_changed(
                 (click_data['points'][0]['curveNumber'] != 0)):
         raise PreventUpdate
 
+    # if slider value changed
+    #   - if Redis `figure` buffer ready, return figure from Redis
     if trigger_id == 'slider-frame':
         fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
         if fig_idx is not None:
@@ -790,20 +824,13 @@ def filter_changed(
     filter_kwargs['cat_values'] = cat_values
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-    c_label = keys_dict[c_key]['description']
-
-    slider_label = keys_dict[config['slider']
-                             ]['description']
-
-    x_det = config.get('x_3d', num_keys[0])
-    y_det = config.get('y_3d', num_keys[1])
-    z_det = config.get('z_3d', num_keys[2])
-    x_host = config.get('x_ref', None)
-    y_host = config.get('y_ref', None)
-
+    # get visibility table from Redis
     visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+
+    # get frame list from Redis
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
 
+    # update visibility table if a data point is clicked to hide
     if trigger_id == 'scatter3d' and click_hide and \
             click_data['points'][0]['curveNumber'] == 0:
         if visible_table['_VIS_'][
@@ -818,7 +845,8 @@ def filter_changed(
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
     if overlay_enable:
-        file = json.loads(file)
+        # overlay all the frames
+        # get data from .feather file on the disk
         data = pd.read_feather('./data/' +
                                case +
                                file['path'] +
@@ -826,7 +854,7 @@ def filter_changed(
                                file['feather_name'])
         source_encoded = None
     else:
-        file = json.loads(file)
+        # get a single frame data from Redis
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
             frame_list[slider_arg]))
 
@@ -839,6 +867,7 @@ def filter_changed(
             str(slider_arg) +\
             '.jpg'
 
+        # encode image frame
         try:
             encoded_image = base64.b64encode(open(img, 'rb').read())
             source_encoded = 'data:image/jpeg;base64,{}'.format(
@@ -846,28 +875,48 @@ def filter_changed(
         except FileNotFoundError:
             source_encoded = None
 
+    # set outline width
     if outline_enable:
         linewidth = 1
     else:
         linewidth = 0
 
-    x_range = [
-        float(
-            np.min([num_values[num_keys.index(x_det)][0],
-                    num_values[num_keys.index(x_host)][0]])),
-        float(
-            np.max([num_values[num_keys.index(x_det)][1],
-                    num_values[num_keys.index(x_host)][1]]))]
-    y_range = [
-        float(
-            np.min([num_values[num_keys.index(y_det)][0],
-                    num_values[num_keys.index(y_host)][0]])),
-        float(
-            np.max([num_values[num_keys.index(y_det)][1],
-                    num_values[num_keys.index(y_host)][1]]))]
+    c_label = keys_dict[c_key]['description']
+    slider_label = keys_dict[config['slider']
+                             ]['description']
+    x_det = config.get('x_3d', num_keys[0])
+    y_det = config.get('y_3d', num_keys[1])
+    z_det = config.get('z_3d', num_keys[2])
+    x_host = config.get('x_ref', None)
+    y_host = config.get('y_ref', None)
+
+    # set graph's range the same for all the frames
+    if (x_host is not None) and (y_host is not None):
+        x_range = [
+            min([num_values[num_keys.index(x_det)][0],
+                 num_values[num_keys.index(x_host)][0]]),
+            max([num_values[num_keys.index(x_det)][1],
+                 num_values[num_keys.index(x_host)][1]])
+        ]
+        y_range = [
+            min([num_values[num_keys.index(y_det)][0],
+                 num_values[num_keys.index(y_host)][0]]),
+            max([num_values[num_keys.index(y_det)][1],
+                 num_values[num_keys.index(y_host)][1]])
+        ]
+    else:
+        x_range = [
+            num_values[num_keys.index(x_det)][0],
+            num_values[num_keys.index(x_det)][1]
+        ]
+        y_range = [
+            num_values[num_keys.index(y_det)][0],
+            num_values[num_keys.index(y_det)][1]
+        ]
     z_range = [
-        float(num_values[num_keys.index(z_det)][0]),
-        float(num_values[num_keys.index(z_det)][1])]
+        num_values[num_keys.index(z_det)][0],
+        num_values[num_keys.index(z_det)][1]
+    ]
 
     if keys_dict[c_key].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
         c_range = [
@@ -877,6 +926,7 @@ def filter_changed(
     else:
         c_range = [0, 0]
 
+    # invoke celery task
     if trigger_id != 'slider-frame':
         celery_filtering_data.apply_async(
             args=[session_id,
@@ -889,6 +939,7 @@ def filter_changed(
                   slider_label,
                   colormap], serializer='json')
 
+    # filter the data
     filterd_frame = filter_all(
         data,
         num_keys,
@@ -899,6 +950,7 @@ def filter_changed(
         visible_list
     )
 
+    # generate the graph
     fig = get_scatter3d(
         filterd_frame,
         x_det,
@@ -939,7 +991,7 @@ def filter_changed(
     return [fig, filter_trig]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('scatter2d-left', 'figure'),
         Output('x-picker-2d-left', 'disabled'),
@@ -1057,7 +1109,7 @@ def update_left_graph(
     ]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('scatter2d-right', 'figure'),
         Output('x-picker-2d-right', 'disabled'),
@@ -1176,7 +1228,7 @@ def update_right_graph(
     ]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('histogram', 'figure'),
         Output('x-picker-histogram', 'disabled'),
@@ -1283,7 +1335,7 @@ def update_histogram(
     ]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('violin', 'figure'),
         Output('x-picker-violin', 'disabled'),
@@ -1390,7 +1442,7 @@ def update_violin(
     ]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('parallel', 'figure'),
         Output('dim-picker-parallel', 'disabled'),
@@ -1421,7 +1473,6 @@ def update_parallel(
     case,
     file
 ):
-    config = redis_get(session_id, REDIS_KEYS['config'])
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -1453,7 +1504,6 @@ def update_parallel(
                 values=filtered_table[dim_key], label=dim_key))
 
         if c_key != 'None':
-            colorscale = []
             unique_list = np.sort(filtered_table[c_key].unique())
 
             if np.issubdtype(unique_list.dtype, np.integer) or \
@@ -1500,7 +1550,7 @@ def update_parallel(
     ]
 
 
-@ app.callback(
+@app.callback(
     [
         Output('heatmap', 'figure'),
         Output('x-picker-heatmap', 'disabled'),
@@ -1589,7 +1639,7 @@ def update_heatmap(
     ]
 
 
-@ app.callback(
+@app.callback(
     Output('hidden-scatter3d', 'children'),
     Input('export-scatter3d', 'n_clicks'),
     [
@@ -1700,7 +1750,7 @@ def export_scatter_3d(
     return 0
 
 
-@ app.callback(
+@app.callback(
     Output('dummy-export-scatter2d-left', 'data'),
     Input('export-scatter2d-left', 'n_clicks'),
     [
@@ -1724,7 +1774,7 @@ def export_left_scatter_2d(btn, fig, case):
     return 0
 
 
-@ app.callback(
+@app.callback(
     Output('dummy-export-scatter2d-right', 'data'),
     Input('export-scatter2d-right', 'n_clicks'),
     [
@@ -1748,7 +1798,7 @@ def export_right_scatter_2d(btn, fig, case):
     return 0
 
 
-@ app.callback(
+@app.callback(
     Output('dummy-export-histogram', 'data'),
     Input('export-histogram', 'n_clicks'),
     [
@@ -1772,7 +1822,7 @@ def export_histogram(btn, fig, case):
     return 0
 
 
-@ app.callback(
+@app.callback(
     Output('dummy-export-violin', 'data'),
     Input('export-violin', 'n_clicks'),
     [
@@ -1796,7 +1846,7 @@ def export_violin(btn, fig, case):
     return 0
 
 
-@ app.callback(
+@app.callback(
     Output('dummy-export-parallel', 'data'),
     Input('export-parallel', 'n_clicks'),
     [
@@ -1820,7 +1870,7 @@ def export_parallel(btn, fig, case):
     return 0
 
 
-@ app.callback(
+@app.callback(
     Output('dummy-export-data', 'data'),
     Input('export-data', 'n_clicks'),
     [
@@ -1876,7 +1926,7 @@ def export_data(btn,
     return 0
 
 
-@ app.callback(
+@app.callback(
     Output('dummy-export-heatmap', 'data'),
     Input('export-heatmap', 'n_clicks'),
     [
