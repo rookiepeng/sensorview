@@ -2195,8 +2195,17 @@ def left_hide_button(
 
 
 @app.callback(
-    Output('buffer', 'value'),
-    Input('buffer-interval', 'n_intervals'),
+    [
+        Output('buffer', 'value'),
+        Output('buffer-interval', 'disabled'),
+    ],
+    [
+        Input('buffer-interval', 'n_intervals'),
+        Input('filter-trigger', 'data'),
+        Input('colormap-3d', 'value'),
+        Input('left-hide-trigger', 'data'),
+        Input('outline-switch', 'value'),
+    ],
     [
         State('slider-frame', 'max'),
         State('session-id', 'data'),
@@ -2210,11 +2219,21 @@ def update_buffer_indicator(
     if max_frame is None:
         raise PreventUpdate
 
-    fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
-    if fig_idx is not None:
-        return fig_idx/max_frame*100
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if trigger_id == 'buffer-interval':
+        fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
+        if fig_idx is not None:
+            percent = fig_idx/max_frame*100
+            if percent == 100:
+                return [percent, True]
+            else:
+                return [percent, dash.no_update]
+        else:
+            return [0,  dash.no_update]
     else:
-        return 0
+        return [0,  False]
 
 
 if __name__ == '__main__':
