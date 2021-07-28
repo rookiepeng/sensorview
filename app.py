@@ -686,6 +686,21 @@ def reset_switch_state(file, case):
     ],
     Input('overlay-switch', 'value'))
 def overlay_switch_changed(overlay):
+    """
+    Callback when the overlay switch state is changed
+
+    :param boolean overlay
+        overlay switch state
+
+    :return: [
+        Frame slider enable/disable,
+        Previous button enable/disable,
+        Next button enable/disable,
+        Play button enable/disable,
+        Stop button enable/disable
+    ]
+    :rtype: list
+    """
     if overlay:
         return [True]*5
     else:
