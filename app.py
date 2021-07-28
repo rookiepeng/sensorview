@@ -929,19 +929,6 @@ def filter_changed(
     else:
         fig_kwargs['c_range'] = [0, 0]
 
-    # invoke celery task
-    if trigger_id != 'slider-frame':
-        celery_filtering_data.apply_async(
-            args=[session_id,
-                  case,
-                  file,
-                  visible_list,
-                  c_key,
-                  fig_kwargs['linewidth'],
-                  fig_kwargs['c_label'],
-                  slider_label,
-                  colormap], serializer='json')
-
     # filter the data
     filterd_frame = filter_all(
         data,
@@ -964,6 +951,19 @@ def filter_changed(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
+
+        # invoke celery task
+    if trigger_id != 'slider-frame':
+        celery_filtering_data.apply_async(
+            args=[session_id,
+                  case,
+                  file,
+                  visible_list,
+                  fig_kwargs['c_key'],
+                  fig_kwargs['linewidth'],
+                  fig_kwargs['c_label'],
+                  slider_label,
+                  fig_kwargs['colormap']], serializer='json')
 
     fig = get_scatter3d(
         filterd_frame,
