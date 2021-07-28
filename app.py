@@ -2205,6 +2205,7 @@ def left_hide_button(
         Input('colormap-3d', 'value'),
         Input('left-hide-trigger', 'data'),
         Input('outline-switch', 'value'),
+        Input('file-picker', 'value'),
     ],
     [
         State('slider-frame', 'max'),
@@ -2217,6 +2218,7 @@ def update_buffer_indicator(
     unused3,
     unused4,
     unused5,
+    unused6,
     max_frame,
     session_id
 ):
