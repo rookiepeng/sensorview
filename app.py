@@ -2263,33 +2263,35 @@ def export_data(
 
 @app.callback(
     Output('selected-data-left', 'data'),
-    Input('scatter2d-left', 'selectedData')
+    Input('scatter2d-left', 'selectedData'),
+    State('session-id', 'data'),
 )
-def select_left_figure(selectedData):
+def select_left_figure(selectedData, session_id):
     """
     Callback when data selected on the left 2D scatter
 
     :param json selectedData
         selected data
+    :param str session_id
+        session id
 
     :return: selected data
     :rtype: json
     """
-    return selectedData
+    redis_set(selectedData, session_id, REDIS_KEYS['selected_data'])
+    return 0
 
 
 @app.callback(
     Output('left-hide-trigger', 'data'),
     Input('hide-left', 'n_clicks'),
     [
-        State('selected-data-left', 'data'),
         State('left-hide-trigger', 'data'),
         State('session-id', 'data'),
     ]
 )
 def left_hide_button(
     btn,
-    selectedData,
     trigger_idx,
     session_id
 ):
@@ -2298,8 +2300,6 @@ def left_hide_button(
 
     :param int btn
         number of clicks
-    :param json selectedData
-        selected data
     :param int trigger_idx
         trigger value
     :param int session_id
@@ -2310,6 +2310,8 @@ def left_hide_button(
     """
     if btn == 0:
         raise PreventUpdate
+
+    selectedData = redis_get(session_id, REDIS_KEYS['selected_data'])
 
     if selectedData is None:
         raise PreventUpdate
