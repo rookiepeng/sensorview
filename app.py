@@ -1849,7 +1849,7 @@ def update_heatmap(
         State('file-picker', 'value'),
     ]
 )
-def export_scatter_3d(
+def export_3d_scatter_animation(
     btn,
     case,
     session_id,
@@ -1858,6 +1858,27 @@ def export_scatter_3d(
     visible_list,
     file
 ):
+    """
+    Export 3D scatter into an interactive animation file
+
+    :param int btn
+        number of clicks
+    :param str case
+        case name
+    :param str session_id
+        session id
+    :param str c_key
+        color key
+    :param str colormap
+        colormap name
+    :param list visible_list
+        visibility list
+    :param json file
+        selected file
+
+    :return: dummy
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -1872,12 +1893,8 @@ def export_scatter_3d(
     now = datetime.datetime.now()
     timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-    if not os.path.exists('data/' +
-                          case +
-                          '/images'):
-        os.makedirs('data/' +
-                    case +
-                    '/images')
+    if not os.path.exists('data/' + case + '/images'):
+        os.makedirs('data/' + case + '/images')
 
     file = json.loads(file)
     data = pd.read_feather('./data/' +
@@ -1956,7 +1973,20 @@ def export_scatter_3d(
         State('case-picker', 'value')
     ]
 )
-def export_left_scatter_2d(btn, fig, case):
+def export_left_2d_scatter(btn, fig, case):
+    """
+    Export 2D scatter into a png
+
+    :param int btn
+        number of clicks
+    :param graph fig
+        2D figure
+    :param str case
+        case name
+
+    :return: dummy
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -1980,7 +2010,20 @@ def export_left_scatter_2d(btn, fig, case):
         State('case-picker', 'value')
     ]
 )
-def export_right_scatter_2d(btn, fig, case):
+def export_right_2d_scatter(btn, fig, case):
+    """
+    Export 2D scatter into a png
+
+    :param int btn
+        number of clicks
+    :param graph fig
+        2D figure
+    :param str case
+        case name
+
+    :return: dummy
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -2005,6 +2048,19 @@ def export_right_scatter_2d(btn, fig, case):
     ]
 )
 def export_histogram(btn, fig, case):
+    """
+    Export histogram into a png
+
+    :param int btn
+        number of clicks
+    :param graph fig
+        histogram
+    :param str case
+        case name
+
+    :return: dummy
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -2029,6 +2085,19 @@ def export_histogram(btn, fig, case):
     ]
 )
 def export_violin(btn, fig, case):
+    """
+    Export violin plot into a png
+
+    :param int btn
+        number of clicks
+    :param graph fig
+        violin plot
+    :param str case
+        case name
+
+    :return: dummy
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -2053,6 +2122,19 @@ def export_violin(btn, fig, case):
     ]
 )
 def export_parallel(btn, fig, case):
+    """
+    Export parallel categories plot into a png
+
+    :param int btn
+        number of clicks
+    :param graph fig
+        parallel categories plot
+    :param str case
+        case name
+
+    :return: dummy
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -2069,6 +2151,43 @@ def export_parallel(btn, fig, case):
 
 
 @app.callback(
+    Output('dummy-export-heatmap', 'data'),
+    Input('export-heatmap', 'n_clicks'),
+    [
+        State('heatmap', 'figure'),
+        State('case-picker', 'value')
+    ]
+)
+def export_heatmap(btn, fig, case):
+    """
+    Export heatmap into a png
+
+    :param int btn
+        number of clicks
+    :param graph fig
+        heatmap
+    :param str case
+        case name
+
+    :return: dummy
+    :rtype: int
+    """
+    if btn == 0:
+        raise PreventUpdate
+
+    now = datetime.datetime.now()
+    timestamp = now.strftime('%Y%m%d_%H%M%S')
+
+    if not os.path.exists('data/'+case+'/images'):
+        os.makedirs('data/'+case+'/images')
+
+    temp_fig = go.Figure(fig)
+    temp_fig.write_image('data/'+case+'/images/' +
+                         timestamp+'_heatmap.png', scale=2)
+    return 0
+
+
+@app.callback(
     Output('dummy-export-data', 'data'),
     Input('export-data', 'n_clicks'),
     [
@@ -2078,11 +2197,29 @@ def export_parallel(btn, fig, case):
         State('file-picker', 'value'),
     ]
 )
-def export_data(btn,
-                session_id,
-                visible_list,
-                case,
-                file):
+def export_data(
+    btn,
+    session_id,
+    visible_list,
+    case,
+    file
+):
+    """
+    Export filtered data
+
+    :param int btn
+        number of clicks
+    :param str session_id
+    :param list visible_list
+        visibility list
+    :param str case
+        case name
+    :param json file
+        selected file
+
+    :return: dummy
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -2125,34 +2262,19 @@ def export_data(btn,
 
 
 @app.callback(
-    Output('dummy-export-heatmap', 'data'),
-    Input('export-heatmap', 'n_clicks'),
-    [
-        State('heatmap', 'figure'),
-        State('case-picker', 'value')
-    ]
-)
-def export_heatmap(btn, fig, case):
-    if btn == 0:
-        raise PreventUpdate
-
-    now = datetime.datetime.now()
-    timestamp = now.strftime('%Y%m%d_%H%M%S')
-
-    if not os.path.exists('data/'+case+'/images'):
-        os.makedirs('data/'+case+'/images')
-
-    temp_fig = go.Figure(fig)
-    temp_fig.write_image('data/'+case+'/images/' +
-                         timestamp+'_heatmap.png', scale=2)
-    return 0
-
-
-@app.callback(
     Output('selected-data-left', 'data'),
     Input('scatter2d-left', 'selectedData')
 )
 def select_left_figure(selectedData):
+    """
+    Callback when data selected on the left 2D scatter
+
+    :param json selectedData
+        selected data
+
+    :return: selected data
+    :rtype: json
+    """
     return selectedData
 
 
@@ -2171,6 +2293,21 @@ def left_hide_button(
     trigger_idx,
     session_id
 ):
+    """
+    Callback when hide/unhide button is clicked
+
+    :param int btn
+        number of clicks
+    :param json selectedData
+        selected data
+    :param int trigger_idx
+        trigger value
+    :param int session_id
+        session id
+
+    :return: trigger signal
+    :rtype: int
+    """
     if btn == 0:
         raise PreventUpdate
 
@@ -2222,6 +2359,26 @@ def update_buffer_indicator(
     max_frame,
     session_id
 ):
+    """
+    Update buffer progress bar
+
+    :param int unused1
+    :param int unused2
+    :param str unused3
+    :param int unused4
+    :param boolean unused5
+    :param json unused6
+    :param int max_frame
+        maximal number of frames
+    :param str session_id
+        session id
+
+    :return: [
+        Buffer percentage,
+        Interval enable/disable
+    ]
+    :rtype: int
+    """
     if max_frame is None:
         raise PreventUpdate
 
