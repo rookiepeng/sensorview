@@ -53,6 +53,27 @@ def filter_all(
         visible_table=None,
         visible_list=None,
 ):
+    """
+    Filter the DataFrame
+
+    :param pandas.DataFrame data
+        initial data table
+    :param [str] num_list
+        list of numerical keys
+    :param [list] num_values
+        numberical value ranges
+    :param [str] cat_list
+        list of categorical keys
+    :param [list] cat_values
+        categorical item lists
+    :param pandas.DataFrame visible_table=None
+        visibility table
+    :param [str] visible_list=None
+        visibility list
+
+    :return: filtered data table
+    :rtype: pandas.DataFrame
+    """
 
     for f_idx, f_name in enumerate(num_list):
         if f_idx == 0:
@@ -94,11 +115,29 @@ def celery_filtering_data(
     visible_picker,
     **kwargs
 ):
+    """
+    Celery task for preparing the frame figures
 
+    :param str session_id
+        session id
+    :param str case
+        case name
+    :param json file
+        selected file
+    :param list visible_picker
+        visibility list ['visible', 'hidden']
+
+    :param dict kwargs
+        'linewidth' outline width
+        'c_key' color key
+        'colormap' colormap name
+    """
+
+    # set figure index to -1 (no buffer is ready)
     redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
 
+    # set new task_id in Redis, this will terminate the previously running task
     task_id = self.request.id
-
     redis_set(task_id, session_id, REDIS_KEYS['task_id'])
 
     config = redis_get(session_id, REDIS_KEYS['config'])
@@ -168,7 +207,8 @@ def celery_filtering_data(
         num_values[num_keys.index(fig_kwargs['z_key'])][1]
     ]
 
-    if keys_dict[fig_kwargs['c_key']].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
+    if keys_dict[fig_kwargs['c_key']].\
+            get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
         fig_kwargs['c_range'] = [
             num_values[num_keys.index(fig_kwargs['c_key'])][0],
             num_values[num_keys.index(fig_kwargs['c_key'])][1]
@@ -176,8 +216,6 @@ def celery_filtering_data(
     else:
         fig_kwargs['c_range'] = [0, 0]
 
-    # fig_kwargs['linewidth'] = linewidth
-    # fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[fig_kwargs['c_key']].get(
         'type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'

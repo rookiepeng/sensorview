@@ -51,11 +51,32 @@ redis_instance = redis.StrictRedis.from_url(
 
 
 def load_config(json_file):
+    """
+    Load config json file
+
+    :param str json_file
+        json file path
+
+    :return: configuration struct
+    :rtype: dict
+    """
     with open(json_file, 'r') as read_file:
         return json.load(read_file)
 
 
 def redis_set(data, id, key_major, key_minor=None):
+    """
+    Set data to Redis
+
+    :param dict/str/pandas.Dataframe data
+        data to be stored in Redis
+    :param str id
+        unique id (session id)
+    :param str key_major
+        major key name
+    :param str key_minor=None
+        minor key name
+    """
     if key_minor is None:
         key_str = key_major+id
     else:
@@ -68,6 +89,19 @@ def redis_set(data, id, key_major, key_minor=None):
 
 
 def redis_get(id, key_major, key_minor=None):
+    """
+    Get data from Redis
+
+    :param str id
+        unique id (session id)
+    :param str key_major
+        major key name
+    :param str key_minor=None
+        minor key name
+
+    :return: data in Redis
+    :rtype: dict/str/pandas.Dataframe
+    """
     if key_minor is None:
         key_str = key_major+id
     else:
