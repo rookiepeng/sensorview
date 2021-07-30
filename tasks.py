@@ -86,16 +86,14 @@ def filter_all(
 
 
 @celery_app.task(bind=True)
-def celery_filtering_data(self,
-                          session_id,
-                          case,
-                          file,
-                          visible_picker,
-                          c_key,
-                          linewidth,
-                          c_label,
-                          slider_label,
-                          colormap):
+def celery_filtering_data(
+    self,
+    session_id,
+    case,
+    file,
+    visible_picker,
+    **fig_kwargs
+):
 
     redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
 
@@ -121,7 +119,7 @@ def celery_filtering_data(self,
     frame_group = dataset.groupby(config['slider'])
 
     # prepare figure key word arguments
-    fig_kwargs = dict()
+    # fig_kwargs = dict()
     fig_kwargs['image'] = None
 
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
@@ -133,7 +131,7 @@ def celery_filtering_data(self,
     fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
     fig_kwargs['z_label'] = keys_dict[fig_kwargs['z_key']].get(
         'description', fig_kwargs['z_key'])
-    fig_kwargs['c_key'] = c_key
+    # fig_kwargs['c_key'] = c_key
     fig_kwargs['c_label'] = keys_dict[fig_kwargs['c_key']].get(
         'description', fig_kwargs['c_key'])
     fig_kwargs['x_ref'] = config.get('x_ref', None)
@@ -167,17 +165,18 @@ def celery_filtering_data(self,
         num_values[num_keys.index(fig_kwargs['z_key'])][1]
     ]
 
-    if keys_dict[c_key].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
+    if keys_dict[fig_kwargs['c_key']].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
         fig_kwargs['c_range'] = [
-            num_values[num_keys.index(c_key)][0],
-            num_values[num_keys.index(c_key)][1]
+            num_values[num_keys.index(fig_kwargs['c_key'])][0],
+            num_values[num_keys.index(fig_kwargs['c_key'])][1]
         ]
     else:
         fig_kwargs['c_range'] = [0, 0]
 
-    fig_kwargs['linewidth'] = linewidth
-    fig_kwargs['colormap'] = colormap
-    fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
+    # fig_kwargs['linewidth'] = linewidth
+    # fig_kwargs['colormap'] = colormap
+    fig_kwargs['c_type'] = keys_dict[fig_kwargs['c_key']].get(
+        'type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
     fig_kwargs['hover'] = keys_dict
 
@@ -203,7 +202,7 @@ def celery_filtering_data(self,
         fig_kwargs['name'] = 'Index: ' +\
             str(slider_arg) +\
             ' (' +\
-            slider_label +\
+            fig_kwargs['slider_label'] +\
             ': ' +\
             str(frame_list[slider_arg]) +\
             ')'

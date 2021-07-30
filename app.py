@@ -517,11 +517,16 @@ def file_selected(
         filter_kwargs['cat_values'] = cat_values
         redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
+        fig_kwargs = dict()
         # outline width
         if outline_enable:
-            linewidth = 1
+            fig_kwargs['linewidth'] = 1
         else:
-            linewidth = 0
+            fig_kwargs['linewidth'] = 0
+
+        fig_kwargs['c_key'] = c_key
+        fig_kwargs['slider_label'] = keys_dict[config['slider']]['description']
+        fig_kwargs['colormap'] = colormap
 
         # invoke celery task
         redis_set(0, session_id, REDIS_KEYS['task_id'])
@@ -530,13 +535,7 @@ def file_selected(
             args=[session_id,
                   case,
                   file,
-                  visible_list,
-                  c_key,
-                  linewidth,
-                  keys_dict[c_key]['description'],
-                  keys_dict[config['slider']
-                            ]['description'],
-                  colormap], serializer='json')
+                  visible_list], kwargs=fig_kwargs, serializer='json')
 
         # dimensions picker default value
         if len(cat_keys) == 0:
@@ -957,6 +956,7 @@ def filter_changed(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
+    fig_kwargs['slider_label'] = slider_label
 
     # invoke celery task
     if trigger_id != 'slider-frame':
@@ -966,12 +966,7 @@ def filter_changed(
             args=[session_id,
                   case,
                   file,
-                  visible_list,
-                  fig_kwargs['c_key'],
-                  fig_kwargs['linewidth'],
-                  fig_kwargs['c_label'],
-                  slider_label,
-                  fig_kwargs['colormap']], serializer='json')
+                  visible_list], kwargs=fig_kwargs, serializer='json')
 
     # generate the graph
     fig = get_scatter3d(
