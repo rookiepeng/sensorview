@@ -39,7 +39,7 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Usage
 
-Save data as the `.pkl` files under `./data` directory. See `./data/Example`.
+Save data as the `.pkl` or `.csv` files under `./data` directory. See `./data/Example`.
 
 Put the `config.json` in the same directory, and sepcify the `columns` of the data in `config.json`. Check `./data/Example/config.json`.
 
