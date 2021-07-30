@@ -960,6 +960,8 @@ def filter_changed(
 
     # invoke celery task
     if trigger_id != 'slider-frame':
+        redis_set(0, session_id, REDIS_KEYS['task_id'])
+        redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
             args=[session_id,
                   case,
