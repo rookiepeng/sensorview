@@ -517,16 +517,15 @@ def file_selected(
         filter_kwargs['cat_values'] = cat_values
         redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-        fig_kwargs = dict()
+        task_kwargs = dict()
         # outline width
         if outline_enable:
-            fig_kwargs['linewidth'] = 1
+            task_kwargs['linewidth'] = 1
         else:
-            fig_kwargs['linewidth'] = 0
+            task_kwargs['linewidth'] = 0
 
-        fig_kwargs['c_key'] = c_key
-        fig_kwargs['slider_label'] = keys_dict[config['slider']]['description']
-        fig_kwargs['colormap'] = colormap
+        task_kwargs['c_key'] = c_key
+        task_kwargs['colormap'] = colormap
 
         # invoke celery task
         redis_set(0, session_id, REDIS_KEYS['task_id'])
@@ -535,7 +534,7 @@ def file_selected(
             args=[session_id,
                   case,
                   file,
-                  visible_list], kwargs=fig_kwargs, serializer='json')
+                  visible_list], kwargs=task_kwargs, serializer='json')
 
         # dimensions picker default value
         if len(cat_keys) == 0:
@@ -876,11 +875,26 @@ def filter_changed(
         except FileNotFoundError:
             fig_kwargs['image'] = None
 
+    task_kwargs = dict()
+    task_kwargs['c_key'] = c_key
+    task_kwargs['colormap'] = colormap
     # set outline width
     if outline_enable:
         fig_kwargs['linewidth'] = 1
+        task_kwargs['linewidth'] = 1
     else:
         fig_kwargs['linewidth'] = 0
+        task_kwargs['linewidth'] = 0
+
+    # invoke celery task
+    if trigger_id != 'slider-frame':
+        redis_set(0, session_id, REDIS_KEYS['task_id'])
+        redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
+        celery_filtering_data.apply_async(
+            args=[session_id,
+                  case,
+                  file,
+                  visible_list], kwargs=task_kwargs, serializer='json')
 
     slider_label = keys_dict[config['slider']
                              ]['description']
@@ -956,17 +970,6 @@ def filter_changed(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
-    fig_kwargs['slider_label'] = slider_label
-
-    # invoke celery task
-    if trigger_id != 'slider-frame':
-        redis_set(0, session_id, REDIS_KEYS['task_id'])
-        redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
-        celery_filtering_data.apply_async(
-            args=[session_id,
-                  case,
-                  file,
-                  visible_list], kwargs=fig_kwargs, serializer='json')
 
     # generate the graph
     fig = get_scatter3d(
