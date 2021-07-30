@@ -92,7 +92,7 @@ def celery_filtering_data(
     case,
     file,
     visible_picker,
-    **fig_kwargs
+    **kwargs
 ):
 
     redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
@@ -103,6 +103,9 @@ def celery_filtering_data(
 
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
+
+    slider_label = keys_dict[config['slider']
+                             ]['description']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
@@ -119,7 +122,7 @@ def celery_filtering_data(
     frame_group = dataset.groupby(config['slider'])
 
     # prepare figure key word arguments
-    # fig_kwargs = dict()
+    fig_kwargs = kwargs
     fig_kwargs['image'] = None
 
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
@@ -202,7 +205,7 @@ def celery_filtering_data(
         fig_kwargs['name'] = 'Index: ' +\
             str(slider_arg) +\
             ' (' +\
-            fig_kwargs['slider_label'] +\
+            slider_label +\
             ': ' +\
             str(frame_list[slider_arg]) +\
             ')'
