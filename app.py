@@ -1924,7 +1924,7 @@ def export_3d_scatter_animation(
     frame_list = filtered_table[config['slider']].unique()
     img_list = []
 
-    data_name = json.loads(file)
+    data_name = file
     for _, f_val in enumerate(frame_list):
         img_idx = np.where(frame_list == f_val)[0][0]
         img_list.append('./data/' +
