@@ -1649,56 +1649,65 @@ def update_parallel(
     cat_values = filter_kwargs['cat_values']
     num_values = filter_kwargs['num_values']
 
-    if parallel_sw and len(dim_parallel) > 0:
-        file = json.loads(file)
-        data = pd.read_feather('./data/' +
-                               case +
-                               file['path'] +
-                               '/' +
-                               file['feather_name'])
-        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
-        filtered_table = filter_all(
-            data,
-            num_keys,
-            num_values,
-            cat_keys,
-            cat_values,
-            visible_table,
-            visible_list
-        )
+    if parallel_sw:
+        if len(dim_parallel) > 0:
+            file = json.loads(file)
+            data = pd.read_feather('./data/' +
+                                   case +
+                                   file['path'] +
+                                   '/' +
+                                   file['feather_name'])
+            visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+            filtered_table = filter_all(
+                data,
+                num_keys,
+                num_values,
+                cat_keys,
+                cat_values,
+                visible_table,
+                visible_list
+            )
 
-        dims = []
-        for _, dim_key in enumerate(dim_parallel):
-            dims.append(go.parcats.Dimension(
-                values=filtered_table[dim_key], label=dim_key))
+            dims = []
+            for _, dim_key in enumerate(dim_parallel):
+                dims.append(go.parcats.Dimension(
+                    values=filtered_table[dim_key], label=dim_key))
 
-        if c_key != 'None':
-            unique_list = np.sort(filtered_table[c_key].unique())
+            if c_key != 'None':
+                unique_list = np.sort(filtered_table[c_key].unique())
 
-            if np.issubdtype(unique_list.dtype, np.integer) or \
-                    np.issubdtype(unique_list.dtype, np.floating):
-                parallel_fig = go.Figure(
-                    data=[go.Parcats(dimensions=dims,
-                                     line={'color': filtered_table[c_key],
-                                           'colorbar':dict(
-                                         title=c_key)},
-                                     hoveron='color',
-                                     hoverinfo='count+probability',
-                                     arrangement='freeform')])
+                if np.issubdtype(unique_list.dtype, np.integer) or \
+                        np.issubdtype(unique_list.dtype, np.floating):
+                    parallel_fig = go.Figure(
+                        data=[go.Parcats(dimensions=dims,
+                                         line={'color': filtered_table[c_key],
+                                               'colorbar':dict(
+                                             title=c_key)},
+                                         hoveron='color',
+                                         hoverinfo='count+probability',
+                                         arrangement='freeform')])
+                else:
+                    filtered_table['_C_'] = np.zeros_like(
+                        filtered_table[c_key])
+                    for idx, var in enumerate(unique_list):
+                        filtered_table.loc[filtered_table[c_key]
+                                           == var, '_C_'] = idx
+
+                    parallel_fig = go.Figure(
+                        data=[go.Parcats(dimensions=dims,
+                                         line={'color': filtered_table['_C_']},
+                                         hoverinfo='count+probability',
+                                         arrangement='freeform')])
             else:
-                filtered_table['_C_'] = np.zeros_like(filtered_table[c_key])
-                for idx, var in enumerate(unique_list):
-                    filtered_table.loc[filtered_table[c_key]
-                                       == var, '_C_'] = idx
-
-                parallel_fig = go.Figure(
-                    data=[go.Parcats(dimensions=dims,
-                                     line={'color': filtered_table['_C_']},
-                                     hoverinfo='count+probability',
-                                     arrangement='freeform')])
+                parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
+                                                          arrangement='freeform')])
         else:
-            parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
-                                                      arrangement='freeform')])
+            parallel_fig = {
+                'data': [{'type': 'histogram',
+                          'x': []}
+                         ],
+                'layout': {
+                }}
 
         parallel_dim_disabled = False
         parallel_c_disabled = False
