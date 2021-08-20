@@ -85,7 +85,7 @@ def get_scatter3d(data_frame,
             opacity = np.linspace(1, 0.2, len(data_frame))
             for idx, frame in enumerate(data_frame):
                 kwargs['opacity'] = opacity[idx]
-                if idx>0:
+                if idx > 0:
                     kwargs['showlegend'] = False
                 data = data+get_scatter3d_data(
                     frame,
@@ -117,7 +117,7 @@ def get_scatter3d(data_frame,
             opacity = np.linspace(1, 0.2, len(data_frame))
             for idx, frame in enumerate(data_frame):
                 kwargs['opacity'] = opacity[idx]
-                if idx>0:
+                if idx > 0:
                     kwargs['showlegend'] = False
                 data = data+get_scatter3d_data(
                     frame,
