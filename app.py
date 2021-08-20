@@ -864,17 +864,14 @@ def filter_changed(
         # get a single frame data from Redis
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
             frame_list[slider_arg]))
-        data['_DECAY_'] = 1.0
 
         if decay > 0:
-            opacity = 0.8/decay
             for val in range(1, decay+1):
                 if (slider_arg-val) >= 0:
-                    temp_data = redis_get(session_id,
-                                          REDIS_KEYS['frame_data'],
-                                          str(frame_list[slider_arg-val]))
-                    temp_data['_DECAY_'] = 1-opacity*val
-                    data = data.append(temp_data)
+                    data = data.append(
+                        redis_get(session_id,
+                                  REDIS_KEYS['frame_data'],
+                                  str(frame_list[slider_arg-val])))
                 else:
                     break
 
