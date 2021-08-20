@@ -251,11 +251,15 @@ def celery_filtering_data(
             ')'
 
         data = frame_group.get_group(frame_list[slider_arg])
+        data['_DECAY_'] = 1.0
         if decay > 0:
+            opacity = 0.8/decay
             for val in range(1, decay+1):
                 if (slider_arg-val) >= 0:
-                    data = data.append(frame_group.get_group(
-                        frame_list[slider_arg-val]))
+                    temp_data = frame_group.get_group(
+                        frame_list[slider_arg-val])
+                    temp_data['_DECAY_'] = 1-opacity*val
+                    data = data.append(temp_data)
                 else:
                     break
 
