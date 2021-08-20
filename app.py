@@ -315,6 +315,7 @@ def case_selected(case, session_id):
         Input('stop-button', 'n_clicks'),
     ],
     [
+        State('decay-slider', 'value'),
         State('case-picker', 'value'),
         State('session-id', 'data'),
         State('slider-frame', 'max'),
@@ -331,6 +332,7 @@ def file_selected(
         interval,
         play_clicks,
         stop_clicks,
+        decay,
         case,
         session_id,
         slider_max,
@@ -526,6 +528,7 @@ def file_selected(
 
         task_kwargs['c_key'] = c_key
         task_kwargs['colormap'] = colormap
+        task_kwargs['decay'] = decay
 
         # invoke celery task
         redis_set(0, session_id, REDIS_KEYS['task_id'])
@@ -863,9 +866,9 @@ def filter_changed(
             frame_list[slider_arg]))
 
         if decay > 0:
-            for val in range(0, decay):
+            for val in range(1, decay+1):
                 if (slider_arg-val) >= 0:
-                    data.append(
+                    data = data.append(
                         redis_get(session_id,
                                   REDIS_KEYS['frame_data'],
                                   str(frame_list[slider_arg-val])))
@@ -892,6 +895,7 @@ def filter_changed(
     task_kwargs = dict()
     task_kwargs['c_key'] = c_key
     task_kwargs['colormap'] = colormap
+    task_kwargs['decay'] = decay
     # set outline width
     if outline_enable:
         fig_kwargs['linewidth'] = 1
