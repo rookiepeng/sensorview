@@ -135,9 +135,10 @@ def get_scatter3d_data(data_frame,
                     hovertemplate='%{text}',
                     mode='markers',
                     name=c_item,
+                    showlegend=showlegend,
                     marker=dict(
                         size=3,
-                        opacity=0.8,
+                        opacity=opacity,
                         line=dict(
                             color="#757575",
                             width=linewidth,
