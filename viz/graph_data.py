@@ -86,7 +86,7 @@ def get_scatter3d_data(data_frame,
                     size=3,
                     color=color,
                     colorscale=colormap,
-                    opacity=0.8,
+                    opacity=data_frame['_DECAY_'],
                     colorbar=dict(
                         title=c_label,
                     ),
