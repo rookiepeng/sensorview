@@ -48,6 +48,8 @@ def get_scatter3d_data(data_frame,
     name = kwargs.get('name', None)
     hover = kwargs.get('hover', None)
     c_type = kwargs.get('c_type', 'numerical')
+    opacity = kwargs.get('opacity', 0.8)
+    showlegend = kwargs.get('showlegend', True)
 
     if c_type == 'numerical':
         color = data_frame[c_key]
@@ -82,11 +84,12 @@ def get_scatter3d_data(data_frame,
                 hovertemplate=hovertemplate,
                 mode='markers',
                 name=name,
+                showlegend=showlegend,
                 marker=dict(
                     size=3,
                     color=color,
                     colorscale=colormap,
-                    opacity=0.8,
+                    opacity=opacity,
                     colorbar=dict(
                         title=c_label,
                     ),

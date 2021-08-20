@@ -251,14 +251,6 @@ def celery_filtering_data(
             ')'
 
         data = frame_group.get_group(frame_list[slider_arg])
-        if decay > 0:
-            for val in range(1, decay+1):
-                if (slider_arg-val) >= 0:
-                    data = data.append(frame_group.get_group(
-                        frame_list[slider_arg-val]))
-                else:
-                    break
-
         filterd_frame = filter_all(
             data,
             num_keys,
@@ -268,6 +260,22 @@ def celery_filtering_data(
             visible_table,
             visible_picker
         )
+        if decay > 0:
+            filterd_frame = [filterd_frame]
+            for val in range(1, decay+1):
+                if (slider_arg-val) >= 0:
+                    filterd_frame.append(
+                        filter_all(frame_group.get_group(
+                            frame_list[slider_arg-val]),
+                            num_keys,
+                            num_values,
+                            cat_keys,
+                            cat_values,
+                            visible_table,
+                            visible_picker
+                        ))
+                else:
+                    break
 
         fig = get_scatter3d(
             filterd_frame,
