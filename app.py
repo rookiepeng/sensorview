@@ -859,19 +859,44 @@ def filter_changed(
                                file['path'] +
                                '/' +
                                file['feather_name'])
+        filterd_frame = filter_all(data,
+                                   num_keys,
+                                   num_values,
+                                   cat_keys,
+                                   cat_values,
+                                   visible_table,
+                                   visible_list)
         fig_kwargs['image'] = None
     else:
         # get a single frame data from Redis
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
             frame_list[slider_arg]))
 
+        filterd_frame = filter_all(data,
+                                   num_keys,
+                                   num_values,
+                                   cat_keys,
+                                   cat_values,
+                                   visible_table,
+                                   visible_list)
+
         if decay > 0:
+            filterd_frame = [filterd_frame]
             for val in range(1, decay+1):
                 if (slider_arg-val) >= 0:
-                    data = data.append(
+                    # filter the data
+                    filterd_frame.append(filter_all(
                         redis_get(session_id,
                                   REDIS_KEYS['frame_data'],
-                                  str(frame_list[slider_arg-val])))
+                                  str(frame_list[slider_arg-val])),
+                        num_keys,
+                        num_values,
+                        cat_keys,
+                        cat_values,
+                        visible_table,
+                        visible_list
+                    ))
+
                 else:
                     break
 
@@ -966,17 +991,6 @@ def filter_changed(
         ]
     else:
         fig_kwargs['c_range'] = [0, 0]
-
-    # filter the data
-    filterd_frame = filter_all(
-        data,
-        num_keys,
-        num_values,
-        cat_keys,
-        cat_values,
-        visible_table,
-        visible_list
-    )
 
     fig_kwargs['name'] = 'Index: ' +\
         str(slider_arg) +\
