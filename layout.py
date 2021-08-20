@@ -134,6 +134,21 @@ filter_card = dbc.Card([
                 ),
             ]
         ),
+
+        dbc.FormGroup(
+            [
+                dbc.Label('Decay'),
+                dcc.Slider(
+                    id='decay-slider',
+                    min=0,
+                    max=10,
+                    step=1,
+                    value=0,
+                    tooltip={'always_visible': False,
+                             'placement': 'top'}
+                ),
+            ]
+        ),
     ]),
     dbc.CardHeader('Filter'),
     dbc.CardBody([

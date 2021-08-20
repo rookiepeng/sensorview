@@ -720,6 +720,7 @@ def overlay_switch_changed(overlay):
         Input('outline-switch', 'value'),
         Input('scatter3d', 'clickData'),
         Input('left-hide-trigger', 'data'),
+        Input('decay-slider', 'value'),
     ],
     [
         State('click-hide-switch', 'value'),
@@ -739,6 +740,7 @@ def filter_changed(
     outline_enable,
     click_data,
     _,
+    decay,
     click_hide,
     trigger_idx,
     session_id,
@@ -767,6 +769,8 @@ def filter_changed(
     :param json click_data
         properties of the clicked data point
     _
+    :param int decay
+        number of decay frames
     :param boolean click_hide
         flag to hide the data when clicked
     :param int trigger_idx
@@ -857,6 +861,16 @@ def filter_changed(
         # get a single frame data from Redis
         data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
             frame_list[slider_arg]))
+
+        if decay > 0:
+            for val in range(0, decay):
+                if (slider_arg-val) >= 0:
+                    data.append(
+                        redis_get(session_id,
+                                  REDIS_KEYS['frame_data'],
+                                  str(frame_list[slider_arg-val])))
+                else:
+                    break
 
         img_path = './data/' +\
             case +\
