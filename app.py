@@ -887,7 +887,7 @@ def filter_changed(
         task_kwargs['linewidth'] = 0
 
     # invoke celery task
-    if trigger_id != 'slider-frame':
+    if trigger_id != 'slider-frame' or trigger_id != 'overlay-switch':
         redis_set(0, session_id, REDIS_KEYS['task_id'])
         redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
