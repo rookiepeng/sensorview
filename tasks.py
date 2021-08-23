@@ -35,6 +35,8 @@ import pandas as pd
 import numpy as np
 
 from viz.viz import get_scatter3d
+from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from viz.graph_layout import get_scatter3d_layout
 from utils import redis_set, redis_get, REDIS_KEYS, KEY_TYPES
 
 
@@ -260,30 +262,30 @@ def celery_filtering_data(
             visible_table,
             visible_picker
         )
-        if decay > 0:
-            filterd_frame = [filterd_frame]
-            for val in range(1, decay+1):
-                if (slider_arg-val) >= 0:
-                    filterd_frame.append(
-                        filter_all(frame_group.get_group(
-                            frame_list[slider_arg-val]),
-                            num_keys,
-                            num_values,
-                            cat_keys,
-                            cat_values,
-                            visible_table,
-                            visible_picker
-                        ))
-                else:
-                    break
 
-        fig = get_scatter3d(
+        fig = get_scatter3d_data(
             filterd_frame,
             **fig_kwargs
         )
+        # fig = get_scatter3d(
+        #     filterd_frame,
+        #     **fig_kwargs
+        # )
+        ref_fig = [get_ref_scatter3d_data(
+            data_frame=filterd_frame,
+            x_key=kwargs['x_ref'],
+            y_key=kwargs['y_ref'],
+            z_key=None,
+            name=kwargs.get('ref_name', None)
+        )]
+        fig_layout = get_scatter3d_layout(**fig_kwargs)
 
         if redis_get(session_id, REDIS_KEYS['task_id']) == task_id:
             redis_set(fig, session_id, REDIS_KEYS['figure'], str(slider_arg))
+            redis_set(ref_fig, session_id,
+                      REDIS_KEYS['figure_ref'], str(slider_arg))
+            redis_set(fig_layout, session_id,
+                      REDIS_KEYS['figure_layout'], str(slider_arg))
             redis_set(slider_arg, session_id, REDIS_KEYS['figure_idx'])
         else:
             logger.info('Task '+str(task_id)+' terminated by a new task')

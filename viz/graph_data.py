@@ -154,7 +154,8 @@ def get_ref_scatter3d_data(data_frame,
                            x_key,
                            y_key,
                            z_key=None,
-                           name=None):
+                           name=None,
+                           **kwargs):
 
     if data_frame.shape[0] == 0:
         return {'mode': 'markers', 'type': 'scatter3d',

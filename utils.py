@@ -40,6 +40,8 @@ REDIS_KEYS = {'dataset': 'DATASET',
               'config': 'CONFIG',
               'figure_idx': 'FIGURE_IDX',
               'figure': 'FIGURE',
+              'figure_ref': 'FIGURE_REF',
+              'figure_layout': 'FIGURE_LAYOUT',
               'task_id': 'TASK_ID',
               'filter_kwargs': 'FILTGER_KWARGS',
               'selected_data': 'SELECTED_DATA'}
