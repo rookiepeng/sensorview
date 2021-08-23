@@ -810,10 +810,30 @@ def filter_changed(
         fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
         if fig_idx is not None:
             if slider_arg <= fig_idx:
-                return [redis_get(session_id,
-                                  REDIS_KEYS['figure'],
-                                  str(slider_arg)),
-                        dash.no_update]
+                fig = redis_get(session_id,
+                                REDIS_KEYS['figure'],
+                                str(slider_arg))
+                if decay > 0:
+                    opacity = np.linspace(1, 0.2, decay+1)
+                    for val in range(1, decay+1):
+                        if (slider_arg-val) >= 0:
+                            new_fig = redis_get(session_id,
+                                                REDIS_KEYS['figure'],
+                                                str(slider_arg-val))
+                            new_fig[0]['marker']['opacity'] = opacity[val]
+                            fig = fig+new_fig
+
+                fig_ref = redis_get(session_id,
+                                    REDIS_KEYS['figure_ref'],
+                                    str(slider_arg))
+                layout = redis_get(session_id,
+                                   REDIS_KEYS['figure_layout'],
+                                   str(slider_arg))
+                return [dict(
+                    data=fig_ref+fig,
+                    layout=layout
+                ),
+                    dash.no_update]
 
     # get config from Redis
     config = redis_get(session_id, REDIS_KEYS['config'])
@@ -851,71 +871,6 @@ def filter_changed(
     fig_kwargs = dict()
     fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
-    if overlay_enable:
-        # overlay all the frames
-        # get data from .feather file on the disk
-        data = pd.read_feather('./data/' +
-                               case +
-                               file['path'] +
-                               '/' +
-                               file['feather_name'])
-        filterd_frame = filter_all(data,
-                                   num_keys,
-                                   num_values,
-                                   cat_keys,
-                                   cat_values,
-                                   visible_table,
-                                   visible_list)
-        fig_kwargs['image'] = None
-    else:
-        # get a single frame data from Redis
-        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
-            frame_list[slider_arg]))
-
-        filterd_frame = filter_all(data,
-                                   num_keys,
-                                   num_values,
-                                   cat_keys,
-                                   cat_values,
-                                   visible_table,
-                                   visible_list)
-
-        if decay > 0:
-            filterd_frame = [filterd_frame]
-            for val in range(1, decay+1):
-                if (slider_arg-val) >= 0:
-                    # filter the data
-                    filterd_frame.append(filter_all(
-                        redis_get(session_id,
-                                  REDIS_KEYS['frame_data'],
-                                  str(frame_list[slider_arg-val])),
-                        num_keys,
-                        num_values,
-                        cat_keys,
-                        cat_values,
-                        visible_table,
-                        visible_list
-                    ))
-
-                else:
-                    break
-
-        img_path = './data/' +\
-            case +\
-            file['path'] +\
-            '/imgs/' + \
-            file['name'][0:-4] + \
-            '_' +\
-            str(slider_arg) +\
-            '.jpg'
-
-        # encode image frame
-        try:
-            encoding = base64.b64encode(open(img_path, 'rb').read())
-            fig_kwargs['image'] = 'data:image/jpeg;base64,{}'.format(
-                encoding.decode())
-        except FileNotFoundError:
-            fig_kwargs['image'] = None
 
     task_kwargs = dict()
     task_kwargs['c_key'] = c_key
@@ -1002,6 +957,74 @@ def filter_changed(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
+
+    if overlay_enable:
+        # overlay all the frames
+        # get data from .feather file on the disk
+        data = pd.read_feather('./data/' +
+                               case +
+                               file['path'] +
+                               '/' +
+                               file['feather_name'])
+        filterd_frame = filter_all(data,
+                                   num_keys,
+                                   num_values,
+                                   cat_keys,
+                                   cat_values,
+                                   visible_table,
+                                   visible_list)
+        fig_kwargs['image'] = None
+
+
+    else:
+        # get a single frame data from Redis
+        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
+            frame_list[slider_arg]))
+
+        filterd_frame = filter_all(data,
+                                   num_keys,
+                                   num_values,
+                                   cat_keys,
+                                   cat_values,
+                                   visible_table,
+                                   visible_list)
+
+        if decay > 0:
+            filterd_frame = [filterd_frame]
+            for val in range(1, decay+1):
+                if (slider_arg-val) >= 0:
+                    # filter the data
+                    filterd_frame.append(filter_all(
+                        redis_get(session_id,
+                                  REDIS_KEYS['frame_data'],
+                                  str(frame_list[slider_arg-val])),
+                        num_keys,
+                        num_values,
+                        cat_keys,
+                        cat_values,
+                        visible_table,
+                        visible_list
+                    ))
+
+                else:
+                    break
+
+        img_path = './data/' +\
+            case +\
+            file['path'] +\
+            '/imgs/' + \
+            file['name'][0:-4] + \
+            '_' +\
+            str(slider_arg) +\
+            '.jpg'
+
+        # encode image frame
+        try:
+            encoding = base64.b64encode(open(img_path, 'rb').read())
+            fig_kwargs['image'] = 'data:image/jpeg;base64,{}'.format(
+                encoding.decode())
+        except FileNotFoundError:
+            fig_kwargs['image'] = None
 
     # generate the graph
     fig = get_scatter3d(
