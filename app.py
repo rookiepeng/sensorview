@@ -52,6 +52,8 @@ from layout import get_app_layout
 from viz.viz import get_scatter3d
 from viz.viz import get_scatter2d, get_heatmap
 from viz.viz import get_animation_data
+from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from viz.graph_layout import get_scatter3d_layout
 
 from tasks import filter_all
 from tasks import celery_filtering_data
@@ -803,7 +805,7 @@ def filter_changed(
             ((not click_hide) or
                 (click_data['points'][0]['curveNumber'] != 0)):
         raise PreventUpdate
-
+    opacity = np.linspace(1, 0.2, decay+1)
     # if slider value changed
     #   - if Redis `figure` buffer ready, return figure from Redis
     if trigger_id == 'slider-frame':
@@ -814,7 +816,6 @@ def filter_changed(
                                 REDIS_KEYS['figure'],
                                 str(slider_arg))
                 if decay > 0:
-                    opacity = np.linspace(1, 0.2, decay+1)
                     for val in range(1, decay+1):
                         if (slider_arg-val) >= 0:
                             new_fig = redis_get(session_id,
@@ -885,7 +886,7 @@ def filter_changed(
         task_kwargs['linewidth'] = 0
 
     # invoke celery task
-    if trigger_id != 'slider-frame' and trigger_id != 'overlay-switch':
+    if trigger_id != 'slider-frame' and trigger_id != 'overlay-switch' and trigger_id != 'decay-slider':
         redis_set(0, session_id, REDIS_KEYS['task_id'])
         redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
@@ -975,40 +976,12 @@ def filter_changed(
                                    visible_list)
         fig_kwargs['image'] = None
 
-
+        # generate the graph
+        fig = get_scatter3d(
+            filterd_frame,
+            **fig_kwargs
+        )
     else:
-        # get a single frame data from Redis
-        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
-            frame_list[slider_arg]))
-
-        filterd_frame = filter_all(data,
-                                   num_keys,
-                                   num_values,
-                                   cat_keys,
-                                   cat_values,
-                                   visible_table,
-                                   visible_list)
-
-        if decay > 0:
-            filterd_frame = [filterd_frame]
-            for val in range(1, decay+1):
-                if (slider_arg-val) >= 0:
-                    # filter the data
-                    filterd_frame.append(filter_all(
-                        redis_get(session_id,
-                                  REDIS_KEYS['frame_data'],
-                                  str(frame_list[slider_arg-val])),
-                        num_keys,
-                        num_values,
-                        cat_keys,
-                        cat_values,
-                        visible_table,
-                        visible_list
-                    ))
-
-                else:
-                    break
-
         img_path = './data/' +\
             case +\
             file['path'] +\
@@ -1026,11 +999,66 @@ def filter_changed(
         except FileNotFoundError:
             fig_kwargs['image'] = None
 
-    # generate the graph
-    fig = get_scatter3d(
-        filterd_frame,
-        **fig_kwargs
-    )
+        # get a single frame data from Redis
+        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
+            frame_list[slider_arg]))
+
+        filterd_frame = filter_all(data,
+                                   num_keys,
+                                   num_values,
+                                   cat_keys,
+                                   cat_values,
+                                   visible_table,
+                                   visible_list)
+        fig = get_scatter3d_data(
+            filterd_frame,
+            **fig_kwargs
+        )
+
+        if decay > 0:
+            for val in range(1, decay+1):
+                if (slider_arg-val) >= 0:
+                    # filter the data
+                    frame_temp = filter_all(
+                        redis_get(session_id,
+                                  REDIS_KEYS['frame_data'],
+                                  str(frame_list[slider_arg-val])),
+                        num_keys,
+                        num_values,
+                        cat_keys,
+                        cat_values,
+                        visible_table,
+                        visible_list
+                    )
+                    fig_kwargs['opacity'] = opacity[val]
+                    fig_kwargs['name'] = 'Index: ' +\
+                        str(slider_arg-val) +\
+                        ' (' +\
+                        slider_label +\
+                        ': ' +\
+                        str(frame_list[slider_arg-val]) +\
+                        ')'
+                    fig = fig+get_scatter3d_data(
+                        frame_temp,
+                        **fig_kwargs
+                    )
+
+                else:
+                    break
+
+        fig_ref = [get_ref_scatter3d_data(
+            data_frame=filterd_frame,
+            x_key=fig_kwargs['x_ref'],
+            y_key=fig_kwargs['y_ref'],
+            z_key=None,
+            name=fig_kwargs.get('ref_name', None)
+        )]
+        layout = get_scatter3d_layout(**fig_kwargs)
+
+        fig = dict(
+            data=fig_ref+fig,
+            layout=layout
+        )
 
     if (trigger_id == 'slider-frame') or \
         (trigger_id == 'left-hide-trigger') or \
