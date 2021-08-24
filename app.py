@@ -2474,7 +2474,7 @@ def update_buffer_indicator(
     :rtype: int
     """
     if max_frame is None:
-        raise PreventUpdate
+        return [0,  False]
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
