@@ -144,11 +144,13 @@ DROPDOWN_VALUES_CAT_COLOR = [
     ],
     Input('refresh-button', 'n_clicks')
 )
-def refresh_button_clicked(_):
+def refresh_button_clicked(unused):
     """
     Callback when the refresh button is clicked
 
-    :param _:
+        Scan all the folders under './data' with 'config.json' inside
+
+    :param unused:
         Number of clicks
 
     :return: [
@@ -162,8 +164,12 @@ def refresh_button_clicked(_):
     obj = os.scandir('./data')
     for entry in obj:
         if entry.is_dir():
-            options.append({'label': entry.name,
-                            'value': entry.name})
+            # only add the folder with 'config.json'
+            if os.path.exists('./data/' +
+                              entry.name +
+                              '/config.json'):
+                options.append({'label': entry.name,
+                                'value': entry.name})
 
     return [options, options[0]['value']]
 
