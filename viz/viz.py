@@ -71,69 +71,29 @@ def get_scatter3d(data_frame,
     ref_name = kwargs.get('ref_name', None)
 
     if x_ref is None or y_ref is None:
-        if type(data_frame) != list:
-            data = get_scatter3d_data(
-                data_frame,
-                x_key,
-                y_key,
-                z_key,
-                c_key,
-                **kwargs
-            )
-        else:
-            data = []
-            opacity = np.linspace(1, 0.2, len(data_frame))
-            for idx, frame in enumerate(data_frame):
-                kwargs['opacity'] = opacity[idx]
-                if idx > 0:
-                    kwargs['showlegend'] = False
-                data = data+get_scatter3d_data(
-                    frame,
-                    x_key,
-                    y_key,
-                    z_key,
-                    c_key,
-                    **kwargs
-                )
-
+        data = get_scatter3d_data(
+            data_frame,
+            x_key,
+            y_key,
+            z_key,
+            c_key,
+            **kwargs
+        )
     else:
-        if type(data_frame) != list:
-            data = get_scatter3d_data(
-                data_frame,
-                x_key,
-                y_key,
-                z_key,
-                c_key,
-                **kwargs
-            )+[get_ref_scatter3d_data(
-                data_frame=data_frame,
-                x_key=x_ref,
-                y_key=y_ref,
-                z_key=z_ref,
-                name=ref_name
-            )]
-        else:
-            data = []
-            opacity = np.linspace(1, 0.2, len(data_frame))
-            for idx, frame in enumerate(data_frame):
-                kwargs['opacity'] = opacity[idx]
-                if idx > 0:
-                    kwargs['showlegend'] = False
-                data = data+get_scatter3d_data(
-                    frame,
-                    x_key,
-                    y_key,
-                    z_key,
-                    c_key,
-                    **kwargs
-                )
-            data = data+[get_ref_scatter3d_data(
-                data_frame=data_frame[0],
-                x_key=x_ref,
-                y_key=y_ref,
-                z_key=z_ref,
-                name=ref_name
-            )]
+        data = get_scatter3d_data(
+            data_frame,
+            x_key,
+            y_key,
+            z_key,
+            c_key,
+            **kwargs
+        )+[get_ref_scatter3d_data(
+            data_frame=data_frame,
+            x_key=x_ref,
+            y_key=y_ref,
+            z_key=z_ref,
+            name=ref_name
+        )]
 
     return dict(
         data=data,

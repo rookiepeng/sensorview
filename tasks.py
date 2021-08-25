@@ -267,10 +267,6 @@ def celery_filtering_data(
             filterd_frame,
             **fig_kwargs
         )
-        # fig = get_scatter3d(
-        #     filterd_frame,
-        #     **fig_kwargs
-        # )
         ref_fig = [get_ref_scatter3d_data(
             data_frame=filterd_frame,
             x_key=kwargs['x_ref'],
