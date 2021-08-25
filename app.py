@@ -1068,8 +1068,9 @@ def filter_changed(
 
     if (trigger_id == 'slider-frame') or \
         (trigger_id == 'left-hide-trigger') or \
-            (trigger_id == 'colormap-3d') or \
-            (trigger_id == 'outline-switch'):
+        (trigger_id == 'colormap-3d') or \
+        (trigger_id == 'outline-switch') or \
+            (trigger_id == 'decay-slider'):
         filter_trig = dash.no_update
     elif trigger_id == 'scatter3d':
         if click_hide and \
