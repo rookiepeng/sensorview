@@ -892,7 +892,9 @@ def filter_changed(
         task_kwargs['linewidth'] = 0
 
     # invoke celery task
-    if trigger_id != 'slider-frame' and trigger_id != 'overlay-switch' and trigger_id != 'decay-slider':
+    if trigger_id != 'slider-frame' and \
+        trigger_id != 'overlay-switch' and \
+            trigger_id != 'decay-slider':
         redis_set(0, session_id, REDIS_KEYS['task_id'])
         redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
         celery_filtering_data.apply_async(
@@ -1789,8 +1791,9 @@ def update_parallel(
                                          hoverinfo='count+probability',
                                          arrangement='freeform')])
             else:
-                parallel_fig = go.Figure(data=[go.Parcats(dimensions=dims,
-                                                          arrangement='freeform')])
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     arrangement='freeform')])
         else:
             parallel_fig = {
                 'data': [{'type': 'histogram',
