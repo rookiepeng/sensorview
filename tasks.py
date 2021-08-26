@@ -161,8 +161,6 @@ def celery_filtering_data(
     frame_group = dataset.groupby(config['slider'])
 
     # prepare figure key word arguments
-
-    decay = kwargs.get('decay', 0)
     fig_kwargs = kwargs
     fig_kwargs['image'] = None
 

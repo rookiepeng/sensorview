@@ -366,6 +366,8 @@ def file_selected(
         number of clicks from play button
     :param int stop_clicks
         number of clicks from stop button
+    :param int decay
+        number additional frames to display
     :param str case
         case name
     :param str session_id
@@ -836,11 +838,11 @@ def filter_changed(
                 layout = redis_get(session_id,
                                    REDIS_KEYS['figure_layout'],
                                    str(slider_arg))
-                return [dict(
-                    data=fig_ref+fig,
-                    layout=layout
-                ),
-                    dash.no_update]
+                return [
+                    dict(data=fig_ref+fig,
+                         layout=layout),
+                    dash.no_update
+                ]
 
     # get config from Redis
     config = redis_get(session_id, REDIS_KEYS['config'])
@@ -861,16 +863,18 @@ def filter_changed(
     frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
 
     # update visibility table if a data point is clicked to hide
-    if trigger_id == 'scatter3d' and click_hide and \
+    if trigger_id == 'scatter3d' and \
+        click_hide and \
             click_data['points'][0]['curveNumber'] == 0:
+
         if visible_table['_VIS_'][
             click_data['points'][0]['id']
         ] == 'visible':
-            visible_table.at[click_data['points']
-                             [0]['id'], '_VIS_'] = 'hidden'
+            visible_table.at[
+                click_data['points'][0]['id'], '_VIS_'] = 'hidden'
         else:
-            visible_table.at[click_data['points']
-                             [0]['id'], '_VIS_'] = 'visible'
+            visible_table.at[
+                click_data['points'][0]['id'], '_VIS_'] = 'visible'
 
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
@@ -897,14 +901,14 @@ def filter_changed(
             trigger_id != 'decay-slider':
         redis_set(0, session_id, REDIS_KEYS['task_id'])
         redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
-        celery_filtering_data.apply_async(
-            args=[session_id,
-                  case,
-                  file,
-                  visible_list], kwargs=task_kwargs, serializer='json')
+        celery_filtering_data.apply_async(args=[session_id,
+                                                case,
+                                                file,
+                                                visible_list],
+                                          kwargs=task_kwargs,
+                                          serializer='json')
 
-    slider_label = keys_dict[config['slider']
-                             ]['description']
+    slider_label = keys_dict[config['slider']]['description']
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
     fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
         'description', fig_kwargs['x_key'])
@@ -1008,8 +1012,9 @@ def filter_changed(
             fig_kwargs['image'] = None
 
         # get a single frame data from Redis
-        data = redis_get(session_id, REDIS_KEYS['frame_data'], str(
-            frame_list[slider_arg]))
+        data = redis_get(session_id,
+                         REDIS_KEYS['frame_data'],
+                         str(frame_list[slider_arg]))
 
         filterd_frame = filter_all(data,
                                    num_keys,
@@ -1054,13 +1059,14 @@ def filter_changed(
                 else:
                     break
 
-        fig_ref = [get_ref_scatter3d_data(
-            data_frame=filterd_frame,
-            x_key=fig_kwargs['x_ref'],
-            y_key=fig_kwargs['y_ref'],
-            z_key=None,
-            name=fig_kwargs.get('ref_name', None)
-        )]
+        fig_ref = [
+            get_ref_scatter3d_data(
+                data_frame=filterd_frame,
+                x_key=fig_kwargs['x_ref'],
+                y_key=fig_kwargs['y_ref'],
+                z_key=None,
+                name=fig_kwargs.get('ref_name', None))
+        ]
         layout = get_scatter3d_layout(**fig_kwargs)
 
         fig = dict(
