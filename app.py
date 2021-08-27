@@ -56,7 +56,7 @@ from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
 from tasks import filter_all
-from tasks import celery_filtering_data
+from tasks import celery_filtering_data, celery_export_video
 
 from utils import load_config, redis_set, redis_get, REDIS_KEYS, KEY_TYPES
 
@@ -1991,6 +1991,7 @@ def export_3d_scatter_animation(
         raise PreventUpdate
 
     config = redis_get(session_id, REDIS_KEYS['config'])
+    keys_dict = config['keys']
 
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -2012,64 +2013,113 @@ def export_3d_scatter_animation(
                            file['feather_name'])
     visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
-    x_det = config.get('x_3d', num_keys[0])
-    y_det = config.get('y_3d', num_keys[1])
-    z_det = config.get('z_3d', num_keys[2])
-    x_host = config.get('x_ref', None)
-    y_host = config.get('y_ref', None)
+    fig_kwargs = dict()
+    fig_kwargs['hover'] = keys_dict
+    fig_kwargs['image'] = None
 
-    filtered_table = filter_all(
-        data,
-        num_keys,
-        num_values,
-        cat_keys,
-        cat_values,
-        visible_table,
-        visible_list
-    )
+    fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
+    fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
+    fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
+    fig_kwargs['c_key'] = c_key
+    fig_kwargs['x_ref'] = config.get('x_ref', None)
+    fig_kwargs['y_ref'] = config.get('y_ref', None)
 
-    frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
-    frame_list = filtered_table[config['slider']].unique()
-    img_list = []
+    # set graph's range the same for all the frames
+    if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
+        fig_kwargs['x_range'] = [
+            min([num_values[num_keys.index(fig_kwargs['x_key'])][0],
+                 num_values[num_keys.index(fig_kwargs['x_ref'])][0]]),
+            max([num_values[num_keys.index(fig_kwargs['x_key'])][1],
+                 num_values[num_keys.index(fig_kwargs['x_ref'])][1]])
+        ]
+        fig_kwargs['y_range'] = [
+            min([num_values[num_keys.index(fig_kwargs['y_key'])][0],
+                 num_values[num_keys.index(fig_kwargs['y_ref'])][0]]),
+            max([num_values[num_keys.index(fig_kwargs['y_key'])][1],
+                 num_values[num_keys.index(fig_kwargs['y_ref'])][1]])
+        ]
+    else:
+        fig_kwargs['x_range'] = [
+            num_values[num_keys.index(fig_kwargs['x_key'])][0],
+            num_values[num_keys.index(fig_kwargs['x_key'])][1]
+        ]
+        fig_kwargs['y_range'] = [
+            num_values[num_keys.index(fig_kwargs['y_key'])][0],
+            num_values[num_keys.index(fig_kwargs['y_key'])][1]
+        ]
+    fig_kwargs['z_range'] = [
+        num_values[num_keys.index(fig_kwargs['z_key'])][0],
+        num_values[num_keys.index(fig_kwargs['z_key'])][1]
+    ]
 
-    data_name = file
-    for _, f_val in enumerate(frame_list):
-        img_idx = np.where(frame_list == f_val)[0][0]
-        img_list.append('./data/' +
-                        case +
-                        data_name['path'] +
-                        '/imgs/' +
-                        data_name['name'][0:-4] +
-                        '_' +
-                        str(img_idx) +
-                        '.jpg')
+    fig_kwargs['colormap'] = colormap
+    fig_kwargs['ref_name'] = 'Host Vehicle'
 
-    fig = go.Figure(
-        get_animation_data(
-            filtered_table,
-            x_key=x_det,
-            y_key=y_det,
-            z_key=z_det,
-            host_x_key=x_host,
-            host_y_key=y_host,
-            img_list=img_list,
-            c_key=c_key,
-            c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM']),
-            colormap=colormap,
-            hover=config['keys'],
-            title=data_name['name'][0:-4],
-            c_label=config['keys'][c_key]['description'],
-            height=750
-        )
-    )
+    celery_export_video.apply_async(args=[session_id,
+                                            case,
+                                            file,
+                                            visible_list],
+                                      kwargs=fig_kwargs,
+                                      serializer='json')
 
-    fig.write_html('data/' +
-                   case +
-                   '/images/' +
-                   timestamp +
-                   '_' +
-                   data_name['name'][0:-4] +
-                   '_3dview.html')
+    # x_det = config.get('x_3d', num_keys[0])
+    # y_det = config.get('y_3d', num_keys[1])
+    # z_det = config.get('z_3d', num_keys[2])
+    # x_host = config.get('x_ref', None)
+    # y_host = config.get('y_ref', None)
+
+    # filtered_table = filter_all(
+    #     data,
+    #     num_keys,
+    #     num_values,
+    #     cat_keys,
+    #     cat_values,
+    #     visible_table,
+    #     visible_list
+    # )
+
+    # frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
+    # frame_list = filtered_table[config['slider']].unique()
+    # img_list = []
+
+    # data_name = file
+    # for _, f_val in enumerate(frame_list):
+    #     img_idx = np.where(frame_list == f_val)[0][0]
+    #     img_list.append('./data/' +
+    #                     case +
+    #                     data_name['path'] +
+    #                     '/imgs/' +
+    #                     data_name['name'][0:-4] +
+    #                     '_' +
+    #                     str(img_idx) +
+    #                     '.jpg')
+
+    # fig = go.Figure(
+    #     get_animation_data(
+    #         filtered_table,
+    #         x_key=x_det,
+    #         y_key=y_det,
+    #         z_key=z_det,
+    #         host_x_key=x_host,
+    #         host_y_key=y_host,
+    #         img_list=img_list,
+    #         c_key=c_key,
+    #         c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM']),
+    #         colormap=colormap,
+    #         hover=config['keys'],
+    #         title=data_name['name'][0:-4],
+    #         c_label=config['keys'][c_key]['description'],
+    #         height=750
+    #     )
+    # )
+
+    # fig.write_html('data/' +
+    #                case +
+    #                '/images/' +
+    #                timestamp +
+    #                '_' +
+    #                data_name['name'][0:-4] +
+    #                '_3dview.html')
     return 0
 
 
