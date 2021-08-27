@@ -228,6 +228,7 @@ def get_animation_data(data_frame,
                        host_x_key,
                        host_y_key,
                        img_list=None,
+                       decay=0,
                        **kwargs):
 
     x_range = [np.min([np.min(data_frame[x_key]),
@@ -245,6 +246,7 @@ def get_animation_data(data_frame,
 
     ani_frames = []
     frame_list = data_frame['Frame'].unique()
+    opacity = np.linspace(1, 0.2, decay+1)
 
     for idx, frame_idx in enumerate(frame_list):
         filtered_list = data_frame[data_frame['Frame'] == frame_idx]
@@ -261,7 +263,7 @@ def get_animation_data(data_frame,
         else:
             img = None
 
-        new_frame = get_scatter3d(
+        fig = get_scatter3d_data(
             filtered_list,
             x_key,
             y_key,
@@ -269,13 +271,78 @@ def get_animation_data(data_frame,
             x_ref=host_x_key,
             y_ref=host_y_key,
             name='Frame: '+str(frame_idx),
-            ref_name='Host Vehicle',
             x_range=x_range,
             y_range=y_range,
             z_range=z_range,
             c_range=c_range,
             image=img,
-            **kwargs)
+            opacity=1,
+            **kwargs
+        )
+
+        if decay > 0:
+            for val in range(1, decay+1):
+                if (idx-val) >= 0:
+                    # filter the data
+                    frame_temp = data_frame[data_frame['Frame']
+                                            == frame_list[idx-val]]
+                    frame_temp = frame_temp.reset_index()
+
+                    fig = fig+get_scatter3d_data(
+                        frame_temp,
+                        x_key,
+                        y_key,
+                        z_key,
+                        x_ref=host_x_key,
+                        y_ref=host_y_key,
+                        name='Frame: '+str(frame_idx),
+                        x_range=x_range,
+                        y_range=y_range,
+                        z_range=z_range,
+                        c_range=c_range,
+                        opacity=opacity[val],
+                        **kwargs
+                    )
+
+                else:
+                    break
+
+        fig_ref = [
+            get_ref_scatter3d_data(
+                data_frame=filtered_list,
+                x_key=host_x_key,
+                y_key=host_y_key,
+                z_key=None,
+                name='Host Vehicle')
+        ]
+        layout = get_scatter3d_layout(x_range=x_range,
+                                      y_range=y_range,
+                                      z_range=z_range,
+                                      c_range=c_range,
+                                      image=img,
+                                      **kwargs)
+
+        new_frame = dict(
+            data=fig_ref+fig,
+            layout=layout
+        )
+
+        # new_frame = get_scatter3d(
+        #     filtered_list,
+        #     x_key,
+        #     y_key,
+        #     z_key,
+        #     x_ref=host_x_key,
+        #     y_ref=host_y_key,
+        #     name='Frame: '+str(frame_idx),
+        #     ref_name='Host Vehicle',
+        #     x_range=x_range,
+        #     y_range=y_range,
+        #     z_range=z_range,
+        #     c_range=c_range,
+        #     image=img,
+        #     **kwargs)
+
         # need 'name' to make sure animation works properly
         new_frame['name'] = str(frame_idx)
         ani_frames.append(new_frame)
