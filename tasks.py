@@ -273,12 +273,20 @@ def celery_filtering_data(
         fig_layout = get_scatter3d_layout(**fig_kwargs)
 
         if redis_get(session_id, REDIS_KEYS['task_id']) == task_id:
-            redis_set(fig, session_id, REDIS_KEYS['figure'], str(slider_arg))
-            redis_set(ref_fig, session_id,
-                      REDIS_KEYS['figure_ref'], str(slider_arg))
-            redis_set(fig_layout, session_id,
-                      REDIS_KEYS['figure_layout'], str(slider_arg))
-            redis_set(slider_arg, session_id, REDIS_KEYS['figure_idx'])
+            redis_set(fig,
+                      session_id, REDIS_KEYS['figure'],
+                      str(slider_arg))
+            redis_set(ref_fig,
+                      session_id,
+                      REDIS_KEYS['figure_ref'],
+                      str(slider_arg))
+            redis_set(fig_layout,
+                      session_id,
+                      REDIS_KEYS['figure_layout'],
+                      str(slider_arg))
+            redis_set(slider_arg,
+                      session_id,
+                      REDIS_KEYS['figure_idx'])
         else:
             logger.info('Task '+str(task_id)+' terminated by a new task')
             return
