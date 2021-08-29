@@ -427,6 +427,7 @@ def celery_export_video(
         'type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
     fig_kwargs['hover'] = keys_dict
+    decay = fig_kwargs['decay']
 
     fig = go.Figure(
         get_animation_data(
@@ -437,6 +438,7 @@ def celery_export_video(
             host_x_key=x_host,
             host_y_key=y_host,
             img_list=img_list,
+            decay=decay,
             c_key=c_key,
             c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM']),
             colormap=colormap,

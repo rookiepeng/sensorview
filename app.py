@@ -1955,6 +1955,7 @@ def update_heatmap(
         State('colormap-3d', 'value'),
         State('visible-picker', 'value'),
         State('file-picker', 'value'),
+        State('decay-slider', 'value')
     ]
 )
 def export_3d_scatter_animation(
@@ -1964,7 +1965,8 @@ def export_3d_scatter_animation(
     c_key,
     colormap,
     visible_list,
-    file
+    file,
+    decay
 ):
     """
     Export 3D scatter into an interactive animation file
@@ -2054,6 +2056,7 @@ def export_3d_scatter_animation(
 
     fig_kwargs['colormap'] = colormap
     fig_kwargs['ref_name'] = 'Host Vehicle'
+    fig_kwargs['decay'] = decay
 
     celery_export_video.apply_async(
         args=[session_id,
