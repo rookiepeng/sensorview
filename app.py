@@ -2055,71 +2055,14 @@ def export_3d_scatter_animation(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['ref_name'] = 'Host Vehicle'
 
-    celery_export_video.apply_async(args=[session_id,
-                                            case,
-                                            file,
-                                            visible_list],
-                                      kwargs=fig_kwargs,
-                                      serializer='json')
+    celery_export_video.apply_async(
+        args=[session_id,
+              case,
+              file,
+              visible_list],
+        kwargs=fig_kwargs,
+        serializer='json')
 
-    # x_det = config.get('x_3d', num_keys[0])
-    # y_det = config.get('y_3d', num_keys[1])
-    # z_det = config.get('z_3d', num_keys[2])
-    # x_host = config.get('x_ref', None)
-    # y_host = config.get('y_ref', None)
-
-    # filtered_table = filter_all(
-    #     data,
-    #     num_keys,
-    #     num_values,
-    #     cat_keys,
-    #     cat_values,
-    #     visible_table,
-    #     visible_list
-    # )
-
-    # frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
-    # frame_list = filtered_table[config['slider']].unique()
-    # img_list = []
-
-    # data_name = file
-    # for _, f_val in enumerate(frame_list):
-    #     img_idx = np.where(frame_list == f_val)[0][0]
-    #     img_list.append('./data/' +
-    #                     case +
-    #                     data_name['path'] +
-    #                     '/imgs/' +
-    #                     data_name['name'][0:-4] +
-    #                     '_' +
-    #                     str(img_idx) +
-    #                     '.jpg')
-
-    # fig = go.Figure(
-    #     get_animation_data(
-    #         filtered_table,
-    #         x_key=x_det,
-    #         y_key=y_det,
-    #         z_key=z_det,
-    #         host_x_key=x_host,
-    #         host_y_key=y_host,
-    #         img_list=img_list,
-    #         c_key=c_key,
-    #         c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM']),
-    #         colormap=colormap,
-    #         hover=config['keys'],
-    #         title=data_name['name'][0:-4],
-    #         c_label=config['keys'][c_key]['description'],
-    #         height=750
-    #     )
-    # )
-
-    # fig.write_html('data/' +
-    #                case +
-    #                '/images/' +
-    #                timestamp +
-    #                '_' +
-    #                data_name['name'][0:-4] +
-    #                '_3dview.html')
     return 0
 
 
