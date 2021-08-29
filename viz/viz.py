@@ -249,6 +249,9 @@ def get_animation_data(data_frame,
     opacity = np.linspace(1, 0.2, decay+1)
 
     for idx, frame_idx in enumerate(frame_list):
+        if idx<decay:
+            continue
+
         filtered_list = data_frame[data_frame['Frame'] == frame_idx]
         filtered_list = filtered_list.reset_index()
 
