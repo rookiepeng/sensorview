@@ -327,17 +327,16 @@ def celery_export_video(
     config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
-    slider_label = keys_dict[config['slider']
-                             ]['description']
-
     filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     num_values = filter_kwargs['num_values']
     cat_values = filter_kwargs['cat_values']
 
-    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
-    frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
+    visible_table = redis_get(session_id,
+                              REDIS_KEYS['visible_table'])
+    frame_list = redis_get(session_id,
+                           REDIS_KEYS['frame_list'])
 
     dataset = pd.read_feather('./data/'+case +
                               file['path']+'/' +
@@ -354,14 +353,13 @@ def celery_export_video(
 
     img_list = []
 
-    data_name = file
     for _, f_val in enumerate(frame_list):
         img_idx = np.where(frame_list == f_val)[0][0]
         img_list.append('./data/' +
                         case +
-                        data_name['path'] +
+                        file['path'] +
                         '/imgs/' +
-                        data_name['name'][0:-4] +
+                        file['name'][0:-4] +
                         '_' +
                         str(img_idx) +
                         '.jpg')
@@ -369,22 +367,22 @@ def celery_export_video(
     # prepare figure key word arguments
     fig_kwargs = kwargs
 
-    x_det = config.get('x_3d', num_keys[0])
-    # fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
-    #     'description', fig_kwargs['x_key'])
-    y_det = config.get('y_3d', num_keys[1])
-    # fig_kwargs['y_label'] = keys_dict[fig_kwargs['y_key']].get(
-    #     'description', fig_kwargs['y_key'])
-    z_det = config.get('z_3d', num_keys[2])
-    # fig_kwargs['z_label'] = keys_dict[fig_kwargs['z_key']].get(
-    #     'description', fig_kwargs['z_key'])
-    c_key = fig_kwargs['c_key']
-    # fig_kwargs['c_label'] = keys_dict[fig_kwargs['c_key']].get(
-    #     'description', fig_kwargs['c_key'])
-    x_host = config.get('x_ref', None)
-    y_host = config.get('y_ref', None)
+    fig_kwargs['hover'] = keys_dict
 
-    colormap = fig_kwargs['colormap']
+    fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
+    fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
+        'description', fig_kwargs['x_key'])
+    fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
+    fig_kwargs['y_label'] = keys_dict[fig_kwargs['y_key']].get(
+        'description', fig_kwargs['y_key'])
+    fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
+    fig_kwargs['z_label'] = keys_dict[fig_kwargs['z_key']].get(
+        'description', fig_kwargs['z_key'])
+    # c_key = fig_kwargs['c_key']
+    fig_kwargs['c_label'] = keys_dict[fig_kwargs['c_key']].get(
+        'description', fig_kwargs['c_key'])
+    fig_kwargs['x_ref'] = config.get('x_ref', None)
+    fig_kwargs['y_ref'] = config.get('y_ref', None)
 
     # set graph's range the same for all the frames
     if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
@@ -427,25 +425,16 @@ def celery_export_video(
         'type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
     fig_kwargs['hover'] = keys_dict
-    decay = fig_kwargs['decay']
+
+    fig_kwargs['title'] = file['name'][0:-4]
+
+    fig_kwargs['height'] = 750
 
     fig = go.Figure(
         get_animation_data(
             filtered_table,
-            x_key=x_det,
-            y_key=y_det,
-            z_key=z_det,
-            host_x_key=x_host,
-            host_y_key=y_host,
             img_list=img_list,
-            decay=decay,
-            c_key=c_key,
-            c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM']),
-            colormap=colormap,
-            hover=config['keys'],
-            title=data_name['name'][0:-4],
-            c_label=config['keys'][c_key]['description'],
-            height=750
+            **fig_kwargs
         )
     )
 
@@ -457,5 +446,5 @@ def celery_export_video(
                    '/images/' +
                    timestamp +
                    '_' +
-                   data_name['name'][0:-4] +
+                   file['name'][0:-4] +
                    '_3dview.html')
