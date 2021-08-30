@@ -225,31 +225,18 @@ def get_animation_data(data_frame,
                        x_key,
                        y_key,
                        z_key,
-                       host_x_key,
-                       host_y_key,
+                       x_ref,
+                       y_ref,
                        img_list=None,
                        decay=0,
                        **kwargs):
-
-    x_range = [np.min([np.min(data_frame[x_key]),
-                       np.min(data_frame[host_x_key])]),
-               np.max([np.max(data_frame[x_key]),
-                       np.max(data_frame[host_x_key])])]
-    y_range = [np.min([np.min(data_frame[y_key]),
-                       np.min(data_frame[host_y_key])]),
-               np.max([np.max(data_frame[y_key]),
-                       np.max(data_frame[host_y_key])])]
-    z_range = [np.min(data_frame[z_key]),
-               np.max(data_frame[z_key])]
-    c_range = [np.min(data_frame[kwargs.get('c_key')]),
-               np.max(data_frame[kwargs.get('c_key')])]
 
     ani_frames = []
     frame_list = data_frame['Frame'].unique()
     opacity = np.linspace(1, 0.2, decay+1)
 
     for idx, frame_idx in enumerate(frame_list):
-        if idx<decay:
+        if idx < decay:
             continue
 
         filtered_list = data_frame[data_frame['Frame'] == frame_idx]
@@ -271,15 +258,11 @@ def get_animation_data(data_frame,
             x_key,
             y_key,
             z_key,
-            x_ref=host_x_key,
-            y_ref=host_y_key,
+            x_ref=x_ref,
+            y_ref=y_ref,
             name='Frame: '+str(frame_idx),
-            x_range=x_range,
-            y_range=y_range,
-            z_range=z_range,
-            c_range=c_range,
             image=img,
-            opacity=1,
+            opacity=opacity[0],
             **kwargs
         )
 
@@ -296,13 +279,9 @@ def get_animation_data(data_frame,
                         x_key,
                         y_key,
                         z_key,
-                        x_ref=host_x_key,
-                        y_ref=host_y_key,
-                        name='Frame: '+str(frame_idx),
-                        x_range=x_range,
-                        y_range=y_range,
-                        z_range=z_range,
-                        c_range=c_range,
+                        x_ref=x_ref,
+                        y_ref=y_ref,
+                        name='Frame: '+str(frame_list[idx-val]),
                         opacity=opacity[val],
                         **kwargs
                     )
@@ -313,38 +292,18 @@ def get_animation_data(data_frame,
         fig_ref = [
             get_ref_scatter3d_data(
                 data_frame=filtered_list,
-                x_key=host_x_key,
-                y_key=host_y_key,
+                x_key=x_ref,
+                y_key=y_ref,
                 z_key=None,
                 name='Host Vehicle')
         ]
-        layout = get_scatter3d_layout(x_range=x_range,
-                                      y_range=y_range,
-                                      z_range=z_range,
-                                      c_range=c_range,
-                                      image=img,
+        layout = get_scatter3d_layout(image=img,
                                       **kwargs)
 
         new_frame = dict(
             data=fig_ref+fig,
             layout=layout
         )
-
-        # new_frame = get_scatter3d(
-        #     filtered_list,
-        #     x_key,
-        #     y_key,
-        #     z_key,
-        #     x_ref=host_x_key,
-        #     y_ref=host_y_key,
-        #     name='Frame: '+str(frame_idx),
-        #     ref_name='Host Vehicle',
-        #     x_range=x_range,
-        #     y_range=y_range,
-        #     z_range=z_range,
-        #     c_range=c_range,
-        #     image=img,
-        #     **kwargs)
 
         # need 'name' to make sure animation works properly
         new_frame['name'] = str(frame_idx)
@@ -379,9 +338,6 @@ def get_animation_data(data_frame,
 
     # Layout
     figure_layout = get_scatter3d_layout(
-        x_range,
-        y_range,
-        z_range,
         image=img,
         **kwargs
     )

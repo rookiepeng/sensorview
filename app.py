@@ -1955,7 +1955,8 @@ def update_heatmap(
         State('colormap-3d', 'value'),
         State('visible-picker', 'value'),
         State('file-picker', 'value'),
-        State('decay-slider', 'value')
+        State('decay-slider', 'value'),
+        State('outline-switch', 'value'),
     ]
 )
 def export_3d_scatter_animation(
@@ -1966,7 +1967,8 @@ def export_3d_scatter_animation(
     colormap,
     visible_list,
     file,
-    decay
+    decay,
+    outline_enable
 ):
     """
     Export 3D scatter into an interactive animation file
@@ -1992,78 +1994,27 @@ def export_3d_scatter_animation(
     if btn == 0:
         raise PreventUpdate
 
-    config = redis_get(session_id, REDIS_KEYS['config'])
-    keys_dict = config['keys']
-
-    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
-    cat_keys = filter_kwargs['cat_keys']
-    num_keys = filter_kwargs['num_keys']
-    cat_values = filter_kwargs['cat_values']
-    num_values = filter_kwargs['num_values']
-
-    now = datetime.datetime.now()
-    timestamp = now.strftime('%Y%m%d_%H%M%S')
-
     if not os.path.exists('data/' + case + '/images'):
         os.makedirs('data/' + case + '/images')
 
     file = json.loads(file)
-    data = pd.read_feather('./data/' +
-                           case +
-                           file['path'] +
-                           '/' +
-                           file['feather_name'])
-    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
 
-    fig_kwargs = dict()
-    fig_kwargs['hover'] = keys_dict
-    fig_kwargs['image'] = None
+    task_kwargs = dict()
+    task_kwargs['c_key'] = c_key
+    task_kwargs['colormap'] = colormap
+    task_kwargs['decay'] = decay
 
-    fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
-    fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
-    fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
-    fig_kwargs['c_key'] = c_key
-    fig_kwargs['x_ref'] = config.get('x_ref', None)
-    fig_kwargs['y_ref'] = config.get('y_ref', None)
-
-    # set graph's range the same for all the frames
-    if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
-        fig_kwargs['x_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['x_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['x_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][1]])
-        ]
-        fig_kwargs['y_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['y_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['y_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][1]])
-        ]
+    if outline_enable:
+        task_kwargs['linewidth'] = 1
     else:
-        fig_kwargs['x_range'] = [
-            num_values[num_keys.index(fig_kwargs['x_key'])][0],
-            num_values[num_keys.index(fig_kwargs['x_key'])][1]
-        ]
-        fig_kwargs['y_range'] = [
-            num_values[num_keys.index(fig_kwargs['y_key'])][0],
-            num_values[num_keys.index(fig_kwargs['y_key'])][1]
-        ]
-    fig_kwargs['z_range'] = [
-        num_values[num_keys.index(fig_kwargs['z_key'])][0],
-        num_values[num_keys.index(fig_kwargs['z_key'])][1]
-    ]
-
-    fig_kwargs['colormap'] = colormap
-    fig_kwargs['ref_name'] = 'Host Vehicle'
-    fig_kwargs['decay'] = decay
+        task_kwargs['linewidth'] = 0
 
     celery_export_video.apply_async(
         args=[session_id,
               case,
               file,
               visible_list],
-        kwargs=fig_kwargs,
+        kwargs=task_kwargs,
         serializer='json')
 
     return 0
