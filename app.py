@@ -350,7 +350,7 @@ def file_selected(
         c_key,
         outline_enable,
         colormap,
-        darkmod
+        darkmode
 ):
     """
     Callback when a data file is selected
@@ -541,7 +541,7 @@ def file_selected(
         task_kwargs['c_key'] = c_key
         task_kwargs['colormap'] = colormap
         task_kwargs['decay'] = decay
-        if darkmod:
+        if darkmode:
             task_kwargs['template'] = 'plotly_dark'
         else:
             task_kwargs['template'] = 'plotly'
@@ -761,7 +761,7 @@ def filter_changed(
     click_data,
     _,
     decay,
-    darkmod,
+    darkmode,
     click_hide,
     trigger_idx,
     session_id,
@@ -902,8 +902,8 @@ def filter_changed(
     else:
         fig_kwargs['linewidth'] = 0
         task_kwargs['linewidth'] = 0
-    
-    if darkmod:
+
+    if darkmode:
         task_kwargs['template'] = 'plotly_dark'
         fig_kwargs['template'] = 'plotly_dark'
     else:
@@ -1985,7 +1985,7 @@ def export_3d_scatter_animation(
     file,
     decay,
     outline_enable,
-    darkmod
+    darkmode
 ):
     """
     Export 3D scatter into an interactive animation file
@@ -2021,7 +2021,7 @@ def export_3d_scatter_animation(
     task_kwargs['colormap'] = colormap
     task_kwargs['decay'] = decay
 
-    if darkmod:
+    if darkmode:
         task_kwargs['template'] = 'plotly_dark'
     else:
         task_kwargs['template'] = 'plotly'
