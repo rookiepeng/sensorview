@@ -170,7 +170,20 @@ view3d_card = dbc.Card([
                           'label': x}
                          for x in colorscales],
                 value='Portland',
-            ), width=2)
+            ), width=2),
+            dbc.Col(
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Dark mode',
+                         'value': True},
+                    ],
+                    value=[],
+                    id='darkmode-switch',
+                    switch=True,
+                    style={
+                        'float': 'right'
+                    }
+                ), width=8),
         ], justify='end'),
 
         dcc.Graph(

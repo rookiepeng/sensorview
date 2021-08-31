@@ -332,6 +332,7 @@ def case_selected(case, session_id):
         State('c-picker-3d', 'value'),
         State('outline-switch', 'value'),
         State('colormap-3d', 'value'),
+        State('darkmode-switch', 'value'),
     ])
 def file_selected(
         file,
@@ -348,7 +349,8 @@ def file_selected(
         visible_list,
         c_key,
         outline_enable,
-        colormap
+        colormap,
+        darkmod
 ):
     """
     Callback when a data file is selected
@@ -539,6 +541,10 @@ def file_selected(
         task_kwargs['c_key'] = c_key
         task_kwargs['colormap'] = colormap
         task_kwargs['decay'] = decay
+        if darkmod:
+            task_kwargs['template'] = 'plotly_dark'
+        else:
+            task_kwargs['template'] = 'plotly'
 
         # invoke celery task
         redis_set(0, session_id, REDIS_KEYS['task_id'])
@@ -734,6 +740,7 @@ def overlay_switch_changed(overlay):
         Input('scatter3d', 'clickData'),
         Input('left-hide-trigger', 'data'),
         Input('decay-slider', 'value'),
+        Input('darkmode-switch', 'value'),
     ],
     [
         State('click-hide-switch', 'value'),
@@ -754,6 +761,7 @@ def filter_changed(
     click_data,
     _,
     decay,
+    darkmod,
     click_hide,
     trigger_idx,
     session_id,
@@ -894,6 +902,13 @@ def filter_changed(
     else:
         fig_kwargs['linewidth'] = 0
         task_kwargs['linewidth'] = 0
+    
+    if darkmod:
+        task_kwargs['template'] = 'plotly_dark'
+        fig_kwargs['template'] = 'plotly_dark'
+    else:
+        task_kwargs['template'] = 'plotly'
+        fig_kwargs['template'] = 'plotly'
 
     # invoke celery task
     if trigger_id != 'slider-frame' and \
@@ -1957,6 +1972,7 @@ def update_heatmap(
         State('file-picker', 'value'),
         State('decay-slider', 'value'),
         State('outline-switch', 'value'),
+        State('darkmode-switch', 'value'),
     ]
 )
 def export_3d_scatter_animation(
@@ -1968,7 +1984,8 @@ def export_3d_scatter_animation(
     visible_list,
     file,
     decay,
-    outline_enable
+    outline_enable,
+    darkmod
 ):
     """
     Export 3D scatter into an interactive animation file
@@ -2003,6 +2020,11 @@ def export_3d_scatter_animation(
     task_kwargs['c_key'] = c_key
     task_kwargs['colormap'] = colormap
     task_kwargs['decay'] = decay
+
+    if darkmod:
+        task_kwargs['template'] = 'plotly_dark'
+    else:
+        task_kwargs['template'] = 'plotly'
 
     if outline_enable:
         task_kwargs['linewidth'] = 1
