@@ -1,0 +1,31 @@
+
+minikube start --mount-string "D:\:/mnt/data" --mount=true
+
+minikube stop
+
+minikube ssh
+
+kubectl get pods
+
+kubectl apply -f sensorview-pod.yaml
+
+kubectl delete pods/sensorview
+
+kubectl port-forward pods/sensorview 8000:8000
+
+kubectl exec --stdin --tty sensorview -- /bin/bash
+
+
+
+minikube image load sensorview.tar
+
+
+kubectl apply -f redis-server.yaml
+
+kubectl expose deployment/redis-server
+
+kubectl apply -f sensorview-server.yaml
+
+kubectl expose deployment/sensorview-server
+
+kubectl port-forward deployment/sensorview-server 8000:8000
