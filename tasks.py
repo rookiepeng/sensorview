@@ -46,8 +46,9 @@ from utils import redis_set, redis_get, REDIS_KEYS, KEY_TYPES
 
 logger = get_task_logger(__name__)
 
-celery_app = Celery("Celery_App", broker=os.environ.get(
-    'REDIS_URL', 'redis://127.0.0.1:6379'))
+redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
+redis_url = 'redis://'+redis_ip+':6379'
+celery_app = Celery("Celery_App", broker=redis_url)
 
 
 def filter_all(
