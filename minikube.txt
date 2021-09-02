@@ -1,6 +1,8 @@
 
 minikube start --mount-string "D:\:/mnt/data" --mount=true
 
+minikube start --mount-string "D:\Zhengyu:/mnt/data" --mount=true
+
 minikube start
 
 minikube stop
@@ -31,3 +33,5 @@ kubectl apply -f sensorview-server.yaml
 kubectl expose deployment/sensorview-server
 
 kubectl port-forward deployment/sensorview-server 8000:8000
+
+kubectl port-forward --address 0.0.0.0 deployment/sensorview-server 8000:8000
