@@ -48,8 +48,9 @@ REDIS_KEYS = {'dataset': 'DATASET',
 KEY_TYPES = {'CAT': 'categorical',
              'NUM': 'numerical'}
 
-redis_instance = redis.StrictRedis.from_url(
-    os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379'))
+redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
+redis_url = 'redis://'+redis_ip+':6379'
+redis_instance = redis.StrictRedis.from_url(redis_url)
 
 
 def load_config(json_file):
