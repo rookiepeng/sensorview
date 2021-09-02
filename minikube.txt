@@ -1,6 +1,8 @@
 
 minikube start --mount-string "D:\:/mnt/data" --mount=true
 
+minikube start
+
 minikube stop
 
 minikube ssh
