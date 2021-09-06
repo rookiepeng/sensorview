@@ -51,7 +51,6 @@ from layout import get_app_layout
 
 from viz.viz import get_scatter3d
 from viz.viz import get_scatter2d, get_heatmap
-from viz.viz import get_animation_data
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
