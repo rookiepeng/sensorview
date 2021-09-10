@@ -10,7 +10,7 @@ kubectl expose deployment/redis-server
 
 START "" minikube mount "D:\:/mnt/data"
 
-@REM minikube ismage load sensorview.tar
+@REM minikube image load sensorview.tar
 kubectl apply -f sensorview-server.yaml
 kubectl expose deployment/sensorview-server
 
