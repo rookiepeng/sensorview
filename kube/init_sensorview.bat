@@ -15,7 +15,7 @@ kubectl apply -f sensorview-server.yaml
 kubectl expose deployment/sensorview-server
 
 @REM START "" kubectl port-forward --address 0.0.0.0 deployment/sensorview-server 8000:8000
-START "" kubectl port-forward deployment/sensorview-server 8000:8000
+START "" kubectl port-forward --address 127.0.0.1 deployment/sensorview-server 8000:8000
 
 @REM minikube image load sensorview.tar
 @REM minikube stop
