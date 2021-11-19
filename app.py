@@ -1073,14 +1073,18 @@ def filter_changed(
                 else:
                     break
 
-        fig_ref = [
-            get_ref_scatter3d_data(
-                data_frame=filterd_frame,
-                x_key=fig_kwargs['x_ref'],
-                y_key=fig_kwargs['y_ref'],
-                z_key=None,
-                name=fig_kwargs.get('ref_name', None))
-        ]
+        if fig_kwargs['x_ref'] is not None and fig_kwargs['y_ref'] is not None:
+            fig_ref = [
+                get_ref_scatter3d_data(
+                    data_frame=filterd_frame,
+                    x_key=fig_kwargs['x_ref'],
+                    y_key=fig_kwargs['y_ref'],
+                    z_key=None,
+                    name=fig_kwargs.get('ref_name', None))
+            ]
+        else:
+            fig_ref = []
+
         layout = get_scatter3d_layout(**fig_kwargs)
 
         fig = dict(
