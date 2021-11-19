@@ -270,13 +270,17 @@ def celery_filtering_data(
             filterd_frame,
             **fig_kwargs
         )
-        ref_fig = [get_ref_scatter3d_data(
-            data_frame=filterd_frame,
-            x_key=kwargs['x_ref'],
-            y_key=kwargs['y_ref'],
-            z_key=None,
-            name=kwargs.get('ref_name', None)
-        )]
+        if kwargs['x_ref'] is not None and kwargs['y_ref'] is not None:
+            ref_fig = [get_ref_scatter3d_data(
+                data_frame=filterd_frame,
+                x_key=kwargs['x_ref'],
+                y_key=kwargs['y_ref'],
+                z_key=None,
+                name=kwargs.get('ref_name', None)
+            )]
+        else:
+            ref_fig = []
+
         fig_layout = get_scatter3d_layout(**fig_kwargs)
 
         if redis_get(session_id, REDIS_KEYS['task_id']) == task_id:

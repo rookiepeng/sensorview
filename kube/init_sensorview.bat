@@ -10,6 +10,8 @@ kubectl expose deployment/redis-server
 
 START "" minikube mount "D:\:/mnt/data"
 
+@REM minikube mount "C:\Users\zjx8rj\OneDrive - Aptiv\Road_Data:/mnt/data"
+
 @REM minikube image load sensorview.tar
 kubectl apply -f sensorview-server.yaml
 kubectl expose deployment/sensorview-server
