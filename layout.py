@@ -28,7 +28,7 @@
 """
 
 import dash_core_components as dcc
-import dash_html_components as html
+from dash import html
 
 import dash_bootstrap_components as dbc
 
@@ -87,7 +87,7 @@ datafile_card = dbc.Card([
 filter_card = dbc.Card([
     dbc.CardHeader('Control'),
     dbc.CardBody([
-        dbc.FormGroup(
+        dbc.Row(
             [
                 dbc.Checklist(
                     options=[
@@ -119,7 +119,7 @@ filter_card = dbc.Card([
             ]
         ),
 
-        dbc.FormGroup(
+        dbc.Row(
             [
                 dbc.Label('Visibility options'),
                 dbc.Checklist(
@@ -135,7 +135,7 @@ filter_card = dbc.Card([
             ]
         ),
 
-        dbc.FormGroup(
+        dbc.Row(
             [
                 dbc.Label('Decay'),
                 dcc.Slider(
