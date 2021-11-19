@@ -798,4 +798,4 @@ def get_app_layout(app):
                 [Redis](https://redis.io/),\
                 [Celery](https://docs.celeryproject.org/en/stable/),\
                 [Docker](https://www.docker.com/)'),
-    ], fluid=True, style={'background-color': '#f9f8fc'})
+    ], fluid=True)
