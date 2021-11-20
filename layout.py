@@ -777,7 +777,7 @@ def get_app_layout(app):
                     html.H1(app.title),
                     ], align="end"),
             html.Hr(className="my-2"),
-            html.P('Sensor Data Visualization'),
+            html.P('Radar Data Visualization'),
         ),
 
         dbc.Row([
