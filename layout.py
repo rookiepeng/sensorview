@@ -796,4 +796,4 @@ def get_app_layout(app):
                 [Redis](https://redis.io/),\
                 [Celery](https://docs.celeryproject.org/en/stable/),\
                 [Docker](https://www.docker.com/)'),
-    ], fluid=True, className="dbc_pulse")
+    ], fluid=True, className="dbc_light")
