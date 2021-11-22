@@ -777,7 +777,7 @@ def get_app_layout(app):
                     html.H1(app.title),
                     html.Hr(className="my-2"),
                     html.P('Sensor Data Visualization')
-                    ], justify="center"),
+                    ], justify="center", align="center"),
         ),
 
         dbc.Row([
@@ -796,4 +796,4 @@ def get_app_layout(app):
                 [Redis](https://redis.io/),\
                 [Celery](https://docs.celeryproject.org/en/stable/),\
                 [Docker](https://www.docker.com/)'),
-    ], fluid=True, className="dbc_light")
+    ], fluid=True, className="dbc_dark")
