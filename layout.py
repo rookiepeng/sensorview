@@ -774,10 +774,10 @@ def get_app_layout(app):
                             'width': 'auto',
                         },
                     ),
-                    html.H1(app.title),
+                    html.H1(app.title, style={'textAlign': 'center'}),
                     html.Hr(className="my-2"),
-                    html.P('Sensor Data Visualization')
-                    ], justify="center", align="center"),
+                    html.P('Sensor Data Visualization', style={'textAlign': 'center'})
+                    ], justify="center"),
         ),
 
         dbc.Row([
