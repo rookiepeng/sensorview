@@ -24,13 +24,6 @@
  *           ],
  */
 
- element {
-    --primary:#0d6efd;
-    --dark:#212529;
-    --light:#f9fafb;
-    --font-family-sans-serif:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";
- }
-
 
 /* fixes margins so data isn't cut off at table edges */
 .dbc_light .dash-table-container .row {
@@ -49,22 +42,22 @@
  *  these icons appear when the table is sortable and/or columns are deletable
  */
 .dbc_light .dash-table-container .dash-spreadsheet-container .dash-spreadsheet-inner table {
-    --accent: var(--primary) !important;
+    --accent: var(--bs-primary) !important;
     --hover: none !important;
     --border: lightgrey !important;
-    --text-color: var(--dark) !important;
+    --text-color: var(--bs-dark) !important;
 }
 
 /* pagination buttons - this removes the default pink hover  */
 .dbc_light .last-page:hover, .previous-page:hover, .first-page:hover, .next-page:hover{
-    color: var(--primary) !important;
+    color: var(--bs-primary) !important;
 }
 
 /* table body */
 .dbc_light .dash-spreadsheet td {
-    font-family:  var(--font-family-sans-serif);
+    font-family:  var(--bs-body-font-family);
     background-color: var(--white) !important;
-    color: var(--dark) !important;
+    color: var(--bs-dark) !important;
     --border: lightgrey;
   /*  border-color: lightgrey !important; */
 }
@@ -72,29 +65,29 @@
 
 /* table header */
 .dbc_light .dash-spreadsheet .dash-header {
-    font-family:  var(--font-family-sans-serif);
-    background-color: var(--light) !important;
+    font-family:  var(--bs-body-font-family);
+    background-color: var(--bs-light) !important;
     opacity: 0.9;
-    color: var(--dark) !important;
-    --accent: var(--primary) !important;
+    color: var(--bs-dark) !important;
+    --accent: var(--bs-primary) !important;
     --border: lightgrey;
 }
 
 /*  filter row in the header  */
 .dbc_light .dash-spreadsheet .dash-filter {
-    font-family:  var(--font-family-sans-serif);
-    background-color: var(--light) !important;
-    color: var(--dark) !important;
+    font-family:  var(--bs-body-font-family);
+    background-color: var(--bs-light) !important;
+    color: var(--bs-dark) !important;
     --border: lightgrey;
 }
 
 
 .dbc_light input.dash-filter--case--sensitive {
-    border-color: var(--primary) !important;
+    border-color: var(--bs-primary) !important;
     border-radius: 3px;
     border-style: solid;
     border-width: 2px;
-    color: var(--primary) !important;
+    color: var(--bs-primary) !important;
 }
 
 
@@ -112,7 +105,7 @@
 .dbc_light.dbc_row_hover .dash-spreadsheet  tr:hover td.dash-cell {
     border-color: lightgrey !important;
     border-width: 1.5px !important;
-    background-color: var(--light) !important;
+    background-color: var(--bs-light) !important;
 
 }
 
@@ -123,7 +116,7 @@
 
 .dbc_light .rc-slider-handle {
   border: 0;
-  background-color: var(--primary)
+  background-color: var(--bs-primary)
 }
 
 .dbc_light .rc-slider-rail {
@@ -131,7 +124,7 @@
 }
 
 .dbc_light .rc-slider-track {
-  background-color: var(--primary)
+  background-color: var(--bs-primary)
 }
 
 .dbc_light .rc-slider-dot {
@@ -140,7 +133,7 @@
 }
 
 .dbc_light .rc-slider-dot.rc-slider-dot-active {
-  background-color: var(--primary)
+  background-color: var(--bs-primary)
 }
 
 /* label color */
@@ -185,11 +178,11 @@
 .dbc_light .nav-link {
     border-width: 0.5px !important;
     border-color: rgba(100, 100, 100, 0.4) !important;
-    color: var(--primary) !important;
+    color: var(--bs-primary) !important;
  }
 
 .dbc_light .nav-link.active {
-    background-color: var(--primary) !important;
+    background-color: var(--bs-primary) !important;
     color: var(--white) !important;
     border-color: rgba(100, 100, 100, 0.4);
  }
