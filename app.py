@@ -59,16 +59,9 @@ from tasks import celery_filtering_data, celery_export_video
 
 from utils import load_config, redis_set, redis_get, REDIS_KEYS, KEY_TYPES
 
-FONT_AWESOME = "https://use.fontawesome.com/releases/v5.10.2/css/all.css"
-
-# loading 2 stylesheets reduces the flicker when changing themes
-external_stylesheets = [dbc.themes.BOOTSTRAP,
-                        dbc.themes.BOOTSTRAP, FONT_AWESOME]
-
 
 """ Initialize Dash App """
 app = dash.Dash(__name__,
-                external_stylesheets=external_stylesheets,
                 meta_tags=[{
                     'name': 'viewport',
                     'content': 'width=device-width,initial-scale=1'
