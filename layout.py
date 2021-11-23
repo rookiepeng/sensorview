@@ -764,20 +764,28 @@ def get_app_layout(app):
         dcc.Store(id='dummy-export-heatmap'),
         dcc.Store(id='dummy-export-data'),
 
-        html.Div([
-            html.Img(
-                src=app.get_asset_url('sensorview_logo.svg'),
-                id='sensorview-image',
-                style={
-                    'height': '100px',
-                    'width': 'auto',
-                },
+        html.Div(
+            dbc.Container(
+                [
+                    html.Img(
+                        src=app.get_asset_url('sensorview_logo.svg'),
+                        id='sensorview-image',
+                        style={
+                            'height': '100px',
+                            'width': 'auto',
+                        },
+                    ),
+                    html.H1(app.title, className="display-3"),
+                    html.Hr(className="my-2"),
+                    html.P(
+                        'Sensor Data Visualization'
+                    ),
+                ],
+                fluid=True,
+                className="py-3",
             ),
-            html.H1(app.title, style={'text-align': 'center'}),
-            html.Hr(className="my-2"),
-            html.P('Sensor Data Visualization',
-                   style={'text-align': 'center'})
-        ]),
+            className="p-3 bg-light rounded-3",
+        ),
 
         dbc.Row([
             dbc.Col(
