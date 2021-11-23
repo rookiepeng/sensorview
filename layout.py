@@ -750,23 +750,9 @@ tabs = dbc.Tabs(
 
 
 def get_app_layout(app):
-    return dbc.Container([
-        dcc.Store(id='selected-data-left'),
-        dcc.Store(id='selected-data-right'),
-        dcc.Store(id='session-id', data=str(uuid.uuid4())),
-        dcc.Store(id='filter-trigger', data=0),
-        dcc.Store(id='left-hide-trigger', data=0),
-        dcc.Store(id='dummy-export-scatter2d-left'),
-        dcc.Store(id='dummy-export-scatter2d-right'),
-        dcc.Store(id='dummy-export-histogram'),
-        dcc.Store(id='dummy-export-violin'),
-        dcc.Store(id='dummy-export-parallel'),
-        dcc.Store(id='dummy-export-heatmap'),
-        dcc.Store(id='dummy-export-data'),
-
-        html.Div(
-            dbc.Container(
-                [
+    return dbc.Row([html.Div(
+        dbc.Container(
+            [
                     html.Img(
                         src=app.get_asset_url('sensorview_logo.svg'),
                         id='sensorview-image',
@@ -780,27 +766,42 @@ def get_app_layout(app):
                     html.P(
                         'Sensor Data Visualization'
                     ),
-                ],
-                fluid=True,
-                className="py-3",
-            ),
-            className="p-3 bg-light rounded-3",
+                    ],
+            fluid=True,
+            className="py-3",
         ),
+        className="p-3 bg-light rounded-3",
+    ),
+        dbc.Container([
+            dcc.Store(id='selected-data-left'),
+            dcc.Store(id='selected-data-right'),
+            dcc.Store(id='session-id', data=str(uuid.uuid4())),
+            dcc.Store(id='filter-trigger', data=0),
+            dcc.Store(id='left-hide-trigger', data=0),
+            dcc.Store(id='dummy-export-scatter2d-left'),
+            dcc.Store(id='dummy-export-scatter2d-right'),
+            dcc.Store(id='dummy-export-histogram'),
+            dcc.Store(id='dummy-export-violin'),
+            dcc.Store(id='dummy-export-parallel'),
+            dcc.Store(id='dummy-export-heatmap'),
+            dcc.Store(id='dummy-export-data'),
 
-        dbc.Row([
-            dbc.Col(
-                dbc.CardGroup([
-                    testcase_card,
-                    datafile_card
-                ])
-            )], className='mb-3'),
 
-        tabs,
 
-        dcc.Markdown(
-            'Designed and developed by **Zhengyu Peng** \
+            dbc.Row([
+                dbc.Col(
+                    dbc.CardGroup([
+                        testcase_card,
+                        datafile_card
+                    ])
+                )], className='mb-3'),
+
+            tabs,
+
+            dcc.Markdown(
+                'Designed and developed by **Zhengyu Peng** \
                 | Powered by [Dash](https://plotly.com/dash/),\
                 [Redis](https://redis.io/),\
                 [Celery](https://docs.celeryproject.org/en/stable/),\
                 [Docker](https://www.docker.com/)'),
-    ], fluid=True, className="dbc_light")
+        ], fluid=True, className="dbc_light")])
