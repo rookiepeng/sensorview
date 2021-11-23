@@ -56,7 +56,7 @@
 /* table body */
 .dbc_light .dash-spreadsheet td {
     font-family:  var(--bs-body-font-family);
-    background-color: var(--white) !important;
+    background-color: var(--bs-white) !important;
     color: var(--bs-dark) !important;
     --border: lightgrey;
   /*  border-color: lightgrey !important; */
