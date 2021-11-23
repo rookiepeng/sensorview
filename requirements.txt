@@ -3,6 +3,7 @@ dash-daq
 dash-bootstrap-components
 gunicorn
 flask
+pyarrow
 numpy
 pandas
 redis
