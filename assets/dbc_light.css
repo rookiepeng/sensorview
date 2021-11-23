@@ -183,7 +183,7 @@
 
 .dbc_light .nav-link.active {
     background-color: var(--bs-primary) !important;
-    color: var(--white) !important;
+    color: var(--bs-white) !important;
     border-color: rgba(100, 100, 100, 0.4);
  }
 
