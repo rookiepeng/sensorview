@@ -254,7 +254,7 @@ view3d_card = dbc.Card([
                         color='primary',
                         n_clicks=0),
                      dbc.Button(
-                        '◼',
+                        '▢',
                         id='stop-button',
                         color='danger',
                         n_clicks=0),
