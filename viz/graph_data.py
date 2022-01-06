@@ -134,7 +134,7 @@ def get_scatter3d_data(data_frame,
                     text=hover_str,
                     hovertemplate='%{text}',
                     mode='markers',
-                    name=c_item,
+                    name=str(c_item),
                     showlegend=showlegend,
                     marker=dict(
                         size=3,
