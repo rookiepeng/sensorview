@@ -1,3 +1,5 @@
+
+@REM call activate [conda_env]
 START /b redis-server
 SLEEP 2
 START /b celery -A tasks worker --loglevel=info -P gevent
