@@ -6,10 +6,9 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Screenshots
 
-<img src="./assets/screenshot1.png" alt="screenshot1" width="800"/>
+<img src="./assets/screenshot1.png" alt="screenshot1" width="600"/>
 
-<img src="./assets/screenshot2.png" alt="screenshot2" width="800"/>
-<!-- ![](./assets/screenshot1.png) -->
+<img src="./assets/screenshot2.png" alt="screenshot2" width="600"/>
 
 ## Features
 
