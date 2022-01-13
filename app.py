@@ -1522,22 +1522,45 @@ def update_histogram(
         elif y_key == 'density':
             y_label = 'Density'
         if c_histogram == 'None':
-            histogram_fig = px.histogram(filtered_table,
-                                         x=x_key,
-                                         histnorm=y_key,
-                                         opacity=1,
-                                         barmode='stack',
-                                         labels={x_key: x_label,
-                                                 y_key: y_label})
+            if x_key == config['slider']:
+                nbins = pd.unique(filtered_table[x_key]).size
+                histogram_fig = px.histogram(filtered_table,
+                                             x=x_key,
+                                             histnorm=y_key,
+                                             opacity=1,
+                                             barmode='group',
+                                             nbins=nbins,
+                                             labels={x_key: x_label,
+                                                     y_key: y_label})
+            else:
+                histogram_fig = px.histogram(filtered_table,
+                                             x=x_key,
+                                             histnorm=y_key,
+                                             opacity=1,
+                                             barmode='group',
+                                             labels={x_key: x_label,
+                                                     y_key: y_label})
         else:
-            histogram_fig = px.histogram(filtered_table,
-                                         x=x_key,
-                                         color=c_histogram,
-                                         histnorm=y_key,
-                                         opacity=1,
-                                         barmode='stack',
-                                         labels={x_key: x_label,
-                                                 y_key: y_label})
+            if x_key == config['slider']:
+                nbins = pd.unique(filtered_table[x_key]).size
+                histogram_fig = px.histogram(filtered_table,
+                                             x=x_key,
+                                             color=c_histogram,
+                                             histnorm=y_key,
+                                             opacity=1,
+                                             barmode='group',
+                                             nbins=nbins,
+                                             labels={x_key: x_label,
+                                                     y_key: y_label})
+            else:
+                histogram_fig = px.histogram(filtered_table,
+                                             x=x_key,
+                                             color=c_histogram,
+                                             histnorm=y_key,
+                                             opacity=1,
+                                             barmode='group',
+                                             labels={x_key: x_label,
+                                                     y_key: y_label})
         histogram_x_disabled = False
         histogram_y_disabled = False
         histogram_c_disabled = False
