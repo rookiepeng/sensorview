@@ -309,7 +309,6 @@ def case_selected(case, session_id):
         Output('slider-frame', 'max'),
         Output('dropdown-container', 'children'),
         Output('slider-container', 'children'),
-        Output('interval-component', 'disabled'),
         Output('dim-picker-parallel', 'options'),
         Output('dim-picker-parallel', 'value'),
     ],
@@ -317,9 +316,7 @@ def case_selected(case, session_id):
         Input('file-picker', 'value'),
         Input('previous-button', 'n_clicks'),
         Input('next-button', 'n_clicks'),
-        Input('interval-component', 'n_intervals'),
-        Input('play-button', 'n_clicks'),
-        Input('stop-button', 'n_clicks'),
+        Input('interval-component', 'n_intervals')
     ],
     [
         State('decay-slider', 'value'),
@@ -338,8 +335,6 @@ def file_selected(
         left_btn,
         right_btn,
         interval,
-        play_clicks,
-        stop_clicks,
         decay,
         case,
         session_id,
@@ -565,7 +560,6 @@ def file_selected(
                 len(frame_list)-1,
                 new_dropdown,
                 new_slider,
-                dash.no_update,
                 [{'label': ck, 'value': ck} for ck in cat_keys],
                 [values_cat]]
 
@@ -575,7 +569,6 @@ def file_selected(
 
         # previous button is clicked
         return [(slider_var-1) % (slider_max+1),
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
@@ -594,7 +587,6 @@ def file_selected(
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
-                dash.no_update,
                 dash.no_update]
 
     elif trigger_id == 'interval-component':
@@ -608,13 +600,11 @@ def file_selected(
                     dash.no_update,
                     dash.no_update,
                     dash.no_update,
-                    True,
                     dash.no_update,
                     dash.no_update]
 
         else:
             return [(slider_var+1) % (slider_max+1),
-                    dash.no_update,
                     dash.no_update,
                     dash.no_update,
                     dash.no_update,
@@ -632,7 +622,6 @@ def file_selected(
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
-                False,
                 dash.no_update,
                 dash.no_update]
 
@@ -646,7 +635,6 @@ def file_selected(
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
-                True,
                 dash.no_update,
                 dash.no_update]
 
@@ -2502,6 +2490,48 @@ def update_buffer_indicator(
             return [0,  dash.no_update]
     else:
         return [0,  False]
+
+
+app.clientside_callback(
+    """
+    function(play_clicks, stop_clicks) {
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id);
+        if (triggered.length > 0) {
+            if (triggered[0].includes('play-button')) {
+                if (play_clicks>0){
+                    return false;
+                }
+                else {
+                    return window.dash_clientside.no_update;
+                }
+            }
+            if (triggered[0].includes('stop-button')) {
+                if (stop_clicks>0){
+                    return true;
+                }
+                else {
+                    return window.dash_clientside.no_update;
+                }
+            }
+        }
+        return window.dash_clientside.no_update;
+    }
+    """,
+    Output('interval-component', 'disabled'),
+    Input('play-button', 'n_clicks'),
+    Input('stop-button', 'n_clicks')
+)
+
+# app.clientside_callback(
+#     """
+#     function(data) {
+#         console.log(5 + 6);
+#         return 0
+#     }
+#     """,
+#     Output('dummy-data', 'data'),
+#     Input('buffer-interval', 'n_intervals')
+# )
 
 
 if __name__ == '__main__':
