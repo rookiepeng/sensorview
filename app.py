@@ -612,32 +612,6 @@ def file_selected(
                     dash.no_update,
                     dash.no_update]
 
-    elif trigger_id == 'play-button':
-        if play_clicks == 0:
-            raise PreventUpdate
-
-        # play button is clicked
-        return [dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update]
-
-    elif trigger_id == 'stop-button':
-        if stop_clicks == 0:
-            raise PreventUpdate
-
-        # stop button is clicked
-        return [dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update,
-                dash.no_update]
-
 
 @app.callback(
     [
