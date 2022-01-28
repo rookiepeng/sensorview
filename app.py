@@ -311,7 +311,6 @@ def case_selected(case, session_id):
         Output('slider-container', 'children'),
         Output('dim-picker-parallel', 'options'),
         Output('dim-picker-parallel', 'value'),
-        Output('frame-container', 'children'),
     ],
     [
         Input('file-picker', 'value'),
@@ -461,15 +460,10 @@ def file_selected(
         visible_table['_VIS_'] = 'visible'
         redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
 
-        frame_container = []
         # group the DataFrame by frame and save the grouped data one by one
         # into Redis
         frame_group = new_data.groupby(config['slider'])
         for frame_idx, frame_data in frame_group:
-            frame_container.append(
-                dcc.Store(id={'type': 'fig_data',
-                              'index': frame_idx}, data={'data': frame_idx})
-            )
             redis_set(frame_data, session_id,
                       REDIS_KEYS['frame_data'],
                       str(frame_idx))
@@ -567,8 +561,7 @@ def file_selected(
                 new_dropdown,
                 new_slider,
                 [{'label': ck, 'value': ck} for ck in cat_keys],
-                [values_cat],
-                frame_container]
+                [values_cat]]
 
     elif trigger_id == 'previous-button':
         if left_btn == 0:
@@ -576,7 +569,6 @@ def file_selected(
 
         # previous button is clicked
         return [(slider_var-1) % (slider_max+1),
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
@@ -590,7 +582,6 @@ def file_selected(
 
         # next button is clicked
         return [(slider_var+1) % (slider_max+1),
-                dash.no_update,
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
@@ -610,12 +601,10 @@ def file_selected(
                     dash.no_update,
                     dash.no_update,
                     dash.no_update,
-                    dash.no_update,
                     dash.no_update]
 
         else:
             return [(slider_var+1) % (slider_max+1),
-                    dash.no_update,
                     dash.no_update,
                     dash.no_update,
                     dash.no_update,
@@ -697,10 +686,8 @@ def overlay_switch_changed(overlay):
 
 @app.callback(
     [
-        # Output('scatter3d', 'figure'),
-        Output('fig-data', 'data'),
+        Output('scatter3d', 'figure'),
         Output('filter-trigger', 'data'),
-        Output('new-figure-trigger', 'data'),
     ],
     [
         Input('slider-frame', 'value'),
@@ -722,8 +709,6 @@ def overlay_switch_changed(overlay):
         State('session-id', 'data'),
         State('case-picker', 'value'),
         State('file-picker', 'value'),
-        State('fig-ready-idx', 'data'),
-        State('new-figure-trigger', 'data'),
     ])
 def filter_changed(
     slider_arg,
@@ -743,8 +728,6 @@ def filter_changed(
     session_id,
     case,
     file,
-    fig_idx,
-    new_figure_trigger,
 ):
     """
     Callback when filter changed
@@ -792,9 +775,6 @@ def filter_changed(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     file = json.loads(file)
 
-    print('filetr change')
-    print(trigger_id)
-
     # no update if:
     #   - triggered from 3D scatter, and
     #   - click_hide switch is disabled or the reference point is clicked
@@ -806,32 +786,31 @@ def filter_changed(
     # if slider value changed
     #   - if Redis `figure` buffer ready, return figure from Redis
     if trigger_id == 'slider-frame':
-        # fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
-        if fig_idx >= 0:
+        fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
+        if fig_idx is not None:
             if slider_arg <= fig_idx:
-                print('new figure from client side')
-                # fig = redis_get(session_id,
-                #                 REDIS_KEYS['figure'],
-                #                 str(slider_arg))
-                # if decay > 0:
-                #     for val in range(1, decay+1):
-                #         if (slider_arg-val) >= 0:
-                #             new_fig = redis_get(session_id,
-                #                                 REDIS_KEYS['figure'],
-                #                                 str(slider_arg-val))
-                #             new_fig[0]['marker']['opacity'] = opacity[val]
-                #             fig = fig+new_fig
+                fig = redis_get(session_id,
+                                REDIS_KEYS['figure'],
+                                str(slider_arg))
+                if decay > 0:
+                    for val in range(1, decay+1):
+                        if (slider_arg-val) >= 0:
+                            new_fig = redis_get(session_id,
+                                                REDIS_KEYS['figure'],
+                                                str(slider_arg-val))
+                            new_fig[0]['marker']['opacity'] = opacity[val]
+                            fig = fig+new_fig
 
-                # fig_ref = redis_get(session_id,
-                #                     REDIS_KEYS['figure_ref'],
-                #                     str(slider_arg))
-                # layout = redis_get(session_id,
-                #                    REDIS_KEYS['figure_layout'],
-                #                    str(slider_arg))
+                fig_ref = redis_get(session_id,
+                                    REDIS_KEYS['figure_ref'],
+                                    str(slider_arg))
+                layout = redis_get(session_id,
+                                   REDIS_KEYS['figure_layout'],
+                                   str(slider_arg))
                 return [
-                    dash.no_update,
-                    dash.no_update,
-                    new_figure_trigger+1,
+                    dict(data=fig_ref+fig,
+                         layout=layout),
+                    dash.no_update
                 ]
 
     # get config from Redis
@@ -1090,9 +1069,7 @@ def filter_changed(
     else:
         filter_trig = trigger_idx+1
 
-    print('filter trigger')
-    print(filter_trig)
-    return [fig, filter_trig, new_figure_trigger+1]
+    return [fig, filter_trig]
 
 
 @app.callback(
@@ -2422,48 +2399,12 @@ def left_hide_button(
 
 
 @app.callback(
-    Output('fetch-data-trigger', 'data'),
-    Input('fig-ready-idx', 'data'),
-    State('session-id', 'data'),
-)
-def buffer_fetch_trigger(
-    unused1,
-    session_id,
-):
-    print('fetch trigger')
-    redis_set(False, session_id, REDIS_KEYS['fetch_inprogress'])
-    return 0
-
-
-@app.callback(
-    Output('interval-trigger', 'data'),
-    Input('buffer-interval', 'n_intervals'),
-    [
-        State('session-id', 'data'),
-        State('interval-trigger', 'data'),
-    ]
-)
-def interval_trigger(
-    unused1,
-    session_id,
-    trigger_data
-):
-    if redis_get(session_id, REDIS_KEYS['fetch_inprogress']):
-        print('no update')
-        return dash.no_update
-    else:
-        return trigger_data+1
-
-
-@app.callback(
     [
         Output('buffer', 'value'),
         Output('buffer-interval', 'disabled'),
-        Output('fig-ready-idx', 'data'),
-        Output({'type': 'fig_data', 'index': ALL}, 'data'),
     ],
     [
-        Input('interval-trigger', 'data'),
+        Input('buffer-interval', 'n_intervals'),
         Input('filter-trigger', 'data'),
         Input('colormap-3d', 'value'),
         Input('left-hide-trigger', 'data'),
@@ -2473,8 +2414,6 @@ def interval_trigger(
     [
         State('slider-frame', 'max'),
         State('session-id', 'data'),
-        State('fig-ready-idx', 'data'),
-        # State('fig-data', 'data'),
     ]
 )
 def update_buffer_indicator(
@@ -2485,9 +2424,7 @@ def update_buffer_indicator(
     unused5,
     unused6,
     max_frame,
-    session_id,
-    fig_ready_idx,
-    # fig_data
+    session_id
 ):
     """
     Update buffer progress bar
@@ -2510,56 +2447,23 @@ def update_buffer_indicator(
     :rtype: int
     """
     if max_frame is None:
-        return [0,  False, -1, dict()]
-
-    # if redis_get(session_id, REDIS_KEYS['fetch_inprogress']):
-    #     print('no update')
-    #     return [dash.no_update,  dash.no_update, dash.no_update, dash.no_update]
+        return [0,  False]
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    fig_data = [dash.no_update]*(max_frame+1)
-
-    if trigger_id == 'interval-trigger':
-
-        redis_set(True, session_id, REDIS_KEYS['fetch_inprogress'])
-
+    if trigger_id == 'buffer-interval':
         fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
-        # print(fig_idx)
         if fig_idx is not None:
-            if fig_ready_idx < fig_idx:
-                for f_idx in range(fig_ready_idx+1, fig_idx+1):
-                    # print('Loading figure ' + str(f_idx))
-                    # fig_data[f_idx] = redis_get(session_id,
-                    #                                         REDIS_KEYS['figure'], str(f_idx))
-                    fig = redis_get(session_id,
-                                    REDIS_KEYS['figure'],
-                                    str(f_idx))
-                    fig_ref = redis_get(session_id,
-                                        REDIS_KEYS['figure_ref'],
-                                        str(f_idx))
-                    layout = redis_get(session_id,
-                                       REDIS_KEYS['figure_layout'],
-                                       str(f_idx))
-
-                    fig_data[f_idx] = dict(data=fig_ref+fig,
-                                           layout=layout)
-
             percent = fig_idx/max_frame*100
-
             if percent == 100:
-                # print(percent)
-                # print('stop')
-                return [percent, True, fig_idx, fig_data]
+                return [percent, True]
             else:
-                # print(percent)
-                # print('keep going')
-                return [percent, dash.no_update, fig_idx, fig_data]
+                return [percent, dash.no_update]
         else:
-            return [0, dash.no_update, dash.no_update, fig_data]
+            return [0,  dash.no_update]
     else:
-        return [0, False, -1, fig_data]
+        return [0,  False]
 
 
 app.clientside_callback(
@@ -2592,69 +2496,16 @@ app.clientside_callback(
     Input('stop-button', 'n_clicks')
 )
 
-
 # app.clientside_callback(
 #     """
-#     function(trigger, slider_arg, fig_idx, decay, fig_data, fig_container) {
-#         const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id);
-#         if (triggered[0].includes('slider-frame')){
-#             if (fig_idx >= 0){
-#                 if ((slider_arg + decay) <= fig_idx ){
-#                     console.log(fig_container[slider_arg].layout.uirevision);
-#                     console.log(fig_container[slider_arg]);
-#                     return fig_container[slider_arg];
-#                 }
-#             }
-#             else{
-#                 return fig_data;
-#             }
-#         }
+#     function(data) {
+#         console.log(5 + 6);
+#         return 0
 #     }
 #     """,
-#     Output('scatter3d', 'figure'),
-#     Input('new-figure-trigger', 'data'),
-#     Input('slider-frame', 'value'),
-#     State('fig-ready-idx', 'data'),
-#     State('decay-slider', 'value'),
-#     State('fig-data', 'data'),
-#     State({'type': 'fig_data', 'index': ALL}, 'data'),
+#     Output('dummy-data', 'data'),
+#     Input('buffer-interval', 'n_intervals')
 # )
-
-
-@app.callback(
-    [
-        Output('scatter3d', 'figure')
-    ],
-    [
-        Input('new-figure-trigger', 'data'),
-    ],
-    [
-        State('slider-frame', 'value'),
-        State('fig-ready-idx', 'data'),
-        State('decay-slider', 'value'),
-        State('fig-data', 'data'),
-        State({'type': 'fig_data', 'index': ALL}, 'data')
-    ]
-)
-def update_3dgraph(trigger,
-                   slider_arg,
-                   fig_idx,
-                   decay,
-                   fig_data,
-                   fig_container
-                   ):
-
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    if fig_idx >= 0:
-        if (slider_arg + decay) <= fig_idx:
-            return [fig_container[slider_arg]]
-        else:
-            return [fig_data]
-    else:
-        return [fig_data]
-
 
 
 if __name__ == '__main__':

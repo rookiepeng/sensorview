@@ -237,7 +237,7 @@ view3d_card = dbc.Card([
         dbc.Row([
             dcc.Interval(
                 id='interval-component',
-                interval=10*100,  # in milliseconds
+                interval=2*100,  # in milliseconds
                 disabled=True,
                 n_intervals=0
             ),
@@ -763,13 +763,6 @@ def get_app_layout(app):
         dcc.Store(id='dummy-export-parallel'),
         dcc.Store(id='dummy-export-heatmap'),
         dcc.Store(id='dummy-export-data'),
-        dcc.Store(id='dummy-data'),
-        dcc.Store(id='fig-ready-idx', data=-1),
-        dcc.Store(id='fig-data'),
-        dcc.Store(id='new-figure-trigger', data=0),
-        dcc.Store(id='interval-trigger', data=0),
-        dcc.Store(id='fetch-data-trigger', data=0),
-        html.Div(id='frame-container', children=[]),
 
         html.Div(
             [

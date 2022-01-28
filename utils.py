@@ -44,8 +44,7 @@ REDIS_KEYS = {'dataset': 'DATASET',
               'figure_layout': 'FIGURE_LAYOUT',
               'task_id': 'TASK_ID',
               'filter_kwargs': 'FILTGER_KWARGS',
-              'selected_data': 'SELECTED_DATA',
-              'fetch_inprogress': 'INPROGRESS'}
+              'selected_data': 'SELECTED_DATA'}
 KEY_TYPES = {'CAT': 'categorical',
              'NUM': 'numerical'}
 
