@@ -84,5 +84,5 @@ def get_scatter3d_layout(
         margin=dict(l=0, r=0, b=0, t=40),
         legend=dict(x=0, y=0),
         images=img_dict,
-        uirevision='no_change',
+        uirevision='no_change'
     )
