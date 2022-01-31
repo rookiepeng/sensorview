@@ -177,7 +177,7 @@ view3d_card = dbc.Card([
                         {'label': 'Dark mode',
                          'value': True},
                     ],
-                    value=[],
+                    value=[True],
                     id='darkmode-switch',
                     switch=True,
                     style={
@@ -218,8 +218,8 @@ view3d_card = dbc.Card([
             dbc.Col(
                 dbc.Progress(id='buffer',
                              value=0,
-                             color='success',
-                             style={'height': '1px',
+                             color='info',
+                             style={'height': '2px',
                                     'margin-top': 0,
                                     'margin-bottom': 5,
                                     'margin-left': 25,
