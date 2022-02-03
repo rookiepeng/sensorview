@@ -48,8 +48,6 @@ from viz.viz import get_heatmap
 @app.callback(
     [
         Output('heatmap', 'figure'),
-        Output('x-picker-heatmap', 'disabled'),
-        Output('y-picker-heatmap', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
@@ -144,8 +142,6 @@ def update_heatmap(
             x_label,
             y_label,
         )
-        heat_x_disabled = False
-        heat_y_disabled = False
     else:
         heat_fig = {
             'data': [{'type': 'histogram2dcontour',
@@ -153,13 +149,9 @@ def update_heatmap(
                      ],
             'layout': {
             }}
-        heat_x_disabled = True
-        heat_y_disabled = True
 
     return [
         heat_fig,
-        heat_x_disabled,
-        heat_y_disabled,
     ]
 
 

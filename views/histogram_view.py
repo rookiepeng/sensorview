@@ -49,9 +49,6 @@ import plotly.express as px
 @app.callback(
     [
         Output('histogram', 'figure'),
-        Output('x-picker-histogram', 'disabled'),
-        Output('y-histogram', 'disabled'),
-        Output('c-picker-histogram', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
@@ -186,9 +183,6 @@ def update_histogram(
                                              barmode='group',
                                              labels={x_key: x_label,
                                                      y_key: y_label})
-        histogram_x_disabled = False
-        histogram_y_disabled = False
-        histogram_c_disabled = False
     else:
         histogram_fig = {
             'data': [{'type': 'histogram',
@@ -196,15 +190,9 @@ def update_histogram(
                      ],
             'layout': {
             }}
-        histogram_x_disabled = True
-        histogram_y_disabled = True
-        histogram_c_disabled = True
 
     return [
         histogram_fig,
-        histogram_x_disabled,
-        histogram_y_disabled,
-        histogram_c_disabled
     ]
 
 

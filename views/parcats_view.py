@@ -49,8 +49,6 @@ import plotly.graph_objs as go
 @app.callback(
     [
         Output('parallel', 'figure'),
-        Output('dim-picker-parallel', 'disabled'),
-        Output('c-picker-parallel', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
@@ -172,9 +170,6 @@ def update_parallel(
                          ],
                 'layout': {
                 }}
-
-        parallel_dim_disabled = False
-        parallel_c_disabled = False
     else:
         parallel_fig = {
             'data': [{'type': 'histogram',
@@ -182,13 +177,9 @@ def update_parallel(
                      ],
             'layout': {
             }}
-        parallel_dim_disabled = True
-        parallel_c_disabled = True
 
     return [
         parallel_fig,
-        parallel_dim_disabled,
-        parallel_c_disabled
     ]
 
 
