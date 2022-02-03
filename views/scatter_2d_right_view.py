@@ -50,10 +50,6 @@ import plotly.graph_objs as go
 @app.callback(
     [
         Output('scatter2d-right', 'figure'),
-        Output('x-picker-2d-right', 'disabled'),
-        Output('y-picker-2d-right', 'disabled'),
-        Output('c-picker-2d-right', 'disabled'),
-        Output('colormap-scatter2d-right', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
@@ -174,10 +170,6 @@ def update_scatter2d_right(
             linewidth=linewidth,
             c_type=keys_dict[c_key].get('type', KEY_TYPES['NUM'])
         )
-        right_x_disabled = False
-        right_y_disabled = False
-        right_color_disabled = False
-        colormap_disable = False
 
     else:
         right_fig = {
@@ -189,17 +181,8 @@ def update_scatter2d_right(
             'layout': {
             }}
 
-        right_x_disabled = True
-        right_y_disabled = True
-        right_color_disabled = True
-        colormap_disable = True
-
     return [
         right_fig,
-        right_x_disabled,
-        right_y_disabled,
-        right_color_disabled,
-        colormap_disable,
     ]
 
 

@@ -49,9 +49,6 @@ import plotly.graph_objs as go
 @app.callback(
     [
         Output('violin', 'figure'),
-        Output('x-picker-violin', 'disabled'),
-        Output('y-picker-violin', 'disabled'),
-        Output('c-picker-violin', 'disabled'),
     ],
     [
         Input('filter-trigger', 'data'),
@@ -163,9 +160,6 @@ def update_violin(
                                    violinmode='group',
                                    labels={x_key: x_label,
                                            y_key: y_label})
-        violin_x_disabled = False
-        violin_y_disabled = False
-        violin_c_disabled = False
     else:
         violin_fig = {
             'data': [{'type': 'histogram',
@@ -173,15 +167,9 @@ def update_violin(
                      ],
             'layout': {
             }}
-        violin_x_disabled = True
-        violin_y_disabled = True
-        violin_c_disabled = True
 
     return [
         violin_fig,
-        violin_x_disabled,
-        violin_y_disabled,
-        violin_c_disabled
     ]
 
 

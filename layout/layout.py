@@ -318,19 +318,19 @@ left2d_card = dbc.Card([
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-2d-left',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-picker-2d-left',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='c-picker-2d-left',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='colormap-scatter2d-left',
-                disabled=True,
+                disabled=False,
                 options=[{'value': x,
                           'label': x}
                          for x in colorscales],
@@ -403,19 +403,19 @@ right2d_card = dbc.Card([
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-2d-right',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-picker-2d-right',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='c-picker-2d-right',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='colormap-scatter2d-right',
-                disabled=True,
+                disabled=False,
                 options=[{'value': x, 'label': x}
                          for x in colorscales],
                 value='Portland',
@@ -483,7 +483,7 @@ hist_card = dbc.Card([
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-histogram',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-histogram',
@@ -497,11 +497,11 @@ hist_card = dbc.Card([
                 },
                 ],
                 value='density',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='c-picker-histogram',
-                disabled=True,
+                disabled=False,
             )),
         ]),
 
@@ -561,15 +561,15 @@ violin_card = dbc.Card([
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-violin',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-picker-violin',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='c-picker-violin',
-                disabled=True,
+                disabled=False,
             )),
         ]),
 
@@ -628,7 +628,7 @@ parallel_card = dbc.Card([
                 )),
             dbc.Col(dbc.Select(
                     id='c-picker-parallel',
-                    disabled=True,
+                    disabled=False,
                     )),
         ]),
 
@@ -682,11 +682,11 @@ heatmap_card = dbc.Card([
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-heatmap',
-                disabled=True,
+                disabled=False,
             )),
             dbc.Col(dbc.Select(
                 id='y-picker-heatmap',
-                disabled=True,
+                disabled=False,
             ))
         ]),
 
