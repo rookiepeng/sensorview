@@ -148,7 +148,7 @@ def filter_changed(
     #   - click_hide switch is disabled or the reference point is clicked
     if trigger_id == 'scatter3d' and \
             ((not click_hide) or
-                (click_data['points'][0]['curveNumber'] != 0)):
+                (click_data['points'][0]['curveNumber'] == 0)):
         raise PreventUpdate
     opacity = np.linspace(1, 0.2, decay+1)
     # if slider value changed
@@ -202,7 +202,7 @@ def filter_changed(
     # update visibility table if a data point is clicked to hide
     if trigger_id == 'scatter3d' and \
         click_hide and \
-            click_data['points'][0]['curveNumber'] == 0:
+            click_data['points'][0]['curveNumber'] > 0:
 
         if visible_table['_VIS_'][
             click_data['points'][0]['id']
@@ -430,7 +430,7 @@ def filter_changed(
         filter_trig = dash.no_update
     elif trigger_id == 'scatter3d':
         if click_hide and \
-                click_data['points'][0]['curveNumber'] == 0:
+                click_data['points'][0]['curveNumber'] > 0:
             filter_trig = trigger_idx+1
         else:
             filter_trig = dash.no_update
