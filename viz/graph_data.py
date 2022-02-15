@@ -74,33 +74,26 @@ def get_scatter3d_data(data_frame,
             hovertemplate = None
 
         fig_data = [
-            dict(
-                type='scatter3d',
-                ids=data_frame.index,
-                x=data_frame[x_key],
-                y=data_frame[y_key],
-                z=data_frame[z_key],
-                text=hover_str,
-                hovertemplate=hovertemplate,
-                mode='markers',
-                name=name,
-                showlegend=showlegend,
-                marker=dict(
-                    size=3,
-                    color=color,
-                    colorscale=colormap,
-                    opacity=opacity,
-                    colorbar=dict(
-                        title=c_label,
-                    ),
-                    cmin=c_range[0],
-                    cmax=c_range[1],
-                    line=dict(
-                        color="#757575",
-                        width=linewidth,
-                    )
-                ),
-            )]
+            dict(type='scatter3d',
+                 ids=data_frame.index,
+                 x=data_frame[x_key],
+                 y=data_frame[y_key],
+                 z=data_frame[z_key],
+                 text=hover_str,
+                 hovertemplate=hovertemplate,
+                 mode='markers',
+                 name=name,
+                 showlegend=showlegend,
+                 marker=dict(size=3,
+                             color=color,
+                             colorscale=colormap,
+                             opacity=opacity,
+                             colorbar=dict(title=c_label),
+                             cmin=c_range[0],
+                             cmax=c_range[1],
+                             line=dict(color="#757575",
+                                       width=linewidth)))
+        ]
     elif c_type == 'categorical':
         fig_data = []
         color_list = pd.unique(data_frame[c_key])
@@ -175,8 +168,8 @@ def get_ref_scatter3d_data(data_frame,
         'Longitudinal: %{y:.2f} m<br>',
         mode='markers',
         name=name,
-        marker=dict(color='rgb(236, 64, 122)', size=6, opacity=0.8,
-                    symbol='circle')
+        marker=dict(color='rgb(236, 64, 122)', size=4, opacity=0.8,
+                    symbol='square')
     )
 
     return fig_data

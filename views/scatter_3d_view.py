@@ -341,9 +341,7 @@ def filter_changed(
         img_path = './data/' +\
             case +\
             file['path'] +\
-            '/imgs/' + \
-            file['name'][0:-4] + \
-            '_' +\
+            '/'+file['name'][0:-4]+'/' + \
             str(slider_arg) +\
             '.jpg'
 
