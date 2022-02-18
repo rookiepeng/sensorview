@@ -427,6 +427,7 @@ def file_selected(
                     'index': idx},
                 min=var_min,
                 max=var_max,
+                marks=None,
                 step=round((var_max-var_min)/100, 3),
                 value=[var_min, var_max],
                 tooltip={'always_visible': False}
