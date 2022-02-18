@@ -144,6 +144,7 @@ filter_card = dbc.Card([
                     max=10,
                     step=1,
                     value=0,
+                    marks=None,
                     tooltip={'always_visible': False,
                              'placement': 'top'}
                 ),
@@ -230,6 +231,7 @@ view3d_card = dbc.Card([
                 step=1,
                 value=0,
                 updatemode='drag',
+                marks=None,
                 tooltip={'always_visible': False,
                          'placement': 'top'}
             ), width=12),
