@@ -51,7 +51,7 @@ server = app.server
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = 'RadarViz'
-app.layout = get_app_layout(app)
+app.layout = get_app_layout
 
 
 """ Callbacks """
