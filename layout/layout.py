@@ -35,6 +35,7 @@ import dash_bootstrap_components as dbc
 import plotly.io as pio
 
 import uuid
+from maindash import app
 
 colorscales = ['Blackbody',
                'Bluered',
@@ -751,7 +752,7 @@ tabs = dbc.Tabs(
 )
 
 
-def get_app_layout(app):
+def get_app_layout():
     return dbc.Container([
         dcc.Store(id='selected-data-left'),
         dcc.Store(id='selected-data-right'),
