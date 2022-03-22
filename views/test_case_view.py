@@ -89,7 +89,13 @@ def refresh_button_clicked(unused):
 
 @app.callback([
     Output('file-picker', 'value'),
-    Output('file-picker', 'options')],
+    Output('file-picker', 'options')] +
+    DROPDOWN_OPTIONS_ALL +
+    DROPDOWN_VALUES_ALL +
+    DROPDOWN_OPTIONS_CAT_COLOR +
+    DROPDOWN_VALUES_CAT_COLOR +
+    DROPDOWN_OPTIONS_CAT +
+    DROPDOWN_VALUES_CAT,
     Input('case-picker', 'value'),
     State('session-id', 'data'))
 def case_selected(case, session_id):
@@ -148,53 +154,6 @@ def case_selected(case, session_id):
     else:
         raise PreventUpdate
 
-    return [data_files[0]['value'], data_files]
-
-
-@app.callback(
-    [
-        Output('file-loaded-trigger', 'data'),
-        Output('slider-frame', 'min'),
-        Output('slider-frame', 'max'),
-        Output('dropdown-container', 'children'),
-        Output('slider-container', 'children'),
-        Output('dim-picker-parallel', 'options'),
-        Output('dim-picker-parallel', 'value'),
-    ] +
-    DROPDOWN_OPTIONS_ALL +
-    DROPDOWN_VALUES_ALL +
-    DROPDOWN_OPTIONS_CAT_COLOR +
-    DROPDOWN_VALUES_CAT_COLOR +
-    DROPDOWN_OPTIONS_CAT +
-    DROPDOWN_VALUES_CAT,
-    [
-        Input('file-picker', 'value')
-    ],
-    [
-        State('file-loaded-trigger', 'data'),
-        State('decay-slider', 'value'),
-        State('case-picker', 'value'),
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('c-picker-3d', 'value'),
-        State('outline-switch', 'value'),
-        State('colormap-3d', 'value'),
-        State('darkmode-switch', 'value')
-    ])
-def file_select_changed(
-        file,
-        file_loaded,
-        decay,
-        case,
-        session_id,
-        visible_list,
-        c_key,
-        outline_enable,
-        colormap,
-        darkmode):
-    # get keys from Redis
-    config = redis_get(session_id, REDIS_KEYS['config'])
-
     # extract keys and save to Redis
     num_keys = []
     cat_keys = []
@@ -248,187 +207,7 @@ def file_select_changed(
     else:
         values_cat = [cat_keys[0]]*len(DROPDOWN_VALUES_CAT)
 
-    keys_dict = config['keys']
-
-    # load data from selected file (supoprt .csv or .pickle)
-    #   - check if there is a .feather file with the same name
-    #   - if the .feather file exits, load through the .feather file
-    #   - otherwise, load the file and save the DataFrame into a
-    #     .feather file
-    file = json.loads(file)
-    if os.path.exists('./data/' +
-                      case +
-                      file['path'] +
-                      '/' +
-                      file['feather_name']):
-        new_data = pd.read_feather('./data/' +
-                                   case +
-                                   file['path'] +
-                                   '/' +
-                                   file['feather_name'])
-    else:
-        if '.pkl' in file['name']:
-            new_data = pd.read_pickle('./data/' +
-                                      case +
-                                      file['path'] +
-                                      '/' +
-                                      file['name'])
-            new_data = new_data.reset_index(drop=True)
-
-        elif '.csv' in file['name']:
-            new_data = pd.read_csv('./data/' +
-                                   case +
-                                   file['path'] +
-                                   '/' +
-                                   file['name'])
-
-        new_data.to_feather('./data/' +
-                            case +
-                            file['path'] +
-                            '/' +
-                            file['feather_name'])
-
-    # get the list of frames and save to Redis
-    frame_list = np.sort(new_data[config['slider']].unique())
-    redis_set(frame_list, session_id, REDIS_KEYS['frame_list'])
-
-    # create the visibility table and save to Redis
-    #   the visibility table is used to indicate if the data point is
-    #   `visible` or `hidden`
-    visible_table = pd.DataFrame()
-    visible_table['_IDS_'] = new_data.index
-    visible_table['_VIS_'] = 'visible'
-    redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
-
-    # group the DataFrame by frame and save the grouped data one by one
-    # into Redis
-    frame_group = new_data.groupby(config['slider'])
-    for frame_idx, frame_data in frame_group:
-        redis_set(frame_data, session_id,
-                  REDIS_KEYS['frame_data'],
-                  str(frame_idx))
-
-    # create dropdown layouts
-    # obtain categorical values
-    cat_values = []
-    new_dropdown = []
-    for idx, d_item in enumerate(cat_keys):
-        var_list = new_data[d_item].unique().tolist()
-        value_list = var_list
-
-        new_dropdown.append(
-            dbc.Label(
-                keys_dict[d_item]['description']
-            )
-        )
-        new_dropdown.append(
-            dcc.Dropdown(
-                id={'type': 'filter-dropdown',
-                    'index': idx},
-                options=[{'label': i,
-                          'value': i}
-                         for i in var_list],
-                value=value_list,
-                multi=True
-            ))
-
-        cat_values.append(value_list)
-
-    # create slider layouts
-    # obtain numerical values
-    num_values = []
-    new_slider = []
-    for idx, item in enumerate(num_keys):
-        # use `.tolist()` to convert numpy type ot python type
-        var_min = np.floor(np.min(new_data[item])).tolist()
-        var_max = np.ceil(np.max(new_data[item])).tolist()
-
-        new_slider.append(
-            dbc.Label(
-                keys_dict[item]['description']
-            )
-        )
-        new_slider.append(dcc.RangeSlider(
-            id={'type': 'filter-slider',
-                'index': idx},
-            min=var_min,
-            max=var_max,
-            marks=None,
-            step=round((var_max-var_min)/100, 3),
-            value=[var_min, var_max],
-            tooltip={'always_visible': False}
-        ))
-
-        num_values.append([var_min, var_max])
-
-    # save categorical values and numerical values to Redis
-    filter_kwargs['num_values'] = num_values
-    filter_kwargs['cat_values'] = cat_values
-    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
-
-    task_kwargs = dict()
-    # outline width
-    if outline_enable:
-        task_kwargs['linewidth'] = 1
-    else:
-        task_kwargs['linewidth'] = 0
-
-    if c_key  in all_keys:
-        task_kwargs['c_key'] = c_key
-    else:
-        task_kwargs['c_key'] = all_keys[0]
-    task_kwargs['colormap'] = colormap
-    task_kwargs['decay'] = decay
-    if darkmode:
-        task_kwargs['template'] = 'plotly_dark'
-    else:
-        task_kwargs['template'] = 'plotly'
-
-    # invoke celery task
-    redis_set(0, session_id, REDIS_KEYS['task_id'])
-    redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
-    celery_filtering_data.apply_async(
-        args=[session_id,
-              case,
-              file,
-              visible_list], kwargs=task_kwargs, serializer='json')
-
-    # dimensions picker default value
-    if len(cat_keys) == 0:
-        t_values_cat = None
-    else:
-        t_values_cat = cat_keys[0]
-
-    # print('##########################################')
-    # print(file_loaded)
-    # print([file_loaded+1,
-    #        0,
-    #        len(frame_list)-1,
-    #        new_dropdown,
-    #        new_slider,
-    #        [{'label': ck, 'value': ck} for ck in cat_keys],
-    #        [t_values_cat]] #+
-    #     #   options_all +
-    #     #   values_all +
-    #     #   options_cat_color +
-    #     #   values_cat_color +
-    #     #   options_cat +
-    #     #   values_cat
-    #       )
-    # print(options_all)
-    # print(values_all)
-    # print(options_cat_color)
-    # print(values_cat_color)
-    # print(options_cat)
-    # print(values_cat)
-    # print(config)
-    return [file_loaded+1,
-            0,
-            len(frame_list)-1,
-            new_dropdown,
-            new_slider,
-            [{'label': ck, 'value': ck} for ck in cat_keys],
-            [t_values_cat]] +\
+    return [data_files[0]['value'], data_files] +\
         options_all +\
         values_all +\
         options_cat_color +\
@@ -439,16 +218,21 @@ def file_select_changed(
 
 @app.callback(
     [
-        Output('slider-frame', 'value')
+        Output('slider-frame', 'value'),
+        Output('slider-frame', 'min'),
+        Output('slider-frame', 'max'),
+        Output('dropdown-container', 'children'),
+        Output('slider-container', 'children'),
+        Output('dim-picker-parallel', 'options'),
+        Output('dim-picker-parallel', 'value'),
     ],
     [
-        Input('file-loaded-trigger', 'data'),
+        Input('file-picker', 'value'),
         Input('previous-button', 'n_clicks'),
         Input('next-button', 'n_clicks'),
         Input('interval-component', 'n_intervals')
     ],
     [
-        State('file-picker', 'value'),
         State('decay-slider', 'value'),
         State('case-picker', 'value'),
         State('session-id', 'data'),
@@ -461,11 +245,10 @@ def file_select_changed(
         State('darkmode-switch', 'value'),
     ])
 def file_selected(
-        file_loaded,
+        file,
         left_btn,
         right_btn,
         interval,
-        file,
         decay,
         case,
         session_id,
@@ -536,23 +319,190 @@ def file_selected(
     # get keys from Redis
     config = redis_get(session_id, REDIS_KEYS['config'])
     filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    keys_dict = config['keys']
 
-    if trigger_id == 'file-loaded-trigger':
-        return [0]
+    if trigger_id == 'file-picker':
+        # load data from selected file (supoprt .csv or .pickle)
+        #   - check if there is a .feather file with the same name
+        #   - if the .feather file exits, load through the .feather file
+        #   - otherwise, load the file and save the DataFrame into a
+        #     .feather file
+        file = json.loads(file)
+        if os.path.exists('./data/' +
+                          case +
+                          file['path'] +
+                          '/' +
+                          file['feather_name']):
+            new_data = pd.read_feather('./data/' +
+                                       case +
+                                       file['path'] +
+                                       '/' +
+                                       file['feather_name'])
+        else:
+            if '.pkl' in file['name']:
+                new_data = pd.read_pickle('./data/' +
+                                          case +
+                                          file['path'] +
+                                          '/' +
+                                          file['name'])
+                new_data = new_data.reset_index(drop=True)
+
+            elif '.csv' in file['name']:
+                new_data = pd.read_csv('./data/' +
+                                       case +
+                                       file['path'] +
+                                       '/' +
+                                       file['name'])
+
+            new_data.to_feather('./data/' +
+                                case +
+                                file['path'] +
+                                '/' +
+                                file['feather_name'])
+
+        # get the list of frames and save to Redis
+        frame_list = np.sort(new_data[config['slider']].unique())
+        redis_set(frame_list, session_id, REDIS_KEYS['frame_list'])
+
+        # create the visibility table and save to Redis
+        #   the visibility table is used to indicate if the data point is
+        #   `visible` or `hidden`
+        visible_table = pd.DataFrame()
+        visible_table['_IDS_'] = new_data.index
+        visible_table['_VIS_'] = 'visible'
+        redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
+
+        # group the DataFrame by frame and save the grouped data one by one
+        # into Redis
+        frame_group = new_data.groupby(config['slider'])
+        for frame_idx, frame_data in frame_group:
+            redis_set(frame_data, session_id,
+                      REDIS_KEYS['frame_data'],
+                      str(frame_idx))
+
+        # create dropdown layouts
+        # obtain categorical values
+        cat_values = []
+        new_dropdown = []
+        for idx, d_item in enumerate(cat_keys):
+            var_list = new_data[d_item].unique().tolist()
+            value_list = var_list
+
+            new_dropdown.append(
+                dbc.Label(
+                    keys_dict[d_item]['description']
+                )
+            )
+            new_dropdown.append(
+                dcc.Dropdown(
+                    id={'type': 'filter-dropdown',
+                        'index': idx},
+                    options=[{'label': i,
+                              'value': i}
+                             for i in var_list],
+                    value=value_list,
+                    multi=True
+                ))
+
+            cat_values.append(value_list)
+
+        # create slider layouts
+        # obtain numerical values
+        num_values = []
+        new_slider = []
+        for idx, item in enumerate(num_keys):
+            # use `.tolist()` to convert numpy type ot python type
+            var_min = np.floor(np.min(new_data[item])).tolist()
+            var_max = np.ceil(np.max(new_data[item])).tolist()
+
+            new_slider.append(
+                dbc.Label(
+                    keys_dict[item]['description']
+                )
+            )
+            new_slider.append(dcc.RangeSlider(
+                id={'type': 'filter-slider',
+                    'index': idx},
+                min=var_min,
+                max=var_max,
+                marks=None,
+                step=round((var_max-var_min)/100, 3),
+                value=[var_min, var_max],
+                tooltip={'always_visible': False}
+            ))
+
+            num_values.append([var_min, var_max])
+
+        # save categorical values and numerical values to Redis
+        filter_kwargs['num_values'] = num_values
+        filter_kwargs['cat_values'] = cat_values
+        redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
+
+        task_kwargs = dict()
+        # outline width
+        if outline_enable:
+            task_kwargs['linewidth'] = 1
+        else:
+            task_kwargs['linewidth'] = 0
+
+        task_kwargs['c_key'] = c_key
+        task_kwargs['colormap'] = colormap
+        task_kwargs['decay'] = decay
+        if darkmode:
+            task_kwargs['template'] = 'plotly_dark'
+        else:
+            task_kwargs['template'] = 'plotly'
+
+        # invoke celery task
+        redis_set(0, session_id, REDIS_KEYS['task_id'])
+        redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
+        celery_filtering_data.apply_async(
+            args=[session_id,
+                  case,
+                  file,
+                  visible_list], kwargs=task_kwargs, serializer='json')
+
+        # dimensions picker default value
+        if len(cat_keys) == 0:
+            values_cat = None
+        else:
+            values_cat = cat_keys[0]
+
+        return [0,
+                0,
+                len(frame_list)-1,
+                new_dropdown,
+                new_slider,
+                [{'label': ck, 'value': ck} for ck in cat_keys],
+                [values_cat]]
 
     elif trigger_id == 'previous-button':
         if left_btn == 0:
             raise PreventUpdate
 
         # previous button is clicked
-        return [(slider_var-1) % (slider_max+1)]
+        return [(slider_var-1) % (slider_max+1),
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update]
 
     elif trigger_id == 'next-button':
         if right_btn == 0:
             raise PreventUpdate
 
         # next button is clicked
-        return [(slider_var+1) % (slider_max+1)]
+        return [(slider_var+1) % (slider_max+1),
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update,
+                dash.no_update]
 
     elif trigger_id == 'interval-component':
         if interval == 0:
@@ -560,10 +510,22 @@ def file_selected(
 
         # triggerred from interval
         if slider_var == slider_max:
-            return [dash.no_update]
+            return [dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update]
 
         else:
-            return [(slider_var+1) % (slider_max+1)]
+            return [(slider_var+1) % (slider_max+1),
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update,
+                    dash.no_update]
 
 
 @app.callback(
@@ -575,12 +537,9 @@ def file_selected(
         Output('parallel-switch', 'value'),
         Output('heat-switch', 'value'),
     ],
-    Input('file-loaded-trigger', 'data'),
-    [
-        State('file-picker', 'value'),
-        State('case-picker', 'value')
-    ])
-def reset_switch_state(file_loaded, file, case):
+    Input('file-picker', 'value'),
+    State('case-picker', 'value'))
+def reset_switch_state(file, case):
     """
     Reset all the enable switches when a new file is selected
 
