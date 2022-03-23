@@ -385,13 +385,13 @@ def file_select_changed(
         task_kwargs['template'] = 'plotly'
 
     # invoke celery task
-    redis_set(0, session_id, REDIS_KEYS['task_id'])
-    redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
-    celery_filtering_data.apply_async(
-        args=[session_id,
-              case,
-              file,
-              visible_list], kwargs=task_kwargs, serializer='json')
+    # redis_set(0, session_id, REDIS_KEYS['task_id'])
+    # redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
+    # celery_filtering_data.apply_async(
+    #     args=[session_id,
+    #           case,
+    #           file,
+    #           visible_list], kwargs=task_kwargs, serializer='json')
 
     # dimensions picker default value
     if len(cat_keys) == 0:
