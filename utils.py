@@ -31,6 +31,7 @@ import redis
 import os
 import json
 import pickle
+from diskcache import Cache
 
 EXPIRATION = 172800  # 2 days in seconds
 REDIS_KEYS = {'dataset': 'DATASET',
@@ -51,6 +52,8 @@ KEY_TYPES = {'CAT': 'categorical',
 redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
 redis_instance = redis.StrictRedis.from_url(redis_url)
+
+cache = Cache('./cache')
 
 
 def load_config(json_file):
@@ -84,11 +87,13 @@ def redis_set(data, id, key_major, key_minor=None):
         key_str = key_major+id
     else:
         key_str = key_major+id+key_minor
-    redis_instance.set(
-        key_str,
-        pickle.dumps(data),
-        ex=EXPIRATION
-    )
+    # redis_instance.set(
+    #     key_str,
+    #     pickle.dumps(data),
+    #     ex=EXPIRATION
+    # )
+    # cache.pop(key_str)
+    cache.set(key_str, data, expire=EXPIRATION)
 
 
 def redis_get(id, key_major, key_minor=None):
@@ -110,8 +115,13 @@ def redis_get(id, key_major, key_minor=None):
     else:
         key_str = key_major+id+key_minor
 
-    val = redis_instance.get(key_str)
-    if val is not None:
-        return pickle.loads(val)
-    else:
+    # val = redis_instance.get(key_str)
+    try:
+        val = cache[key_str]
+        return val
+    except KeyError:
         return None
+    # if val is not None:
+    #     return pickle.loads(val)
+    # else:
+    #     return None

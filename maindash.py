@@ -31,12 +31,11 @@ import os
 
 import dash
 from dash.dependencies import Output
-from dash.long_callback import DiskcacheLongCallbackManager
 
 # Diskcache
-import diskcache
-cache = diskcache.Cache("./cache")
-long_callback_manager = DiskcacheLongCallbackManager(cache)
+# import diskcache
+# cache = diskcache.Cache("./cache")
+# long_callback_manager = DiskcacheLongCallbackManager(cache)
 
 
 # options for dropdown components with all the keys
@@ -96,7 +95,6 @@ DROPDOWN_VALUES_CAT_COLOR = [
 ]
 
 app = dash.Dash(__name__,
-                long_callback_manager=long_callback_manager,
                 meta_tags=[{
                     'name': 'viewport',
                     'content': 'width=device-width,initial-scale=1'
