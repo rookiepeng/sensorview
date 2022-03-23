@@ -333,6 +333,8 @@ def get_animation_data(data_frame,
                 encoded_image.decode())
         except FileNotFoundError:
             img = None
+        except NotADirectoryError:
+            img = None
     else:
         img = None
 
