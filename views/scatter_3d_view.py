@@ -248,7 +248,8 @@ def filter_changed(
         celery_filtering_data.apply_async(args=[session_id,
                                                 case,
                                                 file,
-                                                visible_list],
+                                                visible_list,
+                                                config],
                                           kwargs=task_kwargs,
                                           serializer='json')
 
