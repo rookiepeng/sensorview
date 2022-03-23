@@ -244,6 +244,8 @@ def celery_filtering_data(
                 encoding.decode())
         except FileNotFoundError:
             fig_kwargs['image'] = None
+        except NotADirectoryError:
+            fig_kwargs['image'] = None
 
         fig_kwargs['name'] = 'Index: ' +\
             str(slider_arg) +\

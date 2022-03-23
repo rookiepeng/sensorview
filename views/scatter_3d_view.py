@@ -352,6 +352,8 @@ def filter_changed(
                 encoding.decode())
         except FileNotFoundError:
             fig_kwargs['image'] = None
+        except NotADirectoryError:
+            fig_kwargs['image'] = None
 
         # get a single frame data from Redis
         data = redis_get(session_id,
