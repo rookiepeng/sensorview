@@ -120,6 +120,7 @@ def celery_filtering_data(
     case,
     file,
     visible_picker,
+    config,
     **kwargs
 ):
     """
@@ -147,7 +148,7 @@ def celery_filtering_data(
     task_id = self.request.id
     redis_set(task_id, session_id, REDIS_KEYS['task_id'])
 
-    config = redis_get(session_id, REDIS_KEYS['config'])
+    # config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
 
     slider_label = keys_dict[config['slider']
@@ -185,6 +186,10 @@ def celery_filtering_data(
         'description', fig_kwargs['c_key'])
     fig_kwargs['x_ref'] = config.get('x_ref', None)
     fig_kwargs['y_ref'] = config.get('y_ref', None)
+
+    if redis_get(session_id, REDIS_KEYS['task_id']) != task_id:
+        logger.info('Task '+str(task_id)+' terminated by a new task')
+        return
 
     # set graph's range the same for all the frames
     if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
