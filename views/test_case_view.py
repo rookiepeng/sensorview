@@ -152,7 +152,7 @@ def case_selected(case, session_id):
 
 
 @app.long_callback(
-    [
+    output=[
         Output('file-loaded-trigger', 'data'),
         Output('slider-frame', 'min'),
         Output('slider-frame', 'max'),
@@ -167,10 +167,9 @@ def case_selected(case, session_id):
     DROPDOWN_VALUES_CAT_COLOR +
     DROPDOWN_OPTIONS_CAT +
     DROPDOWN_VALUES_CAT,
-    [
+    inputs=[
         Input('file-picker', 'value')
-    ],
-    [
+    ]+[
         State('file-loaded-trigger', 'data'),
         State('decay-slider', 'value'),
         State('case-picker', 'value'),
