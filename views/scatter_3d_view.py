@@ -141,6 +141,7 @@ def filter_changed(
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(trigger_id)
     file = json.loads(file)
 
     # no update if:
