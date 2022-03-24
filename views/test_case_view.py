@@ -151,8 +151,8 @@ def case_selected(case, session_id):
     return [data_files[0]['value'], data_files]
 
 
-@app.long_callback(
-    output=[
+@app.callback(
+    [
         Output('file-loaded-trigger', 'data'),
         Output('slider-frame', 'min'),
         Output('slider-frame', 'max'),
@@ -167,9 +167,10 @@ def case_selected(case, session_id):
     DROPDOWN_VALUES_CAT_COLOR +
     DROPDOWN_OPTIONS_CAT +
     DROPDOWN_VALUES_CAT,
-    inputs=[
+    [
         Input('file-picker', 'value')
-    ]+[
+    ],
+    [
         State('file-loaded-trigger', 'data'),
         State('decay-slider', 'value'),
         State('case-picker', 'value'),
@@ -393,7 +394,6 @@ def file_select_changed(
     #           visible_list], kwargs=task_kwargs, serializer='json')
 
     # dimensions picker default value
-    print('run file select task')
     if len(cat_keys) == 0:
         t_values_cat = None
     else:
