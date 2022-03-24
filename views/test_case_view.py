@@ -393,6 +393,7 @@ def file_select_changed(
     #           visible_list], kwargs=task_kwargs, serializer='json')
 
     # dimensions picker default value
+    print('run file select task')
     if len(cat_keys) == 0:
         t_values_cat = None
     else:
