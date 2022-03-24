@@ -120,6 +120,16 @@ def case_selected(case, session_id):
     data_files = []
     case_dir = './data/'+case
 
+    if os.path.exists('./data/' +
+                      case +
+                      '/config.json'):
+        config = load_config('./data/' +
+                             case +
+                             '/config.json')
+        redis_set(config, session_id, REDIS_KEYS['config'])
+    else:
+        raise PreventUpdate
+
     for dirpath, dirnames, files in os.walk(case_dir):
         dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
         for name in files:
@@ -137,16 +147,6 @@ def case_selected(case, session_id):
                         'path': dirpath[len(case_dir):],
                         'name': name,
                         'feather_name': name.replace('.pkl', '.feather')})})
-
-    if os.path.exists('./data/' +
-                      case +
-                      '/config.json'):
-        config = load_config('./data/' +
-                             case +
-                             '/config.json')
-        redis_set(config, session_id, REDIS_KEYS['config'])
-    else:
-        raise PreventUpdate
 
     return [data_files[0]['value'], data_files]
 
@@ -373,7 +373,7 @@ def file_select_changed(
     else:
         task_kwargs['linewidth'] = 0
 
-    if c_key  in all_keys:
+    if c_key in all_keys:
         task_kwargs['c_key'] = c_key
     else:
         task_kwargs['c_key'] = all_keys[0]
@@ -399,29 +399,6 @@ def file_select_changed(
     else:
         t_values_cat = cat_keys[0]
 
-    # print('##########################################')
-    # print(file_loaded)
-    # print([file_loaded+1,
-    #        0,
-    #        len(frame_list)-1,
-    #        new_dropdown,
-    #        new_slider,
-    #        [{'label': ck, 'value': ck} for ck in cat_keys],
-    #        [t_values_cat]] #+
-    #     #   options_all +
-    #     #   values_all +
-    #     #   options_cat_color +
-    #     #   values_cat_color +
-    #     #   options_cat +
-    #     #   values_cat
-    #       )
-    # print(options_all)
-    # print(values_all)
-    # print(options_cat_color)
-    # print(values_cat_color)
-    # print(options_cat)
-    # print(values_cat)
-    # print(config)
     return [file_loaded+1,
             0,
             len(frame_list)-1,
@@ -449,33 +426,19 @@ def file_select_changed(
     ],
     [
         State('file-picker', 'value'),
-        State('decay-slider', 'value'),
         State('case-picker', 'value'),
-        State('session-id', 'data'),
         State('slider-frame', 'max'),
-        State('slider-frame', 'value'),
-        State('visible-picker', 'value'),
-        State('c-picker-3d', 'value'),
-        State('outline-switch', 'value'),
-        State('colormap-3d', 'value'),
-        State('darkmode-switch', 'value'),
+        State('slider-frame', 'value')
     ])
-def file_selected(
+def update_slider(
         file_loaded,
         left_btn,
         right_btn,
         interval,
         file,
-        decay,
         case,
-        session_id,
         slider_max,
         slider_var,
-        visible_list,
-        c_key,
-        outline_enable,
-        colormap,
-        darkmode
 ):
     """
     Callback when a data file is selected
@@ -493,24 +456,13 @@ def file_selected(
         number of clicks from play button
     :param int stop_clicks
         number of clicks from stop button
-    :param int decay
-        number additional frames to display
     :param str case
         case name
-    :param str session_id
-        session id
     :param int slider_max
         maximum number of slider
     :param int slider_var
         current slider position
-    :param list visible_list
-        list of visibility [`visible', 'hidden']
-    :param str c_key
-        key for the colormap
-    :param boolean outline_enable
-        flag to enable outline for the scatters
-    :param str colormap
-        colormap name
+
 
     :return: [
         Set default slider value to 0,
@@ -532,10 +484,6 @@ def file_selected(
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    # get keys from Redis
-    config = redis_get(session_id, REDIS_KEYS['config'])
-    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
 
     if trigger_id == 'file-loaded-trigger':
         return [0]
