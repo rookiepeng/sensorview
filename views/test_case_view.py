@@ -151,7 +151,7 @@ def case_selected(case, session_id):
     return [data_files[0]['value'], data_files]
 
 
-@app.callback(
+@app.long_callback(
     [
         Output('file-loaded-trigger', 'data'),
         Output('slider-frame', 'min'),
