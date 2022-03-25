@@ -249,37 +249,47 @@ def file_select_changed(
     #   - otherwise, load the file and save the DataFrame into a
     #     .feather file
     file = json.loads(file)
-    if os.path.exists('./data/' +
-                      case +
-                      file['path'] +
-                      '/' +
-                      file['feather_name']):
-        new_data = pd.read_feather('./data/' +
-                                   case +
-                                   file['path'] +
-                                   '/' +
-                                   file['feather_name'])
+    if os.path.exists(
+        './data/' +
+        case +
+        file['path'] +
+        '/' +
+            file['feather_name']
+    ):
+        new_data = pd.read_feather(
+            './data/' +
+            case +
+            file['path'] +
+            '/' +
+            file['feather_name']
+        )
     else:
         if '.pkl' in file['name']:
-            new_data = pd.read_pickle('./data/' +
-                                      case +
-                                      file['path'] +
-                                      '/' +
-                                      file['name'])
+            new_data = pd.read_pickle(
+                './data/' +
+                case +
+                file['path'] +
+                '/' +
+                file['name']
+            )
             new_data = new_data.reset_index(drop=True)
 
         elif '.csv' in file['name']:
-            new_data = pd.read_csv('./data/' +
-                                   case +
-                                   file['path'] +
-                                   '/' +
-                                   file['name'])
+            new_data = pd.read_csv(
+                './data/' +
+                case +
+                file['path'] +
+                '/' +
+                file['name']
+            )
 
-        new_data.to_feather('./data/' +
-                            case +
-                            file['path'] +
-                            '/' +
-                            file['feather_name'])
+        new_data.to_feather(
+            './data/' +
+            case +
+            file['path'] +
+            '/' +
+            file['feather_name']
+        )
 
     # get the list of frames and save to Redis
     frame_list = np.sort(new_data[config['slider']].unique())
@@ -341,16 +351,18 @@ def file_select_changed(
                 keys_dict[item]['description']
             )
         )
-        new_slider.append(dcc.RangeSlider(
-            id={'type': 'filter-slider',
-                'index': idx},
-            min=var_min,
-            max=var_max,
-            marks=None,
-            step=round((var_max-var_min)/100, 3),
-            value=[var_min, var_max],
-            tooltip={'always_visible': False}
-        ))
+        new_slider.append(
+            dcc.RangeSlider(
+                id={'type': 'filter-slider',
+                    'index': idx},
+                min=var_min,
+                max=var_max,
+                marks=None,
+                step=round((var_max-var_min)/100, 3),
+                value=[var_min, var_max],
+                tooltip={'always_visible': False}
+            )
+        )
 
         num_values.append([var_min, var_max])
 
