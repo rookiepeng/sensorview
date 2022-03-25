@@ -154,28 +154,29 @@ def case_selected(case, session_id):
 
 
 @app.callback(
-    [
-        Output('file-loaded-trigger', 'data'),
-        Output('slider-frame', 'min'),
-        Output('slider-frame', 'max'),
-        Output('dropdown-container', 'children'),
-        Output('slider-container', 'children'),
-        Output('dim-picker-parallel', 'options'),
-        Output('dim-picker-parallel', 'value'),
-    ] +
-    DROPDOWN_OPTIONS_ALL +
-    DROPDOWN_VALUES_ALL +
-    DROPDOWN_OPTIONS_CAT_COLOR +
-    DROPDOWN_VALUES_CAT_COLOR +
-    DROPDOWN_OPTIONS_CAT +
-    DROPDOWN_VALUES_CAT,
+    output=dict(
+        file_load_trigger=Output('file-loaded-trigger', 'data'),
+        frame_min=Output('slider-frame', 'min'),
+        frame_max=Output('slider-frame', 'max'),
+        dropdown_container=Output('dropdown-container', 'children'),
+        slider_container=Output('slider-container', 'children'),
+        dim_picker_opt=Output('dim-picker-parallel', 'options'),
+        dim_picker_val=Output('dim-picker-parallel', 'value'),
+        dp_opts_all=DROPDOWN_OPTIONS_ALL,
+        dp_vals_all=DROPDOWN_VALUES_ALL,
+        dp_opts_cat_color=DROPDOWN_OPTIONS_CAT_COLOR,
+        dp_vals_cat_color=DROPDOWN_VALUES_CAT_COLOR,
+        dp_opts_cat=DROPDOWN_OPTIONS_CAT,
+        dp_vals_cat=DROPDOWN_VALUES_CAT
+    ),
     args=dict(
         file=Input('file-picker', 'value'),
         file_loaded=State('file-loaded-trigger', 'data'),
         case=State('case-picker', 'value'),
         session_id=State('session-id', 'data'),
         all_state=DROPDOWN_VALUES_ALL_STATE
-    ))
+    )
+)
 def file_select_changed(
         file,
         file_loaded,
@@ -362,19 +363,21 @@ def file_select_changed(
     else:
         t_values_cat = cat_keys[0]
 
-    return [file_loaded+1,
-            0,
-            len(frame_list)-1,
-            new_dropdown,
-            new_slider,
-            [{'label': ck, 'value': ck} for ck in cat_keys],
-            [t_values_cat]] +\
-        options_all +\
-        values_all +\
-        options_cat_color +\
-        values_cat_color +\
-        options_cat +\
-        values_cat
+    return dict(
+        file_load_trigger=file_loaded+1,
+        frame_min=0,
+        frame_max=len(frame_list)-1,
+        dropdown_container=new_dropdown,
+        slider_container=new_slider,
+        dim_picker_opt=[{'label': ck, 'value': ck} for ck in cat_keys],
+        dim_picker_val=[t_values_cat],
+        dp_opts_all=options_all,
+        dp_vals_all=values_all,
+        dp_opts_cat_color=options_cat_color,
+        dp_vals_cat_color=values_cat_color,
+        dp_opts_cat=options_cat,
+        dp_vals_cat=values_cat
+    )
 
 
 @ app.callback(
