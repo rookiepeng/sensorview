@@ -41,7 +41,7 @@ from dash.exceptions import PreventUpdate
 
 from tasks import filter_all
 
-from utils import redis_get, REDIS_KEYS
+from utils import cache_get, CACHE_KEYS
 
 import plotly.graph_objs as go
 
@@ -104,7 +104,7 @@ def update_parallel(
     ]
     :rtype: list
     """
-    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
@@ -118,7 +118,7 @@ def update_parallel(
                                    file['path'] +
                                    '/' +
                                    file['feather_name'])
-            visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+            visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
             filtered_table = filter_all(
                 data,
                 num_keys,

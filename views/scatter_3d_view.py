@@ -45,7 +45,7 @@ from dash.exceptions import PreventUpdate
 from tasks import filter_all
 from tasks import celery_filtering_data, celery_export_video
 
-from utils import redis_set, redis_get, REDIS_KEYS, KEY_TYPES
+from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 from viz.viz import get_scatter3d
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
@@ -154,26 +154,26 @@ def filter_changed(
     # if slider value changed
     #   - if Redis `figure` buffer ready, return figure from Redis
     if trigger_id == 'slider-frame':
-        fig_idx = redis_get(session_id, REDIS_KEYS['figure_idx'])
+        fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
         if fig_idx is not None:
             if slider_arg <= fig_idx:
-                fig = redis_get(session_id,
-                                REDIS_KEYS['figure'],
+                fig = cache_get(session_id,
+                                CACHE_KEYS['figure'],
                                 str(slider_arg))
                 if decay > 0:
                     for val in range(1, decay+1):
                         if (slider_arg-val) >= 0:
-                            new_fig = redis_get(session_id,
-                                                REDIS_KEYS['figure'],
+                            new_fig = cache_get(session_id,
+                                                CACHE_KEYS['figure'],
                                                 str(slider_arg-val))
                             new_fig[0]['marker']['opacity'] = opacity[val]
                             fig = fig+new_fig
 
-                fig_ref = redis_get(session_id,
-                                    REDIS_KEYS['figure_ref'],
+                fig_ref = cache_get(session_id,
+                                    CACHE_KEYS['figure_ref'],
                                     str(slider_arg))
-                layout = redis_get(session_id,
-                                   REDIS_KEYS['figure_layout'],
+                layout = cache_get(session_id,
+                                   CACHE_KEYS['figure_layout'],
                                    str(slider_arg))
                 return [
                     dict(data=fig_ref+fig,
@@ -182,22 +182,22 @@ def filter_changed(
                 ]
 
     # get config from Redis
-    config = redis_get(session_id, REDIS_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']
 
     # save filter key word arguments to Redis
-    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     filter_kwargs['num_values'] = num_values
     filter_kwargs['cat_values'] = cat_values
-    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
+    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
 
     # get visibility table from Redis
-    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
     # get frame list from Redis
-    frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
+    frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
 
     # update visibility table if a data point is clicked to hide
     if trigger_id == 'scatter3d' and \
@@ -213,7 +213,7 @@ def filter_changed(
             visible_table.at[
                 click_data['points'][0]['id'], '_VIS_'] = 'visible'
 
-        redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
+        cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
 
     # prepare figure key word arguments
     fig_kwargs = dict()
@@ -243,8 +243,8 @@ def filter_changed(
     if trigger_id != 'slider-frame' and \
         trigger_id != 'overlay-switch' and \
             trigger_id != 'decay-slider':
-        redis_set(0, session_id, REDIS_KEYS['task_id'])
-        redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
+        cache_set(0, session_id, CACHE_KEYS['task_id'])
+        cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
         celery_filtering_data.apply_async(args=[session_id,
                                                 case,
                                                 file,
@@ -357,8 +357,8 @@ def filter_changed(
             fig_kwargs['image'] = None
 
         # get a single frame data from Redis
-        data = redis_get(session_id,
-                         REDIS_KEYS['frame_data'],
+        data = cache_get(session_id,
+                         CACHE_KEYS['frame_data'],
                          str(frame_list[slider_arg]))
 
         filterd_frame = filter_all(data,
@@ -378,8 +378,8 @@ def filter_changed(
                 if (slider_arg-val) >= 0:
                     # filter the data
                     frame_temp = filter_all(
-                        redis_get(session_id,
-                                  REDIS_KEYS['frame_data'],
+                        cache_get(session_id,
+                                  CACHE_KEYS['frame_data'],
                                   str(frame_list[slider_arg-val])),
                         num_keys,
                         num_values,
@@ -562,9 +562,9 @@ def export_data(
     now = datetime.datetime.now()
     timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-    config = redis_get(session_id, REDIS_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
@@ -576,7 +576,7 @@ def export_data(
                            file['path'] +
                            '/' +
                            file['feather_name'])
-    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
     filtered_table = filter_all(
         data,
