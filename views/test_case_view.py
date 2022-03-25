@@ -153,7 +153,7 @@ def case_selected(case, session_id):
     return [data_files[0]['value'], data_files]
 
 
-@app.long_callback(
+@app.callback(
     output=dict(
         file_load_trigger=Output('file-loaded-trigger', 'data'),
         frame_min=Output('slider-frame', 'min'),
