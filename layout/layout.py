@@ -304,9 +304,7 @@ left2d_card = dbc.Card([
                     value=[],
                     id='left-switch',
                     switch=True,
-                    style={
-                        'float': 'right'
-                    }
+                    style={'float': 'right'}
                 )
             )]),
     ),
@@ -339,7 +337,7 @@ left2d_card = dbc.Card([
                          for x in colorscales],
                 value='Portland',
             )),
-        ]),
+        ], style={'margin-bottom': 10}),
 
         dcc.Loading(
             id='loading_left',
@@ -370,12 +368,11 @@ left2d_card = dbc.Card([
                         id='export-scatter2d-left',
                         n_clicks=0,
                         style={'float': 'right'})),
-                ]),
+                ], style={'margin-top': 10}),
             ],
             type='default',
         ),
-    ])
-])
+    ])])
 
 right2d_card = dbc.Card([
     dbc.CardHeader(
@@ -397,10 +394,10 @@ right2d_card = dbc.Card([
     ),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.Label('x-axis')),
-            dbc.Col(html.Label('y-axis')),
-            dbc.Col(html.Label('color')),
-            dbc.Col(html.Label('colormap')),
+            dbc.Col(dbc.Label('x-axis')),
+            dbc.Col(dbc.Label('y-axis')),
+            dbc.Col(dbc.Label('color')),
+            dbc.Col(dbc.Label('colormap')),
         ]),
 
         dbc.Row([
@@ -423,7 +420,7 @@ right2d_card = dbc.Card([
                          for x in colorscales],
                 value='Portland',
             )),
-        ]),
+        ], style={'margin-bottom': 10}),
 
         dcc.Loading(
             id='loading_right',
@@ -451,7 +448,7 @@ right2d_card = dbc.Card([
                         id='export-scatter2d-right',
                         n_clicks=0,
                         style={'float': 'right'}))
-                ]),
+                ], style={'margin-top': 10}),
             ],
             type='default',
         ),
