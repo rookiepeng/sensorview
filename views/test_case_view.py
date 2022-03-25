@@ -169,8 +169,10 @@ def case_selected(case, session_id):
         dp_opts_cat=DROPDOWN_OPTIONS_CAT,
         dp_vals_cat=DROPDOWN_VALUES_CAT
     ),
-    args=dict(
-        file=Input('file-picker', 'value'),
+    inputs=dict(
+        file=Input('file-picker', 'value')
+    ),
+    state=dict(
         file_loaded=State('file-loaded-trigger', 'data'),
         case=State('case-picker', 'value'),
         session_id=State('session-id', 'data'),
