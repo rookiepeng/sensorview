@@ -30,7 +30,7 @@
 import os
 
 import dash
-from dash.dependencies import Output
+from dash.dependencies import Output, State
 
 # Diskcache
 # import diskcache
@@ -66,6 +66,20 @@ DROPDOWN_VALUES_ALL = [
     Output('x-picker-heatmap', 'value'),
     Output('y-picker-heatmap', 'value'),
     Output('y-picker-violin', 'value'),
+]
+
+DROPDOWN_VALUES_ALL_STATE = [
+    State('c-picker-3d', 'value'),
+    State('x-picker-2d-left', 'value'),
+    State('y-picker-2d-left', 'value'),
+    State('c-picker-2d-left', 'value'),
+    State('x-picker-2d-right', 'value'),
+    State('y-picker-2d-right', 'value'),
+    State('c-picker-2d-right', 'value'),
+    State('x-picker-histogram', 'value'),
+    State('x-picker-heatmap', 'value'),
+    State('y-picker-heatmap', 'value'),
+    State('y-picker-violin', 'value'),
 ]
 
 # options for dropdown components with categorical keys
