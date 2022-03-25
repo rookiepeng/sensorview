@@ -186,7 +186,7 @@ view3d_card = dbc.Card([
                         'float': 'right'
                     }
                 ), width=8),
-        ], justify='end'),
+        ], justify='end', style={'margin-bottom': 10}),
 
         dcc.Graph(
             id='scatter3d',
