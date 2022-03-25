@@ -362,6 +362,7 @@ left2d_card = dbc.Card([
                     dbc.Col(dbc.Button(
                         'Hide/Unhide',
                         id='hide-left',
+                        color='warning',
                         n_clicks=0)),
                     dbc.Col(dbc.Button(
                         'Export',
@@ -475,9 +476,9 @@ hist_card = dbc.Card([
     ),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.Label('x-axis')),
-            dbc.Col(html.Label('y-axis')),
-            dbc.Col(html.Label('color')),
+            dbc.Col(dbc.Label('x-axis')),
+            dbc.Col(dbc.Label('y-axis')),
+            dbc.Col(dbc.Label('color')),
         ]),
 
         dbc.Row([
@@ -553,9 +554,9 @@ violin_card = dbc.Card([
     ),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.Label('x-axis')),
-            dbc.Col(html.Label('y-axis')),
-            dbc.Col(html.Label('color')),
+            dbc.Col(dbc.Label('x-axis')),
+            dbc.Col(dbc.Label('y-axis')),
+            dbc.Col(dbc.Label('color')),
         ]),
 
         dbc.Row([
@@ -616,8 +617,8 @@ parallel_card = dbc.Card([
     ),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.Label('dimensions')),
-            dbc.Col(html.Label('color')),
+            dbc.Col(dbc.Label('dimensions')),
+            dbc.Col(dbc.Label('color')),
         ]),
 
         dbc.Row([
@@ -675,8 +676,8 @@ heatmap_card = dbc.Card([
     ),
     dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.Label('x-axis')),
-            dbc.Col(html.Label('y-axis'))
+            dbc.Col(dbc.Label('x-axis')),
+            dbc.Col(dbc.Label('y-axis'))
         ]),
 
         dbc.Row([
