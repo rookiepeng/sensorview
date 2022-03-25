@@ -73,7 +73,7 @@ testcase_card = dbc.Card([
                     'float': 'right'
                 }), width=2)
         ]),
-    ])], color='primary', inverse=True)
+    ])], color='secondary', inverse=True)
 
 datafile_card = dbc.Card([
     dbc.CardHeader('Data File'),
@@ -82,7 +82,7 @@ datafile_card = dbc.Card([
             id='file-picker',
         ),
     ])
-], color='primary', inverse=True)
+], color='secondary', inverse=True)
 
 
 filter_card = dbc.Card([
