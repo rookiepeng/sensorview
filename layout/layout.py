@@ -276,7 +276,7 @@ view3d_card = dbc.Card([
                     n_clicks=0
                 ),
                     dbc.DropdownMenuItem(
-                    'Export filtered data',
+                    'Save filtered data',
                     id='export-data',
                     n_clicks=0
                 )],
