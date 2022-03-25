@@ -373,7 +373,7 @@ left2d_card = dbc.Card([
             ],
             type='default',
         ),
-    ])])
+    ])], color='danger', outline=True)
 
 right2d_card = dbc.Card([
     dbc.CardHeader(
@@ -453,7 +453,7 @@ right2d_card = dbc.Card([
             ],
             type='default',
         ),
-    ])])
+    ])], color='danger', outline=True)
 
 
 hist_card = dbc.Card([
