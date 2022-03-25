@@ -41,7 +41,7 @@ import plotly.graph_objs as go
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 from viz.viz import get_animation_data
-from utils import redis_set, redis_get, REDIS_KEYS, KEY_TYPES
+from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 
 logger = get_task_logger(__name__)
@@ -142,11 +142,11 @@ def celery_filtering_data(
     """
 
     # set figure index to -1 (no buffer is ready)
-    redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
+    cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
 
     # set new task_id in Redis, this will terminate the previously running task
     task_id = self.request.id
-    redis_set(task_id, session_id, REDIS_KEYS['task_id'])
+    cache_set(task_id, session_id, CACHE_KEYS['task_id'])
 
     # config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
@@ -154,14 +154,14 @@ def celery_filtering_data(
     slider_label = keys_dict[config['slider']
                              ]['description']
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     num_values = filter_kwargs['num_values']
     cat_values = filter_kwargs['cat_values']
 
-    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
-    frame_list = redis_get(session_id, REDIS_KEYS['frame_list'])
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
 
     dataset = pd.read_feather('./data/'+case +
                               file['path']+'/' +
@@ -187,7 +187,7 @@ def celery_filtering_data(
     fig_kwargs['x_ref'] = config.get('x_ref', None)
     fig_kwargs['y_ref'] = config.get('y_ref', None)
 
-    if redis_get(session_id, REDIS_KEYS['task_id']) != task_id:
+    if cache_get(session_id, CACHE_KEYS['task_id']) != task_id:
         logger.info('Task '+str(task_id)+' terminated by a new task')
         return
 
@@ -288,21 +288,21 @@ def celery_filtering_data(
 
         fig_layout = get_scatter3d_layout(**fig_kwargs)
 
-        if redis_get(session_id, REDIS_KEYS['task_id']) == task_id:
-            redis_set(fig,
-                      session_id, REDIS_KEYS['figure'],
+        if cache_get(session_id, CACHE_KEYS['task_id']) == task_id:
+            cache_set(fig,
+                      session_id, CACHE_KEYS['figure'],
                       str(slider_arg))
-            redis_set(ref_fig,
+            cache_set(ref_fig,
                       session_id,
-                      REDIS_KEYS['figure_ref'],
+                      CACHE_KEYS['figure_ref'],
                       str(slider_arg))
-            redis_set(fig_layout,
+            cache_set(fig_layout,
                       session_id,
-                      REDIS_KEYS['figure_layout'],
+                      CACHE_KEYS['figure_layout'],
                       str(slider_arg))
-            redis_set(slider_arg,
+            cache_set(slider_arg,
                       session_id,
-                      REDIS_KEYS['figure_idx'])
+                      CACHE_KEYS['figure_idx'])
         else:
             logger.info('Task '+str(task_id)+' terminated by a new task')
             return
@@ -334,19 +334,19 @@ def celery_export_video(
         'colormap' colormap name
     """
 
-    config = redis_get(session_id, REDIS_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS["filter_kwargs"])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     num_values = filter_kwargs['num_values']
     cat_values = filter_kwargs['cat_values']
 
-    visible_table = redis_get(session_id,
-                              REDIS_KEYS['visible_table'])
-    frame_list = redis_get(session_id,
-                           REDIS_KEYS['frame_list'])
+    visible_table = cache_get(session_id,
+                              CACHE_KEYS['visible_table'])
+    frame_list = cache_get(session_id,
+                           CACHE_KEYS['frame_list'])
 
     dataset = pd.read_feather('./data/'+case +
                               file['path']+'/' +

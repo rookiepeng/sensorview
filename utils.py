@@ -34,7 +34,7 @@ import pickle
 from diskcache import Cache
 
 EXPIRATION = 172800  # 2 days in seconds
-REDIS_KEYS = {'dataset': 'DATASET',
+CACHE_KEYS = {'dataset': 'DATASET',
               'frame_list': 'FRAME_LIST',
               'frame_data': 'FRAME_DATA',
               'visible_table': 'VIS_TABLE',
@@ -70,7 +70,7 @@ def load_config(json_file):
         return json.load(read_file)
 
 
-def redis_set(data, id, key_major, key_minor=None):
+def cache_set(data, id, key_major, key_minor=None):
     """
     Set data to Redis
 
@@ -96,7 +96,7 @@ def redis_set(data, id, key_major, key_minor=None):
     cache.set(key_str, data, expire=EXPIRATION)
 
 
-def redis_get(id, key_major, key_minor=None):
+def cache_get(id, key_major, key_minor=None):
     """
     Get data from Redis
 

@@ -42,7 +42,7 @@ from maindash import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from utils import load_config, redis_set, redis_get, REDIS_KEYS, KEY_TYPES
+from utils import load_config, cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 import dash_bootstrap_components as dbc
 from dash import dcc
@@ -128,7 +128,7 @@ def case_selected(case, session_id):
         config = load_config('./data/' +
                              case +
                              '/config.json')
-        redis_set(config, session_id, REDIS_KEYS['config'])
+        cache_set(config, session_id, CACHE_KEYS['config'])
     else:
         raise PreventUpdate
 
@@ -186,7 +186,7 @@ def file_select_changed(
         session_id,
         all_state):
     # get keys from Redis
-    config = redis_get(session_id, REDIS_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
 
     # extract keys and save to Redis
     num_keys = []
@@ -199,7 +199,7 @@ def file_select_changed(
             cat_keys.append(item)
     filter_kwargs = {'num_keys': num_keys,
                      'cat_keys': cat_keys}
-    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
+    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
 
     # options for `DROPDOWN_OPTIONS_ALL`
     options_all = [[{
@@ -283,7 +283,7 @@ def file_select_changed(
 
     # get the list of frames and save to Redis
     frame_list = np.sort(new_data[config['slider']].unique())
-    redis_set(frame_list, session_id, REDIS_KEYS['frame_list'])
+    cache_set(frame_list, session_id, CACHE_KEYS['frame_list'])
 
     # create the visibility table and save to Redis
     #   the visibility table is used to indicate if the data point is
@@ -291,14 +291,14 @@ def file_select_changed(
     visible_table = pd.DataFrame()
     visible_table['_IDS_'] = new_data.index
     visible_table['_VIS_'] = 'visible'
-    redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
+    cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
 
     # group the DataFrame by frame and save the grouped data one by one
     # into Redis
     frame_group = new_data.groupby(config['slider'])
     for frame_idx, frame_data in frame_group:
-        redis_set(frame_data, session_id,
-                  REDIS_KEYS['frame_data'],
+        cache_set(frame_data, session_id,
+                  CACHE_KEYS['frame_data'],
                   str(frame_idx))
 
     # create dropdown layouts
@@ -357,7 +357,7 @@ def file_select_changed(
     # save categorical values and numerical values to Redis
     filter_kwargs['num_values'] = num_values
     filter_kwargs['cat_values'] = cat_values
-    redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
+    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
 
     # dimensions picker default value
     if len(cat_keys) == 0:

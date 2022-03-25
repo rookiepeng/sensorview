@@ -40,7 +40,7 @@ from dash.exceptions import PreventUpdate
 
 from tasks import filter_all
 
-from utils import redis_set, redis_get, REDIS_KEYS, KEY_TYPES
+from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 from viz.viz import get_scatter2d
 
@@ -119,9 +119,9 @@ def update_scatter2d_left(
     ]
     :rtype: list
     """
-    config = redis_get(session_id, REDIS_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
 
-    filter_kwargs = redis_get(session_id, REDIS_KEYS['filter_kwargs'])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
@@ -146,7 +146,7 @@ def update_scatter2d_left(
                                file['path'] +
                                '/' +
                                file['feather_name'])
-        visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+        visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
         filtered_table = filter_all(
             data,
@@ -240,7 +240,7 @@ def select_left_figure(selectedData, session_id):
     :return: selected data
     :rtype: json
     """
-    redis_set(selectedData, session_id, REDIS_KEYS['selected_data'])
+    cache_set(selectedData, session_id, CACHE_KEYS['selected_data'])
     return 0
 
 
@@ -273,12 +273,12 @@ def left_hide_button(
     if btn == 0:
         raise PreventUpdate
 
-    selectedData = redis_get(session_id, REDIS_KEYS['selected_data'])
+    selectedData = cache_get(session_id, CACHE_KEYS['selected_data'])
 
     if selectedData is None:
         raise PreventUpdate
 
-    visible_table = redis_get(session_id, REDIS_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
     s_data = pd.DataFrame(selectedData['points'])
     idx = s_data['id']
@@ -290,6 +290,6 @@ def left_hide_button(
     visible_table.loc[vis_idx, '_VIS_'] = 'hidden'
     visible_table.loc[hid_idx, '_VIS_'] = 'visible'
 
-    redis_set(visible_table, session_id, REDIS_KEYS['visible_table'])
+    cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
 
     return trigger_idx+1
