@@ -36,7 +36,7 @@ import numpy as np
 import dash
 from maindash import app
 from maindash import SPECIAL_FOLDERS
-from maindash import DROPDOWN_OPTIONS_ALL, DROPDOWN_VALUES_ALL
+from maindash import DROPDOWN_OPTIONS_ALL, DROPDOWN_VALUES_ALL, DROPDOWN_VALUES_ALL_STATE
 from maindash import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
 from maindash import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
 from dash.dependencies import Input, Output, State
@@ -87,9 +87,11 @@ def refresh_button_clicked(unused):
     return [options, options[0]['value']]
 
 
-@app.callback([
-    Output('file-picker', 'value'),
-    Output('file-picker', 'options')],
+@app.callback(
+    [
+        Output('file-picker', 'value'),
+        Output('file-picker', 'options')
+    ],
     Input('case-picker', 'value'),
     State('session-id', 'data'))
 def case_selected(case, session_id):
@@ -167,31 +169,19 @@ def case_selected(case, session_id):
     DROPDOWN_VALUES_CAT_COLOR +
     DROPDOWN_OPTIONS_CAT +
     DROPDOWN_VALUES_CAT,
-    [
-        Input('file-picker', 'value')
-    ],
-    [
-        State('file-loaded-trigger', 'data'),
-        State('decay-slider', 'value'),
-        State('case-picker', 'value'),
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('c-picker-3d', 'value'),
-        State('outline-switch', 'value'),
-        State('colormap-3d', 'value'),
-        State('darkmode-switch', 'value')
-    ])
+    args=dict(
+        file=Input('file-picker', 'value'),
+        file_loaded=State('file-loaded-trigger', 'data'),
+        case=State('case-picker', 'value'),
+        session_id=State('session-id', 'data'),
+        all_state=DROPDOWN_VALUES_ALL_STATE
+    ))
 def file_select_changed(
         file,
         file_loaded,
-        decay,
         case,
         session_id,
-        visible_list,
-        c_key,
-        outline_enable,
-        colormap,
-        darkmode):
+        all_state):
     # get keys from Redis
     config = redis_get(session_id, REDIS_KEYS['config'])
 
@@ -366,33 +356,6 @@ def file_select_changed(
     filter_kwargs['cat_values'] = cat_values
     redis_set(filter_kwargs, session_id, REDIS_KEYS['filter_kwargs'])
 
-    task_kwargs = dict()
-    # outline width
-    if outline_enable:
-        task_kwargs['linewidth'] = 1
-    else:
-        task_kwargs['linewidth'] = 0
-
-    if c_key in all_keys:
-        task_kwargs['c_key'] = c_key
-    else:
-        task_kwargs['c_key'] = all_keys[0]
-    task_kwargs['colormap'] = colormap
-    task_kwargs['decay'] = decay
-    if darkmode:
-        task_kwargs['template'] = 'plotly_dark'
-    else:
-        task_kwargs['template'] = 'plotly'
-
-    # invoke celery task
-    # redis_set(0, session_id, REDIS_KEYS['task_id'])
-    # redis_set(-1, session_id, REDIS_KEYS['figure_idx'])
-    # celery_filtering_data.apply_async(
-    #     args=[session_id,
-    #           case,
-    #           file,
-    #           visible_list], kwargs=task_kwargs, serializer='json')
-
     # dimensions picker default value
     if len(cat_keys) == 0:
         t_values_cat = None
@@ -414,7 +377,7 @@ def file_select_changed(
         values_cat
 
 
-@app.callback(
+@ app.callback(
     [
         Output('slider-frame', 'value')
     ],
@@ -514,7 +477,7 @@ def update_slider(
             return [(slider_var+1) % (slider_max+1)]
 
 
-@app.callback(
+@ app.callback(
     [
         Output('left-switch', 'value'),
         Output('right-switch', 'value'),
