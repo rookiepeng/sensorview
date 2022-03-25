@@ -216,6 +216,10 @@ def file_select_changed(
         values_all = [all_keys[x % len(all_keys)]
                       for x in range(0, len(DROPDOWN_VALUES_ALL))]
 
+    for idx, item in enumerate(all_state):
+        if item in all_keys:
+            values_all[idx] = item
+
     # options for `DROPDOWN_OPTIONS_CAT_COLOR`
     options_cat_color = [[{
         'label': 'None',
