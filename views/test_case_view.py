@@ -499,7 +499,7 @@ def update_slider(
         fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
         if fig_idx is not None:
             if slider_var > fig_idx:
-                return [dash.no_update]
+                raise PreventUpdate
 
         else:
             return [(slider_var+1) % (slider_max+1)]
