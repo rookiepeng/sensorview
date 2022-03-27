@@ -412,8 +412,7 @@ def file_select_changed(
         State('file-picker', 'value'),
         State('case-picker', 'value'),
         State('slider-frame', 'max'),
-        State('slider-frame', 'value'),
-        State('session-id', 'data')
+        State('slider-frame', 'value')
     ])
 def update_slider(
         file_loaded,
@@ -424,7 +423,6 @@ def update_slider(
         case,
         slider_max,
         slider_var,
-        session_id
 ):
     """
     Callback when a data file is selected
@@ -495,11 +493,6 @@ def update_slider(
         # triggerred from interval
         if slider_var == slider_max:
             return [dash.no_update]
-
-        fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
-        if fig_idx is not None:
-            if slider_var > fig_idx:
-                return [dash.no_update]
 
         else:
             return [(slider_var+1) % (slider_max+1)]
