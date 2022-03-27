@@ -501,8 +501,7 @@ def update_slider(
             if slider_var > fig_idx:
                 raise PreventUpdate
 
-        else:
-            return [(slider_var+1) % (slider_max+1)]
+        return [(slider_var+1) % (slider_max+1)]
 
 
 @ app.callback(
