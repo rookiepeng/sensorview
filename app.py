@@ -58,30 +58,30 @@ app.layout = get_app_layout
 
 
 @app.callback(
-    [
-        Output('buffer', 'value'),
-        Output('buffer-interval', 'disabled'),
-    ],
-    [
-        Input('buffer-interval', 'n_intervals'),
-        Input('filter-trigger', 'data'),
-        Input('colormap-3d', 'value'),
-        Input('left-hide-trigger', 'data'),
-        Input('outline-switch', 'value'),
-        Input('file-picker', 'value'),
-    ],
-    [
-        State('slider-frame', 'max'),
-        State('session-id', 'data'),
-    ]
+    output=dict(
+        buffer_progress=Output('buffer', 'value'),
+        buffer_intrval_disabled=Output('buffer-interval', 'disabled'),
+    ),
+    inputs=dict(
+        interval=Input('buffer-interval', 'n_intervals'),
+        filter_trigger=Input('filter-trigger', 'data'),
+        colormap=Input('colormap-3d', 'value'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        outline_sw=Input('outline-switch', 'value'),
+        file_picker=Input('file-picker', 'value'),
+    ),
+    state=dict(
+        max_frame=State('slider-frame', 'max'),
+        session_id=State('session-id', 'data'),
+    )
 )
 def update_buffer_indicator(
-    unused1,
-    unused2,
-    unused3,
-    unused4,
-    unused5,
-    unused6,
+    interval,
+    filter_trigger,
+    colormap,
+    left_hide_trigger,
+    outline_sw,
+    file_picker,
     max_frame,
     session_id
 ):
@@ -106,7 +106,10 @@ def update_buffer_indicator(
     :rtype: int
     """
     if max_frame is None:
-        return [0,  False]
+        return dict(
+            buffer_progress=0,
+            buffer_intrval_disabled=False
+        )
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -116,13 +119,25 @@ def update_buffer_indicator(
         if fig_idx is not None:
             percent = fig_idx/max_frame*100
             if percent == 100:
-                return [percent, True]
+                return dict(
+                    buffer_progress=percent,
+                    buffer_intrval_disabled=True
+                )
             else:
-                return [percent, dash.no_update]
+                return dict(
+                    buffer_progress=percent,
+                    buffer_intrval_disabled=dash.no_update
+                )
         else:
-            return [0,  dash.no_update]
+            return dict(
+                buffer_progress=0,
+                buffer_intrval_disabled=dash.no_update
+            )
     else:
-        return [0,  False]
+        return dict(
+            buffer_progress=0,
+            buffer_intrval_disabled=False
+        )
 
 
 app.clientside_callback(
