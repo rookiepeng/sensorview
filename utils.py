@@ -116,11 +116,9 @@ def cache_get(id, key_major, key_minor=None):
         key_str = key_major+id+key_minor
 
     # val = redis_instance.get(key_str)
-    try:
-        val = cache[key_str]
-        return val
-    except KeyError:
-        return None
+    val = cache.get(key_str, default=None, retry=True)
+    return val
+
     # if val is not None:
     #     return pickle.loads(val)
     # else:
