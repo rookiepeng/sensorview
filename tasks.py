@@ -48,7 +48,7 @@ logger = get_task_logger(__name__)
 
 redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
-celery_app = Celery("Celery_App", broker=redis_url)
+celery_app = Celery("Celery_App", broker='pyamqp://guest@localhost//')
 
 
 def filter_all(
