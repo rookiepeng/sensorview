@@ -93,8 +93,7 @@ def cache_set(data, id, key_major, key_minor=None):
     #     ex=EXPIRATION
     # )
     # cache.pop(key_str)
-    # cache.set(key_str, data, expire=EXPIRATION)
-    cache.set(key_str, data)
+    cache.set(key_str, data, expire=EXPIRATION)
 
 
 def cache_get(id, key_major, key_minor=None):
