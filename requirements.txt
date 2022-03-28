@@ -6,7 +6,7 @@ flask
 pyarrow
 numpy
 pandas
-redis
 kaleido
 celery
 gevent
+diskcache
