@@ -189,6 +189,8 @@ def celery_filtering_data(
 
     if cache_get(session_id, CACHE_KEYS['task_id']) != task_id:
         logger.info('Task '+str(task_id)+' terminated by a new task')
+        del frame_group
+        del dataset
         return
 
     # set graph's range the same for all the frames
@@ -305,6 +307,9 @@ def celery_filtering_data(
                       CACHE_KEYS['figure_idx'])
         else:
             logger.info('Task '+str(task_id)+' terminated by a new task')
+            del data
+            del frame_group
+            del dataset
             return
 
 
