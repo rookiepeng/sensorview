@@ -81,7 +81,7 @@ class JSONDisk(Disk):
             data = json.loads(zlib.decompress(data).decode('utf-8'))
         return data
 
-with Cache(disk=JSONDisk, disk_compress_level=6) as cache:
+with Cache('./cache', disk=JSONDisk) as cache:
     pass
 
 
