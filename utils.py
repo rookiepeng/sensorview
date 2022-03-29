@@ -84,7 +84,7 @@ redis_instance = redis.StrictRedis.from_url(redis_url)
 #     pass
 
 
-cache = Cache('./cache', eviction_policy=None)
+cache = Cache('./cache', eviction_policy='none')
 
 
 def load_config(json_file):
