@@ -27,6 +27,7 @@
 
 """
 
+import zlib
 import redis
 import os
 import json
@@ -53,7 +54,6 @@ redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
 redis_instance = redis.StrictRedis.from_url(redis_url)
 
-import json, zlib
 
 class JSONDisk(Disk):
     def __init__(self, directory, compress_level=1, **kwargs):
@@ -81,10 +81,11 @@ class JSONDisk(Disk):
             data = json.loads(zlib.decompress(data).decode('utf-8'))
         return data
 
-# with Cache(disk=JSONDisk, disk_compress_level=6) as cache:
-#     pass
+with Cache('./cache', disk=JSONDisk, disk_compress_level=6) as cache:
+    pass
 
-cache = Cache('./cache', disk=JSONDisk, disk_compress_level=6)
+
+# cache = Cache('./cache', disk=JSONDisk, disk_compress_level=6)
 
 
 def load_config(json_file):
