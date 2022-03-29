@@ -124,7 +124,7 @@ def cache_set(data, id, key_major, key_minor=None):
     #     ex=EXPIRATION
     # )
     # cache.pop(key_str)
-    cache.set(key_str, pickle.dumps(data), expire=EXPIRATION)
+    cache.set(key_str, data, expire=EXPIRATION)
 
 
 def redis_set(data, id, key_major, key_minor=None):
@@ -173,11 +173,7 @@ def cache_get(id, key_major, key_minor=None):
 
     # val = redis_instance.get(key_str)
     val = cache.get(key_str, default=None, retry=True)
-    if val is None:
-        return None
-    else:
-        return pickle.loads(val)
-    # return val
+    return val
 
     # if val is not None:
     #     return pickle.loads(val)
