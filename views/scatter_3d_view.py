@@ -45,7 +45,7 @@ from dash.exceptions import PreventUpdate
 from tasks import filter_all
 from tasks import celery_filtering_data, celery_export_video
 
-from utils import redis_set, redis_get, cache_set, cache_get, CACHE_KEYS, KEY_TYPES
+from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 from viz.viz import get_scatter3d
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
@@ -154,7 +154,7 @@ def filter_changed(
     # if slider value changed
     #   - if Redis `figure` buffer ready, return figure from Redis
     if trigger_id == 'slider-frame':
-        fig_idx = redis_get(session_id, CACHE_KEYS['figure_idx'])
+        fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
         if fig_idx is not None:
             if slider_arg <= fig_idx:
                 fig = cache_get(session_id,
@@ -182,16 +182,16 @@ def filter_changed(
                 ]
 
     # get config from Redis
-    config = redis_get(session_id, CACHE_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']
 
     # save filter key word arguments to Redis
-    filter_kwargs = redis_get(session_id, CACHE_KEYS['filter_kwargs'])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     filter_kwargs['num_values'] = num_values
     filter_kwargs['cat_values'] = cat_values
-    redis_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
+    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
 
     # get visibility table from Redis
     visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
@@ -243,8 +243,8 @@ def filter_changed(
     if trigger_id != 'slider-frame' and \
         trigger_id != 'overlay-switch' and \
             trigger_id != 'decay-slider':
-        redis_set(0, session_id, CACHE_KEYS['task_id'])
-        redis_set(-1, session_id, CACHE_KEYS['figure_idx'])
+        cache_set(0, session_id, CACHE_KEYS['task_id'])
+        cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
         celery_filtering_data.apply_async(args=[session_id,
                                                 case,
                                                 file,
@@ -562,9 +562,9 @@ def export_data(
     now = datetime.datetime.now()
     timestamp = now.strftime('%Y%m%d_%H%M%S')
 
-    config = redis_get(session_id, CACHE_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
 
-    filter_kwargs = redis_get(session_id, CACHE_KEYS['filter_kwargs'])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
