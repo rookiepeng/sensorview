@@ -110,6 +110,7 @@ def update_histogram(
     :rtype: list
     """
     config = cache_get(session_id, CACHE_KEYS['config'])
+    print(config)
 
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
