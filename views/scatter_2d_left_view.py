@@ -40,7 +40,7 @@ from dash.exceptions import PreventUpdate
 
 from tasks import filter_all
 
-from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
+from utils import redis_set, redis_get, cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 from viz.viz import get_scatter2d
 
@@ -119,9 +119,9 @@ def update_scatter2d_left(
     ]
     :rtype: list
     """
-    config = cache_get(session_id, CACHE_KEYS['config'])
+    config = redis_get(session_id, CACHE_KEYS['config'])
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
+    filter_kwargs = redis_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
@@ -240,7 +240,7 @@ def select_left_figure(selectedData, session_id):
     :return: selected data
     :rtype: json
     """
-    cache_set(selectedData, session_id, CACHE_KEYS['selected_data'])
+    redis_set(selectedData, session_id, CACHE_KEYS['selected_data'])
     return 0
 
 
@@ -273,7 +273,7 @@ def left_hide_button(
     if btn == 0:
         raise PreventUpdate
 
-    selectedData = cache_get(session_id, CACHE_KEYS['selected_data'])
+    selectedData = redis_get(session_id, CACHE_KEYS['selected_data'])
 
     if selectedData is None:
         raise PreventUpdate
