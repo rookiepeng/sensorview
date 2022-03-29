@@ -40,3 +40,6 @@ cache/
 images/
 *.feather
 *.tar
+
+data/*
+!data/Example/
