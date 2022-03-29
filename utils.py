@@ -31,7 +31,7 @@ import redis
 import os
 import json
 import pickle
-from diskcache import Cache
+from diskcache import Cache, Disk
 
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {'dataset': 'DATASET',
@@ -53,7 +53,38 @@ redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
 redis_instance = redis.StrictRedis.from_url(redis_url)
 
-cache = Cache('./cache')
+import json, zlib
+
+class JSONDisk(Disk):
+    def __init__(self, directory, compress_level=1, **kwargs):
+        self.compress_level = compress_level
+        super(JSONDisk, self).__init__(directory, **kwargs)
+
+    def put(self, key):
+        json_bytes = json.dumps(key).encode('utf-8')
+        data = zlib.compress(json_bytes, self.compress_level)
+        return super(JSONDisk, self).put(data)
+
+    def get(self, key, raw):
+        data = super(JSONDisk, self).get(key, raw)
+        return json.loads(zlib.decompress(data).decode('utf-8'))
+
+    def store(self, value, read):
+        if not read:
+            json_bytes = json.dumps(value).encode('utf-8')
+            value = zlib.compress(json_bytes, self.compress_level)
+        return super(JSONDisk, self).store(value, read)
+
+    def fetch(self, mode, filename, value, read):
+        data = super(JSONDisk, self).fetch(mode, filename, value, read)
+        if not read:
+            data = json.loads(zlib.decompress(data).decode('utf-8'))
+        return data
+
+# with Cache(disk=JSONDisk, disk_compress_level=6) as cache:
+#     pass
+
+cache = Cache('./cache', disk=JSONDisk, disk_compress_level=6)
 
 
 def load_config(json_file):
@@ -87,13 +118,13 @@ def cache_set(data, id, key_major, key_minor=None):
         key_str = key_major+id
     else:
         key_str = key_major+id+key_minor
-    redis_instance.set(
-        key_str,
-        pickle.dumps(data),
-        ex=EXPIRATION
-    )
+    # redis_instance.set(
+    #     key_str,
+    #     pickle.dumps(data),
+    #     ex=EXPIRATION
+    # )
     # cache.pop(key_str)
-    # cache.set(key_str, data, expire=EXPIRATION)
+    cache.set(key_str, data, expire=EXPIRATION)
 
 
 def redis_set(data, id, key_major, key_minor=None):
@@ -140,14 +171,14 @@ def cache_get(id, key_major, key_minor=None):
     else:
         key_str = key_major+id+key_minor
 
-    val = redis_instance.get(key_str)
-    # val = cache.get(key_str, default=None, retry=True)
-    # return val
+    # val = redis_instance.get(key_str)
+    val = cache.get(key_str, default=None, retry=True)
+    return val
 
-    if val is not None:
-        return pickle.loads(val)
-    else:
-        return None
+    # if val is not None:
+    #     return pickle.loads(val)
+    # else:
+    #     return None
 
 
 def redis_get(id, key_major, key_minor=None):
