@@ -55,36 +55,36 @@ redis_url = 'redis://'+redis_ip+':6379'
 redis_instance = redis.StrictRedis.from_url(redis_url)
 
 
-class JSONDisk(Disk):
-    def __init__(self, directory, **kwargs):
-        super(JSONDisk, self).__init__(directory, **kwargs)
+# class JSONDisk(Disk):
+#     def __init__(self, directory, **kwargs):
+#         super(JSONDisk, self).__init__(directory, **kwargs)
 
-    def put(self, key):
-        json_bytes = json.dumps(key).encode('utf-8')
-        data = pickle.dumps(json_bytes)
-        return super(JSONDisk, self).put(data)
+#     def put(self, key):
+#         json_bytes = json.dumps(key).encode('utf-8')
+#         data = pickle.dumps(json_bytes)
+#         return super(JSONDisk, self).put(data)
 
-    def get(self, key, raw):
-        data = super(JSONDisk, self).get(key, raw)
-        return pickle.loads(data)
+#     def get(self, key, raw):
+#         data = super(JSONDisk, self).get(key, raw)
+#         return pickle.loads(data)
 
-    def store(self, value, read):
-        if not read:
-            json_bytes = json.dumps(value).encode('utf-8')
-            value = pickle.dumps(json_bytes)
-        return super(JSONDisk, self).store(value, read)
+#     def store(self, value, read):
+#         if not read:
+#             json_bytes = json.dumps(value).encode('utf-8')
+#             value = pickle.dumps(json_bytes)
+#         return super(JSONDisk, self).store(value, read)
 
-    def fetch(self, mode, filename, value, read):
-        data = super(JSONDisk, self).fetch(mode, filename, value, read)
-        if not read:
-            data = pickle.loads(data)
-        return data
+#     def fetch(self, mode, filename, value, read):
+#         data = super(JSONDisk, self).fetch(mode, filename, value, read)
+#         if not read:
+#             data = pickle.loads(data)
+#         return data
 
-with Cache('./cache', disk=JSONDisk) as cache:
-    pass
+# with Cache('./cache', disk=JSONDisk) as cache:
+#     pass
 
 
-# cache = Cache('./cache', disk=JSONDisk, disk_compress_level=6)
+cache = Cache('./cache')
 
 
 def load_config(json_file):
