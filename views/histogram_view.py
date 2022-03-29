@@ -40,7 +40,7 @@ from dash.exceptions import PreventUpdate
 
 from tasks import filter_all
 
-from utils import redis_get, cache_get, CACHE_KEYS
+from utils import cache_get, CACHE_KEYS
 
 import plotly.graph_objs as go
 import plotly.express as px
@@ -109,9 +109,9 @@ def update_histogram(
     ]
     :rtype: list
     """
-    config = redis_get(session_id, CACHE_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
 
-    filter_kwargs = redis_get(session_id, CACHE_KEYS['filter_kwargs'])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']

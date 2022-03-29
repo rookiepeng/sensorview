@@ -34,7 +34,7 @@ from dash.dependencies import Input, Output, State
 
 from layout.layout import get_app_layout
 
-from utils import redis_get, CACHE_KEYS
+from utils import cache_get, CACHE_KEYS
 
 from views import test_case_view
 from views import control_view
@@ -115,7 +115,7 @@ def update_buffer_indicator(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if trigger_id == 'buffer-interval':
-        fig_idx = redis_get(session_id, CACHE_KEYS['figure_idx'])
+        fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
         if fig_idx is not None:
             percent = fig_idx/max_frame*100
             if percent == 100:
