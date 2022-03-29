@@ -32,7 +32,7 @@ import redis
 import os
 import json
 import pickle
-from diskcache import Cache, Disk
+from diskcache import Cache
 
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {'dataset': 'DATASET',
