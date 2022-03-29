@@ -40,7 +40,7 @@ from dash.exceptions import PreventUpdate
 
 from tasks import filter_all
 
-from utils import cache_get, CACHE_KEYS, KEY_TYPES
+from utils import redis_get, cache_get, CACHE_KEYS, KEY_TYPES
 
 from viz.viz import get_scatter2d
 
@@ -119,10 +119,10 @@ def update_scatter2d_right(
     ]
     :rtype: list
     """
-    config = cache_get(session_id, CACHE_KEYS['config'])
+    config = redis_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
+    filter_kwargs = redis_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']

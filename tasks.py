@@ -41,6 +41,7 @@ import plotly.graph_objs as go
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 from viz.viz import get_animation_data
+from utils import redis_set, redis_get
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 
@@ -142,11 +143,11 @@ def celery_filtering_data(
     """
 
     # set figure index to -1 (no buffer is ready)
-    cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
+    redis_set(-1, session_id, CACHE_KEYS['figure_idx'])
 
     # set new task_id in Redis, this will terminate the previously running task
     task_id = self.request.id
-    cache_set(task_id, session_id, CACHE_KEYS['task_id'])
+    redis_set(task_id, session_id, CACHE_KEYS['task_id'])
 
     # config = redis_get(session_id, REDIS_KEYS['config'])
     keys_dict = config['keys']
@@ -154,7 +155,7 @@ def celery_filtering_data(
     slider_label = keys_dict[config['slider']
                              ]['description']
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, CACHE_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     num_values = filter_kwargs['num_values']
@@ -187,7 +188,7 @@ def celery_filtering_data(
     fig_kwargs['x_ref'] = config.get('x_ref', None)
     fig_kwargs['y_ref'] = config.get('y_ref', None)
 
-    if cache_get(session_id, CACHE_KEYS['task_id']) != task_id:
+    if redis_get(session_id, CACHE_KEYS['task_id']) != task_id:
         logger.info('Task '+str(task_id)+' terminated by a new task')
         return
 
@@ -288,7 +289,7 @@ def celery_filtering_data(
 
         fig_layout = get_scatter3d_layout(**fig_kwargs)
 
-        if cache_get(session_id, CACHE_KEYS['task_id']) == task_id:
+        if redis_get(session_id, CACHE_KEYS['task_id']) == task_id:
             cache_set(fig,
                       session_id, CACHE_KEYS['figure'],
                       str(slider_arg))
@@ -300,7 +301,7 @@ def celery_filtering_data(
                       session_id,
                       CACHE_KEYS['figure_layout'],
                       str(slider_arg))
-            cache_set(slider_arg,
+            redis_set(slider_arg,
                       session_id,
                       CACHE_KEYS['figure_idx'])
         else:
@@ -334,10 +335,10 @@ def celery_export_video(
         'colormap' colormap name
     """
 
-    config = cache_get(session_id, CACHE_KEYS['config'])
+    config = redis_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    filter_kwargs = redis_get(session_id, CACHE_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     num_values = filter_kwargs['num_values']

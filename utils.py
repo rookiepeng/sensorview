@@ -49,9 +49,9 @@ CACHE_KEYS = {'dataset': 'DATASET',
 KEY_TYPES = {'CAT': 'categorical',
              'NUM': 'numerical'}
 
-# redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
-# redis_url = 'redis://'+redis_ip+':6379'
-# redis_instance = redis.StrictRedis.from_url(redis_url)
+redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
+redis_url = 'redis://'+redis_ip+':6379'
+redis_instance = redis.StrictRedis.from_url(redis_url)
 
 cache = Cache('./cache')
 
@@ -96,6 +96,31 @@ def cache_set(data, id, key_major, key_minor=None):
     cache.set(key_str, data, expire=EXPIRATION)
 
 
+def redis_set(data, id, key_major, key_minor=None):
+    """
+    Set data to Redis
+
+    :param dict/str/pandas.Dataframe data
+        data to be stored in Redis
+    :param str id
+        unique id (session id)
+    :param str key_major
+        major key name
+    :param str key_minor=None
+        minor key name
+    """
+    if key_minor is None:
+        key_str = key_major+id
+    else:
+        key_str = key_major+id+key_minor
+
+    redis_instance.set(
+        key_str,
+        pickle.dumps(data),
+        ex=EXPIRATION
+    )
+
+
 def cache_get(id, key_major, key_minor=None):
     """
     Get data from Redis
@@ -123,3 +148,30 @@ def cache_get(id, key_major, key_minor=None):
     #     return pickle.loads(val)
     # else:
     #     return None
+
+
+def redis_get(id, key_major, key_minor=None):
+    """
+    Get data from Redis
+
+    :param str id
+        unique id (session id)
+    :param str key_major
+        major key name
+    :param str key_minor=None
+        minor key name
+
+    :return: data in Redis
+    :rtype: dict/str/pandas.Dataframe
+    """
+    if key_minor is None:
+        key_str = key_major+id
+    else:
+        key_str = key_major+id+key_minor
+
+    val = redis_instance.get(key_str)
+
+    if val is not None:
+        return pickle.loads(val)
+    else:
+        return None
