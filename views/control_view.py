@@ -32,14 +32,16 @@ from dash.dependencies import Input, Output
 
 
 @app.callback(
-    [
-        Output('slider-frame', 'disabled'),
-        Output('previous-button', 'disabled'),
-        Output('next-button', 'disabled'),
-        Output('play-button', 'disabled'),
-        Output('stop-button', 'disabled'),
-    ],
-    Input('overlay-switch', 'value'))
+    output=dict(
+        frame_slider_disabled=Output('slider-frame', 'disabled'),
+        previous_button_disabled=Output('previous-button', 'disabled'),
+        next_button_disabled=Output('next-button', 'disabled'),
+        play_button_disabled=Output('play-button', 'disabled'),
+        stop_button_disabled=Output('stop-button', 'disabled'),
+    ),
+    inputs=dict(
+        overlay=Input('overlay-switch', 'value')
+    ))
 def overlay_switch_changed(overlay):
     """
     Callback when the overlay switch state is changed
@@ -57,6 +59,18 @@ def overlay_switch_changed(overlay):
     :rtype: list
     """
     if overlay:
-        return [True]*5
+        return dict(
+            frame_slider_disabled=True,
+            previous_button_disabled=True,
+            next_button_disabled=True,
+            play_button_disabled=True,
+            stop_button_disabled=True
+        )
     else:
-        return [False]*5
+        return dict(
+            frame_slider_disabled=False,
+            previous_button_disabled=False,
+            next_button_disabled=False,
+            play_button_disabled=False,
+            stop_button_disabled=False
+        )
