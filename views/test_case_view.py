@@ -47,8 +47,6 @@ from utils import load_config, cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 import dash_bootstrap_components as dbc
 from dash import dcc
 
-from tasks import celery_filtering_data
-
 
 @app.callback(
     [
