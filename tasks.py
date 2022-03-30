@@ -120,7 +120,6 @@ def celery_filtering_data(
     case,
     file,
     visible_picker,
-    config,
     **kwargs
 ):
     """
@@ -148,7 +147,7 @@ def celery_filtering_data(
     task_id = self.request.id
     cache_set(task_id, session_id, CACHE_KEYS['task_id'])
 
-    # config = redis_get(session_id, REDIS_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']
 
     slider_label = keys_dict[config['slider']
