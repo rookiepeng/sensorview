@@ -10,3 +10,4 @@ kaleido
 celery
 gevent
 diskcache
+redis
