@@ -49,13 +49,15 @@ from dash import dcc
 
 
 @app.callback(
-    [
-        Output('case-picker', 'options'),
-        Output('case-picker', 'value'),
-    ],
-    Input('refresh-button', 'n_clicks')
+    output=dict(
+        case_options=Output('case-picker', 'options'),
+        case_value=Output('case-picker', 'value')
+    ),
+    inputs=dict(
+        click=Input('refresh-button', 'n_clicks')
+    )
 )
-def refresh_button_clicked(unused):
+def refresh_button_clicked(click):
     """
     Callback when the refresh button is clicked
 
@@ -82,16 +84,24 @@ def refresh_button_clicked(unused):
                 options.append({'label': entry.name,
                                 'value': entry.name})
 
-    return [options, options[0]['value']]
+    return dict(
+        case_options=options,
+        case_value=options[0]['value']
+    )
 
 
 @app.callback(
-    [
-        Output('file-picker', 'value'),
-        Output('file-picker', 'options')
-    ],
-    Input('case-picker', 'value'),
-    State('session-id', 'data'))
+    output=dict(
+        file_value=Output('file-picker', 'value'),
+        file_options=Output('file-picker', 'options')
+    ),
+    inputs=dict(
+        case=Input('case-picker', 'value')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data')
+    )
+)
 def case_selected(case, session_id):
     """
     Callback when a test case is selected
@@ -148,7 +158,10 @@ def case_selected(case, session_id):
                         'name': name,
                         'feather_name': name.replace('.pkl', '.feather')})})
 
-    return [data_files[0]['value'], data_files]
+    return dict(
+        file_value=data_files[0]['value'],
+        file_options=data_files
+    )
 
 
 @app.callback(
@@ -397,22 +410,23 @@ def file_select_changed(
 
 
 @ app.callback(
-    [
-        Output('slider-frame', 'value')
-    ],
-    [
-        Input('file-loaded-trigger', 'data'),
-        Input('previous-button', 'n_clicks'),
-        Input('next-button', 'n_clicks'),
-        Input('interval-component', 'n_intervals')
-    ],
-    [
-        State('file-picker', 'value'),
-        State('case-picker', 'value'),
-        State('slider-frame', 'max'),
-        State('slider-frame', 'value'),
-        State('session-id', 'data')
-    ])
+    output=dict(
+        slider_value=Output('slider-frame', 'value')
+    ),
+    inputs=dict(
+        file_loaded=Input('file-loaded-trigger', 'data'),
+        left_btn=Input('previous-button', 'n_clicks'),
+        right_btn=Input('next-button', 'n_clicks'),
+        interval=Input('interval-component', 'n_intervals')
+    ),
+    state=dict(
+        file=State('file-picker', 'value'),
+        case=State('case-picker', 'value'),
+        slider_max=State('slider-frame', 'max'),
+        slider_state=State('slider-frame', 'value'),
+        session_id=State('session-id', 'data')
+    )
+)
 def update_slider(
         file_loaded,
         left_btn,
@@ -421,7 +435,7 @@ def update_slider(
         file,
         case,
         slider_max,
-        slider_var,
+        slider_state,
         session_id
 ):
     """
@@ -444,7 +458,7 @@ def update_slider(
         case name
     :param int slider_max
         maximum number of slider
-    :param int slider_var
+    :param int slider_state
         current slider position
 
 
@@ -470,54 +484,57 @@ def update_slider(
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
     if trigger_id == 'file-loaded-trigger':
-        return [0]
+        return dict(slider_value=0)
 
     elif trigger_id == 'previous-button':
         if left_btn == 0:
             raise PreventUpdate
 
         # previous button is clicked
-        return [(slider_var-1) % (slider_max+1)]
+        return dict(slider_value=(slider_state-1) % (slider_max+1))
 
     elif trigger_id == 'next-button':
         if right_btn == 0:
             raise PreventUpdate
 
         # next button is clicked
-        return [(slider_var+1) % (slider_max+1)]
+        return dict(slider_value=(slider_state+1) % (slider_max+1))
 
     elif trigger_id == 'interval-component':
         if interval == 0:
             raise PreventUpdate
 
         # triggerred from interval
-        if slider_var == slider_max:
-            return [dash.no_update]
+        if slider_state == slider_max:
+            return dict(slider_value=dash.no_update)
 
         fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
         if fig_idx is not None:
-            if slider_var > fig_idx:
-                return [dash.no_update]
+            if slider_state > fig_idx:
+                return dict(slider_value=dash.no_update)
             else:
-                return [(slider_var+1) % (slider_max+1)]
+                return dict(slider_value=(slider_state+1) % (slider_max+1))
         else:
-            return [dash.no_update]
+            return dict(slider_value=dash.no_update)
 
 
 @ app.callback(
-    [
-        Output('left-switch', 'value'),
-        Output('right-switch', 'value'),
-        Output('histogram-switch', 'value'),
-        Output('violin-switch', 'value'),
-        Output('parallel-switch', 'value'),
-        Output('heat-switch', 'value'),
-    ],
-    Input('file-loaded-trigger', 'data'),
-    [
-        State('file-picker', 'value'),
-        State('case-picker', 'value')
-    ])
+    output=dict(
+        left_switch=Output('left-switch', 'value'),
+        right_switch=Output('right-switch', 'value'),
+        hist_switch=Output('histogram-switch', 'value'),
+        violin_switch=Output('violin-switch', 'value'),
+        parallel_switch=Output('parallel-switch', 'value'),
+        heat_switch=Output('heat-switch', 'value')
+    ),
+    inputs=dict(
+        file_loaded=Input('file-loaded-trigger', 'data')
+    ),
+    state=dict(
+        file=State('file-picker', 'value'),
+        case=State('case-picker', 'value')
+    )
+)
 def reset_switch_state(file_loaded, file, case):
     """
     Reset all the enable switches when a new file is selected
@@ -544,4 +561,11 @@ def reset_switch_state(file_loaded, file, case):
     if case is None:
         raise PreventUpdate
 
-    return [[], [], [], [], [], []]
+    return dict(
+        left_switch=[],
+        right_switch=[],
+        hist_switch=[],
+        violin_switch=[],
+        parallel_switch=[],
+        heat_switch=[]
+    )
