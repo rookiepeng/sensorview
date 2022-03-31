@@ -47,26 +47,26 @@ import plotly.graph_objs as go
 
 
 @app.callback(
-    [
-        Output('parallel', 'figure'),
-    ],
-    [
-        Input('filter-trigger', 'data'),
-        Input('left-hide-trigger', 'data'),
-        Input('parallel-switch', 'value'),
-        Input('dim-picker-parallel', 'value'),
-        Input('c-picker-parallel', 'value'),
-    ],
-    [
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ]
+    output=dict(
+        parallel=Output('parallel', 'figure')
+    ),
+    inputs=dict(
+        filter_trigger=Input('filter-trigger', 'data'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        parallel_sw=Input('parallel-switch', 'value'),
+        dim_parallel=Input('dim-picker-parallel', 'value'),
+        c_key=Input('c-picker-parallel', 'value')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data'),
+        visible_list=State('visible-picker', 'value'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value')
+    )
 )
 def update_parallel(
-    unused1,
-    unused2,
+    filter_trigger,
+    left_hide_trigger,
     parallel_sw,
     dim_parallel,
     c_key,
@@ -178,18 +178,22 @@ def update_parallel(
             'layout': {
             }}
 
-    return [
-        parallel_fig,
-    ]
+    return dict(
+        parallel=parallel_fig
+    )
 
 
 @app.callback(
-    Output('dummy-export-parallel', 'data'),
-    Input('export-parallel', 'n_clicks'),
-    [
-        State('parallel', 'figure'),
-        State('case-picker', 'value')
-    ]
+    output=dict(
+        dummy=Output('dummy-export-parallel', 'data')
+    ),
+    inputs=dict(
+        btn=Input('export-parallel', 'n_clicks')
+    ),
+    state=dict(
+        fig=State('parallel', 'figure'),
+        case=State('case-picker', 'value')
+    )
 )
 def export_parallel(btn, fig, case):
     """
@@ -217,4 +221,6 @@ def export_parallel(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_parallel.png', scale=2)
-    return 0
+    return dict(
+        dummy=0
+    )
