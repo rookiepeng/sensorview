@@ -48,29 +48,29 @@ import plotly.graph_objs as go
 
 
 @app.callback(
-    [
-        Output('scatter2d-right', 'figure'),
-    ],
-    [
-        Input('filter-trigger', 'data'),
-        Input('left-hide-trigger', 'data'),
-        Input('right-switch', 'value'),
-        Input('x-picker-2d-right', 'value'),
-        Input('y-picker-2d-right', 'value'),
-        Input('c-picker-2d-right', 'value'),
-        Input('colormap-scatter2d-right', 'value'),
-        Input('outline-switch', 'value'),
-    ],
-    [
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ]
+    output=dict(
+        figure=Output('scatter2d-right', 'figure'),
+    ),
+    inputs=dict(
+        filter_trigger=Input('filter-trigger', 'data'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        right_sw=Input('right-switch', 'value'),
+        x_right=Input('x-picker-2d-right', 'value'),
+        y_right=Input('y-picker-2d-right', 'value'),
+        color_right=Input('c-picker-2d-right', 'value'),
+        colormap=Input('colormap-scatter2d-right', 'value'),
+        outline_enable=Input('outline-switch', 'value')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data'),
+        visible_list=State('visible-picker', 'value'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value')
+    )
 )
 def update_scatter2d_right(
-    unused1,
-    unused2,
+    filter_trigger,
+    left_hide_trigger,
     right_sw,
     x_right,
     y_right,
@@ -181,18 +181,22 @@ def update_scatter2d_right(
             'layout': {
             }}
 
-    return [
-        right_fig,
-    ]
+    return dict(
+        figure=right_fig,
+    )
 
 
 @app.callback(
-    Output('dummy-export-scatter2d-right', 'data'),
-    Input('export-scatter2d-right', 'n_clicks'),
-    [
-        State('scatter2d-right', 'figure'),
-        State('case-picker', 'value')
-    ]
+    output=dict(
+        dummy=Output('dummy-export-scatter2d-right', 'data')
+    ),
+    inputs=dict(
+        btn=Input('export-scatter2d-right', 'n_clicks')
+    ),
+    state=dict(
+        fig=State('scatter2d-right', 'figure'),
+        case=State('case-picker', 'value')
+    )
 )
 def export_right_2d_scatter(btn, fig, case):
     """
@@ -220,4 +224,6 @@ def export_right_2d_scatter(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_fig_right.png', scale=2)
-    return 0
+    return dict(
+        dummy=0
+    )
