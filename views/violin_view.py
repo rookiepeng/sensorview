@@ -47,27 +47,27 @@ import plotly.graph_objs as go
 
 
 @app.callback(
-    [
-        Output('violin', 'figure'),
-    ],
-    [
-        Input('filter-trigger', 'data'),
-        Input('left-hide-trigger', 'data'),
-        Input('violin-switch', 'value'),
-        Input('x-picker-violin', 'value'),
-        Input('y-picker-violin', 'value'),
-        Input('c-picker-violin', 'value'),
-    ],
-    [
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ]
+    output=dict(
+        violin=Output('violin', 'figure'),
+    ),
+    inputs=dict(
+        filter_trigger=Input('filter-trigger', 'data'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        violin_sw=Input('violin-switch', 'value'),
+        x_violin=Input('x-picker-violin', 'value'),
+        y_violin=Input('y-picker-violin', 'value'),
+        c_violin=Input('c-picker-violin', 'value')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data'),
+        visible_list=State('visible-picker', 'value'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value')
+    )
 )
 def update_violin(
-    unused1,
-    unused2,
+    filter_trigger,
+    left_hide_trigger,
     violin_sw,
     x_violin,
     y_violin,
@@ -168,18 +168,22 @@ def update_violin(
             'layout': {
             }}
 
-    return [
-        violin_fig,
-    ]
+    return dict(
+        violin=violin_fig
+    )
 
 
 @app.callback(
-    Output('dummy-export-violin', 'data'),
-    Input('export-violin', 'n_clicks'),
-    [
-        State('violin', 'figure'),
-        State('case-picker', 'value')
-    ]
+    output=dict(
+        dummy=Output('dummy-export-violin', 'data')
+    ),
+    inputs=dict(
+        btn=Input('export-violin', 'n_clicks')
+    ),
+    state=dict(
+        fig=State('violin', 'figure'),
+        case=State('case-picker', 'value')
+    )
 )
 def export_violin(btn, fig, case):
     """
@@ -207,4 +211,6 @@ def export_violin(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_violin.png', scale=2)
-    return 0
+    return dict(
+        dummy=0
+    )
