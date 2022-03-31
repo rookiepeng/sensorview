@@ -53,31 +53,32 @@ from viz.graph_layout import get_scatter3d_layout
 
 
 @app.callback(
-    [
-        Output('scatter3d', 'figure'),
-        Output('filter-trigger', 'data'),
-    ],
-    [
-        Input('slider-frame', 'value'),
-        Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        Input({'type': 'filter-slider', 'index': ALL}, 'value'),
-        Input('colormap-3d', 'value'),
-        Input('visible-picker', 'value'),
-        Input('c-picker-3d', 'value'),
-        Input('overlay-switch', 'value'),
-        Input('outline-switch', 'value'),
-        Input('scatter3d', 'clickData'),
-        Input('left-hide-trigger', 'data'),
-        Input('decay-slider', 'value'),
-        Input('darkmode-switch', 'value'),
-    ],
-    [
-        State('click-hide-switch', 'value'),
-        State('filter-trigger', 'data'),
-        State('session-id', 'data'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ])
+    output=dict(
+        scatter3d=Output('scatter3d', 'figure'),
+        filter_trigger=Output('filter-trigger', 'data')
+    ),
+    inputs=dict(
+        slider_arg=Input('slider-frame', 'value'),
+        cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
+        colormap=Input('colormap-3d', 'value'),
+        visible_list=Input('visible-picker', 'value'),
+        c_key=Input('c-picker-3d', 'value'),
+        overlay_enable=Input('overlay-switch', 'value'),
+        outline_enable=Input('outline-switch', 'value'),
+        click_data=Input('scatter3d', 'clickData'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        decay=Input('decay-slider', 'value'),
+        darkmode=Input('darkmode-switch', 'value')
+    ),
+    state=dict(
+        click_hide=State('click-hide-switch', 'value'),
+        trigger_idx=State('filter-trigger', 'data'),
+        session_id=State('session-id', 'data'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value')
+    )
+)
 def filter_changed(
     slider_arg,
     cat_values,
@@ -88,7 +89,7 @@ def filter_changed(
     overlay_enable,
     outline_enable,
     click_data,
-    _,
+    left_hide_trigger,
     decay,
     darkmode,
     click_hide,
@@ -175,11 +176,11 @@ def filter_changed(
                 layout = cache_get(session_id,
                                    CACHE_KEYS['figure_layout'],
                                    str(slider_arg))
-                return [
-                    dict(data=fig_ref+fig,
+                return dict(
+                    scatter3d=dict(data=fig_ref+fig,
                          layout=layout),
-                    dash.no_update
-                ]
+                    filter_trigger=dash.no_update
+                )
 
     # get config from Redis
     config = cache_get(session_id, CACHE_KEYS['config'])
@@ -437,23 +438,30 @@ def filter_changed(
     else:
         filter_trig = trigger_idx+1
 
-    return [fig, filter_trig]
+    return dict(
+        scatter3d=fig,
+        filter_trigger=filter_trig
+        )
 
 
 @app.callback(
-    Output('hidden-scatter3d', 'children'),
-    Input('export-scatter3d', 'n_clicks'),
-    [
-        State('case-picker', 'value'),
-        State('session-id', 'data'),
-        State('c-picker-3d', 'value'),
-        State('colormap-3d', 'value'),
-        State('visible-picker', 'value'),
-        State('file-picker', 'value'),
-        State('decay-slider', 'value'),
-        State('outline-switch', 'value'),
-        State('darkmode-switch', 'value'),
-    ]
+    output=dict(
+        dummy=Output('hidden-scatter3d', 'children')
+    ),
+    inputs=dict(
+        btn=Input('export-scatter3d', 'n_clicks')
+    ),
+    state=dict(
+        case=State('case-picker', 'value'),
+        session_id=State('session-id', 'data'),
+        c_key=State('c-picker-3d', 'value'),
+        colormap=State('colormap-3d', 'value'),
+        visible_list=State('visible-picker', 'value'),
+        file=State('file-picker', 'value'),
+        decay=State('decay-slider', 'value'),
+        outline_enable=State('outline-switch', 'value'),
+        darkmode=State('darkmode-switch', 'value')
+    )
 )
 def export_3d_scatter_animation(
     btn,
@@ -519,18 +527,24 @@ def export_3d_scatter_animation(
         kwargs=task_kwargs,
         serializer='json')
 
-    return 0
+    return dict(
+        dummy=0
+    )
 
 
 @app.callback(
-    Output('dummy-export-data', 'data'),
-    Input('export-data', 'n_clicks'),
-    [
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ]
+    output=dict(
+        dummy=Output('dummy-export-data', 'data')
+    ),
+    inputs=dict(
+        btn=Input('export-data', 'n_clicks')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data'),
+        visible_list=State('visible-picker', 'value'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value')
+    )
 )
 def export_data(
     btn,
@@ -557,11 +571,6 @@ def export_data(
     """
     if btn == 0:
         raise PreventUpdate
-
-    now = datetime.datetime.now()
-    timestamp = now.strftime('%Y%m%d_%H%M%S')
-
-    config = cache_get(session_id, CACHE_KEYS['config'])
 
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
@@ -593,4 +602,6 @@ def export_data(
                              '/' +
                              file['name'][0:-4]+'_filtered.pkl')
 
-    return 0
+    return dict(
+        dummy=0
+    )
