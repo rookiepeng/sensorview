@@ -41,7 +41,8 @@ from dash.dependencies import Input, Output
     ),
     inputs=dict(
         overlay=Input('overlay-switch', 'value')
-    ))
+    )
+)
 def overlay_switch_changed(overlay):
     """
     Callback when the overlay switch state is changed
