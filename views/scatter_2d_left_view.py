@@ -48,29 +48,29 @@ import plotly.graph_objs as go
 
 
 @app.callback(
-    [
-        Output('scatter2d-left', 'figure'),
-    ],
-    [
-        Input('filter-trigger', 'data'),
-        Input('left-hide-trigger', 'data'),
-        Input('left-switch', 'value'),
-        Input('x-picker-2d-left', 'value'),
-        Input('y-picker-2d-left', 'value'),
-        Input('c-picker-2d-left', 'value'),
-        Input('colormap-scatter2d-left', 'value'),
-        Input('outline-switch', 'value'),
-    ],
-    [
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ]
+    output=dict(
+        figure=Output('scatter2d-left', 'figure'),
+    ),
+    inputs=dict(
+        filter_trigger=Input('filter-trigger', 'data'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        left_sw=Input('left-switch', 'value'),
+        x_left=Input('x-picker-2d-left', 'value'),
+        y_left=Input('y-picker-2d-left', 'value'),
+        color_left=Input('c-picker-2d-left', 'value'),
+        colormap=Input('colormap-scatter2d-left', 'value'),
+        outline_enable=Input('outline-switch', 'value')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data'),
+        visible_list=State('visible-picker', 'value'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value')
+    )
 )
 def update_scatter2d_left(
-    unused1,
-    unused2,
+    filter_trigger,
+    left_hide_trigger,
     left_sw,
     x_left,
     y_left,
@@ -181,18 +181,22 @@ def update_scatter2d_left(
             'layout': {
             }}
 
-    return [
-        left_fig,
-    ]
+    return dict(
+        figure=left_fig,
+    )
 
 
 @app.callback(
-    Output('dummy-export-scatter2d-left', 'data'),
-    Input('export-scatter2d-left', 'n_clicks'),
-    [
-        State('scatter2d-left', 'figure'),
-        State('case-picker', 'value')
-    ]
+    output=dict(
+        dummy=Output('dummy-export-scatter2d-left', 'data')
+    ),
+    inputs=dict(
+        btn=Input('export-scatter2d-left', 'n_clicks')
+    ),
+    state=dict(
+        fig=State('scatter2d-left', 'figure'),
+        case=State('case-picker', 'value')
+    )
 )
 def export_left_2d_scatter(btn, fig, case):
     """
@@ -220,13 +224,21 @@ def export_left_2d_scatter(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_fig_left.png', scale=2)
-    return 0
+    return dict(
+        dummy=0
+    )
 
 
 @app.callback(
-    Output('selected-data-left', 'data'),
-    Input('scatter2d-left', 'selectedData'),
-    State('session-id', 'data'),
+    output=dict(
+        dummy=Output('selected-data-left', 'data')
+    ),
+    inputs=dict(
+        selectedData=Input('scatter2d-left', 'selectedData')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data')
+    ),
 )
 def select_left_figure(selectedData, session_id):
     """
@@ -241,16 +253,22 @@ def select_left_figure(selectedData, session_id):
     :rtype: json
     """
     cache_set(selectedData, session_id, CACHE_KEYS['selected_data'])
-    return 0
+    return dict(
+        dummy=0
+    )
 
 
 @app.callback(
-    Output('left-hide-trigger', 'data'),
-    Input('hide-left', 'n_clicks'),
-    [
-        State('left-hide-trigger', 'data'),
-        State('session-id', 'data'),
-    ]
+    output=dict(
+        output_trigger=Output('left-hide-trigger', 'data')
+    ),
+    inputs=dict(
+        btn=Input('hide-left', 'n_clicks')
+    ),
+    state=dict(
+        trigger_idx=State('left-hide-trigger', 'data'),
+        session_id=State('session-id', 'data'),
+    )
 )
 def left_hide_button(
     btn,
@@ -292,4 +310,6 @@ def left_hide_button(
 
     cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
 
-    return trigger_idx+1
+    return dict(
+        output_trigger=trigger_idx+1
+    )
