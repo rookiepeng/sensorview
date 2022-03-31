@@ -47,27 +47,27 @@ import plotly.express as px
 
 
 @app.callback(
-    [
-        Output('histogram', 'figure'),
-    ],
-    [
-        Input('filter-trigger', 'data'),
-        Input('left-hide-trigger', 'data'),
-        Input('histogram-switch', 'value'),
-        Input('x-picker-histogram', 'value'),
-        Input('y-histogram', 'value'),
-        Input('c-picker-histogram', 'value'),
-    ],
-    [
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ]
+    output=dict(
+        histogram=Output('histogram', 'figure'),
+    ),
+    inputs=dict(
+        filter_trigger=Input('filter-trigger', 'data'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        histogram_sw=Input('histogram-switch', 'value'),
+        x_histogram=Input('x-picker-histogram', 'value'),
+        y_histogram=Input('y-histogram', 'value'),
+        c_histogram=Input('c-picker-histogram', 'value')
+    ),
+    state=dict(
+        session_id=State('session-id', 'data'),
+        visible_list=State('visible-picker', 'value'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value')
+    )
 )
 def update_histogram(
-    unused1,
-    unused2,
+    filter_trigger,
+    left_hide_trigger,
     histogram_sw,
     x_histogram,
     y_histogram,
@@ -146,43 +146,47 @@ def update_histogram(
         if c_histogram == 'None':
             if x_key == config['slider']:
                 nbins = pd.unique(filtered_table[x_key]).size
-                histogram_fig = px.histogram(filtered_table,
-                                             x=x_key,
-                                             histnorm=y_key,
-                                             opacity=1,
-                                             barmode='group',
-                                             nbins=nbins,
-                                             labels={x_key: x_label,
-                                                     y_key: y_label})
+                histogram_fig = px.histogram(
+                    filtered_table,
+                    x=x_key,
+                    histnorm=y_key,
+                    opacity=1,
+                    barmode='group',
+                    nbins=nbins,
+                    labels={x_key: x_label,
+                            y_key: y_label})
             else:
-                histogram_fig = px.histogram(filtered_table,
-                                             x=x_key,
-                                             histnorm=y_key,
-                                             opacity=1,
-                                             barmode='group',
-                                             labels={x_key: x_label,
-                                                     y_key: y_label})
+                histogram_fig = px.histogram(
+                    filtered_table,
+                    x=x_key,
+                    histnorm=y_key,
+                    opacity=1,
+                    barmode='group',
+                    labels={x_key: x_label,
+                            y_key: y_label})
         else:
             if x_key == config['slider']:
                 nbins = pd.unique(filtered_table[x_key]).size
-                histogram_fig = px.histogram(filtered_table,
-                                             x=x_key,
-                                             color=c_histogram,
-                                             histnorm=y_key,
-                                             opacity=1,
-                                             barmode='group',
-                                             nbins=nbins,
-                                             labels={x_key: x_label,
-                                                     y_key: y_label})
+                histogram_fig = px.histogram(
+                    filtered_table,
+                    x=x_key,
+                    color=c_histogram,
+                    histnorm=y_key,
+                    opacity=1,
+                    barmode='group',
+                    nbins=nbins,
+                    labels={x_key: x_label,
+                            y_key: y_label})
             else:
-                histogram_fig = px.histogram(filtered_table,
-                                             x=x_key,
-                                             color=c_histogram,
-                                             histnorm=y_key,
-                                             opacity=1,
-                                             barmode='group',
-                                             labels={x_key: x_label,
-                                                     y_key: y_label})
+                histogram_fig = px.histogram(
+                    filtered_table,
+                    x=x_key,
+                    color=c_histogram,
+                    histnorm=y_key,
+                    opacity=1,
+                    barmode='group',
+                    labels={x_key: x_label,
+                            y_key: y_label})
     else:
         histogram_fig = {
             'data': [{'type': 'histogram',
@@ -191,18 +195,22 @@ def update_histogram(
             'layout': {
             }}
 
-    return [
-        histogram_fig,
-    ]
+    return dict(
+        histogram=histogram_fig
+    )
 
 
 @app.callback(
-    Output('dummy-export-histogram', 'data'),
-    Input('export-histogram', 'n_clicks'),
-    [
-        State('histogram', 'figure'),
-        State('case-picker', 'value')
-    ]
+    output=dict(
+        dummy=Output('dummy-export-histogram', 'data')
+    ),
+    inputs=dict(
+        btn=Input('export-histogram', 'n_clicks')
+    ),
+    state=dict(
+        fig=State('histogram', 'figure'),
+        case=State('case-picker', 'value')
+    )
 )
 def export_histogram(btn, fig, case):
     """
@@ -230,4 +238,6 @@ def export_histogram(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_histogram.png', scale=2)
-    return 0
+    return dict(
+        dummy=0
+    )
