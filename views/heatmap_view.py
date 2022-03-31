@@ -46,26 +46,26 @@ from viz.viz import get_heatmap
 
 
 @app.callback(
-    [
-        Output('heatmap', 'figure'),
-    ],
-    [
-        Input('filter-trigger', 'data'),
-        Input('left-hide-trigger', 'data'),
-        Input('heat-switch', 'value'),
-        Input('x-picker-heatmap', 'value'),
-        Input('y-picker-heatmap', 'value'),
-    ],
-    [
-        State('session-id', 'data'),
-        State('visible-picker', 'value'),
-        State('case-picker', 'value'),
-        State('file-picker', 'value'),
-    ]
+    output=dict(
+        heatmap=Output('heatmap', 'figure'),
+    ),
+    inputs=dict(
+        filter_trigger=Input('filter-trigger', 'data'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        heat_sw=Input('heat-switch', 'value'),
+        x_heat=Input('x-picker-heatmap', 'value'),
+        y_heat=Input('y-picker-heatmap', 'value'),
+    ),
+    state=dict(
+        session_id=State('session-id', 'data'),
+        visible_list=State('visible-picker', 'value'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value'),
+    )
 )
 def update_heatmap(
-    unused1,
-    unused2,
+    filter_trigger,
+    left_hide_trigger,
     heat_sw,
     x_heat,
     y_heat,
@@ -150,18 +150,22 @@ def update_heatmap(
             'layout': {
             }}
 
-    return [
-        heat_fig,
-    ]
+    return dict(
+        heatmap=heat_fig
+    )
 
 
 @app.callback(
-    Output('dummy-export-heatmap', 'data'),
-    Input('export-heatmap', 'n_clicks'),
-    [
-        State('heatmap', 'figure'),
-        State('case-picker', 'value')
-    ]
+    output=dict(
+        dummy=Output('dummy-export-heatmap', 'data')
+    ),
+    inputs=dict(
+        btn=Input('export-heatmap', 'n_clicks')
+    ),
+    state=dict(
+        fig=State('heatmap', 'figure'),
+        case=State('case-picker', 'value')
+    )
 )
 def export_heatmap(btn, fig, case):
     """
@@ -189,4 +193,6 @@ def export_heatmap(btn, fig, case):
     temp_fig = go.Figure(fig)
     temp_fig.write_image('data/'+case+'/images/' +
                          timestamp+'_heatmap.png', scale=2)
-    return 0
+    return dict(
+        dummy=0
+    )
