@@ -814,6 +814,5 @@ def get_app_layout():
             'Designed and developed by **Zhengyu Peng** \
                 | Powered by [Dash](https://plotly.com/dash/),\
                 [Redis](https://redis.io/),\
-                [Celery](https://docs.celeryproject.org/en/stable/),\
-                [Docker](https://www.docker.com/)'),
+                [Celery](https://docs.celeryproject.org/en/stable/)'),
     ], fluid=True, className="dbc_light")
