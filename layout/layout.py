@@ -777,7 +777,7 @@ def get_app_layout():
                     },
                 ), className="text-center"),
                 html.H1(app.title, className="text-center"),
-                html.Hr(className="my-2"),
+                # html.Hr(className="my-2"),
                 html.P(
                     'Sensor Data Visualization', className="text-center"
                 ),
