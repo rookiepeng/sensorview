@@ -791,9 +791,24 @@ def get_app_layout():
                     testcase_card,
                     datafile_card
                 ])
-            )], className='mb-3'),
+            ),
+        ]),
 
+        dbc.Row([
+            dbc.Col(
+                dbc.Progress(
+                    value=100,
+                    color='light',
+                    id="loading-progress",
+                    animated=False,
+                    striped=False,
+                    label=''
+                ))],
+                className='mb-3'),
+
+        html.Hr(),
         tabs,
+        html.Hr(),
 
         dcc.Markdown(
             'Designed and developed by **Zhengyu Peng** \

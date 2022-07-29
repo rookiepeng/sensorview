@@ -43,6 +43,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from utils import load_config, cache_set, cache_get, CACHE_KEYS, KEY_TYPES
+from utils import long_callback_manager
 
 import dash_bootstrap_components as dbc
 from dash import dcc
@@ -164,7 +165,7 @@ def case_selected(case, session_id):
     )
 
 
-@app.callback(
+@app.long_callback(
     output=dict(
         file_load_trigger=Output('file-loaded-trigger', 'data'),
         frame_min=Output('slider-frame', 'min'),
@@ -187,15 +188,22 @@ def case_selected(case, session_id):
         file_loaded=State('file-loaded-trigger', 'data'),
         case=State('case-picker', 'value'),
         session_id=State('session-id', 'data'),
-        all_state=DROPDOWN_VALUES_ALL_STATE
-    )
+        # all_state=DROPDOWN_VALUES_ALL_STATE
+    ),
+    progress=[Output("loading-progress", "color"),
+              Output("loading-progress", "striped"),
+              Output("loading-progress", "animated"),
+              Output("loading-progress", "label")],
+    manager=long_callback_manager,
 )
 def file_select_changed(
+        set_progress,
         file,
         file_loaded,
         case,
-        session_id,
-        all_state):
+        session_id):
+
+    set_progress(['warning', True, True, 'Loading ...'])
     # get keys from Redis
     config = cache_get(session_id, CACHE_KEYS['config'])
 
@@ -227,9 +235,9 @@ def file_select_changed(
         values_all = [all_keys[x % len(all_keys)]
                       for x in range(0, len(DROPDOWN_VALUES_ALL))]
 
-    for idx, item in enumerate(all_state):
-        if item in all_keys:
-            values_all[idx] = item
+    # for idx, item in enumerate(all_state):
+    #     if item in all_keys:
+    #         values_all[idx] = item
 
     # options for `DROPDOWN_OPTIONS_CAT_COLOR`
     options_cat_color = [[{
@@ -391,6 +399,8 @@ def file_select_changed(
         t_values_cat = None
     else:
         t_values_cat = cat_keys[0]
+
+    set_progress(['light', False, False, ''])
 
     return dict(
         file_load_trigger=file_loaded+1,
