@@ -32,7 +32,7 @@ import os
 import json
 import pickle
 from diskcache import Cache
-from dash.long_callback import DiskcacheLongCallbackManager
+from dash import DiskcacheManager
 
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {'dataset': 'DATASET',
@@ -56,7 +56,7 @@ redis_instance = redis.StrictRedis.from_url(redis_url)
 
 
 cache = Cache('./cache', eviction_policy='none')
-long_callback_manager = DiskcacheLongCallbackManager(cache)
+long_callback_manager = DiskcacheManager(cache)
 
 
 def load_config(json_file):

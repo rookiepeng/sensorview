@@ -91,7 +91,8 @@ def refresh_button_clicked(click):
     )
 
 
-@app.long_callback(
+@app.callback(
+    background=True,
     output=dict(
         file_value=Output('file-picker', 'value'),
         file_options=Output('file-picker', 'options')
@@ -175,7 +176,8 @@ def case_selected(set_progress, case, session_id):
     )
 
 
-@app.long_callback(
+@app.callback(
+    background=True,
     output=dict(
         file_load_trigger=Output('file-loaded-trigger', 'data'),
         frame_min=Output('slider-frame', 'min'),
