@@ -91,7 +91,7 @@ def refresh_button_clicked(click):
     )
 
 
-@app.callback(
+@app.long_callback(
     output=dict(
         file_value=Output('file-picker', 'value'),
         file_options=Output('file-picker', 'options')
@@ -101,9 +101,17 @@ def refresh_button_clicked(click):
     ),
     state=dict(
         session_id=State('session-id', 'data')
-    )
+    ),
+    progress=[Output("loading-progress", "color"),
+              Output("loading-progress", "striped"),
+              Output("loading-progress", "animated"),
+              Output("loading-progress", "label"),
+              Output('case-picker', 'disabled'),
+              Output('file-picker', 'disabled'),
+              Output('refresh-button', 'disabled')],
+    manager=long_callback_manager,
 )
-def case_selected(case, session_id):
+def case_selected(set_progress, case, session_id):
     """
     Callback when a test case is selected
 
@@ -127,6 +135,8 @@ def case_selected(case, session_id):
 
     if case is None:
         raise PreventUpdate
+
+    set_progress(['warning', True, True, 'Loading ...', True, True, True])
 
     data_files = []
     case_dir = './data/'+case
@@ -193,7 +203,10 @@ def case_selected(case, session_id):
     progress=[Output("loading-progress", "color"),
               Output("loading-progress", "striped"),
               Output("loading-progress", "animated"),
-              Output("loading-progress", "label")],
+              Output("loading-progress", "label"),
+              Output('case-picker', 'disabled'),
+              Output('file-picker', 'disabled'),
+              Output('refresh-button', 'disabled')],
     manager=long_callback_manager,
 )
 def file_select_changed(
@@ -203,7 +216,7 @@ def file_select_changed(
         case,
         session_id):
 
-    set_progress(['warning', True, True, 'Loading ...'])
+    set_progress(['warning', True, True, 'Loading ...', True, True, True])
     # get keys from Redis
     config = cache_get(session_id, CACHE_KEYS['config'])
 
@@ -400,7 +413,7 @@ def file_select_changed(
     else:
         t_values_cat = cat_keys[0]
 
-    set_progress(['light', False, False, ''])
+    set_progress(['light', False, False, '', False, False, False])
 
     return dict(
         file_load_trigger=file_loaded+1,
