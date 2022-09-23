@@ -200,7 +200,7 @@ def case_selected(set_progress, case, session_id):
         file_loaded=State('file-loaded-trigger', 'data'),
         case=State('case-picker', 'value'),
         session_id=State('session-id', 'data'),
-        # all_state=DROPDOWN_VALUES_ALL_STATE
+        all_state=DROPDOWN_VALUES_ALL_STATE
     ),
     progress=[Output("loading-progress", "color"),
               Output("loading-progress", "striped"),
@@ -216,7 +216,8 @@ def file_select_changed(
         file,
         file_loaded,
         case,
-        session_id):
+        session_id,
+        *all_state):
 
     set_progress(['warning', True, True, 'Loading ...', True, True, True])
     # get keys from Redis
@@ -250,9 +251,9 @@ def file_select_changed(
         values_all = [all_keys[x % len(all_keys)]
                       for x in range(0, len(DROPDOWN_VALUES_ALL))]
 
-    # for idx, item in enumerate(all_state):
-    #     if item in all_keys:
-    #         values_all[idx] = item
+    for idx, item in enumerate(all_state):
+        if item in all_keys:
+            values_all[idx] = item
 
     # options for `DROPDOWN_OPTIONS_CAT_COLOR`
     options_cat_color = [[{
