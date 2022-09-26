@@ -217,7 +217,7 @@ def file_select_changed(
         file_loaded,
         case,
         session_id,
-        *all_state):
+        all_state):
 
     set_progress(['warning', True, True, 'Loading ...', True, True, True])
     # get keys from Redis
