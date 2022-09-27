@@ -83,6 +83,9 @@ def filter_all(
     """
 
     for f_idx, f_name in enumerate(num_list):
+        if f_name not in data.columns:
+            continue
+
         if f_idx == 0:
             condition = (data[f_name] >= num_values[f_idx][0]) \
                 & (data[f_name] <= num_values[f_idx][1])
@@ -92,6 +95,9 @@ def filter_all(
                 & (data[f_name] <= num_values[f_idx][1])
 
     for f_idx, f_name in enumerate(cat_list):
+        if f_name not in data.columns:
+            continue
+
         if not cat_values[f_idx]:
             condition = condition & False
             break

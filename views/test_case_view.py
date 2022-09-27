@@ -355,8 +355,12 @@ def file_select_changed(
     cat_values = []
     new_dropdown = []
     for idx, d_item in enumerate(cat_keys):
-        var_list = new_data[d_item].unique().tolist()
-        value_list = var_list
+        if d_item in new_data.columns:
+            var_list = new_data[d_item].unique().tolist()
+            value_list = var_list
+        else:
+            var_list = []
+            value_list = []
 
         new_dropdown.append(
             dbc.Label(
@@ -381,9 +385,13 @@ def file_select_changed(
     num_values = []
     new_slider = []
     for idx, item in enumerate(num_keys):
-        # use `.tolist()` to convert numpy type ot python type
-        var_min = np.floor(np.min(new_data[item])).tolist()
-        var_max = np.ceil(np.max(new_data[item])).tolist()
+        if item in new_data.columns:
+            # use `.tolist()` to convert numpy type ot python type
+            var_min = np.floor(np.min(new_data[item])).tolist()
+            var_max = np.ceil(np.max(new_data[item])).tolist()
+        else:
+            var_min = 0
+            var_max = 0
 
         new_slider.append(
             dbc.Label(

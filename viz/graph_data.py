@@ -61,6 +61,9 @@ def get_scatter3d_data(data_frame,
             rows = len(data_frame.index)
             hover_str = np.full(rows, '', dtype=object)
             for _, key in enumerate(hover):
+                if key not in data_frame.columns:
+                    continue
+
                 if 'format' in hover[key]:
                     hover_str = hover_str + hover[key]['description'] + \
                         ': ' + data_frame[key].map(
