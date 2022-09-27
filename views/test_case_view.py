@@ -107,6 +107,7 @@ def refresh_button_clicked(click):
               Output("loading-progress", "striped"),
               Output("loading-progress", "animated"),
               Output("loading-progress", "label"),
+              Output("collapse", "is_open"),
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],
@@ -137,7 +138,8 @@ def case_selected(set_progress, case, session_id):
     if case is None:
         raise PreventUpdate
 
-    set_progress(['warning', True, True, 'Loading ...', True, True, True])
+    set_progress(
+        ['warning', True, True, 'Loading ...', True, True, True, True])
 
     data_files = []
     case_dir = './data/'+case
@@ -206,6 +208,7 @@ def case_selected(set_progress, case, session_id):
               Output("loading-progress", "striped"),
               Output("loading-progress", "animated"),
               Output("loading-progress", "label"),
+              Output("collapse", "is_open"),
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],
@@ -219,7 +222,8 @@ def file_select_changed(
         session_id,
         all_state):
 
-    set_progress(['warning', True, True, 'Loading ...', True, True, True])
+    set_progress(
+        ['warning', True, True, 'Loading ...', True, True, True, True])
     # get keys from Redis
     config = cache_get(session_id, CACHE_KEYS['config'])
 
@@ -424,7 +428,7 @@ def file_select_changed(
     else:
         t_values_cat = cat_keys[0]
 
-    set_progress(['light', False, False, '', False, False, False])
+    set_progress(['light', False, False, '', False, False, False, False])
 
     return dict(
         file_load_trigger=file_loaded+1,
@@ -550,6 +554,30 @@ def update_slider(
                 return dict(slider_value=(slider_state+1) % (slider_max+1))
         else:
             return dict(slider_value=dash.no_update)
+
+
+@ app.callback(
+    output=dict(
+        state=Output('collapse-add', 'is_open')
+    ),
+    inputs=dict(
+        click=Input('button-add', 'n_clicks')
+    ),
+    state=dict(
+        open_state=State('collapse-add', 'is_open')
+    )
+)
+def add_data(click, open_state):
+    """
+
+    """
+    if click == 0:
+        raise PreventUpdate
+
+    if open_state is True:
+        return dict(state=False)
+    else:
+        return dict(state=True)
 
 
 @ app.callback(
