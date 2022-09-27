@@ -57,55 +57,49 @@ colorscales = ['Blackbody',
 
 
 testcase_card = dbc.Card([
-    dbc.CardHeader('Test Case'),
-    dbc.CardBody([
+    dbc.CardHeader(
         dbc.Row([
-            dbc.Col(dbc.Select(
-                id='case-picker',
-            )),
-        ], className="mb-3"),
-        dbc.Row([
+            dbc.Col(html.H6('Test Cases'), class_name='mt-2'),
             dbc.Col(dbc.Button(
-                'Refresh',
+                '↻',
                 id='refresh-button',
-                color='success',
-                # className='mr-1',
-                n_clicks=0,
-                style={
-                    'float': 'right'
-                }
-            ), width=3)
-        ], justify="end", className="my-3"),
-    ])], color='secondary', inverse=True)
-
-datafile_card = dbc.Card([
-    dbc.CardHeader('Data File'),
-    dbc.CardBody([
-        dbc.Row([dbc.Col(
-            dbc.Select(
-                id='file-picker',
-            )), ], className="mb-1"),
-        dbc.Row([
-            dbc.Col(dbc.Button(
-                '+',
-                id='button-add',
                 color='secondary',
                 # className='mr-1',
                 n_clicks=0,
                 size="sm",
-            ), className="d-grid mb-1")
-        ]),
-        dbc.Collapse(
-            dbc.Row([dbc.Col(
-                dcc.Dropdown(
-                    id='file-add',
-                )), ], className="mb-3"),
-            id='collapse-add',
-            is_open=False,
-        ),
-    ])
-], color='secondary', inverse=True)
-
+                style={
+                    'float': 'right'
+                }
+            ), width=3, class_name='mt-1')
+        ], justify="end"),
+    ),
+    dbc.CardBody([
+        dbc.Row([
+            dbc.Col(dbc.Select(id='case-picker'), width=3),
+            dbc.Col(dbc.Select(id='file-picker'))]),
+        dbc.Row([dbc.Button(
+            '+',
+            id='button-add',
+            color='secondary',
+            # className='mr-1',
+            n_clicks=0,
+            size="sm",
+        )], class_name='mx-1 my-1'),
+        dbc.Row([
+            dbc.Col(
+                dbc.Collapse(
+                    dcc.Dropdown(
+                        id='file-add',
+                        multi=True,
+                    ),
+                    id='collapse-add',
+                    is_open=False,
+                ),
+            )
+        ])])],
+    color='secondary',
+    inverse=True,
+    className="h-100 shadow-sm")
 
 filter_card = dbc.Card([
     dbc.CardHeader('Control'),
@@ -804,22 +798,19 @@ def get_app_layout():
                             html.H1(app.title, className="text-center"),
                             # html.Hr(className="my-2"),
                             html.P(
-                                'Sensor Data Visualization', className="text-center"
+                                'Sensor Data Visualization',
+                                className="text-center"
                             ),
                         ],
-                    ), color="light", outline=True, className="h-100 shadow-sm"),
-                width=4),
-            dbc.Col(
-                dbc.CardGroup([
-                    testcase_card,
-                    datafile_card
-                ], className="h-100 shadow-sm")
-            ),
+                    ), color="light",
+                    outline=True,
+                    className="h-100 shadow-sm"),
+                width=3),
+            dbc.Col(testcase_card),
         ], className="my-3"),
 
         dbc.Collapse(
             dbc.Row([
-
                 dbc.Col(
                     dbc.Progress(
                         value=100,
