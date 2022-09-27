@@ -63,23 +63,45 @@ testcase_card = dbc.Card([
             dbc.Col(dbc.Select(
                 id='case-picker',
             )),
+        ], className="mb-3"),
+        dbc.Row([
             dbc.Col(dbc.Button(
                 'Refresh',
                 id='refresh-button',
                 color='success',
-                className='mr-1',
+                # className='mr-1',
                 n_clicks=0,
                 style={
                     'float': 'right'
-                }), width=2)
-        ]),
+                }
+            ), width=3)
+        ], justify="end", className="my-3"),
     ])], color='secondary', inverse=True)
 
 datafile_card = dbc.Card([
     dbc.CardHeader('Data File'),
     dbc.CardBody([
-        dbc.Select(
-            id='file-picker',
+        dbc.Row([dbc.Col(
+            dbc.Select(
+                id='file-picker',
+            )), ], className="mb-1"),
+        dbc.Row([
+            dbc.Col(dbc.Button(
+                '+',
+                id='button-add',
+                color='secondary',
+                # className='mr-1',
+                n_clicks=0,
+                size="sm",
+            ), className="d-grid mb-1")
+        ]),
+        dbc.Collapse(
+            dbc.Row([dbc.Col(
+                dcc.Dropdown(
+                    id='file-add',
+                )), ], className="mb-3"),
+            id='collapse-add',
+            is_open=False,
         ),
     ])
 ], color='secondary', inverse=True)
@@ -768,17 +790,6 @@ def get_app_layout():
 
         dbc.Row([
             dbc.Col(
-                dbc.Progress(
-                    value=100,
-                    color='light',
-                    id="loading-progress",
-                    animated=False,
-                    striped=False,
-                    label=''
-                ))]),
-
-        dbc.Row([
-            dbc.Col(
                 dbc.Card(
                     dbc.CardBody(
                         [
@@ -806,7 +817,20 @@ def get_app_layout():
             ),
         ], className="my-3"),
 
+        dbc.Collapse(
+            dbc.Row([
 
+                dbc.Col(
+                    dbc.Progress(
+                        value=100,
+                        color='light',
+                        id="loading-progress",
+                        animated=False,
+                        striped=False,
+                        label=''
+                    ))]),
+            id="collapse",
+            is_open=True),
 
         html.Hr(),
         tabs,
