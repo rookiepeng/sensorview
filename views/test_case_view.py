@@ -95,7 +95,9 @@ def refresh_button_clicked(click):
     background=True,
     output=dict(
         file_value=Output('file-picker', 'value'),
-        file_options=Output('file-picker', 'options')
+        file_options=Output('file-picker', 'options'),
+        add_file_value=Output('file-add', 'value'),
+        add_file_options=Output('file-add', 'options')
     ),
     inputs=dict(
         case=Input('case-picker', 'value')
@@ -174,7 +176,9 @@ def case_selected(set_progress, case, session_id):
 
     return dict(
         file_value=data_files[0]['value'],
-        file_options=data_files
+        file_options=data_files,
+        add_file_value=[],
+        add_file_options=data_files
     )
 
 
