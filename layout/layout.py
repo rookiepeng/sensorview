@@ -766,34 +766,6 @@ def get_app_layout():
         dcc.Store(id='dummy-export-heatmap'),
         dcc.Store(id='dummy-export-data'),
 
-        html.Div(
-            [
-                html.Div(html.Img(
-                    src=app.get_asset_url('sensorview_logo.svg'),
-                    id='sensorview-image',
-                    style={
-                        'height': '100px',
-                        'width': 'auto',
-                    },
-                ), className="text-center"),
-                html.H1(app.title, className="text-center"),
-                # html.Hr(className="my-2"),
-                html.P(
-                    'Sensor Data Visualization', className="text-center"
-                ),
-            ],
-            className="bg-light rounded-3 my-2 p-3",
-        ),
-
-        dbc.Row([
-            dbc.Col(
-                dbc.CardGroup([
-                    testcase_card,
-                    datafile_card
-                ])
-            ),
-        ]),
-
         dbc.Row([
             dbc.Col(
                 dbc.Progress(
@@ -803,8 +775,38 @@ def get_app_layout():
                     animated=False,
                     striped=False,
                     label=''
-                ))],
-                className='mb-3'),
+                ))]),
+
+        dbc.Row([
+            dbc.Col(
+                dbc.Card(
+                    dbc.CardBody(
+                        [
+                            html.Div(html.Img(
+                                src=app.get_asset_url('sensorview_logo.svg'),
+                                id='sensorview-image',
+                                style={
+                                    'height': '100px',
+                                    'width': 'auto',
+                                },
+                            ), className="text-center"),
+                            html.H1(app.title, className="text-center"),
+                            # html.Hr(className="my-2"),
+                            html.P(
+                                'Sensor Data Visualization', className="text-center"
+                            ),
+                        ],
+                    ), color="light", outline=True, className="h-100 shadow-sm"),
+                width=4),
+            dbc.Col(
+                dbc.CardGroup([
+                    testcase_card,
+                    datafile_card
+                ], className="h-100 shadow-sm")
+            ),
+        ], className="my-3"),
+
+
 
         html.Hr(),
         tabs,
