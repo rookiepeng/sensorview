@@ -57,9 +57,9 @@ colorscales = ['Blackbody',
 
 
 testcase_card = dbc.Card([
-    dbc.CardHeader(
+    dbc.CardBody([
         dbc.Row([
-            dbc.Col(html.H6('Test Cases'), class_name='mt-2'),
+            dbc.Col(dbc.Label('Test Cases')),
             dbc.Col(dbc.Button(
                 '↻',
                 id='refresh-button',
@@ -69,10 +69,9 @@ testcase_card = dbc.Card([
                 style={
                     'float': 'right'
                 }
-            ), width=3, class_name='mt-1')
+            ), width=3)
         ], justify="end"),
-    ),
-    dbc.CardBody([
+        html.Hr(),
         dbc.Row([
             dbc.Col(dbc.Select(id='case-picker'), width=3),
             dbc.Col(dbc.Select(id='file-picker'))]),
