@@ -44,7 +44,7 @@ from utils import cache_get, CACHE_KEYS
 
 import plotly.express as px
 import plotly.graph_objs as go
-from utils import long_callback_manager
+from utils import background_callback_manager_figure
 
 
 @app.callback(
@@ -67,7 +67,7 @@ from utils import long_callback_manager
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value')
     ),
-    manager=long_callback_manager,
+    manager=background_callback_manager_figure,
 )
 def update_violin(
     filter_trigger,

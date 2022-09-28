@@ -54,9 +54,11 @@ redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
 redis_instance = redis.StrictRedis.from_url(redis_url)
 
-
 cache = Cache('./cache', eviction_policy='none')
-long_callback_manager = DiskcacheManager(cache)
+# background_callback_manager_disk = DiskcacheManager(cache)
+
+cache_figure = Cache('./cache/figure', eviction_policy='none')
+background_callback_manager_figure = DiskcacheManager(cache_figure)
 
 
 def load_config(json_file):

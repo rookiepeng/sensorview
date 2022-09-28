@@ -110,7 +110,6 @@ DROPDOWN_VALUES_CAT_COLOR = [
 ]
 
 app = dash.Dash(__name__,
-                # long_callback_manager=long_callback_manager,
                 meta_tags=[{
                     'name': 'viewport',
                     'content': 'width=device-width,initial-scale=1'
