@@ -381,7 +381,7 @@ left2d_card = dbc.Card([
                     ], style={'margin-top': 10}),
                 ],
                 type='default',
-            ), is_open=False),
+            ), is_open=False, id="collapse-left2d"),
     ])], className="shadow-sm")
 
 right2d_card = dbc.Card([
@@ -459,7 +459,7 @@ right2d_card = dbc.Card([
                 ], style={'margin-top': 10}),
             ],
             type='default',
-        ), is_open=False,),
+        ), is_open=False, id="collapse-right2d"),
     ])], className="shadow-sm")
 
 
@@ -535,7 +535,7 @@ hist_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ), is_open=False,),
+        ), is_open=False, id="collapse-hist"),
     ])], className="shadow-sm")
 
 
@@ -596,7 +596,7 @@ violin_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ), is_open=False,),
+        ), is_open=False, id="collapse-violin"),
     ])], className="shadow-sm")
 
 
@@ -653,7 +653,7 @@ parallel_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ), is_open=False,),
+        ), is_open=False, id="collapse-parallel"),
     ])], className="shadow-sm")
 
 
@@ -714,7 +714,7 @@ heatmap_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ), is_open=False,),
+        ), is_open=False, id="collapse-heatmap"),
     ])], className="shadow-sm")
 
 
