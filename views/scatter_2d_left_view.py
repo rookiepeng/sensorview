@@ -50,6 +50,7 @@ import plotly.graph_objs as go
 @app.callback(
     output=dict(
         figure=Output('scatter2d-left', 'figure'),
+        collapse=Output('collapse-left2d', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -140,6 +141,7 @@ def update_scatter2d_left(
         linewidth = 0
 
     if left_sw:
+        collapse = True
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
@@ -172,6 +174,7 @@ def update_scatter2d_left(
         )
 
     else:
+        collapse = False
         left_fig = {
             'data': [{'mode': 'markers',
                       'type': 'scattergl',
@@ -183,6 +186,7 @@ def update_scatter2d_left(
 
     return dict(
         figure=left_fig,
+        collapse=collapse
     )
 
 

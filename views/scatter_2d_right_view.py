@@ -50,6 +50,7 @@ import plotly.graph_objs as go
 @app.callback(
     output=dict(
         figure=Output('scatter2d-right', 'figure'),
+        collapse=Output('collapse-right2d', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -141,6 +142,7 @@ def update_scatter2d_right(
         linewidth = 0
 
     if right_sw:
+        collapse = True
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
@@ -172,6 +174,7 @@ def update_scatter2d_right(
         )
 
     else:
+        collapse = False
         right_fig = {
             'data': [{'mode': 'markers',
                       'type': 'scattergl',
@@ -183,6 +186,7 @@ def update_scatter2d_right(
 
     return dict(
         figure=right_fig,
+        collapse=collapse
     )
 
 
