@@ -173,10 +173,10 @@ filter_card = dbc.Card([
         html.Div(id='dropdown-container', children=[]),
         html.Div(id='slider-container', children=[]),
     ], style={'overflow': 'scroll', 'height': '600px'})
-], color='info', outline=True)
+], className="shadow-sm")
 
 view3d_card = dbc.Card([
-    dbc.CardHeader('3D View'),
+    # dbc.CardHeader('3D View'),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(dbc.Select(
@@ -303,7 +303,7 @@ view3d_card = dbc.Card([
             html.Div(id='hidden-scatter3d',
                      style={'display': 'none'}),
         ]),
-    ])], color='success', outline=True)
+    ])], className="shadow-lg")
 
 
 left2d_card = dbc.Card([
@@ -735,37 +735,6 @@ heatmap_card = dbc.Card([
     ])])
 
 
-scatter_tab = html.Div([
-    dbc.Row([
-            dbc.Col(filter_card, width=3),
-            dbc.Col(view3d_card, width=9)
-            ], className='mb-3', align='start'),
-
-    dbc.Row([
-            dbc.Col(left2d_card, width=6),
-            dbc.Col(right2d_card, width=6)
-            ], className='mb-3'),
-])
-
-statistical_tab = html.Div([
-    dbc.Row([
-        dbc.Col(hist_card, width=6),
-        dbc.Col(violin_card, width=6),
-    ], className='mb-3'),
-    dbc.Row([
-        dbc.Col(parallel_card, width=6),
-        dbc.Col(heatmap_card, width=6),
-    ], className='mb-3')
-])
-
-tabs = dbc.Tabs(
-    [
-        dbc.Tab(scatter_tab, label="Scatter"),
-        dbc.Tab(statistical_tab, label="Statistical"),
-    ]
-)
-
-
 def get_app_layout():
     return dbc.Container([
         dcc.Store(id='selected-data-left'),
@@ -824,7 +793,26 @@ def get_app_layout():
             is_open=True),
 
         html.Hr(),
-        tabs,
+
+        dbc.Row([
+            dbc.Col(view3d_card, width=9),
+            dbc.Col(filter_card, width=3)
+        ], className='mb-3', align='start'),
+
+        dbc.Row([
+            dbc.Col(left2d_card, width=6),
+            dbc.Col(right2d_card, width=6)
+        ], className='mb-3'),
+
+        dbc.Row([
+            dbc.Col(hist_card, width=6),
+            dbc.Col(violin_card, width=6),
+        ], className='mb-3'),
+        dbc.Row([
+            dbc.Col(parallel_card, width=6),
+            dbc.Col(heatmap_card, width=6),
+        ], className='mb-3'),
+
         html.Hr(),
 
         dcc.Markdown(
