@@ -43,9 +43,11 @@ from utils import cache_get, CACHE_KEYS
 
 import plotly.graph_objs as go
 from viz.viz import get_heatmap
+from utils import long_callback_manager
 
 
 @app.callback(
+    background=True,
     output=dict(
         heatmap=Output('heatmap', 'figure'),
         collapse=Output('collapse-heatmap', 'is_open'),
@@ -62,7 +64,8 @@ from viz.viz import get_heatmap
         visible_list=State('visible-picker', 'value'),
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value'),
-    )
+    ),
+    manager=long_callback_manager,
 )
 def update_heatmap(
     filter_trigger,

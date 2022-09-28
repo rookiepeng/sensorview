@@ -317,39 +317,39 @@ left2d_card = dbc.Card([
                 )
             )]),
         html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Label('x-axis')),
-            dbc.Col(dbc.Label('y-axis')),
-            dbc.Col(dbc.Label('color')),
-            dbc.Col(dbc.Label('colormap')),
-        ]),
-        dbc.Row([
-            dbc.Col(dbc.Select(
-                id='x-picker-2d-left',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='y-picker-2d-left',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='c-picker-2d-left',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='colormap-scatter2d-left',
-                disabled=False,
-                options=[{'value': x,
-                          'label': x}
-                         for x in colorscales],
-                value='Portland',
-            )),
-        ], style={'margin-bottom': 10}),
 
-        dbc.Collapse(
-            dcc.Loading(
-                id='loading_left',
-                children=[
+        dcc.Loading(
+            id='loading_left',
+            children=[
+                dbc.Row([
+                        dbc.Col(dbc.Label('x-axis')),
+                        dbc.Col(dbc.Label('y-axis')),
+                        dbc.Col(dbc.Label('color')),
+                        dbc.Col(dbc.Label('colormap')),
+                        ]),
+                dbc.Row([
+                        dbc.Col(dbc.Select(
+                            id='x-picker-2d-left',
+                            disabled=False,
+                        )),
+                        dbc.Col(dbc.Select(
+                            id='y-picker-2d-left',
+                            disabled=False,
+                        )),
+                        dbc.Col(dbc.Select(
+                            id='c-picker-2d-left',
+                            disabled=False,
+                        )),
+                        dbc.Col(dbc.Select(
+                            id='colormap-scatter2d-left',
+                            disabled=False,
+                            options=[{'value': x,
+                                      'label': x}
+                                     for x in colorscales],
+                            value='Portland',
+                        )),
+                        ], style={'margin-bottom': 10}),
+                dbc.Collapse(html.Div([
                     dcc.Graph(
                         id='scatter2d-left',
                         config={
@@ -367,20 +367,22 @@ left2d_card = dbc.Card([
                         },
                     ),
                     dbc.Row([
-                        dbc.Col(dbc.Button(
-                            'Hide/Unhide',
-                            id='hide-left',
-                            color='warning',
-                            n_clicks=0)),
-                        dbc.Col(dbc.Button(
-                            'Export',
-                            id='export-scatter2d-left',
-                            n_clicks=0,
-                            style={'float': 'right'})),
-                    ], style={'margin-top': 10}),
-                ],
-                type='default',
-            ), is_open=False, id="collapse-left2d"),
+                            dbc.Col(dbc.Button(
+                                'Hide/Unhide',
+                                id='hide-left',
+                                color='warning',
+                                n_clicks=0)),
+                            dbc.Col(dbc.Button(
+                                'Export',
+                                id='export-scatter2d-left',
+                                n_clicks=0,
+                                style={'float': 'right'})),
+                            ], style={'margin-top': 10}), ]),
+                    is_open=False,
+                    id="collapse-left2d"),
+            ],
+            type='default',
+        ),
     ])], className="shadow-sm")
 
 right2d_card = dbc.Card([
@@ -401,64 +403,66 @@ right2d_card = dbc.Card([
                 )
             )]),
         html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Label('x-axis')),
-            dbc.Col(dbc.Label('y-axis')),
-            dbc.Col(dbc.Label('color')),
-            dbc.Col(dbc.Label('colormap')),
-        ]),
-        dbc.Row([
-            dbc.Col(dbc.Select(
-                id='x-picker-2d-right',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='y-picker-2d-right',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='c-picker-2d-right',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='colormap-scatter2d-right',
-                disabled=False,
-                options=[{'value': x, 'label': x}
-                         for x in colorscales],
-                value='Portland',
-            )),
-        ], style={'margin-bottom': 10}),
 
-        dbc.Collapse(dcc.Loading(
+        dcc.Loading(
             id='loading_right',
-            children=[
-                dcc.Graph(
-                    id='scatter2d-right',
-                    config={
-                        'displaylogo': False
-                    },
-                    figure={
-                        'data': [{
-                            'mode': 'markers',
-                            'type': 'scattergl',
-                            'x': [],
-                            'y': []
-                        }],
-                        'layout': {
-                            'uirevision': 'no_change'
-                        }
-                    },
-                ),
+            children=[dbc.Row([
+                dbc.Col(dbc.Label('x-axis')),
+                dbc.Col(dbc.Label('y-axis')),
+                dbc.Col(dbc.Label('color')),
+                dbc.Col(dbc.Label('colormap')),
+            ]),
                 dbc.Row([
-                    dbc.Col(dbc.Button(
-                        'Export',
-                        id='export-scatter2d-right',
-                        n_clicks=0,
-                        style={'float': 'right'}))
-                ], style={'margin-top': 10}),
+                    dbc.Col(dbc.Select(
+                        id='x-picker-2d-right',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='y-picker-2d-right',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='c-picker-2d-right',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='colormap-scatter2d-right',
+                        disabled=False,
+                        options=[{'value': x, 'label': x}
+                                 for x in colorscales],
+                        value='Portland',
+                    )),
+                ], style={'margin-bottom': 10}),
+                dbc.Collapse(html.Div([
+                    dcc.Graph(
+                        id='scatter2d-right',
+                        config={
+                            'displaylogo': False
+                        },
+                        figure={
+                            'data': [{
+                                'mode': 'markers',
+                                'type': 'scattergl',
+                                'x': [],
+                                'y': []
+                            }],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+                    dbc.Row([
+                        dbc.Col(dbc.Button(
+                            'Export',
+                            id='export-scatter2d-right',
+                            n_clicks=0,
+                            style={'float': 'right'}))
+                    ], style={'margin-top': 10}), ]),
+                is_open=False,
+                id="collapse-right2d")
             ],
             type='default',
-        ), is_open=False, id="collapse-right2d"),
+        ),
     ])], className="shadow-sm")
 
 
@@ -480,61 +484,66 @@ hist_card = dbc.Card([
                 )
             )]),
         html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Label('x-axis')),
-            dbc.Col(dbc.Label('y-axis')),
-            dbc.Col(dbc.Label('color')),
-        ]),
-        dbc.Row([
-            dbc.Col(dbc.Select(
-                id='x-picker-histogram',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='y-histogram',
-                options=[{
-                    'label': 'Probability',
-                    'value': 'probability'
-                },
-                    {
-                    'label': 'Density',
-                    'value': 'density'
-                },
-                ],
-                value='density',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='c-picker-histogram',
-                disabled=False,
-            )),
-        ]),
 
-        dbc.Collapse(dcc.Loading(
+
+        dcc.Loading(
             id='loading_histogram',
             children=[
-                dcc.Graph(
-                    id='histogram',
-                    config={
-                        'displaylogo': False
-                    },
-                    figure={
-                        'data': [{'type': 'histogram',
-                                  'x': []}
-                                 ]
-                    },
-                ),
                 dbc.Row([
-                    dbc.Col(
-                        dbc.Button(
-                            'Export',
-                            id='export-histogram',
-                            n_clicks=0,
-                            style={'float': 'right'})),
+                    dbc.Col(dbc.Label('x-axis')),
+                    dbc.Col(dbc.Label('y-axis')),
+                    dbc.Col(dbc.Label('color')),
                 ]),
+                dbc.Row([
+                    dbc.Col(dbc.Select(
+                        id='x-picker-histogram',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='y-histogram',
+                        options=[{
+                            'label': 'Probability',
+                            'value': 'probability'
+                        },
+                            {
+                            'label': 'Density',
+                            'value': 'density'
+                        },
+                        ],
+                        value='density',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='c-picker-histogram',
+                        disabled=False,
+                    )),
+                ]),
+                dbc.Collapse(html.Div([
+                    dcc.Graph(
+                        id='histogram',
+                        config={
+                            'displaylogo': False
+                        },
+                        figure={
+                            'data': [{'type': 'histogram',
+                                      'x': []}
+                                     ]
+                        },
+                    ),
+                    dbc.Row([
+                        dbc.Col(
+                            dbc.Button(
+                                'Export',
+                                id='export-histogram',
+                                n_clicks=0,
+                                style={'float': 'right'})),
+                    ]),
+                ]),
+                    is_open=False,
+                    id="collapse-hist")
             ],
             type='default',
-        ), is_open=False, id="collapse-hist"),
+        ),
     ])], className="shadow-sm")
 
 
@@ -556,46 +565,50 @@ violin_card = dbc.Card([
                 )
             )]),
         html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Label('x-axis')),
-            dbc.Col(dbc.Label('y-axis')),
-            dbc.Col(dbc.Label('color')),
-        ]),
-        dbc.Row([
-            dbc.Col(dbc.Select(
-                id='x-picker-violin',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='y-picker-violin',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='c-picker-violin',
-                disabled=False,
-            )),
-        ]),
 
-        dbc.Collapse(dcc.Loading(
+
+        dcc.Loading(
             id='loading_violin',
             children=[
-                dcc.Graph(
-                    id='violin',
-                    config={
-                        'displaylogo': False
-                    }
-                ),
                 dbc.Row([
-                    dbc.Col(
-                        dbc.Button(
-                            'Export',
-                            id='export-violin',
-                            n_clicks=0,
-                            style={'float': 'right'})),
+                    dbc.Col(dbc.Label('x-axis')),
+                    dbc.Col(dbc.Label('y-axis')),
+                    dbc.Col(dbc.Label('color')),
                 ]),
+                dbc.Row([
+                    dbc.Col(dbc.Select(
+                        id='x-picker-violin',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='y-picker-violin',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='c-picker-violin',
+                        disabled=False,
+                    )),
+                ]),
+                dbc.Collapse(html.Div([
+                    dcc.Graph(
+                        id='violin',
+                        config={
+                            'displaylogo': False
+                        }
+                    ),
+                    dbc.Row([
+                        dbc.Col(
+                            dbc.Button(
+                                'Export',
+                                id='export-violin',
+                                n_clicks=0,
+                                style={'float': 'right'})),
+                    ]), ]),
+                    is_open=False,
+                    id="collapse-violin")
             ],
             type='default',
-        ), is_open=False, id="collapse-violin"),
+        ),
     ])], className="shadow-sm")
 
 
@@ -617,42 +630,46 @@ parallel_card = dbc.Card([
                 )
             )]),
         html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Label('dimensions')),
-            dbc.Col(dbc.Label('color')),
-        ]),
-        dbc.Row([
-            dbc.Col(
-                dcc.Dropdown(
-                    id='dim-picker-parallel',
-                    multi=True
-                )),
-            dbc.Col(dbc.Select(
-                    id='c-picker-parallel',
-                    disabled=False,
-                    )),
-        ]),
 
-        dbc.Collapse(dcc.Loading(
+
+        dcc.Loading(
             id='loading_parallel',
             children=[
-                dcc.Graph(
-                    id='parallel',
-                    config={
-                        'displaylogo': False
-                    }
-                ),
+                dbc.Row([
+                    dbc.Col(dbc.Label('dimensions')),
+                    dbc.Col(dbc.Label('color')),
+                ]),
                 dbc.Row([
                     dbc.Col(
-                        dbc.Button(
-                            'Export',
-                            id='export-parallel',
-                            n_clicks=0,
-                            style={'float': 'right'})),
+                        dcc.Dropdown(
+                            id='dim-picker-parallel',
+                            multi=True
+                        )),
+                    dbc.Col(dbc.Select(
+                        id='c-picker-parallel',
+                        disabled=False,
+                    )),
                 ]),
+                dbc.Collapse(html.Div([
+                    dcc.Graph(
+                        id='parallel',
+                        config={
+                            'displaylogo': False
+                        }
+                    ),
+                    dbc.Row([
+                        dbc.Col(
+                            dbc.Button(
+                                'Export',
+                                id='export-parallel',
+                                n_clicks=0,
+                                style={'float': 'right'})),
+                    ]), ]),
+                    is_open=False,
+                    id="collapse-parallel")
             ],
             type='default',
-        ), is_open=False, id="collapse-parallel"),
+        ),
     ])], className="shadow-sm")
 
 
@@ -674,25 +691,25 @@ heatmap_card = dbc.Card([
                 )
             )]),
         html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Label('x-axis')),
-            dbc.Col(dbc.Label('y-axis'))
-        ]),
-        dbc.Row([
-            dbc.Col(dbc.Select(
-                id='x-picker-heatmap',
-                disabled=False,
-            )),
-            dbc.Col(dbc.Select(
-                id='y-picker-heatmap',
-                disabled=False,
-            ))
-        ]),
 
-        dbc.Collapse(dcc.Loading(
+        dcc.Loading(
             id='loading_heat',
             children=[
-                dcc.Graph(
+                dbc.Row([
+                    dbc.Col(dbc.Label('x-axis')),
+                    dbc.Col(dbc.Label('y-axis'))
+                ]),
+                dbc.Row([
+                    dbc.Col(dbc.Select(
+                        id='x-picker-heatmap',
+                        disabled=False,
+                    )),
+                    dbc.Col(dbc.Select(
+                        id='y-picker-heatmap',
+                        disabled=False,
+                    ))
+                ]),
+                dbc.Collapse(html.Div([dcc.Graph(
                     id='heatmap',
                     config={
                         'displaylogo': False
@@ -703,17 +720,19 @@ heatmap_card = dbc.Card([
                                  ]
                     },
                 ),
-                dbc.Row([
-                    dbc.Col(
-                        dbc.Button(
-                            'Export',
-                            id='export-heatmap',
-                            n_clicks=0,
-                            style={'float': 'right'})),
-                ]),
+                    dbc.Row([
+                        dbc.Col(
+                            dbc.Button(
+                                'Export',
+                                id='export-heatmap',
+                                n_clicks=0,
+                                style={'float': 'right'})),
+                    ]), ]),
+                    is_open=False,
+                    id="collapse-heatmap")
             ],
             type='default',
-        ), is_open=False, id="collapse-heatmap"),
+        ),
     ])], className="shadow-sm")
 
 

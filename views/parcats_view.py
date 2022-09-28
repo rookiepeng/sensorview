@@ -44,9 +44,11 @@ from tasks import filter_all
 from utils import cache_get, CACHE_KEYS
 
 import plotly.graph_objs as go
+from utils import long_callback_manager
 
 
 @app.callback(
+    background=True,
     output=dict(
         parallel=Output('parallel', 'figure'),
         collapse=Output('collapse-parallel', 'is_open'),
@@ -63,7 +65,8 @@ import plotly.graph_objs as go
         visible_list=State('visible-picker', 'value'),
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value')
-    )
+    ),
+    manager=long_callback_manager,
 )
 def update_parallel(
     filter_trigger,

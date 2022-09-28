@@ -44,10 +44,13 @@ from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 from viz.viz import get_scatter2d
 
+from utils import long_callback_manager
+
 import plotly.graph_objs as go
 
 
 @app.callback(
+    background=True,
     output=dict(
         figure=Output('scatter2d-left', 'figure'),
         collapse=Output('collapse-left2d', 'is_open'),
@@ -67,7 +70,8 @@ import plotly.graph_objs as go
         visible_list=State('visible-picker', 'value'),
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value')
-    )
+    ),
+    manager=long_callback_manager,
 )
 def update_scatter2d_left(
     filter_trigger,
