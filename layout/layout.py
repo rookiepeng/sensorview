@@ -307,7 +307,24 @@ view3d_card = dbc.Card([
 
 
 left2d_card = dbc.Card([
-    dbc.CardHeader(
+    # dbc.CardHeader(
+    #     dbc.Row([
+    #         dbc.Col(
+    #             dbc.Label('2D View')),
+    #         dbc.Col(
+    #             dbc.Checklist(
+    #                 options=[
+    #                     {'label': 'Enable',
+    #                      'value': True},
+    #                 ],
+    #                 value=[],
+    #                 id='left-switch',
+    #                 switch=True,
+    #                 style={'float': 'right'}
+    #             )
+    #         )]),
+    # ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(
                 dbc.Label('2D View')),
@@ -323,8 +340,7 @@ left2d_card = dbc.Card([
                     style={'float': 'right'}
                 )
             )]),
-    ),
-    dbc.CardBody([
+        html.Hr(),
         dbc.Row([
             dbc.Col(dbc.Label('x-axis')),
             dbc.Col(dbc.Label('y-axis')),
@@ -355,44 +371,62 @@ left2d_card = dbc.Card([
             )),
         ], style={'margin-bottom': 10}),
 
-        dcc.Loading(
-            id='loading_left',
-            children=[
-                dcc.Graph(
-                    id='scatter2d-left',
-                    config={
-                        'displaylogo': False
-                    },
-                    figure={
-                        'data': [{
-                            'mode': 'markers',
-                            'type': 'scattergl',
-                            'x': [], 'y': []
-                        }],
-                        'layout': {
-                            'uirevision': 'no_change'
-                        }
-                    },
-                ),
-                dbc.Row([
-                    dbc.Col(dbc.Button(
-                        'Hide/Unhide',
-                        id='hide-left',
-                        color='warning',
-                        n_clicks=0)),
-                    dbc.Col(dbc.Button(
-                        'Export',
-                        id='export-scatter2d-left',
-                        n_clicks=0,
-                        style={'float': 'right'})),
-                ], style={'margin-top': 10}),
-            ],
-            type='default',
-        ),
-    ])], color='danger', outline=True)
+        dbc.Collapse(
+            dcc.Loading(
+                id='loading_left',
+                children=[
+                    dcc.Graph(
+                        id='scatter2d-left',
+                        config={
+                            'displaylogo': False
+                        },
+                        figure={
+                            'data': [{
+                                'mode': 'markers',
+                                'type': 'scattergl',
+                                'x': [], 'y': []
+                            }],
+                            'layout': {
+                                'uirevision': 'no_change'
+                            }
+                        },
+                    ),
+                    dbc.Row([
+                        dbc.Col(dbc.Button(
+                            'Hide/Unhide',
+                            id='hide-left',
+                            color='warning',
+                            n_clicks=0)),
+                        dbc.Col(dbc.Button(
+                            'Export',
+                            id='export-scatter2d-left',
+                            n_clicks=0,
+                            style={'float': 'right'})),
+                    ], style={'margin-top': 10}),
+                ],
+                type='default',
+            ), is_open=False),
+    ])], className="shadow-sm")
 
 right2d_card = dbc.Card([
-    dbc.CardHeader(
+    # dbc.CardHeader(
+    #     dbc.Row([
+    #         dbc.Col(
+    #             dbc.Label('2D View')),
+    #         dbc.Col(
+    #             dbc.Checklist(
+    #                 options=[
+    #                     {'label': 'Enable',
+    #                      'value': True},
+    #                 ],
+    #                 value=[],
+    #                 id='right-switch',
+    #                 switch=True,
+    #                 style={'float': 'right'}
+    #             )
+    #         )]),
+    # ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(
                 dbc.Label('2D View')),
@@ -408,8 +442,7 @@ right2d_card = dbc.Card([
                     style={'float': 'right'}
                 )
             )]),
-    ),
-    dbc.CardBody([
+        html.Hr(),
         dbc.Row([
             dbc.Col(dbc.Label('x-axis')),
             dbc.Col(dbc.Label('y-axis')),
@@ -439,7 +472,7 @@ right2d_card = dbc.Card([
             )),
         ], style={'margin-bottom': 10}),
 
-        dcc.Loading(
+        dbc.Collapse(dcc.Loading(
             id='loading_right',
             children=[
                 dcc.Graph(
@@ -468,12 +501,29 @@ right2d_card = dbc.Card([
                 ], style={'margin-top': 10}),
             ],
             type='default',
-        ),
-    ])], color='danger', outline=True)
+        ), is_open=False,),
+    ])], className="shadow-sm")
 
 
 hist_card = dbc.Card([
-    dbc.CardHeader(
+    # dbc.CardHeader(
+    #     dbc.Row([
+    #         dbc.Col(
+    #             dbc.Label('Histogram')),
+    #         dbc.Col(
+    #             dbc.Checklist(
+    #                 options=[
+    #                     {'label': 'Enable',
+    #                      'value': True},
+    #                 ],
+    #                 value=[],
+    #                 id='histogram-switch',
+    #                 switch=True,
+    #                 style={'float': 'right'}
+    #             )
+    #         )]),
+    # ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(
                 dbc.Label('Histogram')),
@@ -489,8 +539,7 @@ hist_card = dbc.Card([
                     style={'float': 'right'}
                 )
             )]),
-    ),
-    dbc.CardBody([
+        html.Hr(),
         dbc.Row([
             dbc.Col(dbc.Label('x-axis')),
             dbc.Col(dbc.Label('y-axis')),
@@ -522,7 +571,7 @@ hist_card = dbc.Card([
             )),
         ]),
 
-        dcc.Loading(
+        dbc.Collapse(dcc.Loading(
             id='loading_histogram',
             children=[
                 dcc.Graph(
@@ -546,12 +595,29 @@ hist_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ),
-    ])])
+        ), is_open=False,),
+    ])], className="shadow-sm")
 
 
 violin_card = dbc.Card([
-    dbc.CardHeader(
+    # dbc.CardHeader(
+    #     dbc.Row([
+    #         dbc.Col(
+    #             dbc.Label('Violin')),
+    #         dbc.Col(
+    #             dbc.Checklist(
+    #                 options=[
+    #                     {'label': 'Enable',
+    #                      'value': True},
+    #                 ],
+    #                 value=[],
+    #                 id='violin-switch',
+    #                 switch=True,
+    #                 style={'float': 'right'}
+    #             )
+    #         )]),
+    # ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(
                 dbc.Label('Violin')),
@@ -567,8 +633,7 @@ violin_card = dbc.Card([
                     style={'float': 'right'}
                 )
             )]),
-    ),
-    dbc.CardBody([
+        html.Hr(),
         dbc.Row([
             dbc.Col(dbc.Label('x-axis')),
             dbc.Col(dbc.Label('y-axis')),
@@ -590,7 +655,7 @@ violin_card = dbc.Card([
             )),
         ]),
 
-        dcc.Loading(
+        dbc.Collapse(dcc.Loading(
             id='loading_violin',
             children=[
                 dcc.Graph(
@@ -609,12 +674,29 @@ violin_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ),
-    ])])
+        ), is_open=False,),
+    ])], className="shadow-sm")
 
 
 parallel_card = dbc.Card([
-    dbc.CardHeader(
+    # dbc.CardHeader(
+    #     dbc.Row([
+    #         dbc.Col(
+    #             dbc.Label('Parallel Categories')),
+    #         dbc.Col(
+    #             dbc.Checklist(
+    #                 options=[
+    #                     {'label': 'Enable',
+    #                      'value': True},
+    #                 ],
+    #                 value=[],
+    #                 id='parallel-switch',
+    #                 switch=True,
+    #                 style={'float': 'right'}
+    #             )
+    #         )]),
+    # ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(
                 dbc.Label('Parallel Categories')),
@@ -630,8 +712,7 @@ parallel_card = dbc.Card([
                     style={'float': 'right'}
                 )
             )]),
-    ),
-    dbc.CardBody([
+        html.Hr(),
         dbc.Row([
             dbc.Col(dbc.Label('dimensions')),
             dbc.Col(dbc.Label('color')),
@@ -649,7 +730,7 @@ parallel_card = dbc.Card([
                     )),
         ]),
 
-        dcc.Loading(
+        dbc.Collapse(dcc.Loading(
             id='loading_parallel',
             children=[
                 dcc.Graph(
@@ -668,12 +749,29 @@ parallel_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ),
-    ])])
+        ), is_open=False,),
+    ])], className="shadow-sm")
 
 
 heatmap_card = dbc.Card([
-    dbc.CardHeader(
+    # dbc.CardHeader(
+    #     dbc.Row([
+    #         dbc.Col(
+    #             dbc.Label('Heatmap')),
+    #         dbc.Col(
+    #             dbc.Checklist(
+    #                 options=[
+    #                     {'label': 'Enable',
+    #                      'value': True},
+    #                 ],
+    #                 value=[],
+    #                 id='heat-switch',
+    #                 switch=True,
+    #                 style={'float': 'right'}
+    #             )
+    #         )]),
+    # ),
+    dbc.CardBody([
         dbc.Row([
             dbc.Col(
                 dbc.Label('Heatmap')),
@@ -689,8 +787,7 @@ heatmap_card = dbc.Card([
                     style={'float': 'right'}
                 )
             )]),
-    ),
-    dbc.CardBody([
+        html.Hr(),
         dbc.Row([
             dbc.Col(dbc.Label('x-axis')),
             dbc.Col(dbc.Label('y-axis'))
@@ -707,7 +804,7 @@ heatmap_card = dbc.Card([
             ))
         ]),
 
-        dcc.Loading(
+        dbc.Collapse(dcc.Loading(
             id='loading_heat',
             children=[
                 dcc.Graph(
@@ -731,8 +828,8 @@ heatmap_card = dbc.Card([
                 ]),
             ],
             type='default',
-        ),
-    ])])
+        ), is_open=False,),
+    ])], className="shadow-sm")
 
 
 def get_app_layout():
