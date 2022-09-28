@@ -791,16 +791,16 @@ def get_app_layout():
                                 src=app.get_asset_url('sensorview_logo.svg'),
                                 id='sensorview-image',
                                 style={
-                                    'height': '100px',
+                                    'height': '90px',
                                     'width': 'auto',
                                 },
                             ), className="text-center"),
-                            html.H1(app.title, className="text-center"),
+                            html.H4(app.title, className="text-center"),
                             # html.Hr(className="my-2"),
-                            html.P(
-                                'Sensor Data Visualization',
-                                className="text-center"
-                            ),
+                            # html.P(
+                            #     'Sensor Data Visualization',
+                            #     className="text-center"
+                            # ),
                         ],
                     ), color="light",
                     outline=True,
