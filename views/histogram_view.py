@@ -44,9 +44,11 @@ from utils import cache_get, CACHE_KEYS
 
 import plotly.graph_objs as go
 import plotly.express as px
+from utils import long_callback_manager
 
 
 @app.callback(
+    background=True,
     output=dict(
         histogram=Output('histogram', 'figure'),
         collapse=Output('collapse-hist', 'is_open'),
@@ -64,7 +66,8 @@ import plotly.express as px
         visible_list=State('visible-picker', 'value'),
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value')
-    )
+    ),
+    manager=long_callback_manager,
 )
 def update_histogram(
     filter_trigger,
