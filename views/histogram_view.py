@@ -49,6 +49,7 @@ import plotly.express as px
 @app.callback(
     output=dict(
         histogram=Output('histogram', 'figure'),
+        collapse=Output('collapse-hist', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -122,6 +123,7 @@ def update_histogram(
     y_key = y_histogram
 
     if histogram_sw:
+        collapse = True
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
@@ -188,6 +190,7 @@ def update_histogram(
                     labels={x_key: x_label,
                             y_key: y_label})
     else:
+        collapse = False
         histogram_fig = {
             'data': [{'type': 'histogram',
                       'x': []}
@@ -196,7 +199,8 @@ def update_histogram(
             }}
 
     return dict(
-        histogram=histogram_fig
+        histogram=histogram_fig,
+        collapse=collapse
     )
 
 

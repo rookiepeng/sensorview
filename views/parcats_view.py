@@ -48,7 +48,8 @@ import plotly.graph_objs as go
 
 @app.callback(
     output=dict(
-        parallel=Output('parallel', 'figure')
+        parallel=Output('parallel', 'figure'),
+        collapse=Output('collapse-parallel', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -111,6 +112,7 @@ def update_parallel(
     num_values = filter_kwargs['num_values']
 
     if parallel_sw:
+        collapse = True
         if len(dim_parallel) > 0:
             file = json.loads(file)
             data = pd.read_feather('./data/' +
@@ -171,6 +173,7 @@ def update_parallel(
                 'layout': {
                 }}
     else:
+        collapse = False
         parallel_fig = {
             'data': [{'type': 'histogram',
                       'x': []}
@@ -179,7 +182,8 @@ def update_parallel(
             }}
 
     return dict(
-        parallel=parallel_fig
+        parallel=parallel_fig,
+        collapse=collapse
     )
 
 

@@ -49,6 +49,7 @@ import plotly.graph_objs as go
 @app.callback(
     output=dict(
         violin=Output('violin', 'figure'),
+        collapse=Output('collapse-violin', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -126,6 +127,7 @@ def update_violin(
     y_label = config['keys'][y_violin].get('description', y_key)
 
     if violin_sw:
+        collapse = True
         file = json.loads(file)
         data = pd.read_feather('./data/' +
                                case +
@@ -161,6 +163,7 @@ def update_violin(
                                    labels={x_key: x_label,
                                            y_key: y_label})
     else:
+        collapse = False
         violin_fig = {
             'data': [{'type': 'histogram',
                       'x': []}
@@ -169,7 +172,8 @@ def update_violin(
             }}
 
     return dict(
-        violin=violin_fig
+        violin=violin_fig,
+        collapse=collapse
     )
 
 

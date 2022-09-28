@@ -48,6 +48,7 @@ from viz.viz import get_heatmap
 @app.callback(
     output=dict(
         heatmap=Output('heatmap', 'figure'),
+        collapse=Output('collapse-heatmap', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -104,6 +105,7 @@ def update_heatmap(
     :rtype: list
     """
     if heat_sw:
+        collapse = True
         config = cache_get(session_id, CACHE_KEYS['config'])
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
@@ -143,6 +145,7 @@ def update_heatmap(
             y_label,
         )
     else:
+        collapse = False
         heat_fig = {
             'data': [{'type': 'histogram2dcontour',
                       'x': []}
@@ -151,7 +154,8 @@ def update_heatmap(
             }}
 
     return dict(
-        heatmap=heat_fig
+        heatmap=heat_fig,
+        collapse=collapse
     )
 
 
