@@ -64,7 +64,6 @@ testcase_card = dbc.Card([
                 '↻',
                 id='refresh-button',
                 color='secondary',
-                # className='mr-1',
                 n_clicks=0,
                 size="sm",
                 style={
@@ -81,7 +80,6 @@ testcase_card = dbc.Card([
             '+',
             id='button-add',
             color='secondary',
-            # className='mr-1',
             n_clicks=0,
             size="sm",
         )], class_name='mx-1 my-1'),
@@ -102,7 +100,6 @@ testcase_card = dbc.Card([
     className="h-100 shadow-sm")
 
 filter_card = dbc.Card([
-    # dbc.CardHeader('Control'),
     dbc.CardBody([
         dbc.Row(
             [
@@ -135,7 +132,6 @@ filter_card = dbc.Card([
                 ),
             ]
         ),
-
         dbc.Row(
             [
                 dbc.Label('Visibility options'),
@@ -151,7 +147,6 @@ filter_card = dbc.Card([
                 ),
             ]
         ),
-
         dbc.Row(
             [
                 dbc.Label('Decay'),
@@ -176,7 +171,6 @@ filter_card = dbc.Card([
 ], className="shadow-sm")
 
 view3d_card = dbc.Card([
-    # dbc.CardHeader('3D View'),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(dbc.Select(
@@ -307,23 +301,6 @@ view3d_card = dbc.Card([
 
 
 left2d_card = dbc.Card([
-    # dbc.CardHeader(
-    #     dbc.Row([
-    #         dbc.Col(
-    #             dbc.Label('2D View')),
-    #         dbc.Col(
-    #             dbc.Checklist(
-    #                 options=[
-    #                     {'label': 'Enable',
-    #                      'value': True},
-    #                 ],
-    #                 value=[],
-    #                 id='left-switch',
-    #                 switch=True,
-    #                 style={'float': 'right'}
-    #             )
-    #         )]),
-    # ),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(
@@ -347,7 +324,6 @@ left2d_card = dbc.Card([
             dbc.Col(dbc.Label('color')),
             dbc.Col(dbc.Label('colormap')),
         ]),
-
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-2d-left',
@@ -409,23 +385,6 @@ left2d_card = dbc.Card([
     ])], className="shadow-sm")
 
 right2d_card = dbc.Card([
-    # dbc.CardHeader(
-    #     dbc.Row([
-    #         dbc.Col(
-    #             dbc.Label('2D View')),
-    #         dbc.Col(
-    #             dbc.Checklist(
-    #                 options=[
-    #                     {'label': 'Enable',
-    #                      'value': True},
-    #                 ],
-    #                 value=[],
-    #                 id='right-switch',
-    #                 switch=True,
-    #                 style={'float': 'right'}
-    #             )
-    #         )]),
-    # ),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(
@@ -449,7 +408,6 @@ right2d_card = dbc.Card([
             dbc.Col(dbc.Label('color')),
             dbc.Col(dbc.Label('colormap')),
         ]),
-
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-2d-right',
@@ -506,23 +464,6 @@ right2d_card = dbc.Card([
 
 
 hist_card = dbc.Card([
-    # dbc.CardHeader(
-    #     dbc.Row([
-    #         dbc.Col(
-    #             dbc.Label('Histogram')),
-    #         dbc.Col(
-    #             dbc.Checklist(
-    #                 options=[
-    #                     {'label': 'Enable',
-    #                      'value': True},
-    #                 ],
-    #                 value=[],
-    #                 id='histogram-switch',
-    #                 switch=True,
-    #                 style={'float': 'right'}
-    #             )
-    #         )]),
-    # ),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(
@@ -545,7 +486,6 @@ hist_card = dbc.Card([
             dbc.Col(dbc.Label('y-axis')),
             dbc.Col(dbc.Label('color')),
         ]),
-
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-histogram',
@@ -600,23 +540,6 @@ hist_card = dbc.Card([
 
 
 violin_card = dbc.Card([
-    # dbc.CardHeader(
-    #     dbc.Row([
-    #         dbc.Col(
-    #             dbc.Label('Violin')),
-    #         dbc.Col(
-    #             dbc.Checklist(
-    #                 options=[
-    #                     {'label': 'Enable',
-    #                      'value': True},
-    #                 ],
-    #                 value=[],
-    #                 id='violin-switch',
-    #                 switch=True,
-    #                 style={'float': 'right'}
-    #             )
-    #         )]),
-    # ),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(
@@ -639,7 +562,6 @@ violin_card = dbc.Card([
             dbc.Col(dbc.Label('y-axis')),
             dbc.Col(dbc.Label('color')),
         ]),
-
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-violin',
@@ -679,23 +601,6 @@ violin_card = dbc.Card([
 
 
 parallel_card = dbc.Card([
-    # dbc.CardHeader(
-    #     dbc.Row([
-    #         dbc.Col(
-    #             dbc.Label('Parallel Categories')),
-    #         dbc.Col(
-    #             dbc.Checklist(
-    #                 options=[
-    #                     {'label': 'Enable',
-    #                      'value': True},
-    #                 ],
-    #                 value=[],
-    #                 id='parallel-switch',
-    #                 switch=True,
-    #                 style={'float': 'right'}
-    #             )
-    #         )]),
-    # ),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(
@@ -717,7 +622,6 @@ parallel_card = dbc.Card([
             dbc.Col(dbc.Label('dimensions')),
             dbc.Col(dbc.Label('color')),
         ]),
-
         dbc.Row([
             dbc.Col(
                 dcc.Dropdown(
@@ -754,23 +658,6 @@ parallel_card = dbc.Card([
 
 
 heatmap_card = dbc.Card([
-    # dbc.CardHeader(
-    #     dbc.Row([
-    #         dbc.Col(
-    #             dbc.Label('Heatmap')),
-    #         dbc.Col(
-    #             dbc.Checklist(
-    #                 options=[
-    #                     {'label': 'Enable',
-    #                      'value': True},
-    #                 ],
-    #                 value=[],
-    #                 id='heat-switch',
-    #                 switch=True,
-    #                 style={'float': 'right'}
-    #             )
-    #         )]),
-    # ),
     dbc.CardBody([
         dbc.Row([
             dbc.Col(
@@ -792,7 +679,6 @@ heatmap_card = dbc.Card([
             dbc.Col(dbc.Label('x-axis')),
             dbc.Col(dbc.Label('y-axis'))
         ]),
-
         dbc.Row([
             dbc.Col(dbc.Select(
                 id='x-picker-heatmap',
