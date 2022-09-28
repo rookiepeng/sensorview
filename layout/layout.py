@@ -102,7 +102,7 @@ testcase_card = dbc.Card([
     className="h-100 shadow-sm")
 
 filter_card = dbc.Card([
-    dbc.CardHeader('Control'),
+    # dbc.CardHeader('Control'),
     dbc.CardBody([
         dbc.Row(
             [
