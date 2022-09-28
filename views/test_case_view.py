@@ -43,7 +43,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from utils import load_config, cache_set, cache_get, CACHE_KEYS, KEY_TYPES
-from utils import long_callback_manager
+from utils import background_callback_manager_figure
 
 import dash_bootstrap_components as dbc
 from dash import dcc
@@ -113,7 +113,7 @@ def refresh_button_clicked(click):
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],
-    manager=long_callback_manager,
+    manager=background_callback_manager_figure,
 )
 def case_selected(set_progress, case, session_id):
     """
@@ -216,7 +216,7 @@ def case_selected(set_progress, case, session_id):
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],
-    manager=long_callback_manager,
+    manager=background_callback_manager_figure,
 )
 def file_select_changed(
         set_progress,

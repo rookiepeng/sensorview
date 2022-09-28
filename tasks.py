@@ -43,12 +43,11 @@ from viz.graph_layout import get_scatter3d_layout
 from viz.viz import get_animation_data
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
-
 logger = get_task_logger(__name__)
 
 redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
-celery_app = Celery("Celery_App", broker=redis_url)
+celery_app = Celery("Celery_App", broker=redis_url, backend=redis_url)
 
 
 def filter_all(
