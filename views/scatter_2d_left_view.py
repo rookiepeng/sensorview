@@ -44,7 +44,7 @@ from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 
 from viz.viz import get_scatter2d
 
-from utils import background_callback_manager_figure
+from utils import background_callback_manager
 
 import plotly.graph_objs as go
 
@@ -71,7 +71,7 @@ import plotly.graph_objs as go
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value')
     ),
-    manager=background_callback_manager_figure,
+    manager=background_callback_manager,
 )
 def update_scatter2d_left(
     filter_trigger,

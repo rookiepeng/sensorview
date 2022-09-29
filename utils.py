@@ -54,11 +54,10 @@ redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
 redis_instance = redis.StrictRedis.from_url(redis_url)
 
-cache = Cache('./cache', eviction_policy='none')
-# background_callback_manager_disk = DiskcacheManager(cache)
+frame_cache = Cache('./cache/frame', eviction_policy='none')
 
-cache_figure = Cache('./cache/figure', eviction_policy='none')
-background_callback_manager_figure = DiskcacheManager(cache_figure)
+dash_cache = Cache('./cache/dash', eviction_policy='none')
+background_callback_manager = DiskcacheManager(dash_cache)
 
 
 def load_config(json_file):
@@ -93,7 +92,7 @@ def cache_set(data, id, key_major, key_minor=None):
     else:
         key_str = key_major+id+key_minor
 
-    cache.set(key_str, data, expire=EXPIRATION)
+    frame_cache.set(key_str, data, expire=EXPIRATION)
 
 
 def redis_set(data, id, key_major, key_minor=None):
@@ -140,7 +139,7 @@ def cache_get(id, key_major, key_minor=None):
     else:
         key_str = key_major+id+key_minor
 
-    val = cache.get(key_str, default=None, retry=True)
+    val = frame_cache.get(key_str, default=None, retry=True)
     return val
 
 
