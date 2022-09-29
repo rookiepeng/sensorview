@@ -43,7 +43,7 @@ from utils import cache_get, CACHE_KEYS
 
 import plotly.graph_objs as go
 from viz.viz import get_heatmap
-from utils import background_callback_manager_figure
+from utils import background_callback_manager
 
 
 @app.callback(
@@ -65,7 +65,7 @@ from utils import background_callback_manager_figure
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value'),
     ),
-    manager=background_callback_manager_figure,
+    manager=background_callback_manager,
 )
 def update_heatmap(
     filter_trigger,
