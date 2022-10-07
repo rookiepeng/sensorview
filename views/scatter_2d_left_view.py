@@ -45,6 +45,7 @@ from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 from viz.viz import get_scatter2d
 
 from utils import background_callback_manager
+from utils import load_data
 
 import plotly.graph_objs as go
 
@@ -69,7 +70,8 @@ import plotly.graph_objs as go
         session_id=State('session-id', 'data'),
         visible_list=State('visible-picker', 'value'),
         case=State('case-picker', 'value'),
-        file=State('file-picker', 'value')
+        file=State('file-picker', 'value'),
+        file_list=State('file-add', 'value')
     ),
     manager=background_callback_manager,
 )
@@ -85,7 +87,8 @@ def update_scatter2d_left(
     session_id,
     visible_list,
     case,
-    file
+    file,
+    file_list
 ):
     """
     Update left 2D scatter graph
@@ -146,12 +149,13 @@ def update_scatter2d_left(
 
     if left_sw:
         collapse = True
-        file = json.loads(file)
-        data = pd.read_feather('./data/' +
-                               case +
-                               file['path'] +
-                               '/' +
-                               file['feather_name'])
+        # file = json.loads(file)
+        # data = pd.read_feather('./data/' +
+        #                        case +
+        #                        file['path'] +
+        #                        '/' +
+        #                        file['feather_name'])
+        data = load_data(file, file_list, case)
         visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
         filtered_table = filter_all(
