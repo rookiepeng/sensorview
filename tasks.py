@@ -35,6 +35,7 @@ import os
 import base64
 import pandas as pd
 import numpy as np
+import json
 
 import plotly.graph_objs as go
 
@@ -42,6 +43,7 @@ from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 from viz.viz import get_animation_data
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
+from utils import load_data_list
 
 logger = get_task_logger(__name__)
 
@@ -123,7 +125,7 @@ def celery_filtering_data(
     self,
     session_id,
     case,
-    file,
+    file_list,
     visible_picker,
     **kwargs
 ):
@@ -144,6 +146,7 @@ def celery_filtering_data(
         'c_key' color key
         'colormap' colormap name
     """
+    # file_list=[]
 
     # set figure index to -1 (no buffer is ready)
     cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
@@ -167,9 +170,10 @@ def celery_filtering_data(
     visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
     frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
 
-    dataset = pd.read_feather('./data/'+case +
-                              file['path']+'/' +
-                              file['feather_name'])
+    # dataset = pd.read_feather('./data/'+case +
+    #                           file['path']+'/' +
+    #                           file['feather_name'])
+    dataset = load_data_list(file_list, case)
     frame_group = dataset.groupby(config['slider'])
 
     # prepare figure key word arguments
@@ -238,7 +242,7 @@ def celery_filtering_data(
     fig_kwargs['hover'] = keys_dict
 
     for slider_arg in range(0, len(frame_list)):
-
+        file = json.loads(file_list[0])
         img_path = './data/' +\
             case +\
             file['path'] +\
@@ -316,7 +320,7 @@ def celery_filtering_data(
 def celery_export_video(
     session_id,
     case,
-    file,
+    file_list,
     visible_picker,
     **kwargs
 ):
@@ -352,9 +356,10 @@ def celery_export_video(
     frame_list = cache_get(session_id,
                            CACHE_KEYS['frame_list'])
 
-    dataset = pd.read_feather('./data/'+case +
-                              file['path']+'/' +
-                              file['feather_name'])
+    # dataset = pd.read_feather('./data/'+case +
+    #                           file['path']+'/' +
+    #                           file['feather_name'])
+    dataset = load_data_list(file_list, case)
     filtered_table = filter_all(
         dataset,
         num_keys,
@@ -368,6 +373,7 @@ def celery_export_video(
     img_list = []
 
     for _, f_val in enumerate(frame_list):
+        file = json.loads(file_list[0])
         img_idx = np.where(frame_list == f_val)[0][0]
         img_list.append('./data/' +
                         case +

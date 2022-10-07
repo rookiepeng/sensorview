@@ -46,6 +46,7 @@ from tasks import filter_all
 from tasks import celery_filtering_data, celery_export_video
 
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
+from utils import load_data
 
 from viz.viz import get_scatter3d
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
@@ -76,7 +77,8 @@ from viz.graph_layout import get_scatter3d_layout
         trigger_idx=State('filter-trigger', 'data'),
         session_id=State('session-id', 'data'),
         case=State('case-picker', 'value'),
-        file=State('file-picker', 'value')
+        file=State('file-picker', 'value'),
+        file_list=State('file-add', 'value')
     )
 )
 def filter_changed(
@@ -97,6 +99,7 @@ def filter_changed(
     session_id,
     case,
     file,
+    file_list
 ):
     """
     Callback when filter changed
@@ -142,7 +145,7 @@ def filter_changed(
 
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    file = json.loads(file)
+    # file = json.loads(file)
 
     # no update if:
     #   - triggered from 3D scatter, and
@@ -178,7 +181,7 @@ def filter_changed(
                                    str(slider_arg))
                 return dict(
                     scatter3d=dict(data=fig_ref+fig,
-                         layout=layout),
+                                   layout=layout),
                     filter_trigger=dash.no_update
                 )
 
@@ -246,9 +249,11 @@ def filter_changed(
             trigger_id != 'decay-slider':
         cache_set(0, session_id, CACHE_KEYS['task_id'])
         cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
+        if file not in file_list:
+            file_list.append(file)
         celery_filtering_data.apply_async(args=[session_id,
                                                 case,
-                                                file,
+                                                file_list,
                                                 visible_list],
                                           kwargs=task_kwargs,
                                           serializer='json')
@@ -319,11 +324,7 @@ def filter_changed(
     if overlay_enable:
         # overlay all the frames
         # get data from .feather file on the disk
-        data = pd.read_feather('./data/' +
-                               case +
-                               file['path'] +
-                               '/' +
-                               file['feather_name'])
+        data = load_data(file, file_list, case)
         filterd_frame = filter_all(data,
                                    num_keys,
                                    num_values,
@@ -339,6 +340,7 @@ def filter_changed(
             **fig_kwargs
         )
     else:
+        file = json.loads(file)
         img_path = './data/' +\
             case +\
             file['path'] +\
@@ -441,7 +443,7 @@ def filter_changed(
     return dict(
         scatter3d=fig,
         filter_trigger=filter_trig
-        )
+    )
 
 
 @app.callback(
@@ -458,6 +460,7 @@ def filter_changed(
         colormap=State('colormap-3d', 'value'),
         visible_list=State('visible-picker', 'value'),
         file=State('file-picker', 'value'),
+        file_list=State('file-add', 'value'),
         decay=State('decay-slider', 'value'),
         outline_enable=State('outline-switch', 'value'),
         darkmode=State('darkmode-switch', 'value')
@@ -471,6 +474,7 @@ def export_3d_scatter_animation(
     colormap,
     visible_list,
     file,
+    file_list,
     decay,
     outline_enable,
     darkmode
@@ -502,8 +506,6 @@ def export_3d_scatter_animation(
     if not os.path.exists('data/' + case + '/images'):
         os.makedirs('data/' + case + '/images')
 
-    file = json.loads(file)
-
     task_kwargs = dict()
     task_kwargs['c_key'] = c_key
     task_kwargs['colormap'] = colormap
@@ -519,10 +521,12 @@ def export_3d_scatter_animation(
     else:
         task_kwargs['linewidth'] = 0
 
+    if file not in file_list:
+        file_list.append(file)
     celery_export_video.apply_async(
         args=[session_id,
               case,
-              file,
+              file_list,
               visible_list],
         kwargs=task_kwargs,
         serializer='json')
@@ -543,7 +547,8 @@ def export_3d_scatter_animation(
         session_id=State('session-id', 'data'),
         visible_list=State('visible-picker', 'value'),
         case=State('case-picker', 'value'),
-        file=State('file-picker', 'value')
+        file=State('file-picker', 'value'),
+        file_list=State('file-add', 'value')
     )
 )
 def export_data(
@@ -551,7 +556,8 @@ def export_data(
     session_id,
     visible_list,
     case,
-    file
+    file,
+    file_list
 ):
     """
     Export filtered data
@@ -579,11 +585,12 @@ def export_data(
     num_values = filter_kwargs['num_values']
 
     file = json.loads(file)
-    data = pd.read_feather('./data/' +
-                           case +
-                           file['path'] +
-                           '/' +
-                           file['feather_name'])
+    data = load_data(file, file_list, case)
+    # data = pd.read_feather('./data/' +
+    #                        case +
+    #                        file['path'] +
+    #                        '/' +
+    #                        file['feather_name'])
     visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
     filtered_table = filter_all(
