@@ -200,7 +200,8 @@ def case_selected(set_progress, case, session_id):
         dp_vals_cat=DROPDOWN_VALUES_CAT
     ),
     inputs=dict(
-        file=Input('file-picker', 'value')
+        file=Input('file-picker', 'value'),
+        add_file_value=Input('file-add', 'value')
     ),
     state=dict(
         file_loaded=State('file-loaded-trigger', 'data'),
@@ -221,6 +222,7 @@ def case_selected(set_progress, case, session_id):
 def file_select_changed(
         set_progress,
         file,
+        add_file_value,
         file_loaded,
         case,
         session_id,
@@ -295,49 +297,58 @@ def file_select_changed(
     #   - if the .feather file exits, load through the .feather file
     #   - otherwise, load the file and save the DataFrame into a
     #     .feather file
-    file = json.loads(file)
-    if os.path.exists(
-        './data/' +
-        case +
-        file['path'] +
-        '/' +
-            file['feather_name']
-    ):
-        new_data = pd.read_feather(
+    if file not in add_file_value:
+        add_file_value.append(file)
+
+    # print(add_file_value)
+    new_data_list = []
+    for f_idx, f_dict in enumerate(add_file_value):
+        file = json.loads(f_dict)
+        if os.path.exists(
             './data/' +
             case +
             file['path'] +
             '/' +
-            file['feather_name']
-        )
-    else:
-        if '.pkl' in file['name']:
-            new_data = pd.read_pickle(
+                file['feather_name']
+        ):
+            new_data = pd.read_feather(
                 './data/' +
                 case +
                 file['path'] +
                 '/' +
-                file['name']
+                file['feather_name']
             )
-            new_data = new_data.reset_index(drop=True)
+        else:
+            if '.pkl' in file['name']:
+                new_data = pd.read_pickle(
+                    './data/' +
+                    case +
+                    file['path'] +
+                    '/' +
+                    file['name']
+                )
+                new_data = new_data.reset_index(drop=True)
 
-        elif '.csv' in file['name']:
-            new_data = pd.read_csv(
+            elif '.csv' in file['name']:
+                new_data = pd.read_csv(
+                    './data/' +
+                    case +
+                    file['path'] +
+                    '/' +
+                    file['name']
+                )
+
+            new_data.to_feather(
                 './data/' +
                 case +
                 file['path'] +
                 '/' +
-                file['name']
+                file['feather_name']
             )
+        new_data_list.append(new_data)
 
-        new_data.to_feather(
-            './data/' +
-            case +
-            file['path'] +
-            '/' +
-            file['feather_name']
-        )
-
+    new_data = pd.concat(new_data_list)
+    new_data = new_data.reset_index(drop=True)
     # get the list of frames and save to Redis
     frame_list = np.sort(new_data[config['slider']].unique())
     cache_set(frame_list, session_id, CACHE_KEYS['frame_list'])

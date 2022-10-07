@@ -34,6 +34,8 @@ import pickle
 from diskcache import Cache
 from dash import DiskcacheManager
 
+import pandas as pd
+
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {'dataset': 'DATASET',
               'frame_list': 'FRAME_LIST',
@@ -72,6 +74,45 @@ def load_config(json_file):
     """
     with open(json_file, 'r') as read_file:
         return json.load(read_file)
+
+
+def load_data(file, file_list, case):
+    if file not in file_list:
+        file_list.append(file)
+
+    data_list = []
+    for _, f_dict in enumerate(file_list):
+        file = json.loads(f_dict)
+        data_list.append(
+            pd.read_feather(
+                './data/' +
+                case +
+                file['path'] +
+                '/' +
+                file['feather_name']
+            )
+        )
+
+    data = pd.concat(data_list)
+    return data.reset_index(drop=True)
+
+
+def load_data_list(file_list, case):
+    data_list = []
+    for _, f_dict in enumerate(file_list):
+        file = json.loads(f_dict)
+        data_list.append(
+            pd.read_feather(
+                './data/' +
+                case +
+                file['path'] +
+                '/' +
+                file['feather_name']
+            )
+        )
+
+    data = pd.concat(data_list)
+    return data.reset_index(drop=True)
 
 
 def cache_set(data, id, key_major, key_minor=None):
