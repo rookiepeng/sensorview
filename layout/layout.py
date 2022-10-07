@@ -823,6 +823,9 @@ def get_app_layout():
         dcc.Store(id='dummy-export-heatmap'),
         dcc.Store(id='dummy-export-data'),
 
+        dcc.Store(id='local-case-selection', storage_type='local'),
+        dcc.Store(id='local-file-selection', storage_type='local'),
+
         dbc.Row([
             dbc.Col(
                 dbc.Card(

@@ -56,9 +56,12 @@ from dash import dcc
     ),
     inputs=dict(
         click=Input('refresh-button', 'n_clicks')
-    )
+    ),
+    state=dict(
+        stored_case=State('local-case-selection', 'data')
+    ),
 )
-def refresh_button_clicked(click):
+def refresh_button_clicked(click, stored_case):
     """
     Callback when the refresh button is clicked
 
@@ -85,9 +88,16 @@ def refresh_button_clicked(click):
                 options.append({'label': entry.name,
                                 'value': entry.name})
 
+    case_val = options[0]['value']
+    if stored_case:
+        for _, case in enumerate(options):
+            if stored_case == case['value']:
+                case_val = stored_case
+                break
+
     return dict(
         case_options=options,
-        case_value=options[0]['value']
+        case_value=case_val
     )
 
 
@@ -97,13 +107,15 @@ def refresh_button_clicked(click):
         file_value=Output('file-picker', 'value'),
         file_options=Output('file-picker', 'options'),
         add_file_value=Output('file-add', 'value'),
-        add_file_options=Output('file-add', 'options')
+        add_file_options=Output('file-add', 'options'),
+        stored_case=Output('local-case-selection', 'data')
     ),
     inputs=dict(
         case=Input('case-picker', 'value')
     ),
     state=dict(
-        session_id=State('session-id', 'data')
+        session_id=State('session-id', 'data'),
+        stored_file=State('local-file-selection', 'data')
     ),
     progress=[Output("loading-progress", "color"),
               Output("loading-progress", "striped"),
@@ -115,7 +127,7 @@ def refresh_button_clicked(click):
               Output('refresh-button', 'disabled')],
     manager=background_callback_manager,
 )
-def case_selected(set_progress, case, session_id):
+def case_selected(set_progress, case, session_id, stored_file):
     """
     Callback when a test case is selected
 
@@ -174,11 +186,18 @@ def case_selected(set_progress, case, session_id):
                         'name': name,
                         'feather_name': name.replace('.pkl', '.feather')})})
 
+    file_value = data_files[0]['value']
+    if stored_file:
+        for _, file in enumerate(data_files):
+            if stored_file == file['value']:
+                file_value = stored_file
+                break
     return dict(
-        file_value=data_files[0]['value'],
+        file_value=file_value,
         file_options=data_files,
         add_file_value=[],
-        add_file_options=data_files
+        add_file_options=data_files,
+        stored_case=case
     )
 
 
@@ -186,6 +205,7 @@ def case_selected(set_progress, case, session_id):
     background=True,
     output=dict(
         file_load_trigger=Output('file-loaded-trigger', 'data'),
+        stored_file=Output('local-file-selection', 'data'),
         frame_min=Output('slider-frame', 'min'),
         frame_max=Output('slider-frame', 'max'),
         dropdown_container=Output('dropdown-container', 'children'),
@@ -303,47 +323,47 @@ def file_select_changed(
     # print(add_file_value)
     new_data_list = []
     for f_idx, f_dict in enumerate(add_file_value):
-        file = json.loads(f_dict)
+        file_dict = json.loads(f_dict)
         if os.path.exists(
             './data/' +
             case +
-            file['path'] +
+            file_dict['path'] +
             '/' +
-                file['feather_name']
+                file_dict['feather_name']
         ):
             new_data = pd.read_feather(
                 './data/' +
                 case +
-                file['path'] +
+                file_dict['path'] +
                 '/' +
-                file['feather_name']
+                file_dict['feather_name']
             )
         else:
-            if '.pkl' in file['name']:
+            if '.pkl' in file_dict['name']:
                 new_data = pd.read_pickle(
                     './data/' +
                     case +
-                    file['path'] +
+                    file_dict['path'] +
                     '/' +
-                    file['name']
+                    file_dict['name']
                 )
                 new_data = new_data.reset_index(drop=True)
 
-            elif '.csv' in file['name']:
+            elif '.csv' in file_dict['name']:
                 new_data = pd.read_csv(
                     './data/' +
                     case +
-                    file['path'] +
+                    file_dict['path'] +
                     '/' +
-                    file['name']
+                    file_dict['name']
                 )
 
             new_data.to_feather(
                 './data/' +
                 case +
-                file['path'] +
+                file_dict['path'] +
                 '/' +
-                file['feather_name']
+                file_dict['feather_name']
             )
         new_data_list.append(new_data)
 
@@ -447,6 +467,7 @@ def file_select_changed(
 
     return dict(
         file_load_trigger=file_loaded+1,
+        stored_file=file,
         frame_min=0,
         frame_max=len(frame_list)-1,
         dropdown_container=new_dropdown,
