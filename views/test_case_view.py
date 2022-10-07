@@ -568,17 +568,18 @@ def update_slider(
         click=Input('button-add', 'n_clicks')
     ),
     state=dict(
-        open_state=State('collapse-add', 'is_open')
+        open_state=State('collapse-add', 'is_open'),
+        add_file_value=State('file-add', 'value'),
     )
 )
-def add_data(click, open_state):
+def add_data(click, open_state, add_file_value):
     """
 
     """
     if click == 0:
         raise PreventUpdate
 
-    if open_state is True:
+    if open_state is True and not add_file_value:
         return dict(state=False)
     else:
         return dict(state=True)
