@@ -33,12 +33,6 @@ import dash
 from dash.dependencies import Output, State
 
 
-# Diskcache
-# import diskcache
-# cache = diskcache.Cache("./cache")
-# long_callback_manager = DiskcacheLongCallbackManager(cache)
-
-
 # options for dropdown components with all the keys
 DROPDOWN_OPTIONS_ALL = [
     Output('c-picker-3d', 'options'),
@@ -119,4 +113,4 @@ app = dash.Dash(__name__,
 
 """ Global Variables """
 REDIS_HASH_NAME = os.environ.get('DASH_APP_NAME', app.title)
-SPECIAL_FOLDERS = ['imgs', 'images']
+SPECIAL_FOLDERS = ['images']

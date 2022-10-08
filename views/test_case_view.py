@@ -320,9 +320,8 @@ def file_select_changed(
     if file not in add_file_value:
         add_file_value.append(file)
 
-    # print(add_file_value)
     new_data_list = []
-    for f_idx, f_dict in enumerate(add_file_value):
+    for _, f_dict in enumerate(add_file_value):
         file_dict = json.loads(f_dict)
         if os.path.exists(
             './data/' +

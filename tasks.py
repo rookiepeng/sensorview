@@ -33,7 +33,6 @@ from celery import Celery
 from celery.utils.log import get_task_logger
 import os
 import base64
-import pandas as pd
 import numpy as np
 import json
 
@@ -170,9 +169,6 @@ def celery_filtering_data(
     visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
     frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
 
-    # dataset = pd.read_feather('./data/'+case +
-    #                           file['path']+'/' +
-    #                           file['feather_name'])
     dataset = load_data_list(file_list, case)
     frame_group = dataset.groupby(config['slider'])
 
@@ -356,9 +352,6 @@ def celery_export_video(
     frame_list = cache_get(session_id,
                            CACHE_KEYS['frame_list'])
 
-    # dataset = pd.read_feather('./data/'+case +
-    #                           file['path']+'/' +
-    #                           file['feather_name'])
     dataset = load_data_list(file_list, case)
     filtered_table = filter_all(
         dataset,
