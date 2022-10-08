@@ -27,7 +27,6 @@
 
 """
 
-import json
 import os
 
 import datetime
@@ -149,12 +148,6 @@ def update_scatter2d_left(
 
     if left_sw:
         collapse = True
-        # file = json.loads(file)
-        # data = pd.read_feather('./data/' +
-        #                        case +
-        #                        file['path'] +
-        #                        '/' +
-        #                        file['feather_name'])
         data = load_data(file, file_list, case)
         visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 

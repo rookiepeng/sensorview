@@ -27,7 +27,6 @@
 
 """
 
-import json
 import os
 
 import datetime
@@ -130,12 +129,6 @@ def update_histogram(
 
     if histogram_sw:
         collapse = True
-        # file = json.loads(file)
-        # data = pd.read_feather('./data/' +
-        #                        case +
-        #                        file['path'] +
-        #                        '/' +
-        #                        file['feather_name'])
         data = load_data(file, file_list, case)
         visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
         filtered_table = filter_all(

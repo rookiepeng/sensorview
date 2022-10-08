@@ -27,11 +27,8 @@
 
 """
 
-import json
 import os
 import datetime
-
-import pandas as pd
 
 from maindash import app
 from dash.dependencies import Input, Output, State
@@ -125,12 +122,6 @@ def update_heatmap(
         y_key = y_heat
         y_label = config['keys'][y_heat]['description']
 
-        # file = json.loads(file)
-        # data = pd.read_feather('./data/' +
-        #                        case +
-        #                        file['path'] +
-        #                        '/' +
-        #                        file['feather_name'])
         data = load_data(file, file_list, case)
         visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 

@@ -32,9 +32,6 @@ import os
 
 import base64
 
-import datetime
-
-import pandas as pd
 import numpy as np
 
 import dash
@@ -586,11 +583,6 @@ def export_data(
 
     file = json.loads(file)
     data = load_data(file, file_list, case)
-    # data = pd.read_feather('./data/' +
-    #                        case +
-    #                        file['path'] +
-    #                        '/' +
-    #                        file['feather_name'])
     visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
     filtered_table = filter_all(
