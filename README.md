@@ -6,7 +6,7 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Screenshots
 
-<img src="./assets/sensorview.png" alt="sensorview" width="600"/>
+<img src="./assets/sensorview.png" alt="sensorview" width="800"/>
 
 ## Features
 
