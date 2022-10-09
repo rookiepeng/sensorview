@@ -6,9 +6,7 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Screenshots
 
-<img src="./assets/screenshot1.png" alt="screenshot1" width="600"/>
-
-<img src="./assets/screenshot2.png" alt="screenshot2" width="600"/>
+<img src="./assets/sensorview.png" alt="sensorview" width="600"/>
 
 ## Features
 
@@ -37,6 +35,8 @@ A lightweight sensor data visualization and analysis tool.
 - celery
 - gunicorn (for Linux)
 - waitress (for Windows)
+
+pip install -r requirements.txt
 
 ### [Redis](https://redis.io/)
 
