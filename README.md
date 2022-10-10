@@ -12,15 +12,15 @@ A lightweight sensor data visualization and analysis tool.
 
 ### 3D Visualization and Filtering
 
-![](./assets/3d.gif)
+<img src="./assets/3d.gif" alt="3d" width="600"/>
 
 ### 2D Visualization and Filtering
 
-![](./assets/2d.gif)
+<img src="./assets/2d.gif" alt="2d" width="600"/>
 
 ### Statistical Visualization
 
-![](./assets/stat.gif)
+<img src="./assets/stat.gif" alt="stat" width="600"/>
 
 ## Dependence
 
