@@ -581,7 +581,7 @@ def export_data(
     cat_values = filter_kwargs['cat_values']
     num_values = filter_kwargs['num_values']
 
-    file = json.loads(file)
+    # file = json.loads(file)
     data = load_data(file, file_list, case)
     visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
@@ -594,7 +594,7 @@ def export_data(
         visible_table,
         visible_list
     )
-
+    file = json.loads(file)
     filtered_table.to_pickle('./data/' +
                              case +
                              file['path'] +
