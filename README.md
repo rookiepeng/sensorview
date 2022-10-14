@@ -6,7 +6,7 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Screenshots
 
-<img src="./assets/sensorview.png" alt="sensorview" width="800"/>
+<img src="./assets/sensorview.png" alt="sensorview" width="600"/>
 
 ## Features
 
@@ -36,8 +36,7 @@ A lightweight sensor data visualization and analysis tool.
 - kaleido
 - gevent
 - celery
-- gunicorn (for Linux)
-- waitress (for Windows)
+- gunicorn
 
 pip install -r requirements.txt
 
