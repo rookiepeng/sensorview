@@ -29,8 +29,9 @@
 
 
 import dash
-from maindash import app
 from dash.dependencies import Input, Output, State
+
+from maindash import app
 
 from layout.layout import get_app_layout
 
