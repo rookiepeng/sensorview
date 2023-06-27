@@ -9,6 +9,5 @@ numpy
 pandas
 kaleido
 celery
-gevent
 diskcache
 redis
