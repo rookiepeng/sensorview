@@ -85,7 +85,7 @@ view3d_card = dbc.Card([
                 ), width=7
             ),
 
-            dcc.Graph(
+            dbc.Col(dcc.Graph(
                 id='scatter3d',
                 config={'displaylogo': False,
                         'modeBarButtonsToRemove': [
@@ -97,10 +97,10 @@ view3d_card = dbc.Card([
                                   'y': [],
                                   'z': []}],
                         'layout': {'template': pio.templates['plotly'],
-                                   'height': 650,
                                    'uirevision': 'no_change'}
                         },
-            ),
+                style={'height': '85vh'},
+            )),
 
             dcc.Interval(
                 id='buffer-interval',
@@ -245,10 +245,10 @@ view3d_card = dbc.Card([
             dbc.CardBody([
                 html.Div(id='dropdown-container', children=[]),
                 html.Div(id='slider-container', children=[]),
-            ], style={'overflow': 'scroll', 'height': '600px'})]),),
+            ], )]), style={'overflow-y': 'scroll', 'height': '110vh'}),
     ])
     ]),
-], className="shadow-lg")
+], className="mb-3")
 
 
 left2d_card = dbc.Card([

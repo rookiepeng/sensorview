@@ -41,7 +41,7 @@ def get_scatter3d_layout(
     scale = np.min([x_range[1]-x_range[0], y_range[1] -
                     y_range[0], z_range[1]-z_range[0]])
 
-    height = kwargs.get('height', 650)
+    # height = kwargs.get('height', 650)
     image = kwargs.get('image', None)
     title = kwargs.get('title', None)
     template = kwargs.get('template', 'plotly')
@@ -68,7 +68,7 @@ def get_scatter3d_layout(
     return dict(
         title=title,
         template=pio.templates[template],
-        height=height,
+        # height=height,
         scene=dict(xaxis=dict(range=x_range,
                               title=x_label,
                               autorange=False),
