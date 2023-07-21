@@ -779,18 +779,15 @@ def get_app_layout():
             dbc.CardBody([dbc.Row([
                 dbc.Col(dbc.Row([
                     html.Div(
-                                html.Img(
-                                    src=app.get_asset_url(
-                                        'sensorview_logo.svg'),
-                                    id='sensorview-image',
-                                    style={
-                                        'height': '90px',
-                                        'width': 'auto',
-                                    },
-                                ), className="text-center"
-                                ),
-                    html.H4(
-                        app.title, className="text-center"),
+                        html.Img(
+                            src=app.get_asset_url(
+                                'sensorview_logo.svg'),
+                            id='sensorview-image',
+                            style={'height': '90px',
+                                'width': 'auto'},
+                            ), className="text-center"
+                        ),
+                    html.H4(app.title, className="text-center"),
                     # html.Hr(className="my-2"),
                     # html.P(
                     #     'Sensor Data Visualization',
@@ -821,18 +818,17 @@ def get_app_layout():
                 ]), width=9),
             ]),]), className="my-3"),
 
-        dbc.Collapse(
-            dbc.Row([
-                dbc.Col(
-                    dbc.Progress(
-                        value=100,
-                        color='light',
-                        id="loading-progress",
-                        animated=False,
-                        striped=False,
-                        label=''
-                    )
+        dbc.Collapse(dbc.Row([
+            dbc.Col(
+                dbc.Progress(
+                    value=100,
+                    color='light',
+                    id="loading-progress",
+                    animated=False,
+                    striped=False,
+                    label=''
                 )
+            )
             ]), id="collapse",
             is_open=True
         ),
