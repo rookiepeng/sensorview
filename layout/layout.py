@@ -55,57 +55,6 @@ colorscales = ['Blackbody',
                'YlGnBu',
                'YlOrRd']
 
-
-testcase_card = dbc.Card([
-    dbc.CardBody([
-        dbc.Row([
-            dbc.Col(
-                dbc.Label('Test Cases')
-            ),
-            dbc.Col(
-                dbc.Button(
-                    '↻',
-                    id='refresh-button',
-                    color='secondary',
-                    n_clicks=0,
-                    size="sm",
-                    style={
-                        'float': 'right'
-                    }
-                ), width=3
-            )
-        ], justify="end"),
-        html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Select(id='case-picker'), width=3),
-            dbc.Col(dbc.Select(id='file-picker'))
-        ]),
-        dbc.Row([
-            dbc.Button(
-                '+',
-                id='button-add',
-                color='secondary',
-                n_clicks=0,
-                size="sm",
-            )
-        ], class_name='mx-1 my-1'),
-        dbc.Row([
-            dbc.Col(
-                dbc.Collapse(
-                    dcc.Dropdown(
-                        id='file-add',
-                        multi=True,
-                    ),
-                    id='collapse-add',
-                    is_open=False,
-                ),
-            )
-        ])
-    ])
-], color='secondary',
-    inverse=True,
-    className="h-100 shadow-sm")
-
 filter_card = dbc.Card([
     dbc.CardBody([
         dbc.Row([
@@ -826,32 +775,51 @@ def get_app_layout():
         dcc.Store(id='local-case-selection', storage_type='local'),
         dcc.Store(id='local-file-selection', storage_type='local'),
 
-        dbc.Row([
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.Div(
-                            html.Img(
-                                src=app.get_asset_url('sensorview_logo.svg'),
-                                id='sensorview-image',
-                                style={
-                                    'height': '90px',
-                                    'width': 'auto',
-                                },
-                            ), className="text-center"
-                        ),
-                        html.H4(app.title, className="text-center"),
-                        # html.Hr(className="my-2"),
-                        # html.P(
-                        #     'Sensor Data Visualization',
-                        #     className="text-center"
-                        # ),
-                    ]), color="light",
-                    outline=True,
-                    className="h-100 shadow-sm"),
-                width=3),
-            dbc.Col(testcase_card),
-        ], className="my-3"),
+        dbc.Card(
+            dbc.CardBody([dbc.Row([
+                dbc.Col(dbc.Row([
+                    html.Div(
+                                html.Img(
+                                    src=app.get_asset_url(
+                                        'sensorview_logo.svg'),
+                                    id='sensorview-image',
+                                    style={
+                                        'height': '90px',
+                                        'width': 'auto',
+                                    },
+                                ), className="text-center"
+                                ),
+                    html.H4(
+                        app.title, className="text-center"),
+                    # html.Hr(className="my-2"),
+                    # html.P(
+                    #     'Sensor Data Visualization',
+                    #     className="text-center"
+                    # ),
+                ]), width=3),
+                dbc.Col(dbc.Row([
+                    dbc.Col(dbc.Label(html.B('Test Cases')),
+                            width=9, className='my-2'),
+                    dbc.Col(dbc.Button(
+                            '↻',
+                            id='refresh-button',
+                            n_clicks=0,
+                            size="sm",
+                            style={'float': 'right'}), width=3, className='my-2'),
+                    html.Hr(),
+                    dbc.Col(dbc.Select(id='case-picker'), width=3),
+                    dbc.Col(dbc.Select(id='file-picker'), width=9),
+                    dbc.Col(html.Div([dbc.Button('+',
+                        id='button-add',
+                        n_clicks=0,
+                        size="sm")], className='d-grid'), width=12, className='my-2'),
+                    dbc.Col(dbc.Collapse(
+                            dcc.Dropdown(id='file-add',
+                                         multi=True),
+                            id='collapse-add',
+                            is_open=False), width=12),
+                ]), width=9),
+            ]),]), className="my-3"),
 
         dbc.Collapse(
             dbc.Row([
