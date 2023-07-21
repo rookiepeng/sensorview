@@ -55,7 +55,7 @@ colorscales = ['Blackbody',
                'YlGnBu',
                'YlOrRd']
 
-filter_card = dbc.Card([
+filter_card = dbc.Card([dbc.Col(dbc.Row([
     dbc.CardBody([
         dbc.Row([
                 dbc.Checklist(
@@ -113,12 +113,11 @@ filter_card = dbc.Card([
     dbc.CardBody([
         html.Div(id='dropdown-container', children=[]),
         html.Div(id='slider-container', children=[]),
-    ], style={'overflow': 'scroll', 'height': '600px'})
+    ], style={'overflow': 'scroll', 'height': '600px'})]),)
 ], className="shadow-sm")
 
 view3d_card = dbc.Card([
-    dbc.CardBody([
-        dbc.Row([
+    dbc.CardBody([dbc.Col(dbc.Row([
             dbc.Col(
                 dbc.Select(
                     id='c-picker-3d',
@@ -144,8 +143,6 @@ view3d_card = dbc.Card([
                     style={'float': 'right'}
                 ), width=8
             ),
-        ], justify='end',
-            style={'margin-bottom': 10}),
 
         dcc.Graph(
             id='scatter3d',
@@ -164,7 +161,6 @@ view3d_card = dbc.Card([
                     },
         ),
 
-        dbc.Row([
             dcc.Interval(
                 id='buffer-interval',
                 interval=2000,  # in milliseconds
@@ -195,8 +191,7 @@ view3d_card = dbc.Card([
                              'placement': 'top'}
                 ), width=12
             ),
-        ], style={'margin-top': 0, 'margin-bottom': -15}
-        ),
+        
         dbc.Row([
             dcc.Interval(
                 id='interval-component',
@@ -255,7 +250,7 @@ view3d_card = dbc.Card([
                 style={'display': 'none'}
             ),
         ]),
-    ])
+    ]),width=9)]),
 ], className="shadow-lg")
 
 
