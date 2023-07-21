@@ -117,7 +117,7 @@ filter_card = dbc.Card([dbc.Col(dbc.Row([
 ], className="shadow-sm")
 
 view3d_card = dbc.Card([
-    dbc.CardBody([dbc.Col(dbc.Row([
+    dbc.CardBody([dbc.Row([dbc.Col(dbc.Row([
             dbc.Col(
                 dbc.Select(
                     id='c-picker-3d',
@@ -250,7 +250,67 @@ view3d_card = dbc.Card([
                 style={'display': 'none'}
             ),
         ]),
-    ]),width=9)]),
+    ]),width=9),
+    dbc.Col(dbc.Row([
+    dbc.CardBody([
+        dbc.Row([
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Add outline to scatters',
+                         'value': True}],
+                    value=[],
+                    id='outline-switch',
+                    switch=True,
+                ),
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Overlay all frames',
+                         'value': True}],
+                    value=[],
+                    id='overlay-switch',
+                    switch=True,
+                ),
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Click to change visibility',
+                         'value': True}],
+                    value=[],
+                    id='click-hide-switch',
+                    switch=True,
+                ),
+                ]),
+        dbc.Row([
+                dbc.Label('Visibility options'),
+                dbc.Checklist(
+                    options=[
+                        {'label': 'Show visible',
+                         'value': 'visible'},
+                        {'label': 'Show hidden',
+                         'value': 'hidden'}],
+                    value=['visible'],
+                    id='visible-picker',
+                ),
+                ]),
+        dbc.Row([
+                dbc.Label('Decay'),
+                dcc.Slider(
+                    id='decay-slider',
+                    min=0,
+                    max=10,
+                    step=1,
+                    value=0,
+                    marks=None,
+                    tooltip={'always_visible': False,
+                             'placement': 'top'}
+                ),
+                ]),
+    ]),
+    dbc.CardHeader('Filter'),
+    dbc.CardBody([
+        html.Div(id='dropdown-container', children=[]),
+        html.Div(id='slider-container', children=[]),
+    ], style={'overflow': 'scroll', 'height': '600px'})]),),])
+    ]),
 ], className="shadow-lg")
 
 
@@ -830,10 +890,12 @@ def get_app_layout():
 
         html.Hr(),
 
-        dbc.Row([
-            dbc.Col(view3d_card, width=9),
-            dbc.Col(filter_card, width=3)
-        ], className='mb-3', align='start'),
+        view3d_card,
+
+        # dbc.Row([
+        #     dbc.Col(view3d_card, width=9),
+        #     dbc.Col(filter_card, width=3)
+        # ], className='mb-3', align='start'),
 
         dbc.Row([
             dbc.Col(left2d_card, width=6),
