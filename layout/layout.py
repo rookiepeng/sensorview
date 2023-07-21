@@ -118,31 +118,31 @@ filter_card = dbc.Card([dbc.Col(dbc.Row([
 
 view3d_card = dbc.Card([
     dbc.CardBody([dbc.Row([dbc.Col(dbc.Row([
-            dbc.Col(
-                dbc.Select(
-                    id='c-picker-3d',
-                ), width=2
-            ),
-            dbc.Col(
-                dbc.Select(
-                    id='colormap-3d',
-                    options=[{'value': x,
-                              'label': x}
-                             for x in colorscales],
-                    value='Portland',
-                ), width=2
-            ),
-            dbc.Col(
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Dark mode',
-                         'value': True}],
-                    value=[True],
-                    id='darkmode-switch',
-                    switch=True,
-                    style={'float': 'right'}
-                ), width=8
-            ),
+        dbc.Col(
+            dbc.Select(
+                id='c-picker-3d',
+            ), width=2
+        ),
+        dbc.Col(
+            dbc.Select(
+                id='colormap-3d',
+                options=[{'value': x,
+                          'label': x}
+                         for x in colorscales],
+                value='Portland',
+            ), width=2
+        ),
+        dbc.Col(
+            dbc.Checklist(
+                options=[
+                    {'label': 'Dark mode',
+                     'value': True}],
+                value=[True],
+                id='darkmode-switch',
+                switch=True,
+                style={'float': 'right'}
+            ), width=8
+        ),
 
         dcc.Graph(
             id='scatter3d',
@@ -161,37 +161,37 @@ view3d_card = dbc.Card([
                     },
         ),
 
-            dcc.Interval(
-                id='buffer-interval',
-                interval=2000,  # in milliseconds
-                disabled=False,
-                n_intervals=0
-            ),
-            dbc.Col(
-                dbc.Progress(
-                    id='buffer',
-                    value=0,
-                    color='info',
-                    style={'height': '2px',
-                           'margin-top': 0,
-                           'margin-bottom': 5,
-                           'margin-left': 25,
-                           'margin-right': 25},
-                    className='mb-3'
-                ), width=12
-            ),
-            dbc.Col(
-                dcc.Slider(
-                    id='slider-frame',
-                    step=1,
-                    value=0,
-                    updatemode='drag',
-                    marks=None,
-                    tooltip={'always_visible': False,
-                             'placement': 'top'}
-                ), width=12
-            ),
-        
+        dcc.Interval(
+            id='buffer-interval',
+            interval=2000,  # in milliseconds
+            disabled=False,
+            n_intervals=0
+        ),
+        dbc.Col(
+            dbc.Progress(
+                id='buffer',
+                value=0,
+                color='info',
+                style={'height': '2px',
+                       'margin-top': 0,
+                       'margin-bottom': 5,
+                       'margin-left': 25,
+                       'margin-right': 25},
+                className='mb-3'
+            ), width=12
+        ),
+        dbc.Col(
+            dcc.Slider(
+                id='slider-frame',
+                step=1,
+                value=0,
+                updatemode='drag',
+                marks=None,
+                tooltip={'always_visible': False,
+                         'placement': 'top'}
+            ), width=12
+        ),
+
         dbc.Row([
             dcc.Interval(
                 id='interval-component',
@@ -250,66 +250,66 @@ view3d_card = dbc.Card([
                 style={'display': 'none'}
             ),
         ]),
-    ]),width=9),
-    dbc.Col(dbc.Row([
-    dbc.CardBody([
-        dbc.Row([
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Add outline to scatters',
-                         'value': True}],
-                    value=[],
-                    id='outline-switch',
-                    switch=True,
-                ),
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Overlay all frames',
-                         'value': True}],
-                    value=[],
-                    id='overlay-switch',
-                    switch=True,
-                ),
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Click to change visibility',
-                         'value': True}],
-                    value=[],
-                    id='click-hide-switch',
-                    switch=True,
-                ),
+    ]), width=9),
+        dbc.Col(dbc.Row([
+            dbc.CardBody([
+                dbc.Row([
+                    dbc.Checklist(
+                        options=[
+                            {'label': 'Add outline to scatters',
+                             'value': True}],
+                        value=[],
+                        id='outline-switch',
+                        switch=True,
+                    ),
+                    dbc.Checklist(
+                        options=[
+                            {'label': 'Overlay all frames',
+                             'value': True}],
+                        value=[],
+                        id='overlay-switch',
+                        switch=True,
+                    ),
+                    dbc.Checklist(
+                        options=[
+                            {'label': 'Click to change visibility',
+                             'value': True}],
+                        value=[],
+                        id='click-hide-switch',
+                        switch=True,
+                    ),
                 ]),
-        dbc.Row([
-                dbc.Label('Visibility options'),
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Show visible',
-                         'value': 'visible'},
-                        {'label': 'Show hidden',
-                         'value': 'hidden'}],
-                    value=['visible'],
-                    id='visible-picker',
-                ),
+                dbc.Row([
+                    dbc.Label('Visibility options'),
+                    dbc.Checklist(
+                        options=[
+                            {'label': 'Show visible',
+                             'value': 'visible'},
+                            {'label': 'Show hidden',
+                             'value': 'hidden'}],
+                        value=['visible'],
+                        id='visible-picker',
+                    ),
                 ]),
-        dbc.Row([
-                dbc.Label('Decay'),
-                dcc.Slider(
-                    id='decay-slider',
-                    min=0,
-                    max=10,
-                    step=1,
-                    value=0,
-                    marks=None,
-                    tooltip={'always_visible': False,
-                             'placement': 'top'}
-                ),
+                dbc.Row([
+                    dbc.Label('Decay'),
+                    dcc.Slider(
+                        id='decay-slider',
+                        min=0,
+                        max=10,
+                        step=1,
+                        value=0,
+                        marks=None,
+                        tooltip={'always_visible': False,
+                                 'placement': 'top'}
+                    ),
                 ]),
-    ]),
-    dbc.CardHeader('Filter'),
-    dbc.CardBody([
-        html.Div(id='dropdown-container', children=[]),
-        html.Div(id='slider-container', children=[]),
-    ], style={'overflow': 'scroll', 'height': '600px'})]),),])
+            ]),
+            dbc.CardHeader('Filter'),
+            dbc.CardBody([
+                html.Div(id='dropdown-container', children=[]),
+                html.Div(id='slider-container', children=[]),
+            ], style={'overflow': 'scroll', 'height': '600px'})]),),])
     ]),
 ], className="shadow-lg")
 
@@ -840,8 +840,8 @@ def get_app_layout():
                             id='sensorview-image',
                             style={'height': '110px',
                                    'width': 'auto'},
-                            ), className="text-center"
-                        ),
+                        ), className="text-center"
+                    ),
                     html.H4(app.title, className="text-center"),
                     # html.Hr(className="my-2"),
                     # html.P(
@@ -884,7 +884,7 @@ def get_app_layout():
                     label=''
                 )
             )
-            ]), id="collapse",
+        ]), id="collapse",
             is_open=True
         ),
 
