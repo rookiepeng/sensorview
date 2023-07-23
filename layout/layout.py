@@ -100,7 +100,7 @@ view3d_card = dbc.Card([
                                    'uirevision': 'no_change'}
                         },
                 style={'height': '85vh'},
-            )),
+            ), class_name='mt-2'),
 
             dcc.Interval(
                 id='buffer-interval',
