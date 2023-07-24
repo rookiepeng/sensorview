@@ -829,25 +829,22 @@ def get_app_layout():
 
         view3d_card,
 
+        dbc.CardGroup(
+            [left2d_card,
+             right2d_card], className='mb-3'),
+
         # dbc.Row([
-        #     dbc.Col(view3d_card, width=9),
-        #     dbc.Col(filter_card, width=3)
-        # ], className='mb-3', align='start'),
+        #     dbc.Col(left2d_card, width=6),
+        #     dbc.Col(right2d_card, width=6)
+        # ], className='mb-3'),
 
-        dbc.Row([
-            dbc.Col(left2d_card, width=6),
-            dbc.Col(right2d_card, width=6)
-        ], className='mb-3'),
+        dbc.CardGroup(
+            [hist_card,
+             violin_card], className='mb-3'),
 
-        dbc.Row([
-            dbc.Col(hist_card, width=6),
-            dbc.Col(violin_card, width=6),
-        ], className='mb-3'),
-
-        dbc.Row([
-            dbc.Col(parallel_card, width=6),
-            dbc.Col(heatmap_card, width=6),
-        ], className='mb-3'),
+        dbc.CardGroup(
+            [parallel_card,
+             heatmap_card], className='mb-3'),
 
         html.Hr(),
 
