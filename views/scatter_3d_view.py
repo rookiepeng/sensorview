@@ -328,6 +328,9 @@ def slider_change_callback(
         file_list):
 
     fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
+
+    # if slider value changed
+    #   - if Redis `figure` buffer ready, return figure from Redis
     if fig_idx is not None:
         if slider_arg <= fig_idx:
             fig = cache_get(session_id,
@@ -478,35 +481,6 @@ def filter_changed(
                 (click_data['points'][0]['curveNumber'] == 0)):
         raise PreventUpdate
     opacity = np.linspace(1, 0.2, decay+1)
-    # if slider value changed
-    #   - if Redis `figure` buffer ready, return figure from Redis
-    if trigger_id == 'slider-frame':
-        fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
-        if fig_idx is not None:
-            if slider_arg <= fig_idx:
-                fig = cache_get(session_id,
-                                CACHE_KEYS['figure'],
-                                str(slider_arg))
-                if decay > 0:
-                    for val in range(1, decay+1):
-                        if (slider_arg-val) >= 0:
-                            new_fig = cache_get(session_id,
-                                                CACHE_KEYS['figure'],
-                                                str(slider_arg-val))
-                            new_fig[0]['marker']['opacity'] = opacity[val]
-                            fig = fig+new_fig
-
-                fig_ref = cache_get(session_id,
-                                    CACHE_KEYS['figure_ref'],
-                                    str(slider_arg))
-                layout = cache_get(session_id,
-                                   CACHE_KEYS['figure_layout'],
-                                   str(slider_arg))
-                return dict(
-                    scatter3d=dict(data=fig_ref+fig,
-                                   layout=layout),
-                    filter_trigger=dash.no_update
-                )
 
     # get config from Redis
     config = cache_get(session_id, CACHE_KEYS['config'])
@@ -748,8 +722,7 @@ def filter_changed(
             layout=layout
         )
 
-    if (trigger_id == 'slider-frame') or \
-        (trigger_id == 'left-hide-trigger') or \
+    if (trigger_id == 'left-hide-trigger') or \
         (trigger_id == 'colormap-3d') or \
         (trigger_id == 'outline-switch') or \
             (trigger_id == 'decay-slider'):
