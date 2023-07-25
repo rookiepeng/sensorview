@@ -349,6 +349,8 @@ def slider_change_callback(
 
     fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
 
+    opacity = np.linspace(1, 0.2, decay+1)
+
     # if slider value changed
     #   - if Redis `figure` buffer ready, return figure from Redis
     if fig_idx is not None:
