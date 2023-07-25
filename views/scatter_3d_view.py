@@ -773,6 +773,7 @@ def filter_changed(
     ),
     state=dict(
         trigger_idx=State('filter-trigger', 'data'),
+        click_hide=State('click-hide-switch', 'value'),
     )
 )
 def invoke_filter_trigger(
@@ -783,7 +784,8 @@ def invoke_filter_trigger(
     c_key,
     click_data,
     darkmode,
-    trigger_idx
+    trigger_idx,
+    click_hide
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
