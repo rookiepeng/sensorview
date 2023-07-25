@@ -402,7 +402,6 @@ def slider_change_callback(
 @app.callback(
     output=dict(
         scatter3d=Output('scatter3d', 'figure'),
-        filter_trigger=Output('filter-trigger', 'data')
     ),
     inputs=dict(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -420,7 +419,6 @@ def slider_change_callback(
         overlay_enable=State('overlay-switch', 'value'),
         decay=State('decay-slider', 'value'),
         click_hide=State('click-hide-switch', 'value'),
-        trigger_idx=State('filter-trigger', 'data'),
         session_id=State('session-id', 'data'),
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value'),
@@ -441,7 +439,6 @@ def filter_changed(
     decay,
     darkmode,
     click_hide,
-    trigger_idx,
     session_id,
     case,
     file,
@@ -742,12 +739,56 @@ def filter_changed(
             layout=layout
         )
 
-    if (trigger_id == 'left-hide-trigger') or \
-        (trigger_id == 'colormap-3d') or \
-        (trigger_id == 'outline-switch') or \
-            (trigger_id == 'decay-slider'):
-        filter_trig = dash.no_update
-    elif trigger_id == 'scatter3d':
+    # if (trigger_id == 'left-hide-trigger') or \
+    #     (trigger_id == 'colormap-3d') or \
+    #     (trigger_id == 'outline-switch') or \
+    #         (trigger_id == 'decay-slider'):
+    #     filter_trig = dash.no_update
+    # elif trigger_id == 'scatter3d':
+    #     if click_hide and \
+    #             click_data['points'][0]['curveNumber'] > 0:
+    #         filter_trig = trigger_idx+1
+    #     else:
+    #         filter_trig = dash.no_update
+    # else:
+    #     filter_trig = trigger_idx+1
+
+    return dict(
+        scatter3d=fig,
+    )
+
+
+@app.callback(
+    output=dict(
+        filter_trigger=Output('filter-trigger', 'data')
+    ),
+    inputs=dict(
+        cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
+        colormap=Input('colormap-3d', 'value'),
+        visible_list=Input('visible-picker', 'value'),
+        c_key=Input('c-picker-3d', 'value'),
+        click_data=Input('scatter3d', 'clickData'),
+        darkmode=Input('darkmode-switch', 'value')
+    ),
+    state=dict(
+        trigger_idx=State('filter-trigger', 'data'),
+    )
+)
+def invoke_filter_trigger(
+    cat_values,
+    num_values,
+    colormap,
+    visible_list,
+    c_key,
+    click_data,
+    darkmode,
+    trigger_idx
+):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if trigger_id == 'scatter3d':
         if click_hide and \
                 click_data['points'][0]['curveNumber'] > 0:
             filter_trig = trigger_idx+1
@@ -757,7 +798,6 @@ def filter_changed(
         filter_trig = trigger_idx+1
 
     return dict(
-        scatter3d=fig,
         filter_trigger=filter_trig
     )
 
