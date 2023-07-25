@@ -50,66 +50,34 @@ from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
 
-def process_single_frame(
-        slider_arg,
-        config,
-        cat_values,
-        num_values,
-        colormap,
-        visible_list,
-        c_key,
-        overlay_enable,
-        outline_enable,
-        decay,
-        darkmode,
-        session_id,
-        case,
-        file,
-        file_list):
-
+def prepare_figure_kwargs(
+    config,
+    frame_list,
+    colormap,
+    outline_enable,
+    darkmode,
+    slider_arg,
+    c_key,
+    num_keys,
+    num_values,
+):
     keys_dict = config['keys']
-
-    opacity = np.linspace(1, 0.2, decay+1)
-
-    # save filter key word arguments to Redis
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-    cat_keys = filter_kwargs['cat_keys']
-    num_keys = filter_kwargs['num_keys']
-    filter_kwargs['num_values'] = num_values
-    filter_kwargs['cat_values'] = cat_values
-    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
-
-    # get visibility table from Redis
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-
-    # get frame list from Redis
-    frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
-
     # prepare figure key word arguments
     fig_kwargs = dict()
     fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
 
-    task_kwargs = dict()
-    task_kwargs['c_key'] = c_key
-    task_kwargs['colormap'] = colormap
-    task_kwargs['decay'] = decay
     # set outline width
     if outline_enable:
         fig_kwargs['linewidth'] = 1
-        task_kwargs['linewidth'] = 1
     else:
         fig_kwargs['linewidth'] = 0
-        task_kwargs['linewidth'] = 0
 
     if darkmode:
-        task_kwargs['template'] = 'plotly_dark'
         fig_kwargs['template'] = 'plotly_dark'
     else:
-        task_kwargs['template'] = 'plotly'
         fig_kwargs['template'] = 'plotly'
 
-    slider_label = keys_dict[config['slider']]['description']
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
     fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
         'description', fig_kwargs['x_key'])
@@ -161,6 +129,7 @@ def process_single_frame(
     else:
         fig_kwargs['c_range'] = [0, 0]
 
+    slider_label = keys_dict[config['slider']]['description']
     fig_kwargs['name'] = 'Index: ' +\
         str(slider_arg) +\
         ' (' +\
@@ -171,6 +140,57 @@ def process_single_frame(
     fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
+
+    return fig_kwargs
+
+
+def process_single_frame(
+        slider_arg,
+        config,
+        cat_values,
+        num_values,
+        colormap,
+        visible_list,
+        c_key,
+        overlay_enable,
+        outline_enable,
+        decay,
+        darkmode,
+        session_id,
+        case,
+        file,
+        file_list):
+
+    keys_dict = config['keys']
+
+    opacity = np.linspace(1, 0.2, decay+1)
+
+    # save filter key word arguments to Redis
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    filter_kwargs['num_values'] = num_values
+    filter_kwargs['cat_values'] = cat_values
+    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
+
+    # get visibility table from Redis
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+
+    # get frame list from Redis
+    frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
+
+    # prepare figure key word arguments
+    fig_kwargs = prepare_figure_kwargs(
+        config,
+        frame_list,
+        colormap,
+        outline_enable,
+        darkmode,
+        slider_arg,
+        c_key,
+        num_keys,
+        num_values,
+    )
 
     if overlay_enable:
         # overlay all the frames
@@ -245,7 +265,7 @@ def process_single_frame(
                     fig_kwargs['name'] = 'Index: ' +\
                         str(slider_arg-val) +\
                         ' (' +\
-                        slider_label +\
+                        keys_dict[config['slider']]['description'] +\
                         ': ' +\
                         str(frame_list[slider_arg-val]) +\
                         ')'
@@ -286,6 +306,7 @@ def process_single_frame(
     inputs=dict(
         slider_arg=Input('slider-frame', 'value'),
         overlay_enable=Input('overlay-switch', 'value'),
+        decay=Input('decay-slider', 'value'),
     ),
     state=dict(
         cat_values=State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -296,7 +317,6 @@ def process_single_frame(
         outline_enable=State('outline-switch', 'value'),
         click_data=State('scatter3d', 'clickData'),
         left_hide_trigger=State('left-hide-trigger', 'data'),
-        decay=State('decay-slider', 'value'),
         darkmode=State('darkmode-switch', 'value'),
         click_hide=State('click-hide-switch', 'value'),
         trigger_idx=State('filter-trigger', 'data'),
@@ -393,12 +413,12 @@ def slider_change_callback(
         outline_enable=Input('outline-switch', 'value'),
         click_data=Input('scatter3d', 'clickData'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
-        decay=Input('decay-slider', 'value'),
         darkmode=Input('darkmode-switch', 'value')
     ),
     state=dict(
         slider_arg=State('slider-frame', 'value'),
         overlay_enable=State('overlay-switch', 'value'),
+        decay=State('decay-slider', 'value'),
         click_hide=State('click-hide-switch', 'value'),
         trigger_idx=State('filter-trigger', 'data'),
         session_id=State('session-id', 'data'),
