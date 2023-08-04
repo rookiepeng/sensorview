@@ -446,7 +446,7 @@ def slider_change_callback(
 
 @app.callback(
     output=dict(
-        scatter3d=Output('scatter3d', 'figure'),
+        scatter3d=Output('scatter3d', 'figure', allow_duplicate=True),
     ),
     inputs=dict(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -468,7 +468,8 @@ def slider_change_callback(
         case=State('case-picker', 'value'),
         file=State('file-picker', 'value'),
         file_list=State('file-add', 'value')
-    )
+    ),
+    prevent_initial_call=True,
 )
 def filter_changed(
     slider_arg,
