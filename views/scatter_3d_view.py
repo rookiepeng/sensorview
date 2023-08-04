@@ -152,14 +152,12 @@ def process_single_frame(
         colormap,
         visible_list,
         c_key,
-        overlay_enable,
         outline_enable,
         decay,
         darkmode,
         session_id,
         case,
-        file,
-        file_list):
+        file):
 
     keys_dict = config['keys']
 
@@ -169,9 +167,6 @@ def process_single_frame(
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
-    filter_kwargs['num_values'] = num_values
-    filter_kwargs['cat_values'] = cat_values
-    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
 
     # get visibility table from Redis
     visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
@@ -192,109 +187,150 @@ def process_single_frame(
         num_values,
     )
 
-    if overlay_enable:
-        # overlay all the frames
-        # get data from .feather file on the disk
-        data = load_data(file, file_list, case)
-        filterd_frame = filter_all(data,
-                                   num_keys,
-                                   num_values,
-                                   cat_keys,
-                                   cat_values,
-                                   visible_table,
-                                   visible_list)
+    file = json.loads(file)
+    img_path = './data/' +\
+        case +\
+        file['path'] +\
+        '/'+file['name'][0:-4]+'/' + \
+        str(slider_arg) +\
+        '.jpg'
+
+    # encode image frame
+    try:
+        encoding = base64.b64encode(open(img_path, 'rb').read())
+        fig_kwargs['image'] = 'data:image/jpeg;base64,{}'.format(
+            encoding.decode())
+    except FileNotFoundError:
+        fig_kwargs['image'] = None
+    except NotADirectoryError:
         fig_kwargs['image'] = None
 
-        # generate the graph
-        fig = get_scatter3d(
-            filterd_frame,
-            **fig_kwargs
-        )
+    # get a single frame data from Redis
+    data = cache_get(session_id,
+                     CACHE_KEYS['frame_data'],
+                     str(frame_list[slider_arg]))
+
+    filterd_frame = filter_all(data,
+                               num_keys,
+                               num_values,
+                               cat_keys,
+                               cat_values,
+                               visible_table,
+                               visible_list)
+    fig = get_scatter3d_data(
+        filterd_frame,
+        **fig_kwargs
+    )
+
+    if decay > 0:
+        for val in range(1, decay+1):
+            if (slider_arg-val) >= 0:
+                # filter the data
+                frame_temp = filter_all(
+                    cache_get(session_id,
+                              CACHE_KEYS['frame_data'],
+                              str(frame_list[slider_arg-val])),
+                    num_keys,
+                    num_values,
+                    cat_keys,
+                    cat_values,
+                    visible_table,
+                    visible_list
+                )
+                fig_kwargs['opacity'] = opacity[val]
+                fig_kwargs['name'] = 'Index: ' +\
+                    str(slider_arg-val) +\
+                    ' (' +\
+                    keys_dict[config['slider']]['description'] +\
+                    ': ' +\
+                    str(frame_list[slider_arg-val]) +\
+                    ')'
+                fig = fig+get_scatter3d_data(
+                    frame_temp,
+                    **fig_kwargs
+                )
+
+            else:
+                break
+
+    if fig_kwargs['x_ref'] is not None and fig_kwargs['y_ref'] is not None:
+        fig_ref = [
+            get_ref_scatter3d_data(
+                data_frame=filterd_frame,
+                x_key=fig_kwargs['x_ref'],
+                y_key=fig_kwargs['y_ref'],
+                z_key=None,
+                name=fig_kwargs.get('ref_name', None))
+        ]
     else:
-        file = json.loads(file)
-        img_path = './data/' +\
-            case +\
-            file['path'] +\
-            '/'+file['name'][0:-4]+'/' + \
-            str(slider_arg) +\
-            '.jpg'
+        fig_ref = []
 
-        # encode image frame
-        try:
-            encoding = base64.b64encode(open(img_path, 'rb').read())
-            fig_kwargs['image'] = 'data:image/jpeg;base64,{}'.format(
-                encoding.decode())
-        except FileNotFoundError:
-            fig_kwargs['image'] = None
-        except NotADirectoryError:
-            fig_kwargs['image'] = None
+    layout = get_scatter3d_layout(**fig_kwargs)
 
-        # get a single frame data from Redis
-        data = cache_get(session_id,
-                         CACHE_KEYS['frame_data'],
-                         str(frame_list[slider_arg]))
+    fig = dict(
+        data=fig_ref+fig,
+        layout=layout
+    )
 
-        filterd_frame = filter_all(data,
-                                   num_keys,
-                                   num_values,
-                                   cat_keys,
-                                   cat_values,
-                                   visible_table,
-                                   visible_list)
-        fig = get_scatter3d_data(
-            filterd_frame,
-            **fig_kwargs
-        )
+    return fig
 
-        if decay > 0:
-            for val in range(1, decay+1):
-                if (slider_arg-val) >= 0:
-                    # filter the data
-                    frame_temp = filter_all(
-                        cache_get(session_id,
-                                  CACHE_KEYS['frame_data'],
-                                  str(frame_list[slider_arg-val])),
-                        num_keys,
-                        num_values,
-                        cat_keys,
-                        cat_values,
-                        visible_table,
-                        visible_list
-                    )
-                    fig_kwargs['opacity'] = opacity[val]
-                    fig_kwargs['name'] = 'Index: ' +\
-                        str(slider_arg-val) +\
-                        ' (' +\
-                        keys_dict[config['slider']]['description'] +\
-                        ': ' +\
-                        str(frame_list[slider_arg-val]) +\
-                        ')'
-                    fig = fig+get_scatter3d_data(
-                        frame_temp,
-                        **fig_kwargs
-                    )
 
-                else:
-                    break
+def overlay_all_frames(
+        slider_arg,
+        config,
+        cat_values,
+        num_values,
+        colormap,
+        visible_list,
+        c_key,
+        outline_enable,
+        darkmode,
+        session_id,
+        case,
+        file,
+        file_list):
 
-        if fig_kwargs['x_ref'] is not None and fig_kwargs['y_ref'] is not None:
-            fig_ref = [
-                get_ref_scatter3d_data(
-                    data_frame=filterd_frame,
-                    x_key=fig_kwargs['x_ref'],
-                    y_key=fig_kwargs['y_ref'],
-                    z_key=None,
-                    name=fig_kwargs.get('ref_name', None))
-            ]
-        else:
-            fig_ref = []
+    # save filter key word arguments to Redis
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
 
-        layout = get_scatter3d_layout(**fig_kwargs)
+    # get visibility table from Redis
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
 
-        fig = dict(
-            data=fig_ref+fig,
-            layout=layout
-        )
+    # get frame list from Redis
+    frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
+
+    # prepare figure key word arguments
+    fig_kwargs = prepare_figure_kwargs(
+        config,
+        frame_list,
+        colormap,
+        outline_enable,
+        darkmode,
+        slider_arg,
+        c_key,
+        num_keys,
+        num_values,
+    )
+
+    # overlay all the frames
+    # get data from .feather file on the disk
+    data = load_data(file, file_list, case)
+    filterd_frame = filter_all(data,
+                               num_keys,
+                               num_values,
+                               cat_keys,
+                               cat_values,
+                               visible_table,
+                               visible_list)
+    fig_kwargs['image'] = None
+
+    # generate the graph
+    fig = get_scatter3d(
+        filterd_frame,
+        **fig_kwargs
+    )
 
     return fig
 
@@ -379,22 +415,37 @@ def slider_change_callback(
             )
 
     config = cache_get(session_id, CACHE_KEYS['config'])
-    fig = process_single_frame(
-        slider_arg,
-        config,
-        cat_values,
-        num_values,
-        colormap,
-        visible_list,
-        c_key,
-        overlay_enable,
-        outline_enable,
-        decay,
-        darkmode,
-        session_id,
-        case,
-        file,
-        file_list)
+
+    if overlay_enable:
+        fig = overlay_all_frames(
+            slider_arg,
+            config,
+            cat_values,
+            num_values,
+            colormap,
+            visible_list,
+            c_key,
+            outline_enable,
+            darkmode,
+            session_id,
+            case,
+            file,
+            file_list)
+    else:
+        fig = process_single_frame(
+            slider_arg,
+            config,
+            cat_values,
+            num_values,
+            colormap,
+            visible_list,
+            c_key,
+            outline_enable,
+            decay,
+            darkmode,
+            session_id,
+            case,
+            file)
 
     return dict(
         scatter3d=fig
