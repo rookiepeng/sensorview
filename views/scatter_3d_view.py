@@ -275,7 +275,7 @@ def process_single_frame(
     return fig
 
 
-def overlay_all_frames(
+def process_overlay_frame(
         slider_arg,
         config,
         cat_values,
@@ -417,7 +417,7 @@ def slider_change_callback(
     config = cache_get(session_id, CACHE_KEYS['config'])
 
     if overlay_enable:
-        fig = overlay_all_frames(
+        fig = process_overlay_frame(
             slider_arg,
             config,
             cat_values,
