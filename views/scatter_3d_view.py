@@ -460,6 +460,115 @@ def slider_change_callback(
         darkmode=Input('darkmode-switch', 'value')
     ),
     state=dict(
+        decay=State('decay-slider', 'value'),
+        click_hide=State('click-hide-switch', 'value'),
+        session_id=State('session-id', 'data'),
+        case=State('case-picker', 'value'),
+        file=State('file-picker', 'value'),
+        file_list=State('file-add', 'value')
+    ),
+    prevent_initial_call=True,
+)
+def invoke_task(
+    cat_values,
+    num_values,
+    colormap,
+    visible_list,
+    c_key,
+    outline_enable,
+    click_data,
+    left_hide_trigger,
+    decay,
+    darkmode,
+    click_hide,
+    session_id,
+    case,
+    file,
+    file_list
+):
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    # file = json.loads(file)
+
+    # no update if:
+    #   - triggered from 3D scatter, and
+    #   - click_hide switch is disabled or the reference point is clicked
+    if trigger_id == 'scatter3d' and \
+            ((not click_hide) or
+                (click_data['points'][0]['curveNumber'] == 0)):
+        raise PreventUpdate
+
+    # save filter key word arguments to Redis
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
+    filter_kwargs['num_values'] = num_values
+    filter_kwargs['cat_values'] = cat_values
+    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
+
+    # get visibility table from Redis
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+
+    # update visibility table if a data point is clicked to hide
+    if trigger_id == 'scatter3d' and \
+        click_hide and \
+            click_data['points'][0]['curveNumber'] > 0:
+
+        if visible_table['_VIS_'][
+            click_data['points'][0]['id']
+        ] == 'visible':
+            visible_table.at[
+                click_data['points'][0]['id'], '_VIS_'] = 'hidden'
+        else:
+            visible_table.at[
+                click_data['points'][0]['id'], '_VIS_'] = 'visible'
+
+        cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
+
+    task_kwargs = dict()
+    task_kwargs['c_key'] = c_key
+    task_kwargs['colormap'] = colormap
+    task_kwargs['decay'] = decay
+    # set outline width
+    if outline_enable:
+        task_kwargs['linewidth'] = 1
+    else:
+        task_kwargs['linewidth'] = 0
+
+    if darkmode:
+        task_kwargs['template'] = 'plotly_dark'
+    else:
+        task_kwargs['template'] = 'plotly'
+
+    # invoke celery task
+    cache_set(0, session_id, CACHE_KEYS['task_id'])
+    cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
+    if file not in file_list:
+        file_list.append(file)
+    celery_filtering_data.apply_async(args=[session_id,
+                                            case,
+                                            file_list,
+                                            visible_list],
+                                      kwargs=task_kwargs,
+                                      serializer='json')
+
+    raise PreventUpdate
+
+
+@app.callback(
+    output=dict(
+        scatter3d=Output('scatter3d', 'figure', allow_duplicate=True),
+    ),
+    inputs=dict(
+        cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
+        num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
+        colormap=Input('colormap-3d', 'value'),
+        visible_list=Input('visible-picker', 'value'),
+        c_key=Input('c-picker-3d', 'value'),
+        outline_enable=Input('outline-switch', 'value'),
+        click_data=Input('scatter3d', 'clickData'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        darkmode=Input('darkmode-switch', 'value')
+    ),
+    state=dict(
         slider_arg=State('slider-frame', 'value'),
         overlay_enable=State('overlay-switch', 'value'),
         decay=State('decay-slider', 'value'),
@@ -584,39 +693,16 @@ def filter_changed(
     fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
 
-    task_kwargs = dict()
-    task_kwargs['c_key'] = c_key
-    task_kwargs['colormap'] = colormap
-    task_kwargs['decay'] = decay
     # set outline width
     if outline_enable:
         fig_kwargs['linewidth'] = 1
-        task_kwargs['linewidth'] = 1
     else:
         fig_kwargs['linewidth'] = 0
-        task_kwargs['linewidth'] = 0
 
     if darkmode:
-        task_kwargs['template'] = 'plotly_dark'
         fig_kwargs['template'] = 'plotly_dark'
     else:
-        task_kwargs['template'] = 'plotly'
         fig_kwargs['template'] = 'plotly'
-
-    # invoke celery task
-    if trigger_id != 'slider-frame' and \
-        trigger_id != 'overlay-switch' and \
-            trigger_id != 'decay-slider':
-        cache_set(0, session_id, CACHE_KEYS['task_id'])
-        cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
-        if file not in file_list:
-            file_list.append(file)
-        celery_filtering_data.apply_async(args=[session_id,
-                                                case,
-                                                file_list,
-                                                visible_list],
-                                          kwargs=task_kwargs,
-                                          serializer='json')
 
     slider_label = keys_dict[config['slider']]['description']
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
