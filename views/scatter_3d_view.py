@@ -446,7 +446,7 @@ def slider_change_callback(
 
 @app.callback(
     output=dict(
-        scatter3d=Output('scatter3d', 'figure', allow_duplicate=True),
+        dummy=Output('dummy', 'data', allow_duplicate=True),
     ),
     inputs=dict(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
@@ -550,7 +550,7 @@ def invoke_task(
                                       kwargs=task_kwargs,
                                       serializer='json')
 
-    raise PreventUpdate
+    return dict(dummy=0)
 
 
 @app.callback(
