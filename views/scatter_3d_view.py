@@ -353,11 +353,11 @@ def process_overlay_frame(
         slider_arg=Input('slider-frame', 'value'),
         overlay_enable=Input('overlay-switch', 'value'),
         decay=Input('decay-slider', 'value'),
+        colormap=Input('colormap-3d', 'value'),
     ),
     state=dict(
         cat_values=State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=State({'type': 'filter-slider', 'index': ALL}, 'value'),
-        colormap=State('colormap-3d', 'value'),
         visible_list=State('visible-picker', 'value'),
         c_key=State('c-picker-3d', 'value'),
         outline_enable=State('outline-switch', 'value'),
@@ -466,7 +466,6 @@ def slider_change_callback(
     inputs=dict(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
-        colormap=Input('colormap-3d', 'value'),
         visible_list=Input('visible-picker', 'value'),
         c_key=Input('c-picker-3d', 'value'),
         outline_enable=Input('outline-switch', 'value'),
@@ -487,7 +486,6 @@ def slider_change_callback(
 def invoke_task(
     cat_values,
     num_values,
-    colormap,
     visible_list,
     c_key,
     outline_enable,
@@ -574,7 +572,6 @@ def invoke_task(
     inputs=dict(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
-        colormap=Input('colormap-3d', 'value'),
         visible_list=Input('visible-picker', 'value'),
         c_key=Input('c-picker-3d', 'value'),
         outline_enable=Input('outline-switch', 'value'),
@@ -598,7 +595,6 @@ def filter_changed(
     slider_arg,
     cat_values,
     num_values,
-    colormap,
     visible_list,
     c_key,
     overlay_enable,
@@ -777,7 +773,6 @@ def filter_changed(
         ': ' +\
         str(frame_list[slider_arg]) +\
         ')'
-    fig_kwargs['colormap'] = colormap
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
 
