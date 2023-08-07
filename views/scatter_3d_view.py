@@ -880,20 +880,6 @@ def filter_changed(
             layout=layout
         )
 
-    # if (trigger_id == 'left-hide-trigger') or \
-    #     (trigger_id == 'colormap-3d') or \
-    #     (trigger_id == 'outline-switch') or \
-    #         (trigger_id == 'decay-slider'):
-    #     filter_trig = dash.no_update
-    # elif trigger_id == 'scatter3d':
-    #     if click_hide and \
-    #             click_data['points'][0]['curveNumber'] > 0:
-    #         filter_trig = trigger_idx+1
-    #     else:
-    #         filter_trig = dash.no_update
-    # else:
-    #     filter_trig = trigger_idx+1
-
     return dict(
         scatter3d=fig,
     )
