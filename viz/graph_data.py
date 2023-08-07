@@ -42,7 +42,7 @@ def get_scatter3d_data(data_frame,
         return [{'mode': 'markers', 'type': 'scatter3d',
                 'x': [], 'y': [], 'z': []}]
 
-    linewidth = kwargs.get('linewidth', 0)
+    linewidth = 0
     c_label = kwargs.get('c_label', c_key)
     name = kwargs.get('name', None)
     hover = kwargs.get('hover', None)

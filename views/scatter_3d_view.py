@@ -53,7 +53,6 @@ from viz.graph_layout import get_scatter3d_layout
 def prepare_figure_kwargs(
     config,
     frame_list,
-    outline_enable,
     darkmode,
     slider_arg,
     c_key,
@@ -65,12 +64,6 @@ def prepare_figure_kwargs(
     fig_kwargs = dict()
     fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
-
-    # set outline width
-    if outline_enable:
-        fig_kwargs['linewidth'] = 1
-    else:
-        fig_kwargs['linewidth'] = 0
 
     if darkmode:
         fig_kwargs['template'] = 'plotly_dark'
@@ -177,7 +170,6 @@ def process_single_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        outline_enable,
         darkmode,
         slider_arg,
         c_key,
@@ -225,6 +217,9 @@ def process_single_frame(
     if c_type == 'numerical':
         fig[0]['marker']['colorscale'] = colormap
 
+    if outline_enable:
+        fig[0]['marker']['line']['width'] = 1
+
     if decay > 0:
         for val in range(1, decay+1):
             if (slider_arg-val) >= 0:
@@ -254,6 +249,8 @@ def process_single_frame(
                 )
                 if c_type == 'numerical':
                     new_fig[0]['marker']['colorscale'] = colormap
+                if outline_enable:
+                    new_fig[0]['marker']['line']['width'] = 1
                 fig = fig+new_fig
 
             else:
@@ -311,7 +308,6 @@ def process_overlay_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        outline_enable,
         darkmode,
         slider_arg,
         c_key,
@@ -341,6 +337,8 @@ def process_overlay_frame(
     c_type = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     if c_type == 'numerical':
         fig['data'][0]['marker']['colorscale'] = colormap
+    if outline_enable:
+        fig['data'][0]['marker']['line']['width'] = 1
 
     return fig
 
@@ -418,6 +416,9 @@ def slider_change_callback(
                                 str(slider_arg))
                 if c_type == 'numerical':
                     fig[0]['marker']['colorscale'] = colormap
+                if outline_enable:
+                    fig[0]['marker']['line']['width'] = 1
+
                 if decay > 0:
                     for val in range(1, decay+1):
                         if (slider_arg-val) >= 0:
@@ -427,6 +428,10 @@ def slider_change_callback(
                             new_fig[0]['marker']['opacity'] = opacity[val]
                             if c_type == 'numerical':
                                 new_fig[0]['marker']['colorscale'] = colormap
+
+                            if outline_enable:
+                                new_fig[0]['marker']['line']['width'] = 1
+
                             fig = fig+new_fig
 
                 fig_ref = cache_get(session_id,
@@ -479,6 +484,27 @@ def colormap_change_callback(colormap, fig):
 
 @app.callback(
     output=dict(
+        scatter3d=Output('scatter3d', 'figure', allow_duplicate=True),
+    ),
+    inputs=dict(
+        outline_enable=Input('outline-switch', 'value'),
+    ),
+    state=dict(
+        fig=State('scatter3d', 'figure'),
+    ),
+    prevent_initial_call=True,
+)
+def outline_change_callback(outline_enable, fig):
+    if outline_enable:
+        fig['data'][0]['marker']['line']['width'] = 1
+    else:
+        fig['data'][0]['marker']['line']['width'] = 0
+
+    return dict(scatter3d=fig)
+
+
+@app.callback(
+    output=dict(
         dummy=Output('dummy', 'data', allow_duplicate=True),
     ),
     inputs=dict(
@@ -486,13 +512,11 @@ def colormap_change_callback(colormap, fig):
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         visible_list=Input('visible-picker', 'value'),
         c_key=Input('c-picker-3d', 'value'),
-        outline_enable=Input('outline-switch', 'value'),
         click_data=Input('scatter3d', 'clickData'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
         darkmode=Input('darkmode-switch', 'value')
     ),
     state=dict(
-        decay=State('decay-slider', 'value'),
         click_hide=State('click-hide-switch', 'value'),
         session_id=State('session-id', 'data'),
         case=State('case-picker', 'value'),
@@ -506,10 +530,8 @@ def invoke_task(
     num_values,
     visible_list,
     c_key,
-    outline_enable,
     click_data,
     left_hide_trigger,
-    decay,
     darkmode,
     click_hide,
     session_id,
@@ -556,12 +578,6 @@ def invoke_task(
 
     task_kwargs = dict()
     task_kwargs['c_key'] = c_key
-    task_kwargs['decay'] = decay
-    # set outline width
-    if outline_enable:
-        task_kwargs['linewidth'] = 1
-    else:
-        task_kwargs['linewidth'] = 0
 
     if darkmode:
         task_kwargs['template'] = 'plotly_dark'
@@ -592,7 +608,6 @@ def invoke_task(
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         visible_list=Input('visible-picker', 'value'),
         c_key=Input('c-picker-3d', 'value'),
-        outline_enable=Input('outline-switch', 'value'),
         click_data=Input('scatter3d', 'clickData'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
         darkmode=Input('darkmode-switch', 'value')
@@ -616,7 +631,6 @@ def filter_changed(
     visible_list,
     c_key,
     overlay_enable,
-    outline_enable,
     click_data,
     left_hide_trigger,
     decay,
@@ -720,12 +734,6 @@ def filter_changed(
     fig_kwargs = dict()
     fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
-
-    # set outline width
-    if outline_enable:
-        fig_kwargs['linewidth'] = 1
-    else:
-        fig_kwargs['linewidth'] = 0
 
     if darkmode:
         fig_kwargs['template'] = 'plotly_dark'
@@ -910,9 +918,7 @@ def filter_changed(
     inputs=dict(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
-        colormap=Input('colormap-3d', 'value'),
         visible_list=Input('visible-picker', 'value'),
-        c_key=Input('c-picker-3d', 'value'),
         click_data=Input('scatter3d', 'clickData'),
         darkmode=Input('darkmode-switch', 'value')
     ),
@@ -924,9 +930,7 @@ def filter_changed(
 def invoke_filter_trigger(
     cat_values,
     num_values,
-    colormap,
     visible_list,
-    c_key,
     click_data,
     darkmode,
     trigger_idx,
