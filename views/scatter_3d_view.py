@@ -53,7 +53,6 @@ from viz.graph_layout import get_scatter3d_layout
 def prepare_figure_kwargs(
     config,
     frame_list,
-    colormap,
     outline_enable,
     darkmode,
     slider_arg,
@@ -137,7 +136,7 @@ def prepare_figure_kwargs(
         ': ' +\
         str(frame_list[slider_arg]) +\
         ')'
-    fig_kwargs['colormap'] = colormap
+
     fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
     fig_kwargs['ref_name'] = 'Host Vehicle'
 
@@ -178,7 +177,6 @@ def process_single_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        colormap,
         outline_enable,
         darkmode,
         slider_arg,
@@ -222,6 +220,11 @@ def process_single_frame(
         **fig_kwargs
     )
 
+    c_type = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
+
+    if c_type == 'numerical':
+        fig[0]['marker']['colorscale'] = colormap
+
     if decay > 0:
         for val in range(1, decay+1):
             if (slider_arg-val) >= 0:
@@ -245,10 +248,13 @@ def process_single_frame(
                     ': ' +\
                     str(frame_list[slider_arg-val]) +\
                     ')'
-                fig = fig+get_scatter3d_data(
+                new_fig = get_scatter3d_data(
                     frame_temp,
                     **fig_kwargs
                 )
+                if c_type == 'numerical':
+                    new_fig[0]['marker']['colorscale'] = colormap
+                fig = fig+new_fig
 
             else:
                 break
@@ -305,7 +311,6 @@ def process_overlay_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        colormap,
         outline_enable,
         darkmode,
         slider_arg,
@@ -331,6 +336,11 @@ def process_overlay_frame(
         filterd_frame,
         **fig_kwargs
     )
+
+    keys_dict = config['keys']
+    c_type = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
+    if c_type == 'numerical':
+        fig['data'][0]['marker']['colorscale'] = colormap
 
     return fig
 
@@ -375,38 +385,9 @@ def slider_change_callback(
         file,
         file_list):
 
-    fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
-
-    opacity = np.linspace(1, 0.2, decay+1)
-
-    # if slider value changed
-    #   - if Redis `figure` buffer ready, return figure from Redis
-    if fig_idx is not None:
-        if slider_arg <= fig_idx:
-            fig = cache_get(session_id,
-                            CACHE_KEYS['figure'],
-                            str(slider_arg))
-            if decay > 0:
-                for val in range(1, decay+1):
-                    if (slider_arg-val) >= 0:
-                        new_fig = cache_get(session_id,
-                                            CACHE_KEYS['figure'],
-                                            str(slider_arg-val))
-                        new_fig[0]['marker']['opacity'] = opacity[val]
-                        fig = fig+new_fig
-
-            fig_ref = cache_get(session_id,
-                                CACHE_KEYS['figure_ref'],
-                                str(slider_arg))
-            layout = cache_get(session_id,
-                               CACHE_KEYS['figure_layout'],
-                               str(slider_arg))
-            return dict(
-                scatter3d=dict(data=fig_ref+fig,
-                               layout=layout)
-            )
-
     config = cache_get(session_id, CACHE_KEYS['config'])
+    keys_dict = config['keys']
+    c_type = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
 
     if overlay_enable:
         fig = process_overlay_frame(
@@ -424,6 +405,40 @@ def slider_change_callback(
             file,
             file_list)
     else:
+        fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
+
+        opacity = np.linspace(1, 0.2, decay+1)
+
+        # if slider value changed
+        #   - if Redis `figure` buffer ready, return figure from Redis
+        if fig_idx is not None:
+            if slider_arg <= fig_idx:
+                fig = cache_get(session_id,
+                                CACHE_KEYS['figure'],
+                                str(slider_arg))
+                if c_type == 'numerical':
+                    fig[0]['marker']['colorscale'] = colormap
+                if decay > 0:
+                    for val in range(1, decay+1):
+                        if (slider_arg-val) >= 0:
+                            new_fig = cache_get(session_id,
+                                                CACHE_KEYS['figure'],
+                                                str(slider_arg-val))
+                            new_fig[0]['marker']['opacity'] = opacity[val]
+                            if c_type == 'numerical':
+                                new_fig[0]['marker']['colorscale'] = colormap
+                            fig = fig+new_fig
+
+                fig_ref = cache_get(session_id,
+                                    CACHE_KEYS['figure_ref'],
+                                    str(slider_arg))
+                layout = cache_get(session_id,
+                                   CACHE_KEYS['figure_layout'],
+                                   str(slider_arg))
+                return dict(
+                    scatter3d=dict(data=fig_ref+fig,
+                                   layout=layout)
+                )
         fig = process_single_frame(
             slider_arg,
             config,
@@ -525,7 +540,6 @@ def invoke_task(
 
     task_kwargs = dict()
     task_kwargs['c_key'] = c_key
-    task_kwargs['colormap'] = colormap
     task_kwargs['decay'] = decay
     # set outline width
     if outline_enable:

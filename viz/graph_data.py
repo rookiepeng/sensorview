@@ -44,7 +44,6 @@ def get_scatter3d_data(data_frame,
 
     linewidth = kwargs.get('linewidth', 0)
     c_label = kwargs.get('c_label', c_key)
-    colormap = kwargs.get('colormap', 'Jet')
     name = kwargs.get('name', None)
     hover = kwargs.get('hover', None)
     c_type = kwargs.get('c_type', 'numerical')
@@ -89,7 +88,6 @@ def get_scatter3d_data(data_frame,
                  showlegend=showlegend,
                  marker=dict(size=3,
                              color=color,
-                             colorscale=colormap,
                              opacity=opacity,
                              colorbar=dict(title=c_label),
                              cmin=c_range[0],
