@@ -353,11 +353,11 @@ def process_overlay_frame(
         slider_arg=Input('slider-frame', 'value'),
         overlay_enable=Input('overlay-switch', 'value'),
         decay=Input('decay-slider', 'value'),
-        colormap=Input('colormap-3d', 'value'),
     ),
     state=dict(
         cat_values=State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=State({'type': 'filter-slider', 'index': ALL}, 'value'),
+        colormap=State('colormap-3d', 'value'),
         visible_list=State('visible-picker', 'value'),
         c_key=State('c-picker-3d', 'value'),
         outline_enable=State('outline-switch', 'value'),
@@ -457,6 +457,24 @@ def slider_change_callback(
     return dict(
         scatter3d=fig
     )
+
+
+@app.callback(
+    output=dict(
+        scatter3d=Output('scatter3d', 'figure', allow_duplicate=True),
+    ),
+    inputs=dict(
+        colormap=Input('colormap-3d', 'value'),
+    ),
+    state=dict(
+        fig=State('scatter3d', 'figure'),
+    ),
+    prevent_initial_call=True,
+)
+def colormap_change_callback(colormap, fig):
+    fig['data'][0]['marker']['colorscale'] = colormap
+
+    return dict(scatter3d=fig)
 
 
 @app.callback(
