@@ -646,7 +646,12 @@ parallel_card = dbc.Card([
                         dcc.Dropdown(
                             id='dim-picker-parallel',
                             multi=True
-                        )
+                        ),
+                    ),
+                    dbc.Tooltip(
+                        'Dimensions',
+                        target='dim-picker-parallel',
+                        placement='top',
                     ),
                     dbc.Col(dbc.InputGroup([
                         dbc.InputGroupText('c'),
