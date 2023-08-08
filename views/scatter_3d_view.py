@@ -478,7 +478,8 @@ def slider_change_callback(
     prevent_initial_call=True,
 )
 def colormap_change_callback(colormap, fig):
-    fig['data'][0]['marker']['colorscale'] = colormap
+    for idx in range(0, len(fig['data'])):
+        fig['data'][idx]['marker']['colorscale'] = colormap
 
     return dict(scatter3d=fig)
 
@@ -497,9 +498,11 @@ def colormap_change_callback(colormap, fig):
 )
 def outline_change_callback(outline_enable, fig):
     if outline_enable:
-        fig['data'][0]['marker']['line']['width'] = 1
+        for idx in range(0, len(fig['data'])):
+            fig['data'][idx]['marker']['line']['width'] = 1
     else:
-        fig['data'][0]['marker']['line']['width'] = 0
+        for idx in range(0, len(fig['data'])):
+            fig['data'][idx]['marker']['line']['width'] = 0
 
     return dict(scatter3d=fig)
 
