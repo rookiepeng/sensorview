@@ -66,9 +66,8 @@ app.layout = get_app_layout
     inputs=dict(
         interval=Input('buffer-interval', 'n_intervals'),
         filter_trigger=Input('filter-trigger', 'data'),
-        colormap=Input('colormap-3d', 'value'),
+        c_key=Input('c-picker-3d', 'value'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
-        outline_sw=Input('outline-switch', 'value'),
         file_picker=Input('file-picker', 'value'),
     ),
     state=dict(
@@ -79,9 +78,8 @@ app.layout = get_app_layout
 def update_buffer_indicator(
     interval,
     filter_trigger,
-    colormap,
+    c_key,
     left_hide_trigger,
-    outline_sw,
     file_picker,
     max_frame,
     session_id
