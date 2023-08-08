@@ -39,6 +39,8 @@ from maindash import app
 from dash.dependencies import Input, Output, State,  ALL
 from dash.exceptions import PreventUpdate
 
+import plotly.io as pio
+
 from tasks import filter_all
 from tasks import celery_filtering_data, celery_export_video
 
@@ -53,7 +55,6 @@ from viz.graph_layout import get_scatter3d_layout
 def prepare_figure_kwargs(
     config,
     frame_list,
-    darkmode,
     slider_arg,
     c_key,
     num_keys,
@@ -64,11 +65,6 @@ def prepare_figure_kwargs(
     fig_kwargs = dict()
     fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
-
-    if darkmode:
-        fig_kwargs['template'] = 'plotly_dark'
-    else:
-        fig_kwargs['template'] = 'plotly'
 
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
     fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
@@ -146,7 +142,6 @@ def process_single_frame(
         c_key,
         outline_enable,
         decay,
-        darkmode,
         session_id,
         case,
         file):
@@ -170,7 +165,6 @@ def process_single_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        darkmode,
         slider_arg,
         c_key,
         num_keys,
@@ -287,7 +281,6 @@ def process_overlay_frame(
         visible_list,
         c_key,
         outline_enable,
-        darkmode,
         session_id,
         case,
         file,
@@ -308,7 +301,6 @@ def process_overlay_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        darkmode,
         slider_arg,
         c_key,
         num_keys,
@@ -397,7 +389,6 @@ def slider_change_callback(
             visible_list,
             c_key,
             outline_enable,
-            darkmode,
             session_id,
             case,
             file,
@@ -440,6 +431,12 @@ def slider_change_callback(
                 layout = cache_get(session_id,
                                    CACHE_KEYS['figure_layout'],
                                    str(slider_arg))
+
+                if darkmode:
+                    layout['template'] = pio.templates['plotly_dark']
+                else:
+                    layout['template'] = pio.templates['plotly']
+
                 return dict(
                     scatter3d=dict(data=fig_ref+fig,
                                    layout=layout)
@@ -454,10 +451,14 @@ def slider_change_callback(
             c_key,
             outline_enable,
             decay,
-            darkmode,
             session_id,
             case,
             file)
+
+    if darkmode:
+        fig['layout']['template'] = pio.templates['plotly_dark']
+    else:
+        fig['layout']['template'] = pio.templates['plotly']
 
     return dict(
         scatter3d=fig
@@ -505,98 +506,23 @@ def outline_change_callback(outline_enable, fig):
 
 @app.callback(
     output=dict(
-        dummy=Output('dummy', 'data', allow_duplicate=True),
+        scatter3d=Output('scatter3d', 'figure', allow_duplicate=True),
     ),
     inputs=dict(
-        cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
-        num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
-        visible_list=Input('visible-picker', 'value'),
-        c_key=Input('c-picker-3d', 'value'),
-        click_data=Input('scatter3d', 'clickData'),
-        left_hide_trigger=Input('left-hide-trigger', 'data'),
-        darkmode=Input('darkmode-switch', 'value')
+        darkmode=Input('darkmode-switch', 'value'),
     ),
     state=dict(
-        click_hide=State('click-hide-switch', 'value'),
-        session_id=State('session-id', 'data'),
-        case=State('case-picker', 'value'),
-        file=State('file-picker', 'value'),
-        file_list=State('file-add', 'value')
+        fig=State('scatter3d', 'figure'),
     ),
     prevent_initial_call=True,
 )
-def invoke_task(
-    cat_values,
-    num_values,
-    visible_list,
-    c_key,
-    click_data,
-    left_hide_trigger,
-    darkmode,
-    click_hide,
-    session_id,
-    case,
-    file,
-    file_list
-):
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    # file = json.loads(file)
-
-    # no update if:
-    #   - triggered from 3D scatter, and
-    #   - click_hide switch is disabled or the reference point is clicked
-    if trigger_id == 'scatter3d' and \
-            ((not click_hide) or
-                (click_data['points'][0]['curveNumber'] == 0)):
-        raise PreventUpdate
-
-    # save filter key word arguments to Redis
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-    filter_kwargs['num_values'] = num_values
-    filter_kwargs['cat_values'] = cat_values
-    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
-
-    # get visibility table from Redis
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-
-    # update visibility table if a data point is clicked to hide
-    if trigger_id == 'scatter3d' and \
-        click_hide and \
-            click_data['points'][0]['curveNumber'] > 0:
-
-        if visible_table['_VIS_'][
-            click_data['points'][0]['id']
-        ] == 'visible':
-            visible_table.at[
-                click_data['points'][0]['id'], '_VIS_'] = 'hidden'
-        else:
-            visible_table.at[
-                click_data['points'][0]['id'], '_VIS_'] = 'visible'
-
-        cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
-
-    task_kwargs = dict()
-    task_kwargs['c_key'] = c_key
-
+def darkmode_change_callback(darkmode, fig):
     if darkmode:
-        task_kwargs['template'] = 'plotly_dark'
+        fig['layout']['template'] = pio.templates['plotly_dark']
     else:
-        task_kwargs['template'] = 'plotly'
+        fig['layout']['template'] = pio.templates['plotly']
 
-    # invoke celery task
-    cache_set(0, session_id, CACHE_KEYS['task_id'])
-    cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
-    if file not in file_list:
-        file_list.append(file)
-    celery_filtering_data.apply_async(args=[session_id,
-                                            case,
-                                            file_list,
-                                            visible_list],
-                                      kwargs=task_kwargs,
-                                      serializer='json')
-
-    return dict(dummy=0)
+    return dict(scatter3d=fig)
 
 
 @app.callback(
@@ -607,10 +533,9 @@ def invoke_task(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         visible_list=Input('visible-picker', 'value'),
-        c_key=Input('c-picker-3d', 'value'),
         click_data=Input('scatter3d', 'clickData'),
+        c_key=Input('c-picker-3d', 'value'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
-        darkmode=Input('darkmode-switch', 'value')
     ),
     state=dict(
         slider_arg=State('slider-frame', 'value'),
@@ -624,17 +549,16 @@ def invoke_task(
     ),
     prevent_initial_call=True,
 )
-def filter_changed(
-    slider_arg,
+def regenerate_figure_callback(
     cat_values,
     num_values,
     visible_list,
+    click_data,
+    slider_arg,
     c_key,
     overlay_enable,
-    click_data,
     left_hide_trigger,
     decay,
-    darkmode,
     click_hide,
     session_id,
     case,
@@ -683,17 +607,32 @@ def filter_changed(
     :rtype: list
     """
 
+    ## invoke task
+    # save filter key word arguments to Redis
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
+    filter_kwargs['num_values'] = num_values
+    filter_kwargs['cat_values'] = cat_values
+    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
+
+    task_kwargs = dict()
+    task_kwargs['c_key'] = c_key
+
+    # invoke celery task
+    cache_set(0, session_id, CACHE_KEYS['task_id'])
+    cache_set(-1, session_id, CACHE_KEYS['figure_idx'])
+    if file not in file_list:
+        file_list.append(file)
+    celery_filtering_data.apply_async(args=[session_id,
+                                            case,
+                                            file_list,
+                                            visible_list],
+                                      kwargs=task_kwargs,
+                                      serializer='json')
+
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
     # file = json.loads(file)
 
-    # no update if:
-    #   - triggered from 3D scatter, and
-    #   - click_hide switch is disabled or the reference point is clicked
-    if trigger_id == 'scatter3d' and \
-            ((not click_hide) or
-                (click_data['points'][0]['curveNumber'] == 0)):
-        raise PreventUpdate
     opacity = np.linspace(1, 0.2, decay+1)
 
     # get config from Redis
@@ -734,11 +673,6 @@ def filter_changed(
     fig_kwargs = dict()
     fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
-
-    if darkmode:
-        fig_kwargs['template'] = 'plotly_dark'
-    else:
-        fig_kwargs['template'] = 'plotly'
 
     slider_label = keys_dict[config['slider']]['description']
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
@@ -920,11 +854,11 @@ def filter_changed(
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         visible_list=Input('visible-picker', 'value'),
         click_data=Input('scatter3d', 'clickData'),
-        darkmode=Input('darkmode-switch', 'value')
     ),
     state=dict(
         trigger_idx=State('filter-trigger', 'data'),
         click_hide=State('click-hide-switch', 'value'),
+        session_id=State('session-id', 'data'),
     )
 )
 def invoke_filter_trigger(
@@ -932,9 +866,9 @@ def invoke_filter_trigger(
     num_values,
     visible_list,
     click_data,
-    darkmode,
     trigger_idx,
-    click_hide
+    click_hide,
+    session_id
 ):
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -942,6 +876,20 @@ def invoke_filter_trigger(
     if trigger_id == 'scatter3d':
         if click_hide and \
                 click_data['points'][0]['curveNumber'] > 0:
+
+            # visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+
+            # if visible_table['_VIS_'][
+            #     click_data['points'][0]['id']
+            # ] == 'visible':
+            #     visible_table.at[
+            #         click_data['points'][0]['id'], '_VIS_'] = 'hidden'
+            # else:
+            #     visible_table.at[
+            #         click_data['points'][0]['id'], '_VIS_'] = 'visible'
+
+            # cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
+
             filter_trig = trigger_idx+1
         else:
             filter_trig = dash.no_update
