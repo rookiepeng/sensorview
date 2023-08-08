@@ -143,25 +143,25 @@ view3d_card = dbc.Card([
                 dbc.Col(
                     dbc.ButtonGroup([
                         dbc.Button(
-                            '<<',
+                            html.I(className='bi bi-chevron-double-left'),
                             id='previous-button',
                             color='dark',
                             n_clicks=0
                         ),
                         dbc.Button(
-                            '▷',
+                            html.I(className='bi bi-play-fill'),
                             id='play-button',
                             color='primary',
                             n_clicks=0
                         ),
                         dbc.Button(
-                            '▢',
+                            html.I(className='bi bi-stop-fill'),
                             id='stop-button',
                             color='danger',
                             n_clicks=0
                         ),
                         dbc.Button(
-                            '>>',
+                            html.I(className='bi bi-chevron-double-right'),
                             id='next-button',
                             color='dark',
                             n_clicks=0
@@ -790,8 +790,7 @@ def get_app_layout():
                 dbc.Col(dbc.Row([
                     dbc.Col(dbc.Label(html.B('Test Cases')),
                             width=9, className='my-2'),
-                    dbc.Col(dbc.Button(
-                            '↻',
+                    dbc.Col(dbc.Button(html.I(className='bi bi-arrow-clockwise'),
                             id='refresh-button',
                             n_clicks=0,
                             size="sm",
@@ -799,7 +798,8 @@ def get_app_layout():
                     html.Hr(),
                     dbc.Col(dbc.Select(id='case-picker'), width=3),
                     dbc.Col(dbc.Select(id='file-picker'), width=9),
-                    dbc.Col(html.Div([dbc.Button('+',
+                    dbc.Col(html.Div([dbc.Button(
+                        html.I(className='bi bi-plus-square'),
                         id='button-add',
                         n_clicks=0,
                         size="sm")], className='d-grid'), width=12, className='my-2'),
