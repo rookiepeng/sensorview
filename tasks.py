@@ -38,7 +38,7 @@ import json
 
 import plotly.graph_objs as go
 
-from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data, get_hover_strings
 from viz.graph_layout import get_scatter3d_layout
 from viz.viz import get_animation_data
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
@@ -279,6 +279,11 @@ def celery_filtering_data(
             filterd_frame,
             **fig_kwargs
         )
+
+        hover_strings = get_hover_strings(filterd_frame,
+                                          fig_kwargs['c_key'],
+                                          fig_kwargs['c_type'],
+                                          fig_kwargs['hover'])
         if kwargs['x_ref'] is not None and kwargs['y_ref'] is not None:
             ref_fig = [get_ref_scatter3d_data(
                 data_frame=filterd_frame,
@@ -295,6 +300,9 @@ def celery_filtering_data(
         if cache_get(session_id, CACHE_KEYS['task_id']) == task_id:
             cache_set(fig,
                       session_id, CACHE_KEYS['figure'],
+                      str(slider_arg))
+            cache_set(hover_strings,
+                      session_id, CACHE_KEYS['hover'],
                       str(slider_arg))
             cache_set(ref_fig,
                       session_id,

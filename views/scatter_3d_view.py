@@ -48,7 +48,7 @@ from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 from utils import load_data
 
 from viz.viz import get_scatter3d
-from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data, get_hover_strings
 from viz.graph_layout import get_scatter3d_layout
 
 
@@ -63,7 +63,6 @@ def prepare_figure_kwargs(
     keys_dict = config['keys']
     # prepare figure key word arguments
     fig_kwargs = dict()
-    fig_kwargs['hover'] = keys_dict
     fig_kwargs['image'] = None
 
     fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
@@ -144,7 +143,8 @@ def process_single_frame(
         decay,
         session_id,
         case,
-        file):
+        file,
+        load_hover=False):
 
     keys_dict = config['keys']
 
@@ -205,8 +205,19 @@ def process_single_frame(
         filterd_frame,
         **fig_kwargs
     )
-
     c_type = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
+    if load_hover:
+        hover_list = get_hover_strings(
+            filterd_frame,
+            fig_kwargs['c_key'],
+            c_type,
+            keys_dict
+        )
+
+        if hover_list:
+            for idx in range(0, len(hover_list)):
+                fig[idx]['text'] = hover_list[idx]
+                fig[idx]['hovertemplate'] = '%{text}'
 
     if c_type == 'numerical':
         fig[0]['marker']['colorscale'] = colormap
@@ -241,6 +252,19 @@ def process_single_frame(
                     frame_temp,
                     **fig_kwargs
                 )
+                if load_hover:
+                    hover_list = get_hover_strings(
+                        frame_temp,
+                        fig_kwargs['c_key'],
+                        c_type,
+                        keys_dict
+                    )
+
+                    if hover_list:
+                        for idx in range(0, len(hover_list)):
+                            new_fig[idx]['text'] = hover_list[idx]
+                            new_fig[idx]['hovertemplate'] = '%{text}'
+
                 if c_type == 'numerical':
                     new_fig[0]['marker']['colorscale'] = colormap
                 if outline_enable:
@@ -284,7 +308,8 @@ def process_overlay_frame(
         session_id,
         case,
         file,
-        file_list):
+        file_list,
+        load_hover=False):
 
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
@@ -327,6 +352,20 @@ def process_overlay_frame(
 
     keys_dict = config['keys']
     c_type = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
+
+    if load_hover:
+        hover_list = get_hover_strings(
+            filterd_frame,
+            fig_kwargs['c_key'],
+            c_type,
+            keys_dict
+        )
+
+        if hover_list:
+            for idx in range(0, len(hover_list)):
+                fig[idx]['text'] = hover_list[idx]
+                fig[idx]['hovertemplate'] = '%{text}'
+
     if c_type == 'numerical':
         fig['data'][0]['marker']['colorscale'] = colormap
     if outline_enable:
@@ -345,6 +384,7 @@ def process_overlay_frame(
         decay=Input('decay-slider', 'value'),
     ),
     state=dict(
+        ispaused=State('interval-component', 'disabled'),
         cat_values=State({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=State({'type': 'filter-slider', 'index': ALL}, 'value'),
         colormap=State('colormap-3d', 'value'),
@@ -363,6 +403,7 @@ def slider_change_callback(
         slider_arg,
         cat_values,
         num_values,
+        ispaused,
         colormap,
         visible_list,
         c_key,
@@ -392,7 +433,8 @@ def slider_change_callback(
             session_id,
             case,
             file,
-            file_list)
+            file_list,
+            ispaused)
     else:
         fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
 
@@ -405,6 +447,17 @@ def slider_change_callback(
                 fig = cache_get(session_id,
                                 CACHE_KEYS['figure'],
                                 str(slider_arg))
+                if ispaused:
+                    hover_list = cache_get(session_id,
+                                           CACHE_KEYS['hover'],
+                                           str(slider_arg)
+                                           )
+
+                    if hover_list:
+                        for idx in range(0, len(hover_list)):
+                            fig[idx]['text'] = hover_list[idx]
+                            fig[idx]['hovertemplate'] = '%{text}'
+
                 if c_type == 'numerical':
                     fig[0]['marker']['colorscale'] = colormap
                 if outline_enable:
@@ -417,6 +470,17 @@ def slider_change_callback(
                                                 CACHE_KEYS['figure'],
                                                 str(slider_arg-val))
                             new_fig[0]['marker']['opacity'] = opacity[val]
+                            if ispaused:
+                                hover_list = cache_get(session_id,
+                                                       CACHE_KEYS['hover'],
+                                                       str(slider_arg-val)
+                                                       )
+
+                                if hover_list:
+                                    for idx in range(0, len(hover_list)):
+                                        new_fig[idx]['text'] = hover_list[idx]
+                                        new_fig[idx]['hovertemplate'] = '%{text}'
+
                             if c_type == 'numerical':
                                 new_fig[0]['marker']['colorscale'] = colormap
 
@@ -453,7 +517,8 @@ def slider_change_callback(
             decay,
             session_id,
             case,
-            file)
+            file,
+            ispaused)
 
     if darkmode:
         fig['layout']['template'] = pio.templates['plotly_dark']
@@ -581,6 +646,7 @@ def visible_table_change_callback(
         left_hide_trigger=Input('left-hide-trigger', 'data'),
     ),
     state=dict(
+        ispaused=State('interval-component', 'disabled'),
         slider_arg=State('slider-frame', 'value'),
         overlay_enable=State('overlay-switch', 'value'),
         decay=State('decay-slider', 'value'),
@@ -600,6 +666,7 @@ def regenerate_figure_callback(
     num_values,
     visible_list,
     vistable_trigger,
+    ispaused,
     slider_arg,
     c_key,
     overlay_enable,
@@ -693,7 +760,8 @@ def regenerate_figure_callback(
             session_id,
             case,
             file,
-            file_list)
+            file_list,
+            ispaused)
     else:
         fig = process_single_frame(
             slider_arg,
@@ -707,7 +775,8 @@ def regenerate_figure_callback(
             decay,
             session_id,
             case,
-            file)
+            file,
+            ispaused)
 
     if darkmode:
         fig['layout']['template'] = pio.templates['plotly_dark']
