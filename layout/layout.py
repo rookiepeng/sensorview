@@ -811,21 +811,6 @@ def get_app_layout():
                 ]), width=9),
             ]),]), className="my-3"),
 
-        dbc.Collapse(dbc.Row([
-            dbc.Col(
-                dbc.Progress(
-                    value=100,
-                    color='light',
-                    id="loading-progress",
-                    animated=False,
-                    striped=False,
-                    label=''
-                )
-            )
-        ]), id="collapse",
-            is_open=True
-        ),
-
         html.Hr(),
 
         view3d_card,
@@ -833,11 +818,6 @@ def get_app_layout():
         dbc.CardGroup(
             [left2d_card,
              right2d_card], className='mb-3'),
-
-        # dbc.Row([
-        #     dbc.Col(left2d_card, width=6),
-        #     dbc.Col(right2d_card, width=6)
-        # ], className='mb-3'),
 
         dbc.CardGroup(
             [hist_card,
@@ -848,6 +828,32 @@ def get_app_layout():
              heatmap_card], className='mb-3'),
 
         html.Hr(),
+
+        dbc.Row(
+            [
+                dbc.Row([
+                    dbc.Spinner(color="info",
+                                type="grow",
+                                spinner_style={"width": "6rem",
+                                               "height": "6rem"}),
+                    dbc.Label('Loading...',
+                              color='light',
+                              className="text-center")
+                ], align="center",
+                    justify="center",)
+            ],
+            id='loading-view',
+            align="center",
+            justify="center",
+            style={
+                'position': 'fixed',
+                'top': 0,
+                'left': 0,
+                'width': '100%',
+                'height': '100%',
+                'background-color': 'rgba(0, 0, 0, 0.9)',
+                'display': 'none'}
+        ),
 
         dcc.Markdown(
             'Designed and developed by **Zhengyu Peng** \
