@@ -59,19 +59,23 @@ colorscales = ['Blackbody',
 view3d_card = dbc.Card([
     dbc.CardBody([dbc.Row([
         dbc.Col(dbc.Row([
-            dbc.Col(
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('Color'),
                 dbc.Select(
                     id='c-picker-3d',
-                ), width=3
+                ),
+            ]), width=3
             ),
-            dbc.Col(
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('Colormap'),
                 dbc.Select(
                     id='colormap-3d',
                     options=[{'value': x,
                               'label': x}
                              for x in colorscales],
                     value='Portland',
-                ), width=2
+                )
+            ]), width=3
             ),
             dbc.Col(
                 dbc.Checklist(
@@ -82,7 +86,7 @@ view3d_card = dbc.Card([
                     id='darkmode-switch',
                     switch=True,
                     style={'float': 'right'}
-                ), width=7
+                ), width=6
             ),
 
             dbc.Col(dcc.Graph(
@@ -275,31 +279,32 @@ left2d_card = dbc.Card([
             id='loading_left',
             children=[
                 dbc.Row([
-                        dbc.Col(dbc.Label('x-axis')),
-                        dbc.Col(dbc.Label('y-axis')),
-                        dbc.Col(dbc.Label('color')),
-                        dbc.Col(dbc.Label('colormap')),
-                        ]),
-                dbc.Row([
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('x'),
                             dbc.Select(
                                 id='x-picker-2d-left',
                                 disabled=False,
                             )
+                        ], size='sm')
                         ),
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('y'),
                             dbc.Select(
                                 id='y-picker-2d-left',
                                 disabled=False,
                             )
+                        ], size='sm')
                         ),
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('c'),
                             dbc.Select(
                                 id='c-picker-2d-left',
                                 disabled=False,
                             )
+                        ], size='sm')
                         ),
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('cmap'),
                             dbc.Select(
                                 id='colormap-scatter2d-left',
                                 disabled=False,
@@ -308,9 +313,9 @@ left2d_card = dbc.Card([
                                          for x in colorscales],
                                 value='Portland',
                             )
+                        ], size='sm')
                         ),
-                        ], style={'margin-bottom': 10}
-                        ),
+                        ], class_name='g-1 mb-2'),
                 dbc.Collapse(
                     html.Div([
                         dcc.Graph(
@@ -380,31 +385,32 @@ right2d_card = dbc.Card([
             id='loading_right',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis')),
-                    dbc.Col(dbc.Label('color')),
-                    dbc.Col(dbc.Label('colormap')),
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-2d-right',
                             disabled=False,
                         )
+                    ], size='sm')
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-picker-2d-right',
                             disabled=False,
                         )
+                    ], size='sm')
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-2d-right',
                             disabled=False,
                         )
+                    ], size='sm')
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('cmap'),
                         dbc.Select(
                             id='colormap-scatter2d-right',
                             disabled=False,
@@ -412,9 +418,9 @@ right2d_card = dbc.Card([
                                      for x in colorscales],
                             value='Portland',
                         )
+                    ], size='sm')
                     ),
-                ], style={'margin-bottom': 10}
-                ),
+                ], class_name='g-1 mb-2'),
                 dbc.Collapse(
                     html.Div([
                         dcc.Graph(
@@ -477,18 +483,16 @@ hist_card = dbc.Card([
             id='loading_histogram',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis')),
-                    dbc.Col(dbc.Label('color')),
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-histogram',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-histogram',
                             options=[{'label': 'Probability',
@@ -498,12 +502,15 @@ hist_card = dbc.Card([
                             value='density',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-histogram',
                             disabled=False,
                         )
+                    ])
                     ),
                 ]),
                 dbc.Collapse(
@@ -560,28 +567,29 @@ violin_card = dbc.Card([
             id='loading_violin',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis')),
-                    dbc.Col(dbc.Label('color')),
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-violin',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-picker-violin',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-violin',
                             disabled=False,
                         )
+                    ])
                     ),
                 ]),
                 dbc.Collapse(
@@ -634,21 +642,19 @@ parallel_card = dbc.Card([
             id='loading_parallel',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('dimensions')),
-                    dbc.Col(dbc.Label('color')),
-                ]),
-                dbc.Row([
                     dbc.Col(
                         dcc.Dropdown(
                             id='dim-picker-parallel',
                             multi=True
                         )
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-parallel',
                             disabled=False,
                         )
+                    ])
                     ),
                 ]),
                 dbc.Collapse(
@@ -701,21 +707,21 @@ heatmap_card = dbc.Card([
             id='loading_heat',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis'))
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-heatmap',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-picker-heatmap',
                             disabled=False,
                         )
+                    ])
                     )
                 ]),
                 dbc.Collapse(
@@ -788,16 +794,27 @@ def get_app_layout():
                     # ),
                 ]), width=3),
                 dbc.Col(dbc.Row([
-                    dbc.Col(dbc.Label(html.B('Test Cases')),
-                            width=9, className='my-2'),
-                    dbc.Col(dbc.Button(html.I(className='bi bi-arrow-clockwise'),
+                    # dbc.Col(dbc.Label(html.B('Test Cases')),
+                    #         width=12, className='my-1'),
+                    # dbc.Col(dbc.Button(html.I(className='bi bi-arrow-clockwise'),
+                    #         id='refresh-button',
+                    #         n_clicks=0,
+                    #         size="sm",
+                    #         style={'float': 'right'}), width=3, className='my-2'),
+                    # html.Hr(),
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('Test Case'),
+                        dbc.Select(id='case-picker'),
+                    ]),
+                        width=4),
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('Log File'),
+                        dbc.Select(id='file-picker'),
+                        dbc.Button(html.I(className='bi bi-arrow-clockwise'),
                             id='refresh-button',
-                            n_clicks=0,
-                            size="sm",
-                            style={'float': 'right'}), width=3, className='my-2'),
-                    html.Hr(),
-                    dbc.Col(dbc.Select(id='case-picker'), width=3),
-                    dbc.Col(dbc.Select(id='file-picker'), width=9),
+                            n_clicks=0)
+                    ]),
+                        width=8),
                     dbc.Col(html.Div([dbc.Button(
                         html.I(className='bi bi-plus-square'),
                         id='button-add',
@@ -809,7 +826,7 @@ def get_app_layout():
                             id='collapse-add',
                             is_open=False), width=12),
                 ]), width=9),
-            ]),]), className="my-3"),
+            ], align="center"),]), className="my-3"),
 
         html.Hr(),
 
