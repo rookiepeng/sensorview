@@ -595,8 +595,8 @@ def update_slider(
             raise PreventUpdate
 
         # triggerred from interval
-        if slider_state == slider_max:
-            return dict(slider_value=dash.no_update)
+        # if slider_state == slider_max:
+        #     return dict(slider_value=dash.no_update)
 
         fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
         if fig_idx is not None:
