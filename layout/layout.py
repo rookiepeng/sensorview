@@ -56,124 +56,13 @@ colorscales = ['Blackbody',
                'YlOrRd']
 
 
-testcase_card = dbc.Card([
-    dbc.CardBody([
-        dbc.Row([
-            dbc.Col(
-                dbc.Label('Test Cases')
-            ),
-            dbc.Col(
-                dbc.Button(
-                    '↻',
-                    id='refresh-button',
-                    color='secondary',
-                    n_clicks=0,
-                    size="sm",
-                    style={
-                        'float': 'right'
-                    }
-                ), width=3
-            )
-        ], justify="end"),
-        html.Hr(),
-        dbc.Row([
-            dbc.Col(dbc.Select(id='case-picker'), width=3),
-            dbc.Col(dbc.Select(id='file-picker'))
-        ]),
-        dbc.Row([
-            dbc.Button(
-                '+',
-                id='button-add',
-                color='secondary',
-                n_clicks=0,
-                size="sm",
-            )
-        ], class_name='mx-1 my-1'),
-        dbc.Row([
-            dbc.Col(
-                dbc.Collapse(
-                    dcc.Dropdown(
-                        id='file-add',
-                        multi=True,
-                    ),
-                    id='collapse-add',
-                    is_open=False,
-                ),
-            )
-        ])
-    ])
-], color='secondary',
-    inverse=True,
-    className="h-100 shadow-sm")
-
-filter_card = dbc.Card([
-    dbc.CardBody([
-        dbc.Row([
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Add outline to scatters',
-                         'value': True}],
-                    value=[],
-                    id='outline-switch',
-                    switch=True,
-                ),
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Overlay all frames',
-                         'value': True}],
-                    value=[],
-                    id='overlay-switch',
-                    switch=True,
-                ),
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Click to change visibility',
-                         'value': True}],
-                    value=[],
-                    id='click-hide-switch',
-                    switch=True,
-                ),
-                ]),
-        dbc.Row([
-                dbc.Label('Visibility options'),
-                dbc.Checklist(
-                    options=[
-                        {'label': 'Show visible',
-                         'value': 'visible'},
-                        {'label': 'Show hidden',
-                         'value': 'hidden'}],
-                    value=['visible'],
-                    id='visible-picker',
-                ),
-                ]),
-        dbc.Row([
-                dbc.Label('Decay'),
-                dcc.Slider(
-                    id='decay-slider',
-                    min=0,
-                    max=10,
-                    step=1,
-                    value=0,
-                    marks=None,
-                    tooltip={'always_visible': False,
-                             'placement': 'top'}
-                ),
-                ]),
-    ]),
-    dbc.CardHeader('Filter'),
-    dbc.CardBody([
-        html.Div(id='dropdown-container', children=[]),
-        html.Div(id='slider-container', children=[]),
-    ], style={'overflow': 'scroll', 'height': '600px'})
-], className="shadow-sm")
-
 view3d_card = dbc.Card([
-    dbc.CardBody([
-        dbc.Row([
+    dbc.CardBody([dbc.Row([
+        dbc.Col(dbc.Row([
             dbc.Col(
                 dbc.Select(
                     id='c-picker-3d',
-                ), width=2
+                ), width=3
             ),
             dbc.Col(
                 dbc.Select(
@@ -193,29 +82,26 @@ view3d_card = dbc.Card([
                     id='darkmode-switch',
                     switch=True,
                     style={'float': 'right'}
-                ), width=8
+                ), width=7
             ),
-        ], justify='end',
-            style={'margin-bottom': 10}),
 
-        dcc.Graph(
-            id='scatter3d',
-            config={'displaylogo': False,
-                    'modeBarButtonsToRemove': [
-                        'resetCameraDefault3d',
-                        'resetCameraLastSave3d']},
-            figure={'data': [{'mode': 'markers',
-                              'type': 'scatter3d',
-                              'x': [],
-                              'y': [],
-                              'z': []}],
-                    'layout': {'template': pio.templates['plotly'],
-                               'height': 650,
-                               'uirevision': 'no_change'}
-                    },
-        ),
+            dbc.Col(dcc.Graph(
+                id='scatter3d',
+                config={'displaylogo': False,
+                        'modeBarButtonsToRemove': [
+                            'resetCameraDefault3d',
+                            'resetCameraLastSave3d']},
+                figure={'data': [{'mode': 'markers',
+                                  'type': 'scatter3d',
+                                  'x': [],
+                                  'y': [],
+                                  'z': []}],
+                        'layout': {'template': pio.templates['plotly'],
+                                   'uirevision': 'no_change'}
+                        },
+                style={'height': '85vh'},
+            ), class_name='mt-2'),
 
-        dbc.Row([
             dcc.Interval(
                 id='buffer-interval',
                 interval=2000,  # in milliseconds
@@ -246,68 +132,123 @@ view3d_card = dbc.Card([
                              'placement': 'top'}
                 ), width=12
             ),
-        ], style={'margin-top': 0, 'margin-bottom': -15}
-        ),
-        dbc.Row([
-            dcc.Interval(
-                id='interval-component',
-                interval=2*100,  # in milliseconds
-                disabled=True,
-                n_intervals=0
+
+            dbc.Row([
+                dcc.Interval(
+                    id='interval-component',
+                    interval=2*100,  # in milliseconds
+                    disabled=True,
+                    n_intervals=0
+                ),
+                dbc.Col(
+                    dbc.ButtonGroup([
+                        dbc.Button(
+                            '<<',
+                            id='previous-button',
+                            color='dark',
+                            n_clicks=0
+                        ),
+                        dbc.Button(
+                            '▷',
+                            id='play-button',
+                            color='primary',
+                            n_clicks=0
+                        ),
+                        dbc.Button(
+                            '▢',
+                            id='stop-button',
+                            color='danger',
+                            n_clicks=0
+                        ),
+                        dbc.Button(
+                            '>>',
+                            id='next-button',
+                            color='dark',
+                            n_clicks=0
+                        )
+                    ]), width=2
+                ),
+            ], justify='center'
             ),
-            dbc.Col(
-                dbc.ButtonGroup([
-                    dbc.Button(
-                        '<<',
-                        id='previous-button',
-                        color='dark',
+            html.Div([
+                dbc.DropdownMenu([
+                    dbc.DropdownMenuItem(
+                        'Export all frames as an HTML video',
+                        id='export-scatter3d',
                         n_clicks=0
                     ),
-                    dbc.Button(
-                        '▷',
-                        id='play-button',
-                        color='primary',
-                        n_clicks=0
-                    ),
-                    dbc.Button(
-                        '▢',
-                        id='stop-button',
-                        color='danger',
-                        n_clicks=0
-                    ),
-                    dbc.Button(
-                        '>>',
-                        id='next-button',
-                        color='dark',
+                    dbc.DropdownMenuItem(
+                        'Save filtered data',
+                        id='export-data',
                         n_clicks=0
                     )
-                ]), width=2
-            ),
-        ], justify='center'
-        ),
-        html.Div([
-            dbc.DropdownMenu([
-                dbc.DropdownMenuItem(
-                    'Export all frames as an HTML video',
-                    id='export-scatter3d',
-                    n_clicks=0
+                ], label='Export',
+                    right=True,
+                    style={'float': 'right'}
                 ),
-                dbc.DropdownMenuItem(
-                    'Save filtered data',
-                    id='export-data',
-                    n_clicks=0
-                )
-            ], label='Export',
-                right=True,
-                style={'float': 'right'}
+                html.Div(
+                    id='hidden-scatter3d',
+                    style={'display': 'none'}
+                ),
+            ]),
+        ]), width=9),
+        dbc.Col(dbc.Row([
+            dbc.Checklist(
+                options=[
+                        {'label': 'Add outline to scatters',
+                            'value': True}],
+                value=[],
+                id='outline-switch',
+                switch=True,
             ),
-            html.Div(
-                id='hidden-scatter3d',
-                style={'display': 'none'}
+            dbc.Checklist(
+                options=[
+                    {'label': 'Overlay all frames',
+                     'value': True}],
+                value=[],
+                id='overlay-switch',
+                switch=True,
             ),
-        ]),
+            dbc.Checklist(
+                options=[
+                    {'label': 'Click to change visibility',
+                     'value': True}],
+                value=[],
+                id='click-hide-switch',
+                switch=True,
+            ),
+
+            dbc.Label('Visibility options'),
+            dbc.Checklist(
+                options=[
+                    {'label': 'Show visible',
+                     'value': 'visible'},
+                    {'label': 'Show hidden',
+                     'value': 'hidden'}],
+                value=['visible'],
+                id='visible-picker',
+            ),
+
+            dbc.Label('Decay'),
+            dcc.Slider(
+                id='decay-slider',
+                min=0,
+                max=10,
+                step=1,
+                value=0,
+                marks=None,
+                tooltip={'always_visible': False,
+                         'placement': 'top'}
+            ),
+
+            dbc.CardHeader('Filter'),
+            dbc.CardBody([
+                html.Div(id='dropdown-container', children=[]),
+                html.Div(id='slider-container', children=[]),
+            ], )]), style={'overflow-y': 'scroll', 'height': '110vh'}),
     ])
-], className="shadow-lg")
+    ]),
+], className="mb-3")
 
 
 left2d_card = dbc.Card([
@@ -822,74 +763,89 @@ def get_app_layout():
         dcc.Store(id='dummy-export-parallel'),
         dcc.Store(id='dummy-export-heatmap'),
         dcc.Store(id='dummy-export-data'),
+        dcc.Store(id='visible-table-change-trigger', data=0),
 
         dcc.Store(id='local-case-selection', storage_type='local'),
         dcc.Store(id='local-file-selection', storage_type='local'),
 
-        dbc.Row([
-            dbc.Col(
-                dbc.Card(
-                    dbc.CardBody([
-                        html.Div(
-                            html.Img(
-                                src=app.get_asset_url('sensorview_logo.svg'),
-                                id='sensorview-image',
-                                style={
-                                    'height': '90px',
-                                    'width': 'auto',
-                                },
-                            ), className="text-center"
-                        ),
-                        html.H4(app.title, className="text-center"),
-                        # html.Hr(className="my-2"),
-                        # html.P(
-                        #     'Sensor Data Visualization',
-                        #     className="text-center"
-                        # ),
-                    ]), color="light",
-                    outline=True,
-                    className="h-100 shadow-sm"),
-                width=3),
-            dbc.Col(testcase_card),
-        ], className="my-3"),
+        dbc.Card(
+            dbc.CardBody([dbc.Row([
+                dbc.Col(dbc.Row([
+                    html.Div(
+                        html.Img(
+                            src=app.get_asset_url(
+                                'sensorview_logo.svg'),
+                            id='sensorview-image',
+                            style={'height': '110px',
+                                   'width': 'auto'},
+                        ), className="text-center"
+                    ),
+                    html.H4(app.title, className="text-center"),
+                    # html.Hr(className="my-2"),
+                    # html.P(
+                    #     'Sensor Data Visualization',
+                    #     className="text-center"
+                    # ),
+                ]), width=3),
+                dbc.Col(dbc.Row([
+                    dbc.Col(dbc.Label(html.B('Test Cases')),
+                            width=9, className='my-2'),
+                    dbc.Col(dbc.Button(
+                            '↻',
+                            id='refresh-button',
+                            n_clicks=0,
+                            size="sm",
+                            style={'float': 'right'}), width=3, className='my-2'),
+                    html.Hr(),
+                    dbc.Col(dbc.Select(id='case-picker'), width=3),
+                    dbc.Col(dbc.Select(id='file-picker'), width=9),
+                    dbc.Col(html.Div([dbc.Button('+',
+                        id='button-add',
+                        n_clicks=0,
+                        size="sm")], className='d-grid'), width=12, className='my-2'),
+                    dbc.Col(dbc.Collapse(
+                            dcc.Dropdown(id='file-add',
+                                         multi=True),
+                            id='collapse-add',
+                            is_open=False), width=12),
+                ]), width=9),
+            ]),]), className="my-3"),
 
-        dbc.Collapse(
-            dbc.Row([
-                dbc.Col(
-                    dbc.Progress(
-                        value=100,
-                        color='light',
-                        id="loading-progress",
-                        animated=False,
-                        striped=False,
-                        label=''
-                    )
+        dbc.Collapse(dbc.Row([
+            dbc.Col(
+                dbc.Progress(
+                    value=100,
+                    color='light',
+                    id="loading-progress",
+                    animated=False,
+                    striped=False,
+                    label=''
                 )
-            ]), id="collapse",
+            )
+        ]), id="collapse",
             is_open=True
         ),
 
         html.Hr(),
 
-        dbc.Row([
-            dbc.Col(view3d_card, width=9),
-            dbc.Col(filter_card, width=3)
-        ], className='mb-3', align='start'),
+        view3d_card,
 
-        dbc.Row([
-            dbc.Col(left2d_card, width=6),
-            dbc.Col(right2d_card, width=6)
-        ], className='mb-3'),
+        dbc.CardGroup(
+            [left2d_card,
+             right2d_card], className='mb-3'),
 
-        dbc.Row([
-            dbc.Col(hist_card, width=6),
-            dbc.Col(violin_card, width=6),
-        ], className='mb-3'),
+        # dbc.Row([
+        #     dbc.Col(left2d_card, width=6),
+        #     dbc.Col(right2d_card, width=6)
+        # ], className='mb-3'),
 
-        dbc.Row([
-            dbc.Col(parallel_card, width=6),
-            dbc.Col(heatmap_card, width=6),
-        ], className='mb-3'),
+        dbc.CardGroup(
+            [hist_card,
+             violin_card], className='mb-3'),
+
+        dbc.CardGroup(
+            [parallel_card,
+             heatmap_card], className='mb-3'),
 
         html.Hr(),
 
