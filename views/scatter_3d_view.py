@@ -527,13 +527,53 @@ def darkmode_change_callback(darkmode, fig):
 
 @app.callback(
     output=dict(
+        trigger=Output('visible-table-change-trigger', 'data'),
+    ),
+    inputs=dict(
+        click_data=Input('scatter3d', 'clickData'),
+    ),
+    state=dict(
+        trigger_input=State('visible-table-change-trigger', 'data'),
+        click_hide=State('click-hide-switch', 'value'),
+        session_id=State('session-id', 'data'),
+    ),
+    prevent_initial_call=True,
+)
+def visible_table_change_callback(
+    click_data,
+    trigger_input,
+    click_hide,
+    session_id,
+):
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    if click_hide and \
+            click_data['points'][0]['curveNumber'] > 0:
+
+        if visible_table['_VIS_'][
+            click_data['points'][0]['id']
+        ] == 'visible':
+            visible_table.at[
+                click_data['points'][0]['id'], '_VIS_'] = 'hidden'
+        else:
+            visible_table.at[
+                click_data['points'][0]['id'], '_VIS_'] = 'visible'
+
+        cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
+
+        return dict(trigger=trigger_input+1)
+    else:
+        raise PreventUpdate
+
+
+@app.callback(
+    output=dict(
         scatter3d=Output('scatter3d', 'figure', allow_duplicate=True),
     ),
     inputs=dict(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         visible_list=Input('visible-picker', 'value'),
-        click_data=Input('scatter3d', 'clickData'),
+        vistable_trigger=Input('visible-table-change-trigger', 'data'),
         c_key=Input('c-picker-3d', 'value'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
     ),
@@ -541,6 +581,9 @@ def darkmode_change_callback(darkmode, fig):
         slider_arg=State('slider-frame', 'value'),
         overlay_enable=State('overlay-switch', 'value'),
         decay=State('decay-slider', 'value'),
+        colormap=State('colormap-3d', 'value'),
+        outline_enable=State('outline-switch', 'value'),
+        darkmode=State('darkmode-switch', 'value'),
         click_hide=State('click-hide-switch', 'value'),
         session_id=State('session-id', 'data'),
         case=State('case-picker', 'value'),
@@ -553,12 +596,15 @@ def regenerate_figure_callback(
     cat_values,
     num_values,
     visible_list,
-    click_data,
+    vistable_trigger,
     slider_arg,
     c_key,
     overlay_enable,
     left_hide_trigger,
     decay,
+    colormap,
+    outline_enable,
+    darkmode,
     click_hide,
     session_id,
     case,
@@ -607,7 +653,7 @@ def regenerate_figure_callback(
     :rtype: list
     """
 
-    ## invoke task
+    # invoke task
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     filter_kwargs['num_values'] = num_values
@@ -628,217 +674,42 @@ def regenerate_figure_callback(
                                             visible_list],
                                       kwargs=task_kwargs,
                                       serializer='json')
-
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-    # file = json.loads(file)
-
-    opacity = np.linspace(1, 0.2, decay+1)
-
     # get config from Redis
     config = cache_get(session_id, CACHE_KEYS['config'])
-    keys_dict = config['keys']
-
-    # save filter key word arguments to Redis
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-    cat_keys = filter_kwargs['cat_keys']
-    num_keys = filter_kwargs['num_keys']
-    filter_kwargs['num_values'] = num_values
-    filter_kwargs['cat_values'] = cat_values
-    cache_set(filter_kwargs, session_id, CACHE_KEYS['filter_kwargs'])
-
-    # get visibility table from Redis
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-
-    # get frame list from Redis
-    frame_list = cache_get(session_id, CACHE_KEYS['frame_list'])
-
-    # update visibility table if a data point is clicked to hide
-    if trigger_id == 'scatter3d' and \
-        click_hide and \
-            click_data['points'][0]['curveNumber'] > 0:
-
-        if visible_table['_VIS_'][
-            click_data['points'][0]['id']
-        ] == 'visible':
-            visible_table.at[
-                click_data['points'][0]['id'], '_VIS_'] = 'hidden'
-        else:
-            visible_table.at[
-                click_data['points'][0]['id'], '_VIS_'] = 'visible'
-
-        cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
-
-    # prepare figure key word arguments
-    fig_kwargs = dict()
-    fig_kwargs['hover'] = keys_dict
-    fig_kwargs['image'] = None
-
-    slider_label = keys_dict[config['slider']]['description']
-    fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
-    fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
-        'description', fig_kwargs['x_key'])
-    fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
-    fig_kwargs['y_label'] = keys_dict[fig_kwargs['y_key']].get(
-        'description', fig_kwargs['y_key'])
-    fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
-    fig_kwargs['z_label'] = keys_dict[fig_kwargs['z_key']].get(
-        'description', fig_kwargs['z_key'])
-    fig_kwargs['c_key'] = c_key
-    fig_kwargs['c_label'] = keys_dict[fig_kwargs['c_key']].get(
-        'description', fig_kwargs['c_key'])
-    fig_kwargs['x_ref'] = config.get('x_ref', None)
-    fig_kwargs['y_ref'] = config.get('y_ref', None)
-
-    # set graph's range the same for all the frames
-    if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
-        fig_kwargs['x_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['x_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['x_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][1]])
-        ]
-        fig_kwargs['y_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['y_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['y_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][1]])
-        ]
-    else:
-        fig_kwargs['x_range'] = [
-            num_values[num_keys.index(fig_kwargs['x_key'])][0],
-            num_values[num_keys.index(fig_kwargs['x_key'])][1]
-        ]
-        fig_kwargs['y_range'] = [
-            num_values[num_keys.index(fig_kwargs['y_key'])][0],
-            num_values[num_keys.index(fig_kwargs['y_key'])][1]
-        ]
-    fig_kwargs['z_range'] = [
-        num_values[num_keys.index(fig_kwargs['z_key'])][0],
-        num_values[num_keys.index(fig_kwargs['z_key'])][1]
-    ]
-
-    if keys_dict[c_key].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
-        fig_kwargs['c_range'] = [
-            num_values[num_keys.index(c_key)][0],
-            num_values[num_keys.index(c_key)][1]
-        ]
-    else:
-        fig_kwargs['c_range'] = [0, 0]
-
-    fig_kwargs['name'] = 'Index: ' +\
-        str(slider_arg) +\
-        ' (' +\
-        slider_label +\
-        ': ' +\
-        str(frame_list[slider_arg]) +\
-        ')'
-    fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
-    fig_kwargs['ref_name'] = 'Host Vehicle'
 
     if overlay_enable:
-        # overlay all the frames
-        # get data from .feather file on the disk
-        data = load_data(file, file_list, case)
-        filterd_frame = filter_all(data,
-                                   num_keys,
-                                   num_values,
-                                   cat_keys,
-                                   cat_values,
-                                   visible_table,
-                                   visible_list)
-        fig_kwargs['image'] = None
-
-        # generate the graph
-        fig = get_scatter3d(
-            filterd_frame,
-            **fig_kwargs
-        )
+        fig = process_overlay_frame(
+            slider_arg,
+            config,
+            cat_values,
+            num_values,
+            colormap,
+            visible_list,
+            c_key,
+            outline_enable,
+            session_id,
+            case,
+            file,
+            file_list)
     else:
-        file = json.loads(file)
-        img_path = './data/' +\
-            case +\
-            file['path'] +\
-            '/'+file['name'][0:-4]+'/' + \
-            str(slider_arg) +\
-            '.jpg'
+        fig = process_single_frame(
+            slider_arg,
+            config,
+            cat_values,
+            num_values,
+            colormap,
+            visible_list,
+            c_key,
+            outline_enable,
+            decay,
+            session_id,
+            case,
+            file)
 
-        # encode image frame
-        try:
-            encoding = base64.b64encode(open(img_path, 'rb').read())
-            fig_kwargs['image'] = 'data:image/jpeg;base64,{}'.format(
-                encoding.decode())
-        except FileNotFoundError:
-            fig_kwargs['image'] = None
-        except NotADirectoryError:
-            fig_kwargs['image'] = None
-
-        # get a single frame data from Redis
-        data = cache_get(session_id,
-                         CACHE_KEYS['frame_data'],
-                         str(frame_list[slider_arg]))
-
-        filterd_frame = filter_all(data,
-                                   num_keys,
-                                   num_values,
-                                   cat_keys,
-                                   cat_values,
-                                   visible_table,
-                                   visible_list)
-        fig = get_scatter3d_data(
-            filterd_frame,
-            **fig_kwargs
-        )
-
-        if decay > 0:
-            for val in range(1, decay+1):
-                if (slider_arg-val) >= 0:
-                    # filter the data
-                    frame_temp = filter_all(
-                        cache_get(session_id,
-                                  CACHE_KEYS['frame_data'],
-                                  str(frame_list[slider_arg-val])),
-                        num_keys,
-                        num_values,
-                        cat_keys,
-                        cat_values,
-                        visible_table,
-                        visible_list
-                    )
-                    fig_kwargs['opacity'] = opacity[val]
-                    fig_kwargs['name'] = 'Index: ' +\
-                        str(slider_arg-val) +\
-                        ' (' +\
-                        slider_label +\
-                        ': ' +\
-                        str(frame_list[slider_arg-val]) +\
-                        ')'
-                    fig = fig+get_scatter3d_data(
-                        frame_temp,
-                        **fig_kwargs
-                    )
-
-                else:
-                    break
-
-        if fig_kwargs['x_ref'] is not None and fig_kwargs['y_ref'] is not None:
-            fig_ref = [
-                get_ref_scatter3d_data(
-                    data_frame=filterd_frame,
-                    x_key=fig_kwargs['x_ref'],
-                    y_key=fig_kwargs['y_ref'],
-                    z_key=None,
-                    name=fig_kwargs.get('ref_name', None))
-            ]
-        else:
-            fig_ref = []
-
-        layout = get_scatter3d_layout(**fig_kwargs)
-
-        fig = dict(
-            data=fig_ref+fig,
-            layout=layout
-        )
+    if darkmode:
+        fig['layout']['template'] = pio.templates['plotly_dark']
+    else:
+        fig['layout']['template'] = pio.templates['plotly']
 
     return dict(
         scatter3d=fig,
@@ -853,7 +724,7 @@ def regenerate_figure_callback(
         cat_values=Input({'type': 'filter-dropdown', 'index': ALL}, 'value'),
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         visible_list=Input('visible-picker', 'value'),
-        click_data=Input('scatter3d', 'clickData'),
+        vistable_trigger=Input('visible-table-change-trigger', 'data'),
     ),
     state=dict(
         trigger_idx=State('filter-trigger', 'data'),
@@ -865,36 +736,12 @@ def invoke_filter_trigger(
     cat_values,
     num_values,
     visible_list,
-    click_data,
+    vistable_trigger,
     trigger_idx,
     click_hide,
     session_id
 ):
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    if trigger_id == 'scatter3d':
-        if click_hide and \
-                click_data['points'][0]['curveNumber'] > 0:
-
-            # visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-
-            # if visible_table['_VIS_'][
-            #     click_data['points'][0]['id']
-            # ] == 'visible':
-            #     visible_table.at[
-            #         click_data['points'][0]['id'], '_VIS_'] = 'hidden'
-            # else:
-            #     visible_table.at[
-            #         click_data['points'][0]['id'], '_VIS_'] = 'visible'
-
-            # cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
-
-            filter_trig = trigger_idx+1
-        else:
-            filter_trig = dash.no_update
-    else:
-        filter_trig = trigger_idx+1
+    filter_trig = trigger_idx+1
 
     return dict(
         filter_trigger=filter_trig
