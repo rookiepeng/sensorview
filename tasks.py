@@ -38,11 +38,13 @@ import json
 
 import plotly.graph_objs as go
 
-from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data, get_hover_strings
+from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from viz.graph_data import get_hover_strings
 from viz.graph_layout import get_scatter3d_layout
 from viz.viz import get_animation_data
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 from utils import load_data_list
+from utils import prepare_figure_kwargs
 
 logger = get_task_logger(__name__)
 
@@ -172,70 +174,18 @@ def celery_filtering_data(
     dataset = load_data_list(file_list, case)
     frame_group = dataset.groupby(config['slider'])
 
-    # prepare figure key word arguments
-    fig_kwargs = kwargs
-    fig_kwargs['image'] = None
-
-    fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
-    fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
-        'description', fig_kwargs['x_key'])
-    fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
-    fig_kwargs['y_label'] = keys_dict[fig_kwargs['y_key']].get(
-        'description', fig_kwargs['y_key'])
-    fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
-    fig_kwargs['z_label'] = keys_dict[fig_kwargs['z_key']].get(
-        'description', fig_kwargs['z_key'])
-    # fig_kwargs['c_key'] = c_key
-    fig_kwargs['c_label'] = keys_dict[fig_kwargs['c_key']].get(
-        'description', fig_kwargs['c_key'])
-    fig_kwargs['x_ref'] = config.get('x_ref', None)
-    fig_kwargs['y_ref'] = config.get('y_ref', None)
-
     if cache_get(session_id, CACHE_KEYS['task_id']) != task_id:
         logger.info('Task '+str(task_id)+' terminated by a new task')
         return
 
-    # set graph's range the same for all the frames
-    if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
-        fig_kwargs['x_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['x_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['x_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][1]])
-        ]
-        fig_kwargs['y_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['y_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['y_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][1]])
-        ]
-    else:
-        fig_kwargs['x_range'] = [
-            num_values[num_keys.index(fig_kwargs['x_key'])][0],
-            num_values[num_keys.index(fig_kwargs['x_key'])][1]
-        ]
-        fig_kwargs['y_range'] = [
-            num_values[num_keys.index(fig_kwargs['y_key'])][0],
-            num_values[num_keys.index(fig_kwargs['y_key'])][1]
-        ]
-    fig_kwargs['z_range'] = [
-        num_values[num_keys.index(fig_kwargs['z_key'])][0],
-        num_values[num_keys.index(fig_kwargs['z_key'])][1]
-    ]
-
-    if keys_dict[fig_kwargs['c_key']].\
-            get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
-        fig_kwargs['c_range'] = [
-            num_values[num_keys.index(fig_kwargs['c_key'])][0],
-            num_values[num_keys.index(fig_kwargs['c_key'])][1]
-        ]
-    else:
-        fig_kwargs['c_range'] = [0, 0]
-
-    fig_kwargs['c_type'] = keys_dict[fig_kwargs['c_key']].get(
-        'type', KEY_TYPES['NUM'])
-    fig_kwargs['ref_name'] = 'Host Vehicle'
-    fig_kwargs['hover'] = keys_dict
+    # prepare figure key word arguments
+    fig_kwargs = prepare_figure_kwargs(
+        config,
+        frame_list,
+        kwargs['c_key'],
+        num_keys,
+        num_values,
+    )
 
     for slider_arg in range(0, len(frame_list)):
         file = json.loads(file_list[0])
@@ -283,14 +233,14 @@ def celery_filtering_data(
         hover_strings = get_hover_strings(filterd_frame,
                                           fig_kwargs['c_key'],
                                           fig_kwargs['c_type'],
-                                          fig_kwargs['hover'])
-        if kwargs['x_ref'] is not None and kwargs['y_ref'] is not None:
+                                          keys_dict)
+        if fig_kwargs['x_ref'] is not None and fig_kwargs['y_ref'] is not None:
             ref_fig = [get_ref_scatter3d_data(
                 data_frame=filterd_frame,
-                x_key=kwargs['x_ref'],
-                y_key=kwargs['y_ref'],
+                x_key=fig_kwargs['x_ref'],
+                y_key=fig_kwargs['y_ref'],
                 z_key=None,
-                name=kwargs.get('ref_name', None)
+                name=fig_kwargs.get('ref_name', None)
             )]
         else:
             ref_fig = []

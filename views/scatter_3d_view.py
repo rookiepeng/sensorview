@@ -46,89 +46,12 @@ from tasks import celery_filtering_data, celery_export_video
 
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 from utils import load_data
+from utils import prepare_figure_kwargs
 
 from viz.viz import get_scatter3d
-from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data, get_hover_strings
+from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from viz.graph_data import get_hover_strings
 from viz.graph_layout import get_scatter3d_layout
-
-
-def prepare_figure_kwargs(
-    config,
-    frame_list,
-    slider_arg,
-    c_key,
-    num_keys,
-    num_values,
-):
-    keys_dict = config['keys']
-    # prepare figure key word arguments
-    fig_kwargs = dict()
-    fig_kwargs['image'] = None
-
-    fig_kwargs['x_key'] = config.get('x_3d', num_keys[0])
-    fig_kwargs['x_label'] = keys_dict[fig_kwargs['x_key']].get(
-        'description', fig_kwargs['x_key'])
-    fig_kwargs['y_key'] = config.get('y_3d', num_keys[1])
-    fig_kwargs['y_label'] = keys_dict[fig_kwargs['y_key']].get(
-        'description', fig_kwargs['y_key'])
-    fig_kwargs['z_key'] = config.get('z_3d', num_keys[2])
-    fig_kwargs['z_label'] = keys_dict[fig_kwargs['z_key']].get(
-        'description', fig_kwargs['z_key'])
-    fig_kwargs['c_key'] = c_key
-    fig_kwargs['c_label'] = keys_dict[fig_kwargs['c_key']].get(
-        'description', fig_kwargs['c_key'])
-    fig_kwargs['x_ref'] = config.get('x_ref', None)
-    fig_kwargs['y_ref'] = config.get('y_ref', None)
-
-    # set graph's range the same for all the frames
-    if (fig_kwargs['x_ref'] is not None) and (fig_kwargs['y_ref'] is not None):
-        fig_kwargs['x_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['x_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['x_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['x_ref'])][1]])
-        ]
-        fig_kwargs['y_range'] = [
-            min([num_values[num_keys.index(fig_kwargs['y_key'])][0],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][0]]),
-            max([num_values[num_keys.index(fig_kwargs['y_key'])][1],
-                 num_values[num_keys.index(fig_kwargs['y_ref'])][1]])
-        ]
-    else:
-        fig_kwargs['x_range'] = [
-            num_values[num_keys.index(fig_kwargs['x_key'])][0],
-            num_values[num_keys.index(fig_kwargs['x_key'])][1]
-        ]
-        fig_kwargs['y_range'] = [
-            num_values[num_keys.index(fig_kwargs['y_key'])][0],
-            num_values[num_keys.index(fig_kwargs['y_key'])][1]
-        ]
-    fig_kwargs['z_range'] = [
-        num_values[num_keys.index(fig_kwargs['z_key'])][0],
-        num_values[num_keys.index(fig_kwargs['z_key'])][1]
-    ]
-
-    if keys_dict[c_key].get('type', KEY_TYPES['NUM']) == KEY_TYPES['NUM']:
-        fig_kwargs['c_range'] = [
-            num_values[num_keys.index(c_key)][0],
-            num_values[num_keys.index(c_key)][1]
-        ]
-    else:
-        fig_kwargs['c_range'] = [0, 0]
-
-    slider_label = keys_dict[config['slider']]['description']
-    fig_kwargs['name'] = 'Index: ' +\
-        str(slider_arg) +\
-        ' (' +\
-        slider_label +\
-        ': ' +\
-        str(frame_list[slider_arg]) +\
-        ')'
-
-    fig_kwargs['c_type'] = keys_dict[c_key].get('type', KEY_TYPES['NUM'])
-    fig_kwargs['ref_name'] = 'Host Vehicle'
-
-    return fig_kwargs
 
 
 def process_single_frame(
@@ -165,10 +88,10 @@ def process_single_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        slider_arg,
         c_key,
         num_keys,
         num_values,
+        slider_arg,
     )
 
     file = json.loads(file)
@@ -326,10 +249,10 @@ def process_overlay_frame(
     fig_kwargs = prepare_figure_kwargs(
         config,
         frame_list,
-        slider_arg,
         c_key,
         num_keys,
         num_values,
+        slider_arg,
     )
 
     # overlay all the frames
