@@ -6,18 +6,21 @@ A lightweight sensor data visualization and analysis tool.
 
 ## Screenshots
 
-<img src="./assets/sensorview.png" alt="sensorview" width="800"/>
+<img src="./assets/sensorview.png" alt="sensorview" width="600"/>
 
 ## Features
 
-### 3D View and Filtering
+### 3D Visualization and Filtering
 
-![](./assets/3d.gif)
+<img src="./assets/3d.gif" alt="3d" width="600"/>
 
-### 2D View and Filtering
+### 2D Visualization and Filtering
 
-![](./assets/2d.gif)
+<img src="./assets/2d.gif" alt="2d" width="600"/>
 
+### Statistical Visualization
+
+<img src="./assets/stat.gif" alt="stat" width="600"/>
 
 ## Dependence
 
@@ -33,8 +36,7 @@ A lightweight sensor data visualization and analysis tool.
 - kaleido
 - gevent
 - celery
-- gunicorn (for Linux)
-- waitress (for Windows)
+- gunicorn
 
 pip install -r requirements.txt
 

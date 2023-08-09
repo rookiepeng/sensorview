@@ -59,19 +59,30 @@ colorscales = ['Blackbody',
 view3d_card = dbc.Card([
     dbc.CardBody([dbc.Row([
         dbc.Col(dbc.Row([
-            dbc.Col(
-                dbc.Select(
-                    id='c-picker-3d',
-                ), width=3
-            ),
-            dbc.Col(
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('Color'),
+                dbc.Select(id='c-picker-3d'),
+                dbc.Tooltip(
+                    'Select color axis',
+                    target='c-picker-3d',
+                    placement='top',
+                ),
+            ]), width=3),
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('Colormap'),
                 dbc.Select(
                     id='colormap-3d',
                     options=[{'value': x,
                               'label': x}
                              for x in colorscales],
                     value='Portland',
-                ), width=2
+                ),
+                dbc.Tooltip(
+                    'Select colormap',
+                    target='colormap-3d',
+                    placement='top',
+                ),
+            ]), width=3
             ),
             dbc.Col(
                 dbc.Checklist(
@@ -82,7 +93,7 @@ view3d_card = dbc.Card([
                     id='darkmode-switch',
                     switch=True,
                     style={'float': 'right'}
-                ), width=7
+                ), width=6
             ),
 
             dbc.Col(dcc.Graph(
@@ -143,30 +154,50 @@ view3d_card = dbc.Card([
                 dbc.Col(
                     dbc.ButtonGroup([
                         dbc.Button(
-                            '<<',
+                            html.I(className='bi bi-skip-backward-fill'),
                             id='previous-button',
                             color='dark',
                             n_clicks=0
                         ),
                         dbc.Button(
-                            '▷',
+                            html.I(className='bi bi-play-fill'),
                             id='play-button',
                             color='primary',
                             n_clicks=0
                         ),
                         dbc.Button(
-                            '▢',
+                            html.I(className='bi bi-stop-fill'),
                             id='stop-button',
                             color='danger',
                             n_clicks=0
                         ),
                         dbc.Button(
-                            '>>',
+                            html.I(className='bi bi-skip-forward-fill'),
                             id='next-button',
                             color='dark',
                             n_clicks=0
                         )
                     ]), width=2
+                ),
+                dbc.Tooltip(
+                    'Previous frame',
+                    target='previous-button',
+                    placement='top',
+                ),
+                dbc.Tooltip(
+                    'Play',
+                    target='play-button',
+                    placement='top',
+                ),
+                dbc.Tooltip(
+                    'Stop',
+                    target='stop-button',
+                    placement='top',
+                ),
+                dbc.Tooltip(
+                    'Next frame',
+                    target='next-button',
+                    placement='top',
                 ),
             ], justify='center'
             ),
@@ -275,31 +306,32 @@ left2d_card = dbc.Card([
             id='loading_left',
             children=[
                 dbc.Row([
-                        dbc.Col(dbc.Label('x-axis')),
-                        dbc.Col(dbc.Label('y-axis')),
-                        dbc.Col(dbc.Label('color')),
-                        dbc.Col(dbc.Label('colormap')),
-                        ]),
-                dbc.Row([
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('x'),
                             dbc.Select(
                                 id='x-picker-2d-left',
                                 disabled=False,
                             )
+                        ], size='sm')
                         ),
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('y'),
                             dbc.Select(
                                 id='y-picker-2d-left',
                                 disabled=False,
                             )
+                        ], size='sm')
                         ),
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('c'),
                             dbc.Select(
                                 id='c-picker-2d-left',
                                 disabled=False,
                             )
+                        ], size='sm')
                         ),
-                        dbc.Col(
+                        dbc.Col(dbc.InputGroup([
+                            dbc.InputGroupText('cmap'),
                             dbc.Select(
                                 id='colormap-scatter2d-left',
                                 disabled=False,
@@ -308,9 +340,9 @@ left2d_card = dbc.Card([
                                          for x in colorscales],
                                 value='Portland',
                             )
+                        ], size='sm')
                         ),
-                        ], style={'margin-bottom': 10}
-                        ),
+                        ], class_name='g-1 mb-2'),
                 dbc.Collapse(
                     html.Div([
                         dcc.Graph(
@@ -380,31 +412,32 @@ right2d_card = dbc.Card([
             id='loading_right',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis')),
-                    dbc.Col(dbc.Label('color')),
-                    dbc.Col(dbc.Label('colormap')),
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-2d-right',
                             disabled=False,
                         )
+                    ], size='sm')
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-picker-2d-right',
                             disabled=False,
                         )
+                    ], size='sm')
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-2d-right',
                             disabled=False,
                         )
+                    ], size='sm')
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('cmap'),
                         dbc.Select(
                             id='colormap-scatter2d-right',
                             disabled=False,
@@ -412,9 +445,9 @@ right2d_card = dbc.Card([
                                      for x in colorscales],
                             value='Portland',
                         )
+                    ], size='sm')
                     ),
-                ], style={'margin-bottom': 10}
-                ),
+                ], class_name='g-1 mb-2'),
                 dbc.Collapse(
                     html.Div([
                         dcc.Graph(
@@ -477,18 +510,16 @@ hist_card = dbc.Card([
             id='loading_histogram',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis')),
-                    dbc.Col(dbc.Label('color')),
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-histogram',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-histogram',
                             options=[{'label': 'Probability',
@@ -498,12 +529,15 @@ hist_card = dbc.Card([
                             value='density',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-histogram',
                             disabled=False,
                         )
+                    ])
                     ),
                 ]),
                 dbc.Collapse(
@@ -560,28 +594,29 @@ violin_card = dbc.Card([
             id='loading_violin',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis')),
-                    dbc.Col(dbc.Label('color')),
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-violin',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-picker-violin',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-violin',
                             disabled=False,
                         )
+                    ])
                     ),
                 ]),
                 dbc.Collapse(
@@ -634,21 +669,24 @@ parallel_card = dbc.Card([
             id='loading_parallel',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('dimensions')),
-                    dbc.Col(dbc.Label('color')),
-                ]),
-                dbc.Row([
                     dbc.Col(
                         dcc.Dropdown(
                             id='dim-picker-parallel',
                             multi=True
-                        )
+                        ),
                     ),
-                    dbc.Col(
+                    dbc.Tooltip(
+                        'Dimensions',
+                        target='dim-picker-parallel',
+                        placement='top',
+                    ),
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('c'),
                         dbc.Select(
                             id='c-picker-parallel',
                             disabled=False,
                         )
+                    ])
                     ),
                 ]),
                 dbc.Collapse(
@@ -701,21 +739,21 @@ heatmap_card = dbc.Card([
             id='loading_heat',
             children=[
                 dbc.Row([
-                    dbc.Col(dbc.Label('x-axis')),
-                    dbc.Col(dbc.Label('y-axis'))
-                ]),
-                dbc.Row([
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('x'),
                         dbc.Select(
                             id='x-picker-heatmap',
                             disabled=False,
                         )
+                    ])
                     ),
-                    dbc.Col(
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('y'),
                         dbc.Select(
                             id='y-picker-heatmap',
                             disabled=False,
                         )
+                    ])
                     )
                 ]),
                 dbc.Collapse(
@@ -781,50 +819,60 @@ def get_app_layout():
                         ), className="text-center"
                     ),
                     html.H4(app.title, className="text-center"),
-                    # html.Hr(className="my-2"),
-                    # html.P(
-                    #     'Sensor Data Visualization',
-                    #     className="text-center"
-                    # ),
+                    html.P(
+                        'Sensor Data Visualization',
+                        className="text-center"
+                    ),
                 ]), width=3),
                 dbc.Col(dbc.Row([
-                    dbc.Col(dbc.Label(html.B('Test Cases')),
-                            width=9, className='my-2'),
-                    dbc.Col(dbc.Button(
-                            '↻',
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('Test Case'),
+                        dbc.Select(id='case-picker'),
+                    ]), width=4),
+                    dbc.Tooltip(
+                        'Select a test case',
+                        target='case-picker',
+                        placement='top',
+                    ),
+                    dbc.Col(dbc.InputGroup([
+                        dbc.InputGroupText('Log File'),
+                        dbc.Select(id='file-picker'),
+                        dbc.Button(html.I(className='bi bi-arrow-clockwise'),
                             id='refresh-button',
-                            n_clicks=0,
-                            size="sm",
-                            style={'float': 'right'}), width=3, className='my-2'),
-                    html.Hr(),
-                    dbc.Col(dbc.Select(id='case-picker'), width=3),
-                    dbc.Col(dbc.Select(id='file-picker'), width=9),
-                    dbc.Col(html.Div([dbc.Button('+',
+                            n_clicks=0)
+                    ]), width=8),
+                    dbc.Tooltip(
+                        'Select a log file',
+                        target='file-picker',
+                        placement='top',
+                    ),
+                    dbc.Tooltip(
+                        'Refresh test cases',
+                        target='refresh-button',
+                        placement='top',
+                    ),
+                    dbc.Col(html.Div([dbc.Button(
+                        html.I(className='bi bi-link-45deg'),
                         id='button-add',
                         n_clicks=0,
                         size="sm")], className='d-grid'), width=12, className='my-2'),
+                    dbc.Tooltip(
+                        'Combine other log files',
+                        target='button-add',
+                        placement='top',
+                    ),
                     dbc.Col(dbc.Collapse(
                             dcc.Dropdown(id='file-add',
                                          multi=True),
                             id='collapse-add',
                             is_open=False), width=12),
+                    dbc.Tooltip(
+                        'Select additional log files',
+                        target='file-add',
+                        placement='top',
+                    ),
                 ]), width=9),
-            ]),]), className="my-3"),
-
-        dbc.Collapse(dbc.Row([
-            dbc.Col(
-                dbc.Progress(
-                    value=100,
-                    color='light',
-                    id="loading-progress",
-                    animated=False,
-                    striped=False,
-                    label=''
-                )
-            )
-        ]), id="collapse",
-            is_open=True
-        ),
+            ], align="center"),]), className="my-3"),
 
         html.Hr(),
 
@@ -833,11 +881,6 @@ def get_app_layout():
         dbc.CardGroup(
             [left2d_card,
              right2d_card], className='mb-3'),
-
-        # dbc.Row([
-        #     dbc.Col(left2d_card, width=6),
-        #     dbc.Col(right2d_card, width=6)
-        # ], className='mb-3'),
 
         dbc.CardGroup(
             [hist_card,
@@ -848,6 +891,30 @@ def get_app_layout():
              heatmap_card], className='mb-3'),
 
         html.Hr(),
+
+        dbc.Row(
+            [
+                dbc.Row([
+                    dbc.Spinner(color="info",
+                                spinner_style={"width": "6rem",
+                                               "height": "6rem"}),
+                    dbc.Label('Loading ...',
+                              color='light',
+                              className="text-center")
+                ], align="center",
+                    justify="center",)
+            ],
+            id='loading-view',
+            align="center",
+            justify="center",
+            style={
+                'position': 'fixed',
+                'top': 0,
+                'left': 0,
+                'width': '100%',
+                'height': '100%',
+                'background-color': 'rgba(0, 0, 0, 0.9)'}
+        ),
 
         dcc.Markdown(
             'Designed and developed by **Zhengyu Peng** \

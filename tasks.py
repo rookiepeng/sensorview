@@ -52,6 +52,8 @@ redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
 celery_app = Celery("Celery_App", broker=redis_url, backend=redis_url)
 
+celery_app.conf.broker_connection_retry_on_startup = False
+
 
 def filter_all(
         data,

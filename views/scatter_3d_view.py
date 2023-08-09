@@ -305,6 +305,7 @@ def process_overlay_frame(
         slider_arg=Input('slider-frame', 'value'),
         overlay_enable=Input('overlay-switch', 'value'),
         decay=Input('decay-slider', 'value'),
+        stop_click=Input('stop-button', 'n_clicks'),
     ),
     state=dict(
         ispaused=State('interval-component', 'disabled'),
@@ -326,6 +327,7 @@ def slider_change_callback(
         slider_arg,
         cat_values,
         num_values,
+        stop_click,
         ispaused,
         colormap,
         visible_list,
@@ -338,6 +340,12 @@ def slider_change_callback(
         case,
         file,
         file_list):
+
+    ctx = dash.callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if trigger_id == 'stop-button':
+        ispaused = True
 
     config = cache_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']

@@ -117,11 +117,7 @@ def refresh_button_clicked(click, stored_case):
         session_id=State('session-id', 'data'),
         stored_file=State('local-file-selection', 'data')
     ),
-    progress=[Output("loading-progress", "color"),
-              Output("loading-progress", "striped"),
-              Output("loading-progress", "animated"),
-              Output("loading-progress", "label"),
-              Output("collapse", "is_open"),
+    progress=[Output("loading-view", "style"),
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],
@@ -153,7 +149,15 @@ def case_selected(set_progress, case, session_id, stored_file):
         raise PreventUpdate
 
     set_progress(
-        ['warning', True, True, 'Loading ...', True, True, True, True])
+        [{
+            'position': 'fixed',
+            'top': 0,
+            'left': 0,
+            'width': '100%',
+            'height': '100%',
+            'background-color': 'rgba(0, 0, 0, 0.9)'
+        },
+            True, True, True])
 
     data_files = []
     case_dir = './data/'+case
@@ -229,11 +233,7 @@ def case_selected(set_progress, case, session_id, stored_file):
         session_id=State('session-id', 'data'),
         all_state=DROPDOWN_VALUES_ALL_STATE
     ),
-    progress=[Output("loading-progress", "color"),
-              Output("loading-progress", "striped"),
-              Output("loading-progress", "animated"),
-              Output("loading-progress", "label"),
-              Output("collapse", "is_open"),
+    progress=[Output("loading-view", "style"),
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],
@@ -249,7 +249,15 @@ def file_select_changed(
         all_state):
 
     set_progress(
-        ['warning', True, True, 'Loading ...', True, True, True, True])
+        [{
+             'position': 'fixed',
+             'top': 0,
+             'left': 0,
+             'width': '100%',
+             'height': '100%',
+             'background-color': 'rgba(0, 0, 0, 0.9)'
+         },
+         True, True, True])
     # get keys from Redis
     config = cache_get(session_id, CACHE_KEYS['config'])
 
@@ -462,7 +470,16 @@ def file_select_changed(
     else:
         t_values_cat = cat_keys[0]
 
-    set_progress(['light', False, False, '', False, False, False, False])
+    set_progress([{
+                      'position': 'fixed',
+                      'top': 0,
+                      'left': 0,
+                      'width': '100%',
+                      'height': '100%',
+                      'background-color': 'rgba(0, 0, 0, 0.9)',
+                      'display': 'none'
+                  },
+                  False, False, False])
 
     return dict(
         file_load_trigger=file_loaded+1,
@@ -578,8 +595,8 @@ def update_slider(
             raise PreventUpdate
 
         # triggerred from interval
-        if slider_state == slider_max:
-            return dict(slider_value=dash.no_update)
+        # if slider_state == slider_max:
+        #     return dict(slider_value=dash.no_update)
 
         fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
         if fig_idx is not None:
