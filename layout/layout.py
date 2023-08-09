@@ -61,11 +61,13 @@ view3d_card = dbc.Card([
         dbc.Col(dbc.Row([
             dbc.Col(dbc.InputGroup([
                 dbc.InputGroupText('Color'),
-                dbc.Select(
-                    id='c-picker-3d',
+                dbc.Select(id='c-picker-3d'),
+                dbc.Tooltip(
+                    'Select color axis',
+                    target='c-picker-3d',
+                    placement='top',
                 ),
-            ]), width=3
-            ),
+            ]), width=3),
             dbc.Col(dbc.InputGroup([
                 dbc.InputGroupText('Colormap'),
                 dbc.Select(
@@ -74,7 +76,12 @@ view3d_card = dbc.Card([
                               'label': x}
                              for x in colorscales],
                     value='Portland',
-                )
+                ),
+                dbc.Tooltip(
+                    'Select colormap',
+                    target='colormap-3d',
+                    placement='top',
+                ),
             ]), width=3
             ),
             dbc.Col(
@@ -147,7 +154,7 @@ view3d_card = dbc.Card([
                 dbc.Col(
                     dbc.ButtonGroup([
                         dbc.Button(
-                            html.I(className='bi bi-chevron-double-left'),
+                            html.I(className='bi bi-skip-backward-fill'),
                             id='previous-button',
                             color='dark',
                             n_clicks=0
@@ -165,12 +172,32 @@ view3d_card = dbc.Card([
                             n_clicks=0
                         ),
                         dbc.Button(
-                            html.I(className='bi bi-chevron-double-right'),
+                            html.I(className='bi bi-skip-forward-fill'),
                             id='next-button',
                             color='dark',
                             n_clicks=0
                         )
                     ]), width=2
+                ),
+                dbc.Tooltip(
+                    'Previous frame',
+                    target='previous-button',
+                    placement='top',
+                ),
+                dbc.Tooltip(
+                    'Play',
+                    target='play-button',
+                    placement='top',
+                ),
+                dbc.Tooltip(
+                    'Stop',
+                    target='stop-button',
+                    placement='top',
+                ),
+                dbc.Tooltip(
+                    'Next frame',
+                    target='next-button',
+                    placement='top',
                 ),
             ], justify='center'
             ),
@@ -792,44 +819,58 @@ def get_app_layout():
                         ), className="text-center"
                     ),
                     html.H4(app.title, className="text-center"),
-                    # html.Hr(className="my-2"),
-                    # html.P(
-                    #     'Sensor Data Visualization',
-                    #     className="text-center"
-                    # ),
+                    html.P(
+                        'Sensor Data Visualization',
+                        className="text-center"
+                    ),
                 ]), width=3),
                 dbc.Col(dbc.Row([
-                    # dbc.Col(dbc.Label(html.B('Test Cases')),
-                    #         width=12, className='my-1'),
-                    # dbc.Col(dbc.Button(html.I(className='bi bi-arrow-clockwise'),
-                    #         id='refresh-button',
-                    #         n_clicks=0,
-                    #         size="sm",
-                    #         style={'float': 'right'}), width=3, className='my-2'),
-                    # html.Hr(),
                     dbc.Col(dbc.InputGroup([
                         dbc.InputGroupText('Test Case'),
                         dbc.Select(id='case-picker'),
-                    ]),
-                        width=4),
+                    ]), width=4),
+                    dbc.Tooltip(
+                        'Select a test case',
+                        target='case-picker',
+                        placement='top',
+                    ),
                     dbc.Col(dbc.InputGroup([
                         dbc.InputGroupText('Log File'),
                         dbc.Select(id='file-picker'),
                         dbc.Button(html.I(className='bi bi-arrow-clockwise'),
                             id='refresh-button',
                             n_clicks=0)
-                    ]),
-                        width=8),
+                    ]), width=8),
+                    dbc.Tooltip(
+                        'Select a log file',
+                        target='file-picker',
+                        placement='top',
+                    ),
+                    dbc.Tooltip(
+                        'Refresh test cases',
+                        target='refresh-button',
+                        placement='top',
+                    ),
                     dbc.Col(html.Div([dbc.Button(
-                        html.I(className='bi bi-plus-square'),
+                        html.I(className='bi bi-link-45deg'),
                         id='button-add',
                         n_clicks=0,
                         size="sm")], className='d-grid'), width=12, className='my-2'),
+                    dbc.Tooltip(
+                        'Combine other log files',
+                        target='button-add',
+                        placement='top',
+                    ),
                     dbc.Col(dbc.Collapse(
                             dcc.Dropdown(id='file-add',
                                          multi=True),
                             id='collapse-add',
                             is_open=False), width=12),
+                    dbc.Tooltip(
+                        'Select additional log files',
+                        target='file-add',
+                        placement='top',
+                    ),
                 ]), width=9),
             ], align="center"),]), className="my-3"),
 
@@ -855,10 +896,9 @@ def get_app_layout():
             [
                 dbc.Row([
                     dbc.Spinner(color="info",
-                                type="grow",
                                 spinner_style={"width": "6rem",
                                                "height": "6rem"}),
-                    dbc.Label('Loading...',
+                    dbc.Label('Loading ...',
                               color='light',
                               className="text-center")
                 ], align="center",
