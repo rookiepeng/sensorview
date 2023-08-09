@@ -410,7 +410,8 @@ def slider_change_callback(
                                 if hover_list:
                                     for idx in range(0, len(hover_list)):
                                         new_fig[idx]['text'] = hover_list[idx]
-                                        new_fig[idx]['hovertemplate'] = '%{text}'
+                                        new_fig[idx][
+                                            'hovertemplate'] = '%{text}'
 
                             if c_type == 'numerical':
                                 new_fig[0]['marker']['colorscale'] = colormap

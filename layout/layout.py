@@ -323,67 +323,68 @@ left2d_card = dbc.Card([
 
         html.Hr(),
 
+        dbc.Row([
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('x'),
+                dbc.Select(
+                    id='x-picker-2d-left',
+                    disabled=False,
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select x axis',
+                target='x-picker-2d-left',
+                placement='top',
+            ),
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('y'),
+                dbc.Select(
+                    id='y-picker-2d-left',
+                    disabled=False,
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select y axis',
+                target='y-picker-2d-left',
+                placement='top',
+            ),
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('c'),
+                dbc.Select(
+                    id='c-picker-2d-left',
+                    disabled=False,
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select color axis',
+                target='c-picker-2d-left',
+                placement='top',
+            ),
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('cmap'),
+                dbc.Select(
+                    id='colormap-scatter2d-left',
+                    disabled=False,
+                    options=[{'value': x,
+                              'label': x}
+                             for x in colorscales],
+                    value='Portland',
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select colormap',
+                target='colormap-scatter2d-left',
+                placement='top',
+            ),
+        ], class_name='g-1 mb-2'),
+
         dcc.Loading(
             id='loading_left',
             children=[
-                dbc.Row([
-                        dbc.Col(dbc.InputGroup([
-                            dbc.InputGroupText('x'),
-                            dbc.Select(
-                                id='x-picker-2d-left',
-                                disabled=False,
-                            )
-                        ], size='sm')
-                        ),
-                        dbc.Tooltip(
-                            'Select x axis',
-                            target='x-picker-2d-left',
-                            placement='top',
-                        ),
-                        dbc.Col(dbc.InputGroup([
-                            dbc.InputGroupText('y'),
-                            dbc.Select(
-                                id='y-picker-2d-left',
-                                disabled=False,
-                            )
-                        ], size='sm')
-                        ),
-                        dbc.Tooltip(
-                            'Select y axis',
-                            target='y-picker-2d-left',
-                            placement='top',
-                        ),
-                        dbc.Col(dbc.InputGroup([
-                            dbc.InputGroupText('c'),
-                            dbc.Select(
-                                id='c-picker-2d-left',
-                                disabled=False,
-                            )
-                        ], size='sm')
-                        ),
-                        dbc.Tooltip(
-                            'Select color axis',
-                            target='c-picker-2d-left',
-                            placement='top',
-                        ),
-                        dbc.Col(dbc.InputGroup([
-                            dbc.InputGroupText('cmap'),
-                            dbc.Select(
-                                id='colormap-scatter2d-left',
-                                disabled=False,
-                                options=[{'value': x,
-                                          'label': x}
-                                         for x in colorscales],
-                                value='Portland',
-                            )
-                        ], size='sm')
-                        ),
-                        dbc.Tooltip(
-                            'Select colormap',
-                            target='colormap-scatter2d-left',
-                            placement='top',
-                        ),
-                        ], class_name='g-1 mb-2'),
                 dbc.Collapse(
                     html.Div([
                         dcc.Graph(
@@ -455,66 +456,67 @@ right2d_card = dbc.Card([
 
         html.Hr(),
 
+        dbc.Row([
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('x'),
+                dbc.Select(
+                    id='x-picker-2d-right',
+                    disabled=False,
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select x axis',
+                target='x-picker-2d-right',
+                placement='top',
+            ),
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('y'),
+                dbc.Select(
+                    id='y-picker-2d-right',
+                    disabled=False,
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select y axis',
+                target='y-picker-2d-right',
+                placement='top',
+            ),
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('c'),
+                dbc.Select(
+                    id='c-picker-2d-right',
+                    disabled=False,
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select color axis',
+                target='c-picker-2d-right',
+                placement='top',
+            ),
+            dbc.Col(dbc.InputGroup([
+                dbc.InputGroupText('cmap'),
+                dbc.Select(
+                    id='colormap-scatter2d-right',
+                    disabled=False,
+                    options=[{'value': x, 'label': x}
+                             for x in colorscales],
+                    value='Portland',
+                )
+            ], size='sm')
+            ),
+            dbc.Tooltip(
+                'Select colormap',
+                target='colormap-scatter2d-right',
+                placement='top',
+            ),
+        ], class_name='g-1 mb-2'),
+
         dcc.Loading(
             id='loading_right',
             children=[
-                dbc.Row([
-                    dbc.Col(dbc.InputGroup([
-                        dbc.InputGroupText('x'),
-                        dbc.Select(
-                            id='x-picker-2d-right',
-                            disabled=False,
-                        )
-                    ], size='sm')
-                    ),
-                    dbc.Tooltip(
-                        'Select x axis',
-                        target='x-picker-2d-right',
-                        placement='top',
-                    ),
-                    dbc.Col(dbc.InputGroup([
-                        dbc.InputGroupText('y'),
-                        dbc.Select(
-                            id='y-picker-2d-right',
-                            disabled=False,
-                        )
-                    ], size='sm')
-                    ),
-                    dbc.Tooltip(
-                        'Select y axis',
-                        target='y-picker-2d-right',
-                        placement='top',
-                    ),
-                    dbc.Col(dbc.InputGroup([
-                        dbc.InputGroupText('c'),
-                        dbc.Select(
-                            id='c-picker-2d-right',
-                            disabled=False,
-                        )
-                    ], size='sm')
-                    ),
-                    dbc.Tooltip(
-                        'Select color axis',
-                        target='c-picker-2d-right',
-                        placement='top',
-                    ),
-                    dbc.Col(dbc.InputGroup([
-                        dbc.InputGroupText('cmap'),
-                        dbc.Select(
-                            id='colormap-scatter2d-right',
-                            disabled=False,
-                            options=[{'value': x, 'label': x}
-                                     for x in colorscales],
-                            value='Portland',
-                        )
-                    ], size='sm')
-                    ),
-                    dbc.Tooltip(
-                        'Select colormap',
-                        target='colormap-scatter2d-right',
-                        placement='top',
-                    ),
-                ], class_name='g-1 mb-2'),
                 dbc.Collapse(
                     html.Div([
                         dcc.Graph(
