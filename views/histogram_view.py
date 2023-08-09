@@ -55,12 +55,12 @@ from utils import load_data
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
+        histogram_sw=Input('histogram-switch', 'value'),
         x_histogram=Input('x-picker-histogram', 'value'),
         y_histogram=Input('y-histogram', 'value'),
         c_histogram=Input('c-picker-histogram', 'value')
     ),
     state=dict(
-        histogram_sw=State('histogram-switch', 'value'),
         session_id=State('session-id', 'data'),
         visible_list=State('visible-picker', 'value'),
         case=State('case-picker', 'value'),

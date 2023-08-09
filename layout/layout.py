@@ -1018,7 +1018,7 @@ def get_app_layout():
                                                "height": "6rem"}),
                     dbc.Label('Loading ...',
                               color='light',
-                              className="text-center")
+                              className="text-center mt-3")
                 ], align="center",
                     justify="center",)
             ],
