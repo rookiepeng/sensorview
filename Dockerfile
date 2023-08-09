@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # Create a working directory.
 WORKDIR /usr/src/app
