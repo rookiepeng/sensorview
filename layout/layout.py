@@ -124,7 +124,7 @@ view3d_card = dbc.Card([
                     id='buffer',
                     value=0,
                     color='info',
-                    style={'height': '2px',
+                    style={'height': '4px',
                            'margin-top': 0,
                            'margin-bottom': 5,
                            'margin-left': 25,
@@ -133,7 +133,8 @@ view3d_card = dbc.Card([
                 ), width=12
             ),
             dbc.Tooltip(
-                'Progree of buffering on server',
+                'Progress of buffering on server',
+                id='buffer-tooltip',
                 target='buffer',
                 placement='top',
             ),

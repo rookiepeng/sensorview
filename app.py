@@ -62,6 +62,7 @@ app.layout = get_app_layout
     output=dict(
         buffer_progress=Output('buffer', 'value'),
         buffer_intrval_disabled=Output('buffer-interval', 'disabled'),
+        buffer_tooltip=Output('buffer-tooltip', 'children'),
     ),
     inputs=dict(
         interval=Input('buffer-interval', 'n_intervals'),
@@ -107,7 +108,8 @@ def update_buffer_indicator(
     if max_frame is None:
         return dict(
             buffer_progress=0,
-            buffer_intrval_disabled=False
+            buffer_intrval_disabled=False,
+            buffer_tooltip='Buffering ... (0 %)',
         )
 
     ctx = dash.callback_context
@@ -120,22 +122,27 @@ def update_buffer_indicator(
             if percent == 100:
                 return dict(
                     buffer_progress=percent,
-                    buffer_intrval_disabled=True
+                    buffer_intrval_disabled=True,
+                    buffer_tooltip='Buffer ready (100 %)',
                 )
             else:
                 return dict(
                     buffer_progress=percent,
-                    buffer_intrval_disabled=dash.no_update
+                    buffer_intrval_disabled=dash.no_update,
+                    buffer_tooltip='Buffering ... (' +
+                    str(round(percent, 2))+' %)',
                 )
         else:
             return dict(
                 buffer_progress=0,
-                buffer_intrval_disabled=dash.no_update
+                buffer_intrval_disabled=dash.no_update,
+                buffer_tooltip='Buffering ... (0 %)',
             )
     else:
         return dict(
             buffer_progress=0,
-            buffer_intrval_disabled=False
+            buffer_intrval_disabled=False,
+            buffer_tooltip='Buffering ... (0 %)',
         )
 
 
