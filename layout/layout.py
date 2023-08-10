@@ -111,7 +111,7 @@ view3d_card = dbc.Card([
                                    'uirevision': 'no_change'}
                         },
                 style={'height': '85vh'},
-            ), class_name='mt-2'),
+            ), className='mt-2'),
 
             dcc.Interval(
                 id='buffer-interval',
@@ -228,7 +228,7 @@ view3d_card = dbc.Card([
                     style={'display': 'none'}
                 ),
             ]),
-        ]), width=9, class_name='me-3'),
+        ]), width=9, className='me-3'),
         dbc.Col(dbc.Row([
             dbc.Checklist(
                 options=[
@@ -300,8 +300,8 @@ view3d_card = dbc.Card([
                 html.Div(id='slider-container', children=[]),
             ], )]), style={'overflow-y': 'scroll', 'height': '110vh'}),
     ])
-    ], class_name='mx-3 my-3 g-0'),
-], className="mb-3")
+    ], className='mx-3 my-3 g-0'),
+], className='mb-3')
 
 
 left2d_card = dbc.Card([
@@ -381,7 +381,7 @@ left2d_card = dbc.Card([
                 target='colormap-scatter2d-left',
                 placement='top',
             ),
-        ], class_name='g-1 mb-2'),
+        ], className='g-1 mb-2'),
 
         dcc.Loading(
             id='loading_left',
@@ -429,13 +429,13 @@ left2d_card = dbc.Card([
                         )
                     ]),
                     is_open=False,
-                    id="collapse-left2d"
+                    id='collapse-left2d'
                 ),
             ],
             type='default',
         ),
     ])
-], className="shadow-sm")
+], className='shadow-sm')
 
 right2d_card = dbc.Card([
     dbc.CardBody([
@@ -513,7 +513,7 @@ right2d_card = dbc.Card([
                 target='colormap-scatter2d-right',
                 placement='top',
             ),
-        ], class_name='g-1 mb-2'),
+        ], className='g-1 mb-2'),
 
         dcc.Loading(
             id='loading_right',
@@ -547,13 +547,13 @@ right2d_card = dbc.Card([
                         ], style={'margin-top': 10})
                     ]),
                     is_open=False,
-                    id="collapse-right2d"
+                    id='collapse-right2d'
                 )
             ],
             type='default',
         ),
     ])
-], className="shadow-sm")
+], className='shadow-sm')
 
 
 hist_card = dbc.Card([
@@ -648,12 +648,12 @@ hist_card = dbc.Card([
                             ),
                         ]),
                     ]), is_open=False,
-                    id="collapse-hist")
+                    id='collapse-hist')
             ],
             type='default',
         ),
     ])
-], className="shadow-sm")
+], className='shadow-sm')
 
 
 violin_card = dbc.Card([
@@ -738,13 +738,13 @@ violin_card = dbc.Card([
                             ),
                         ])
                     ]), is_open=False,
-                    id="collapse-violin"
+                    id='collapse-violin'
                 )
             ],
             type='default',
         ),
     ])
-], className="shadow-sm")
+], className='shadow-sm')
 
 
 parallel_card = dbc.Card([
@@ -814,13 +814,13 @@ parallel_card = dbc.Card([
                             ),
                         ])
                     ]), is_open=False,
-                    id="collapse-parallel"
+                    id='collapse-parallel'
                 )
             ],
             type='default',
         ),
     ])
-], className="shadow-sm")
+], className='shadow-sm')
 
 
 heatmap_card = dbc.Card([
@@ -897,12 +897,12 @@ heatmap_card = dbc.Card([
                             ),
                         ])
                     ]), is_open=False,
-                    id="collapse-heatmap")
+                    id='collapse-heatmap')
             ],
             type='default',
         ),
     ])
-], className="shadow-sm")
+], className='shadow-sm')
 
 
 def get_app_layout():
@@ -935,12 +935,12 @@ def get_app_layout():
                             id='sensorview-image',
                             style={'height': '110px',
                                    'width': 'auto'},
-                        ), className="text-center"
+                        ), className='text-center'
                     ),
-                    html.H4(app.title, className="text-center"),
+                    html.H4(app.title, className='text-center'),
                     html.P(
                         'Radar Data Visualization',
-                        className="text-center"
+                        className='text-center'
                     ),
                 ]), width=3),
                 dbc.Col(dbc.Row([
@@ -974,7 +974,8 @@ def get_app_layout():
                         html.I(className='bi bi-link-45deg'),
                         id='button-add',
                         n_clicks=0,
-                        size="sm")], className='d-grid'), width=12, className='my-2'),
+                        size='sm')], className='d-grid'), width=12,
+                        className='my-2'),
                     dbc.Tooltip(
                         'Combine other log files',
                         target='button-add',
@@ -991,7 +992,7 @@ def get_app_layout():
                         placement='top',
                     ),
                 ]), width=9),
-            ], align="center"),]), className="my-3"),
+            ], align='center'),]), className='my-3'),
 
         html.Hr(),
 
@@ -1014,18 +1015,18 @@ def get_app_layout():
         dbc.Row(
             [
                 dbc.Row([
-                    dbc.Spinner(color="info",
-                                spinner_style={"width": "6rem",
-                                               "height": "6rem"}),
+                    dbc.Spinner(color='info',
+                                spinner_style={'width': '6rem',
+                                               'height': '6rem'}),
                     dbc.Label('Loading ...',
                               color='light',
-                              className="text-center mt-3")
-                ], align="center",
-                    justify="center",)
+                              className='text-center mt-3')
+                ], align='center',
+                    justify='center',)
             ],
             id='loading-view',
-            align="center",
-            justify="center",
+            align='center',
+            justify='center',
             style={
                 'position': 'fixed',
                 'top': 0,
@@ -1040,4 +1041,4 @@ def get_app_layout():
                 | Powered by [Dash](https://plotly.com/dash/),\
                 [Redis](https://redis.io/),\
                 [Celery](https://docs.celeryproject.org/en/stable/)'),
-    ], fluid=True, className="dbc_light")
+    ], fluid=True, className='dbc_light')
