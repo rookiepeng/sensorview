@@ -51,7 +51,6 @@ from utils import load_data
     background=True,
     output=dict(
         histogram=Output('histogram', 'figure'),
-        collapse=Output('collapse-hist', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -70,7 +69,7 @@ from utils import load_data
     ),
     manager=background_callback_manager,
 )
-def update_histogram(
+def regenerate_histogram_callback(
     filter_trigger,
     left_hide_trigger,
     histogram_sw,
@@ -115,6 +114,18 @@ def update_histogram(
     ]
     :rtype: list
     """
+    if not histogram_sw:
+        histogram_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+            }}
+
+        return dict(
+            histogram=histogram_fig,
+        )
+
     config = cache_get(session_id, CACHE_KEYS['config'])
 
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
@@ -127,79 +138,93 @@ def update_histogram(
     x_label = config['keys'][x_histogram]['description']
     y_key = y_histogram
 
-    if histogram_sw:
-        collapse = True
-        data = load_data(file, file_list, case)
-        visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-        filtered_table = filter_all(
-            data,
-            num_keys,
-            num_values,
-            cat_keys,
-            cat_values,
-            visible_table,
-            visible_list
-        )
+    data = load_data(file, file_list, case)
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    filtered_table = filter_all(
+        data,
+        num_keys,
+        num_values,
+        cat_keys,
+        cat_values,
+        visible_table,
+        visible_list
+    )
 
-        if y_key == 'probability':
-            y_label = 'Probability'
-        elif y_key == 'density':
-            y_label = 'Density'
-        if c_histogram == 'None':
-            if x_key == config['slider']:
-                nbins = pd.unique(filtered_table[x_key]).size
-                histogram_fig = px.histogram(
-                    filtered_table,
-                    x=x_key,
-                    histnorm=y_key,
-                    opacity=1,
-                    barmode='group',
-                    nbins=nbins,
-                    labels={x_key: x_label,
-                            y_key: y_label})
-            else:
-                histogram_fig = px.histogram(
-                    filtered_table,
-                    x=x_key,
-                    histnorm=y_key,
-                    opacity=1,
-                    barmode='group',
-                    labels={x_key: x_label,
-                            y_key: y_label})
+    if y_key == 'probability':
+        y_label = 'Probability'
+    elif y_key == 'density':
+        y_label = 'Density'
+    if c_histogram == 'None':
+        if x_key == config['slider']:
+            nbins = pd.unique(filtered_table[x_key]).size
+            histogram_fig = px.histogram(
+                filtered_table,
+                x=x_key,
+                histnorm=y_key,
+                opacity=1,
+                barmode='group',
+                nbins=nbins,
+                labels={x_key: x_label,
+                        y_key: y_label})
         else:
-            if x_key == config['slider']:
-                nbins = pd.unique(filtered_table[x_key]).size
-                histogram_fig = px.histogram(
-                    filtered_table,
-                    x=x_key,
-                    color=c_histogram,
-                    histnorm=y_key,
-                    opacity=1,
-                    barmode='group',
-                    nbins=nbins,
-                    labels={x_key: x_label,
-                            y_key: y_label})
-            else:
-                histogram_fig = px.histogram(
-                    filtered_table,
-                    x=x_key,
-                    color=c_histogram,
-                    histnorm=y_key,
-                    opacity=1,
-                    barmode='group',
-                    labels={x_key: x_label,
-                            y_key: y_label})
+            histogram_fig = px.histogram(
+                filtered_table,
+                x=x_key,
+                histnorm=y_key,
+                opacity=1,
+                barmode='group',
+                labels={x_key: x_label,
+                        y_key: y_label})
     else:
-        collapse = False
-        histogram_fig = {
-            'data': [{'type': 'histogram',
-                      'x': []}
-                     ],
-            'layout': {
-            }}
+        if x_key == config['slider']:
+            nbins = pd.unique(filtered_table[x_key]).size
+            histogram_fig = px.histogram(
+                filtered_table,
+                x=x_key,
+                color=c_histogram,
+                histnorm=y_key,
+                opacity=1,
+                barmode='group',
+                nbins=nbins,
+                labels={x_key: x_label,
+                        y_key: y_label})
+        else:
+            histogram_fig = px.histogram(
+                filtered_table,
+                x=x_key,
+                color=c_histogram,
+                histnorm=y_key,
+                opacity=1,
+                barmode='group',
+                labels={x_key: x_label,
+                        y_key: y_label})
 
     return dict(
         histogram=histogram_fig,
+    )
+
+
+@app.callback(
+    output=dict(
+        collapse=Output('collapse-hist', 'is_open'),
+    ),
+    inputs=dict(
+        histogram_sw=Input('histogram-switch', 'value'),
+    ),
+)
+def enable_histogram_callback(
+    histogram_sw,
+):
+    """
+    Update histogram
+
+    """
+    if histogram_sw:
+        collapse = True
+    else:
+        collapse = False
+
+    return dict(
         collapse=collapse
     )
 

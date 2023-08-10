@@ -48,7 +48,6 @@ from utils import load_data
     background=True,
     output=dict(
         heatmap=Output('heatmap', 'figure'),
-        collapse=Output('collapse-heatmap', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -66,7 +65,7 @@ from utils import load_data
     ),
     manager=background_callback_manager,
 )
-def update_heatmap(
+def regenerate_heatmap_callback(
     filter_trigger,
     left_hide_trigger,
     heat_sw,
@@ -107,43 +106,7 @@ def update_heatmap(
     ]
     :rtype: list
     """
-    if heat_sw:
-        collapse = True
-        config = cache_get(session_id, CACHE_KEYS['config'])
-
-        filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-        cat_keys = filter_kwargs['cat_keys']
-        num_keys = filter_kwargs['num_keys']
-        cat_values = filter_kwargs['cat_values']
-        num_values = filter_kwargs['num_values']
-
-        x_key = x_heat
-        x_label = config['keys'][x_heat]['description']
-        y_key = y_heat
-        y_label = config['keys'][y_heat]['description']
-
-        data = load_data(file, file_list, case)
-        visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-
-        filtered_table = filter_all(
-            data,
-            num_keys,
-            num_values,
-            cat_keys,
-            cat_values,
-            visible_table,
-            visible_list
-        )
-
-        heat_fig = get_heatmap(
-            filtered_table,
-            x_key,
-            y_key,
-            x_label,
-            y_label,
-        )
-    else:
-        collapse = False
+    if not heat_sw:
         heat_fig = {
             'data': [{'type': 'histogram2dcontour',
                       'x': []}
@@ -151,8 +114,70 @@ def update_heatmap(
             'layout': {
             }}
 
+        return dict(
+            heatmap=heat_fig,
+        )
+
+    config = cache_get(session_id, CACHE_KEYS['config'])
+
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
+    cat_keys = filter_kwargs['cat_keys']
+    num_keys = filter_kwargs['num_keys']
+    cat_values = filter_kwargs['cat_values']
+    num_values = filter_kwargs['num_values']
+
+    x_key = x_heat
+    x_label = config['keys'][x_heat]['description']
+    y_key = y_heat
+    y_label = config['keys'][y_heat]['description']
+
+    data = load_data(file, file_list, case)
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+
+    filtered_table = filter_all(
+        data,
+        num_keys,
+        num_values,
+        cat_keys,
+        cat_values,
+        visible_table,
+        visible_list
+    )
+
+    heat_fig = get_heatmap(
+        filtered_table,
+        x_key,
+        y_key,
+        x_label,
+        y_label,
+    )
+
     return dict(
         heatmap=heat_fig,
+    )
+
+
+@app.callback(
+    output=dict(
+        collapse=Output('collapse-heatmap', 'is_open'),
+    ),
+    inputs=dict(
+        heat_sw=Input('heat-switch', 'value'),
+    ),
+)
+def enable_heatmap_callback(
+    heat_sw,
+):
+    """
+    Update heatmap
+
+    """
+    if heat_sw:
+        collapse = True
+    else:
+        collapse = False
+
+    return dict(
         collapse=collapse
     )
 

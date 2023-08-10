@@ -51,7 +51,6 @@ from utils import load_data
     background=True,
     output=dict(
         parallel=Output('parallel', 'figure'),
-        collapse=Output('collapse-parallel', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -69,7 +68,7 @@ from utils import load_data
     ),
     manager=background_callback_manager,
 )
-def update_parallel(
+def regenerate_parallel_callback(
     filter_trigger,
     left_hide_trigger,
     parallel_sw,
@@ -110,70 +109,72 @@ def update_parallel(
     ]
     :rtype: list
     """
+    if not parallel_sw:
+        parallel_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+            }}
+
+        return dict(
+            parallel=parallel_fig,
+        )
+
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     cat_values = filter_kwargs['cat_values']
     num_values = filter_kwargs['num_values']
 
-    if parallel_sw:
-        collapse = True
-        if len(dim_parallel) > 0:
-            data = load_data(file, file_list, case)
-            visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-            filtered_table = filter_all(
-                data,
-                num_keys,
-                num_values,
-                cat_keys,
-                cat_values,
-                visible_table,
-                visible_list
-            )
+    if len(dim_parallel) > 0:
+        data = load_data(file, file_list, case)
+        visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+        filtered_table = filter_all(
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list
+        )
 
-            dims = []
-            for _, dim_key in enumerate(dim_parallel):
-                dims.append(go.parcats.Dimension(
-                    values=filtered_table[dim_key], label=dim_key))
+        dims = []
+        for _, dim_key in enumerate(dim_parallel):
+            dims.append(go.parcats.Dimension(
+                values=filtered_table[dim_key], label=dim_key))
 
-            if c_key != 'None':
-                unique_list = np.sort(filtered_table[c_key].unique())
+        if c_key != 'None':
+            unique_list = np.sort(filtered_table[c_key].unique())
 
-                if np.issubdtype(unique_list.dtype, np.integer) or \
-                        np.issubdtype(unique_list.dtype, np.floating):
-                    parallel_fig = go.Figure(
-                        data=[go.Parcats(dimensions=dims,
-                                         line={'color': filtered_table[c_key],
-                                               'colorbar':dict(
-                                             title=c_key)},
-                                         hoveron='color',
-                                         hoverinfo='count+probability',
-                                         arrangement='freeform')])
-                else:
-                    filtered_table['_C_'] = np.zeros_like(
-                        filtered_table[c_key])
-                    for idx, var in enumerate(unique_list):
-                        filtered_table.loc[filtered_table[c_key]
-                                           == var, '_C_'] = idx
-
-                    parallel_fig = go.Figure(
-                        data=[go.Parcats(dimensions=dims,
-                                         line={'color': filtered_table['_C_']},
-                                         hoverinfo='count+probability',
-                                         arrangement='freeform')])
-            else:
+            if np.issubdtype(unique_list.dtype, np.integer) or \
+                    np.issubdtype(unique_list.dtype, np.floating):
                 parallel_fig = go.Figure(
                     data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table[c_key],
+                                           'colorbar':dict(
+                                         title=c_key)},
+                                     hoveron='color',
+                                     hoverinfo='count+probability',
+                                     arrangement='freeform')])
+            else:
+                filtered_table['_C_'] = np.zeros_like(
+                    filtered_table[c_key])
+                for idx, var in enumerate(unique_list):
+                    filtered_table.loc[filtered_table[c_key]
+                                       == var, '_C_'] = idx
+
+                parallel_fig = go.Figure(
+                    data=[go.Parcats(dimensions=dims,
+                                     line={'color': filtered_table['_C_']},
+                                     hoverinfo='count+probability',
                                      arrangement='freeform')])
         else:
-            parallel_fig = {
-                'data': [{'type': 'histogram',
-                          'x': []}
-                         ],
-                'layout': {
-                }}
+            parallel_fig = go.Figure(
+                data=[go.Parcats(dimensions=dims,
+                                 arrangement='freeform')])
     else:
-        collapse = False
         parallel_fig = {
             'data': [{'type': 'histogram',
                       'x': []}
@@ -183,6 +184,36 @@ def update_parallel(
 
     return dict(
         parallel=parallel_fig,
+    )
+
+
+@app.callback(
+    output=dict(
+        collapse=Output('collapse-parallel', 'is_open'),
+    ),
+    inputs=dict(
+        parallel_sw=Input('parallel-switch', 'value'),
+    ),
+)
+def enable_parallel_callback(
+    parallel_sw,
+):
+    """
+    Update parallel categories diagram
+
+    :return: [
+        Parallel categories diagram,
+        Dimensions picker enable/disable,
+        Color picker enable/disable,
+    ]
+    :rtype: list
+    """
+    if parallel_sw:
+        collapse = True
+    else:
+        collapse = False
+
+    return dict(
         collapse=collapse
     )
 

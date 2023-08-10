@@ -49,7 +49,6 @@ from utils import background_callback_manager
     background=True,
     output=dict(
         violin=Output('violin', 'figure'),
-        collapse=Output('collapse-violin', 'is_open'),
     ),
     inputs=dict(
         filter_trigger=Input('filter-trigger', 'data'),
@@ -68,7 +67,7 @@ from utils import background_callback_manager
     ),
     manager=background_callback_manager,
 )
-def update_violin(
+def regenerate_violin_callback(
     filter_trigger,
     left_hide_trigger,
     violin_sw,
@@ -113,6 +112,18 @@ def update_violin(
     ]
     :rtype: list
     """
+    if not violin_sw:
+        violin_fig = {
+            'data': [{'type': 'histogram',
+                      'x': []}
+                     ],
+            'layout': {
+            }}
+
+        return dict(
+            violin=violin_fig,
+        )
+
     config = cache_get(session_id, CACHE_KEYS['config'])
 
     filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
@@ -129,48 +140,63 @@ def update_violin(
     y_key = y_violin
     y_label = config['keys'][y_violin].get('description', y_key)
 
-    if violin_sw:
-        collapse = True
-        data = load_data(file, file_list, case)
-        visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
-        filtered_table = filter_all(
-            data,
-            num_keys,
-            num_values,
-            cat_keys,
-            cat_values,
-            visible_table,
-            visible_list
-        )
+    data = load_data(file, file_list, case)
+    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    filtered_table = filter_all(
+        data,
+        num_keys,
+        num_values,
+        cat_keys,
+        cat_values,
+        visible_table,
+        visible_list
+    )
 
-        if c_violin == 'None':
-            violin_fig = px.violin(filtered_table,
-                                   x=x_key,
-                                   y=y_key,
-                                   box=True,
-                                   violinmode='group',
-                                   labels={x_key: x_label,
-                                           y_key: y_label})
-        else:
-            violin_fig = px.violin(filtered_table,
-                                   x=x_key,
-                                   y=y_key,
-                                   color=c_violin,
-                                   box=True,
-                                   violinmode='group',
-                                   labels={x_key: x_label,
-                                           y_key: y_label})
+    if c_violin == 'None':
+        violin_fig = px.violin(filtered_table,
+                               x=x_key,
+                               y=y_key,
+                               box=True,
+                               violinmode='group',
+                               labels={x_key: x_label,
+                                       y_key: y_label})
     else:
-        collapse = False
-        violin_fig = {
-            'data': [{'type': 'histogram',
-                      'x': []}
-                     ],
-            'layout': {
-            }}
+        violin_fig = px.violin(filtered_table,
+                               x=x_key,
+                               y=y_key,
+                               color=c_violin,
+                               box=True,
+                               violinmode='group',
+                               labels={x_key: x_label,
+                                       y_key: y_label})
 
     return dict(
         violin=violin_fig,
+    )
+
+
+@app.callback(
+    output=dict(
+        collapse=Output('collapse-violin', 'is_open'),
+    ),
+    inputs=dict(
+        violin_sw=Input('violin-switch', 'value'),
+    ),
+)
+def enable_violin_callback(
+    violin_sw,
+):
+    """
+    Update violin plot
+
+    :rtype: list
+    """
+    if violin_sw:
+        collapse = True
+    else:
+        collapse = False
+
+    return dict(
         collapse=collapse
     )
 
