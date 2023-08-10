@@ -51,17 +51,17 @@ def get_scatter3d_layout(
     z_label = kwargs.get('z_label', None)
 
     if image is not None:
-        img_dict = [dict(
-            source=image,
-            xref="x domain",
-            yref="y domain",
-            x=0,
-            y=1,
-            xanchor="left",
-            yanchor="top",
-            sizex=0.3,
-            sizey=0.3,
-        )]
+        img_dict = [
+            dict(source=image,
+                 xref="x domain",
+                 yref="y domain",
+                 x=0,
+                 y=1,
+                 xanchor="left",
+                 yanchor="top",
+                 sizex=0.3,
+                 sizey=0.3)
+        ]
     else:
         img_dict = None
 
