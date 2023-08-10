@@ -103,24 +103,30 @@ def get_scatter3d_data(data_frame,
             c_range = [np.min(color), np.max(color)]
 
         fig_data = [
-            dict(type='scatter3d',
-                 ids=data_frame.index,
-                 x=data_frame[x_key],
-                 y=data_frame[y_key],
-                 z=data_frame[z_key],
-                 #  text=hover_str,
-                 #  hovertemplate=hovertemplate,
-                 mode='markers',
-                 name=name,
-                 showlegend=showlegend,
-                 marker=dict(size=3,
-                             color=color,
-                             opacity=opacity,
-                             colorbar=dict(title=c_label),
-                             cmin=c_range[0],
-                             cmax=c_range[1],
-                             line=dict(color="#757575",
-                                       width=linewidth)))
+            dict(
+                type='scatter3d',
+                ids=data_frame.index,
+                x=data_frame[x_key],
+                y=data_frame[y_key],
+                z=data_frame[z_key],
+                #  text=hover_str,
+                #  hovertemplate=hovertemplate,
+                mode='markers',
+                name=name,
+                showlegend=showlegend,
+                marker=dict(
+                     size=3,
+                     color=color,
+                     opacity=opacity,
+                     colorbar=dict(title=c_label),
+                     cmin=c_range[0],
+                     cmax=c_range[1],
+                     line=dict(
+                         color='#757575',
+                         width=linewidth
+                     )
+                )
+            )
         ]
     elif c_type == 'categorical':
         fig_data = []
@@ -145,7 +151,7 @@ def get_scatter3d_data(data_frame,
                         size=3,
                         opacity=opacity,
                         line=dict(
-                            color="#757575",
+                            color='#757575',
                             width=linewidth,
                         )
                     ),
@@ -186,7 +192,7 @@ def get_ref_scatter3d_data(data_frame,
             opacity=1,
             symbol='circle',
             line=dict(
-                color="#000000",
+                color='#000000',
                 width=2,
             )
         )

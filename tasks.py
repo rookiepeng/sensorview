@@ -50,7 +50,7 @@ logger = get_task_logger(__name__)
 
 redis_ip = os.environ.get('REDIS_SERVER_SERVICE_HOST', '127.0.0.1')
 redis_url = 'redis://'+redis_ip+':6379'
-celery_app = Celery("Celery_App", broker=redis_url, backend=redis_url)
+celery_app = Celery('Celery_App', broker=redis_url, backend=redis_url)
 
 celery_app.conf.broker_connection_retry_on_startup = False
 
@@ -164,7 +164,7 @@ def celery_filtering_data(
     slider_label = keys_dict[config['slider']
                              ]['description']
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     num_values = filter_kwargs['num_values']
@@ -301,7 +301,7 @@ def celery_export_video(
     config = cache_get(session_id, CACHE_KEYS['config'])
     keys_dict = config['keys']
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
     cat_keys = filter_kwargs['cat_keys']
     num_keys = filter_kwargs['num_keys']
     num_values = filter_kwargs['num_values']

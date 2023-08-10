@@ -53,12 +53,12 @@ def get_scatter3d_layout(
     if image is not None:
         img_dict = [
             dict(source=image,
-                 xref="x domain",
-                 yref="y domain",
+                 xref='x domain',
+                 yref='y domain',
                  x=0,
                  y=1,
-                 xanchor="left",
-                 yanchor="top",
+                 xanchor='left',
+                 yanchor='top',
                  sizex=0.3,
                  sizey=0.3)
         ]

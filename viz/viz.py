@@ -166,7 +166,7 @@ def get_scatter2d(data_frame,
                         title=c_label,
                     ),
                     line=dict(
-                        color="#FFFFFF",
+                        color='#FFFFFF',
                         width=linewidth,
                     )
                 )
@@ -194,7 +194,7 @@ def get_scatter2d(data_frame,
                         size=6,
                         opacity=0.8,
                         line=dict(
-                            color="#FFFFFF",
+                            color='#FFFFFF',
                             width=linewidth,
                         )
                     ),
