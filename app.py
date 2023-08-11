@@ -85,25 +85,19 @@ def update_buffer_indicator(
     max_frame,
     session_id
 ):
-    """
-    Update buffer progress bar
+    """Update buffer progress
 
-    :param int unused1
-    :param int unused2
-    :param str unused3
-    :param int unused4
-    :param boolean unused5
-    :param json unused6
-    :param int max_frame
-        maximal number of frames
-    :param str session_id
-        session id
+    Args:
+        interval (int): _description_
+        filter_trigger (int): _description_
+        c_key (str): _description_
+        left_hide_trigger (int): _description_
+        file_picker (_type_): _description_
+        max_frame (_type_): _description_
+        session_id (_type_): _description_
 
-    :return: [
-        Buffer percentage,
-        Interval enable/disable
-    ]
-    :rtype: int
+    Returns:
+        _type_: _description_
     """
     if max_frame is None:
         return dict(
