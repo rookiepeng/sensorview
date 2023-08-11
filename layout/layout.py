@@ -70,7 +70,9 @@ view3d_card = dbc.Card([
                                 target='c-picker-3d',
                                 placement='top',
                             ),
-                        ]), width=3),
+                        ]),
+                        width=3
+                    ),
                     dbc.Col(
                         dbc.InputGroup([
                             dbc.InputGroupText('Colormap'),
@@ -86,7 +88,8 @@ view3d_card = dbc.Card([
                                 target='colormap-3d',
                                 placement='top',
                             ),
-                        ]), width=3
+                        ]),
+                        width=3
                     ),
                     dbc.Col(
                         dbc.Checklist(
@@ -97,7 +100,8 @@ view3d_card = dbc.Card([
                             id='darkmode-switch',
                             switch=True,
                             style={'float': 'right'}
-                        ), width=6
+                        ),
+                        width=6
                     ),
 
                     dbc.Col(
@@ -117,7 +121,9 @@ view3d_card = dbc.Card([
                                 'uirevision': 'no_change'}
                             },
                             style={'height': '85vh'},
-                        ), className='mt-2'),
+                        ),
+                        className='mt-2'
+                    ),
 
                     dcc.Interval(
                         id='buffer-interval',
@@ -136,7 +142,8 @@ view3d_card = dbc.Card([
                                    'margin-left': 25,
                                    'margin-right': 25},
                             className='mb-3'
-                        ), width=12
+                        ),
+                        width=12
                     ),
                     dbc.Tooltip(
                         'Progress of buffering on server',
@@ -153,7 +160,8 @@ view3d_card = dbc.Card([
                             marks=None,
                             tooltip={'always_visible': False,
                                      'placement': 'top'}
-                        ), width=12
+                        ),
+                        width=12
                     ),
 
                     dbc.Row([
@@ -190,7 +198,8 @@ view3d_card = dbc.Card([
                                     color='dark',
                                     n_clicks=0
                                 )
-                            ]), width=2
+                            ]),
+                            width=2
                         ),
                         dbc.Tooltip(
                             'Previous frame',
@@ -211,8 +220,8 @@ view3d_card = dbc.Card([
                             'Next frame',
                             target='next-button',
                             placement='top',
-                        ),
-                    ], justify='center'
+                        )],
+                        justify='center'
                     ),
                     html.Div([
                         dbc.DropdownMenu([
@@ -225,8 +234,8 @@ view3d_card = dbc.Card([
                                 'Save filtered data',
                                 id='export-data',
                                 n_clicks=0
-                            )
-                        ], label='Export',
+                            )],
+                            label='Export',
                             right=True,
                             style={'float': 'right'}
                         ),
@@ -235,7 +244,10 @@ view3d_card = dbc.Card([
                             style={'display': 'none'}
                         ),
                     ]),
-                ]), width=9, className='me-3'),
+                ]),
+                width=9,
+                className='me-3'
+            ),
             dbc.Col(
                 dbc.Row([
                     dbc.Checklist(
@@ -285,7 +297,8 @@ view3d_card = dbc.Card([
                             {'label': 'Show visible',
                              'value': 'visible'},
                             {'label': 'Show hidden',
-                             'value': 'hidden'}],
+                             'value': 'hidden'}
+                        ],
                         value=['visible'],
                         id='visible-picker',
                     ),
@@ -306,10 +319,17 @@ view3d_card = dbc.Card([
                     dbc.CardBody([
                         html.Div(id='dropdown-container', children=[]),
                         html.Div(id='slider-container', children=[]),
-                    ], )]), style={'overflow-y': 'scroll', 'height': '110vh'}),
+                    ])
+                ]),
+                style={'overflow-y': 'scroll',
+                       'height': '110vh'}
+            ),
         ])
-    ], className='mx-3 my-3 g-0'),
-], className='mb-3')
+    ],
+        className='mx-3 my-3 g-0'
+    )],
+    className='mb-3'
+)
 
 
 left2d_card = dbc.Card([
@@ -339,8 +359,9 @@ left2d_card = dbc.Card([
                     dbc.Select(
                         id='x-picker-2d-left',
                         disabled=False,
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select x axis',
@@ -353,8 +374,9 @@ left2d_card = dbc.Card([
                     dbc.Select(
                         id='y-picker-2d-left',
                         disabled=False,
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select y axis',
@@ -367,8 +389,9 @@ left2d_card = dbc.Card([
                     dbc.Select(
                         id='c-picker-2d-left',
                         disabled=False,
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select color axis',
@@ -385,15 +408,17 @@ left2d_card = dbc.Card([
                                   'label': x}
                                  for x in colorscales],
                         value='Portland',
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select colormap',
                 target='colormap-scatter2d-left',
                 placement='top',
-            ),
-        ], className='g-1 mb-2'),
+            )],
+            className='g-1 mb-2'
+        ),
 
         dcc.Loading(
             id='loading_left',
@@ -437,7 +462,8 @@ left2d_card = dbc.Card([
                                     style={'float': 'right'}
                                 )
                             ),
-                        ], style={'margin-top': 10}
+                        ],
+                            style={'margin-top': 10}
                         )
                     ]),
                     is_open=False,
@@ -446,8 +472,9 @@ left2d_card = dbc.Card([
             ],
             type='default',
         ),
-    ])
-], className='shadow-sm')
+    ])],
+    className='shadow-sm'
+)
 
 right2d_card = dbc.Card([
     dbc.CardBody([
@@ -476,8 +503,9 @@ right2d_card = dbc.Card([
                     dbc.Select(
                         id='x-picker-2d-right',
                         disabled=False,
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select x axis',
@@ -490,8 +518,9 @@ right2d_card = dbc.Card([
                     dbc.Select(
                         id='y-picker-2d-right',
                         disabled=False,
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select y axis',
@@ -504,8 +533,9 @@ right2d_card = dbc.Card([
                     dbc.Select(
                         id='c-picker-2d-right',
                         disabled=False,
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select color axis',
@@ -521,15 +551,17 @@ right2d_card = dbc.Card([
                         options=[{'value': x, 'label': x}
                                  for x in colorscales],
                         value='Portland',
-                    )
-                ], size='sm')
+                    )],
+                    size='sm'
+                )
             ),
             dbc.Tooltip(
                 'Select colormap',
                 target='colormap-scatter2d-right',
                 placement='top',
-            ),
-        ], className='g-1 mb-2'),
+            )],
+            className='g-1 mb-2'
+        ),
 
         dcc.Loading(
             id='loading_right',
@@ -559,17 +591,18 @@ right2d_card = dbc.Card([
                                     n_clicks=0,
                                     style={'float': 'right'}
                                 )
-                            )
-                        ], style={'margin-top': 10})
+                            )],
+                            style={'margin-top': 10}
+                        )
                     ]),
                     is_open=False,
                     id='collapse-right2d'
-                )
-            ],
+                )],
             type='default',
-        ),
-    ])
-], className='shadow-sm')
+        )]
+    )],
+    className='shadow-sm'
+)
 
 
 hist_card = dbc.Card([
@@ -666,13 +699,15 @@ hist_card = dbc.Card([
                                 )
                             ),
                         ]),
-                    ]), is_open=False,
-                    id='collapse-hist')
-            ],
+                    ]),
+                    is_open=False,
+                    id='collapse-hist'
+                )],
             type='default',
-        ),
-    ])
-], className='shadow-sm')
+        )]
+    )],
+    className='shadow-sm'
+)
 
 
 violin_card = dbc.Card([
@@ -759,14 +794,15 @@ violin_card = dbc.Card([
                                 )
                             ),
                         ])
-                    ]), is_open=False,
+                    ]),
+                    is_open=False,
                     id='collapse-violin'
-                )
-            ],
+                )],
             type='default',
-        ),
-    ])
-], className='shadow-sm')
+        )]
+    )],
+    className='shadow-sm'
+)
 
 
 parallel_card = dbc.Card([
@@ -836,14 +872,15 @@ parallel_card = dbc.Card([
                                 )
                             ),
                         ])
-                    ]), is_open=False,
+                    ]),
+                    is_open=False,
                     id='collapse-parallel'
-                )
-            ],
+                )],
             type='default',
-        ),
-    ])
-], className='shadow-sm')
+        )]
+    )],
+    className='shadow-sm'
+)
 
 
 heatmap_card = dbc.Card([
@@ -921,13 +958,15 @@ heatmap_card = dbc.Card([
                                 )
                             ),
                         ])
-                    ]), is_open=False,
-                    id='collapse-heatmap')
-            ],
+                    ]),
+                    is_open=False,
+                    id='collapse-heatmap'
+                )],
             type='default',
-        ),
-    ])
-], className='shadow-sm')
+        )]
+    )],
+    className='shadow-sm'
+)
 
 
 def get_app_layout():
@@ -962,21 +1001,29 @@ def get_app_layout():
                                     id='sensorview-image',
                                     style={'height': '110px',
                                            'width': 'auto'},
-                                ), className='text-center'
+                                ),
+                                className='text-center'
                             ),
-                            html.H4(app.title, className='text-center'),
+                            html.H4(
+                                app.title,
+                                className='text-center'
+                            ),
                             html.P(
                                 'Radar Data Visualization',
                                 className='text-center'
                             ),
-                        ]), width=3),
+                        ]),
+                        width=3
+                    ),
                     dbc.Col(
                         dbc.Row([
                             dbc.Col(
                                 dbc.InputGroup([
                                     dbc.InputGroupText('Test Case'),
                                     dbc.Select(id='case-picker'),
-                                ]), width=4),
+                                ]),
+                                width=4
+                            ),
                             dbc.Tooltip(
                                 'Select a test case',
                                 target='case-picker',
@@ -988,10 +1035,14 @@ def get_app_layout():
                                     dbc.Select(id='file-picker'),
                                     dbc.Button(
                                         html.I(
-                                            className='bi bi-arrow-clockwise'),
+                                            className='bi bi-arrow-clockwise'
+                                        ),
                                         id='refresh-button',
-                                        n_clicks=0)
-                                ]), width=8),
+                                        n_clicks=0,
+                                    )
+                                ]),
+                                width=8
+                            ),
                             dbc.Tooltip(
                                 'Select a log file',
                                 target='file-picker',
@@ -1008,9 +1059,13 @@ def get_app_layout():
                                         html.I(className='bi bi-link-45deg'),
                                         id='button-add',
                                         n_clicks=0,
-                                        size='sm')], className='d-grid'),
+                                        size='sm'
+                                    )],
+                                    className='d-grid'
+                                ),
                                 width=12,
-                                className='my-2'),
+                                className='my-2'
+                            ),
                             dbc.Tooltip(
                                 'Combine other log files',
                                 target='button-add',
@@ -1021,14 +1076,23 @@ def get_app_layout():
                                     dcc.Dropdown(id='file-add',
                                                  multi=True),
                                     id='collapse-add',
-                                    is_open=False), width=12),
+                                    is_open=False
+                                ),
+                                width=12
+                            ),
                             dbc.Tooltip(
                                 'Select additional log files',
                                 target='file-add',
                                 placement='top',
                             ),
-                        ]), width=9),
-                ], align='center'),]), className='my-3'),
+                        ]),
+                        width=9
+                    )],
+                    align='center'
+                )
+            ]),
+            className='my-3'
+        ),
 
         html.Hr(),
 
@@ -1036,29 +1100,39 @@ def get_app_layout():
 
         dbc.CardGroup([
             left2d_card,
-            right2d_card], className='mb-3'),
+            right2d_card],
+            className='mb-3'
+        ),
 
         dbc.CardGroup([
             hist_card,
-            violin_card], className='mb-3'),
+            violin_card],
+            className='mb-3'
+        ),
 
         dbc.CardGroup([
             parallel_card,
-            heatmap_card], className='mb-3'),
+            heatmap_card],
+            className='mb-3'
+        ),
 
         html.Hr(),
 
         dbc.Row([
                 dbc.Row([
-                    dbc.Spinner(color='info',
-                                spinner_style={'width': '6rem',
-                                               'height': '6rem'}),
-                    dbc.Label('Loading ...',
-                              color='light',
-                              className='text-center mt-3')
-                ], align='center',
-                    justify='center',)
-                ],
+                    dbc.Spinner(
+                        color='info',
+                        spinner_style={'width': '6rem',
+                                       'height': '6rem'}
+                    ),
+                    dbc.Label(
+                        'Loading ...',
+                        color='light',
+                        className='text-center mt-3'
+                    )],
+                    align='center',
+                    justify='center'
+                )],
                 id='loading-view',
                 align='center',
                 justify='center',
@@ -1068,7 +1142,8 @@ def get_app_layout():
                 'left': 0,
                 'width': '100%',
                 'height': '100%',
-                'background-color': 'rgba(0, 0, 0, 0.9)'}
+                'background-color': 'rgba(0, 0, 0, 0.9)'
+                }
                 ),
 
         dcc.Markdown(
