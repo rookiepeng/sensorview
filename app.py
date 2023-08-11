@@ -60,45 +60,27 @@ app.layout = get_app_layout
 
 @app.callback(
     output=dict(
-        buffer_progress=Output('buffer', 'value'),
-        buffer_intrval_disabled=Output('buffer-interval', 'disabled'),
-        buffer_tooltip=Output('buffer-tooltip', 'children'),
+        buffer_progress=Output('buffer', 'value', allow_duplicate=True),
+        buffer_intrval_disabled=Output(
+            'buffer-interval', 'disabled', allow_duplicate=True),
+        buffer_tooltip=Output(
+            'buffer-tooltip', 'children', allow_duplicate=True),
     ),
     inputs=dict(
         interval=Input('buffer-interval', 'n_intervals'),
-        filter_trigger=Input('filter-trigger', 'data'),
-        c_key=Input('c-picker-3d', 'value'),
-        left_hide_trigger=Input('left-hide-trigger', 'data'),
-        file_picker=Input('file-picker', 'value'),
     ),
     state=dict(
         max_frame=State('slider-frame', 'max'),
         session_id=State('session-id', 'data'),
-    )
+    ),
+    prevent_initial_call=True,
 )
-def update_buffer_indicator(
+def update_buffer_indicator_callback(
     interval,
-    filter_trigger,
-    c_key,
-    left_hide_trigger,
-    file_picker,
     max_frame,
     session_id
 ):
-    """Update buffer progress
 
-    Args:
-        interval (int): _description_
-        filter_trigger (int): _description_
-        c_key (str): _description_
-        left_hide_trigger (int): _description_
-        file_picker (_type_): _description_
-        max_frame (_type_): _description_
-        session_id (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
     if max_frame is None:
         return dict(
             buffer_progress=0,
@@ -106,38 +88,58 @@ def update_buffer_indicator(
             buffer_tooltip='Buffering ... (0 %)',
         )
 
-    ctx = dash.callback_context
-    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-    if trigger_id == 'buffer-interval':
-        fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
-        if fig_idx is not None:
-            percent = fig_idx/max_frame*100
-            if percent == 100:
-                return dict(
-                    buffer_progress=percent,
-                    buffer_intrval_disabled=True,
-                    buffer_tooltip='Buffer ready (100 %)',
-                )
-            else:
-                return dict(
-                    buffer_progress=percent,
-                    buffer_intrval_disabled=dash.no_update,
-                    buffer_tooltip='Buffering ... (' +
-                    str(round(percent, 2))+' %)',
-                )
+    fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
+    if fig_idx is not None:
+        percent = fig_idx/max_frame*100
+        if percent == 100:
+            return dict(
+                buffer_progress=percent,
+                buffer_intrval_disabled=True,
+                buffer_tooltip='Buffer ready (100 %)',
+            )
         else:
             return dict(
-                buffer_progress=0,
+                buffer_progress=percent,
                 buffer_intrval_disabled=dash.no_update,
-                buffer_tooltip='Buffering ... (0 %)',
+                buffer_tooltip='Buffering ... (' +
+                str(round(percent, 2))+' %)',
             )
     else:
         return dict(
             buffer_progress=0,
-            buffer_intrval_disabled=False,
+            buffer_intrval_disabled=dash.no_update,
             buffer_tooltip='Buffering ... (0 %)',
         )
+
+
+@app.callback(
+    output=dict(
+        buffer_progress=Output('buffer', 'value', allow_duplicate=True),
+        buffer_intrval_disabled=Output(
+            'buffer-interval', 'disabled', allow_duplicate=True),
+        buffer_tooltip=Output(
+            'buffer-tooltip', 'children', allow_duplicate=True),
+    ),
+    inputs=dict(
+        filter_trigger=Input('filter-trigger', 'data'),
+        c_key=Input('c-picker-3d', 'value'),
+        left_hide_trigger=Input('left-hide-trigger', 'data'),
+        file_loaded=Input('file-loaded-trigger', 'data'),
+    ),
+    prevent_initial_call=True,
+)
+def reset_buffer_indicator_callback(
+    filter_trigger,
+    c_key,
+    left_hide_trigger,
+    file_loaded,
+):
+
+    return dict(
+        buffer_progress=0,
+        buffer_intrval_disabled=False,
+        buffer_tooltip='Buffering ... (0 %)',
+    )
 
 
 app.clientside_callback(
