@@ -286,8 +286,8 @@ def process_overlay_frame(
 
         if hover_list:
             for idx in range(0, len(hover_list)):
-                fig[idx]['text'] = hover_list[idx]
-                fig[idx]['hovertemplate'] = '%{text}'
+                fig['data'][idx]['text'] = hover_list[idx]
+                fig['data'][idx]['hovertemplate'] = '%{text}'
 
     if c_type == 'numerical':
         fig['data'][0]['marker']['colorscale'] = colormap
