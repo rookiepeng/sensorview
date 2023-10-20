@@ -60,7 +60,6 @@ def process_single_frame(
     colormap,
     visible_list,
     c_key,
-    outline_enable,
     decay,
     session_id,
     case,
@@ -130,9 +129,6 @@ def process_single_frame(
         if "marker" in fig[0]:
             fig[0]["marker"]["colorscale"] = colormap
 
-    if outline_enable:
-        fig[0]["marker"]["line"]["width"] = 1
-
     if decay > 0:
         for val in range(1, decay + 1):
             if (frame_idx - val) >= 0:
@@ -174,8 +170,7 @@ def process_single_frame(
                 if c_type == "numerical":
                     if "marker" in new_fig[0]:
                         new_fig[0]["marker"]["colorscale"] = colormap
-                if outline_enable:
-                    new_fig[0]["marker"]["line"]["width"] = 1
+
                 fig = fig + new_fig
 
             else:
@@ -209,7 +204,6 @@ def process_overlay_frame(
     colormap,
     visible_list,
     c_key,
-    outline_enable,
     session_id,
     case,
     file,
@@ -264,8 +258,6 @@ def process_overlay_frame(
     if c_type == "numerical":
         if "marker" in fig["data"][0]:
             fig["data"][0]["marker"]["colorscale"] = colormap
-    if outline_enable:
-        fig["data"][0]["marker"]["line"]["width"] = 1
 
     return fig
 
@@ -287,7 +279,6 @@ def process_overlay_frame(
         colormap=State("colormap-3d", "value"),
         visible_list=State("visible-picker", "value"),
         c_key=State("c-picker-3d", "value"),
-        outline_enable=State("outline-switch", "value"),
         darkmode=State("darkmode-switch", "value"),
         session_id=State("session-id", "data"),
         case=State("case-picker", "value"),
@@ -306,7 +297,6 @@ def slider_change_callback(
     visible_list,
     c_key,
     overlay_enable,
-    outline_enable,
     decay,
     darkmode,
     session_id,
@@ -333,7 +323,6 @@ def slider_change_callback(
             colormap,
             visible_list,
             c_key,
-            outline_enable,
             session_id,
             case,
             file,
@@ -363,8 +352,6 @@ def slider_change_callback(
                 if c_type == "numerical":
                     if "marker" in fig[0]:
                         fig[0]["marker"]["colorscale"] = colormap
-                if outline_enable:
-                    fig[0]["marker"]["line"]["width"] = 1
 
                 if decay > 0:
                     for val in range(1, decay + 1):
@@ -389,9 +376,6 @@ def slider_change_callback(
                                 if "marker" in new_fig[0]:
                                     new_fig[0]["marker"]["colorscale"] = colormap
 
-                            if outline_enable:
-                                new_fig[0]["marker"]["line"]["width"] = 1
-
                             fig = fig + new_fig
 
                 fig_ref = cache_get(
@@ -414,7 +398,6 @@ def slider_change_callback(
             colormap,
             visible_list,
             c_key,
-            outline_enable,
             decay,
             session_id,
             case,
@@ -446,29 +429,6 @@ def slider_change_callback(
 def colormap_change_callback(colormap, fig):
     for idx in range(0, len(fig["data"])):
         fig["data"][idx]["marker"]["colorscale"] = colormap
-
-    return dict(scatter3d=fig)
-
-
-@app.callback(
-    output=dict(
-        scatter3d=Output("scatter3d", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        outline_enable=Input("outline-switch", "value"),
-    ),
-    state=dict(
-        fig=State("scatter3d", "figure"),
-    ),
-    prevent_initial_call=True,
-)
-def outline_change_callback(outline_enable, fig):
-    if outline_enable:
-        for idx in range(0, len(fig["data"])):
-            fig["data"][idx]["marker"]["line"]["width"] = 1
-    else:
-        for idx in range(0, len(fig["data"])):
-            fig["data"][idx]["marker"]["line"]["width"] = 0
 
     return dict(scatter3d=fig)
 
@@ -515,7 +475,7 @@ def visible_table_change_callback(
     session_id,
 ):
     visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-    if click_hide and click_data["points"][0]["curveNumber"] > 0:
+    if click_hide:
         if visible_table["_VIS_"][click_data["points"][0]["id"]] == "visible":
             visible_table.at[click_data["points"][0]["id"], "_VIS_"] = "hidden"
         else:
@@ -547,7 +507,6 @@ def visible_table_change_callback(
         overlay_enable=State("overlay-switch", "value"),
         decay=State("decay-slider", "value"),
         colormap=State("colormap-3d", "value"),
-        outline_enable=State("outline-switch", "value"),
         darkmode=State("darkmode-switch", "value"),
         click_hide=State("click-hide-switch", "value"),
         session_id=State("session-id", "data"),
@@ -570,7 +529,6 @@ def regenerate_figure_callback(
     file_loaded,
     decay,
     colormap,
-    outline_enable,
     darkmode,
     click_hide,
     session_id,
@@ -595,8 +553,6 @@ def regenerate_figure_callback(
         key for color
     :param boolean overlay_enable
         flag to overlay all frames
-    :param boolean outline_enable
-        flag to enable outline for the scatters
     :param json click_data
         properties of the clicked data point
     _
@@ -652,7 +608,6 @@ def regenerate_figure_callback(
             colormap,
             visible_list,
             c_key,
-            outline_enable,
             session_id,
             case,
             file,
@@ -667,7 +622,6 @@ def regenerate_figure_callback(
             colormap,
             visible_list,
             c_key,
-            outline_enable,
             decay,
             session_id,
             case,
@@ -728,7 +682,6 @@ def invoke_filter_trigger(
         file=State("file-picker", "value"),
         file_list=State("file-add", "value"),
         decay=State("decay-slider", "value"),
-        outline_enable=State("outline-switch", "value"),
         darkmode=State("darkmode-switch", "value"),
     ),
 )
@@ -742,7 +695,6 @@ def export_3d_scatter_animation(
     file,
     file_list,
     decay,
-    outline_enable,
     darkmode,
 ):
     """
@@ -781,11 +733,6 @@ def export_3d_scatter_animation(
         task_kwargs["template"] = "plotly_dark"
     else:
         task_kwargs["template"] = "plotly"
-
-    if outline_enable:
-        task_kwargs["linewidth"] = 1
-    else:
-        task_kwargs["linewidth"] = 0
 
     if file not in file_list:
         file_list.append(file)

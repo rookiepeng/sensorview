@@ -141,7 +141,6 @@ def celery_filtering_data(self, session_id, case, file_list, visible_picker, **k
         visibility list ['visible', 'hidden']
 
     :param dict kwargs
-        'linewidth' outline width
         'c_key' color key
         'colormap' colormap name
     """
@@ -269,7 +268,6 @@ def celery_export_video(session_id, case, file_list, visible_picker, **kwargs):
         visibility list ['visible', 'hidden']
 
     :param dict kwargs
-        'linewidth' outline width
         'c_key' color key
         'colormap' colormap name
     """

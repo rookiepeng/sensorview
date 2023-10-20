@@ -252,19 +252,6 @@ view3d_card = dbc.Card([
                 dbc.Row([
                     dbc.Checklist(
                         options=[
-                            {'label': 'Add outline to scatters',
-                             'value': True}],
-                        value=[],
-                        id='outline-switch',
-                        switch=True,
-                    ),
-                    dbc.Tooltip(
-                        'Add grey outlines to the scatters',
-                        target='outline-switch',
-                        placement='top',
-                    ),
-                    dbc.Checklist(
-                        options=[
                             {'label': 'Overlay all frames',
                              'value': True}],
                         value=[],
