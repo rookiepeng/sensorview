@@ -117,7 +117,7 @@ def refresh_button_clicked(click, stored_case):
         session_id=State('session-id', 'data'),
         stored_file=State('local-file-selection', 'data')
     ),
-    progress=[Output("loading-view", "style"),
+    progress=[Output('loading-view', 'style'),
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],
@@ -233,7 +233,7 @@ def case_selected(set_progress, case, session_id, stored_file):
         session_id=State('session-id', 'data'),
         all_state=DROPDOWN_VALUES_ALL_STATE
     ),
-    progress=[Output("loading-view", "style"),
+    progress=[Output('loading-view', 'style'),
               Output('case-picker', 'disabled'),
               Output('file-picker', 'disabled'),
               Output('refresh-button', 'disabled')],

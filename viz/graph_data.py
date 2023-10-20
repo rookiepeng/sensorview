@@ -88,13 +88,13 @@ def get_scatter3d_data(data_frame,
         return [{'mode': 'markers', 'type': 'scatter3d',
                 'x': [], 'y': [], 'z': []}]
 
-    linewidth = 0
     c_label = kwargs.get('c_label', c_key)
     name = kwargs.get('name', None)
-    # hover = kwargs.get('hover', None)
     c_type = kwargs.get('c_type', 'numerical')
     opacity = kwargs.get('opacity', 0.8)
     showlegend = kwargs.get('showlegend', True)
+
+    linewidth = 0
 
     if c_type == 'numerical':
         color = data_frame[c_key]
@@ -102,44 +102,31 @@ def get_scatter3d_data(data_frame,
         if c_range is None:
             c_range = [np.min(color), np.max(color)]
 
-        # if hover is not None:
-        #     rows = len(data_frame.index)
-        #     hover_str = np.full(rows, '', dtype=object)
-        #     for _, key in enumerate(hover):
-        #         if key not in data_frame.columns:
-        #             continue
-
-        #         if 'format' in hover[key]:
-        #             hover_str = hover_str + hover[key]['description'] + \
-        #                 ': ' + data_frame[key].map(
-        #                 hover[key]['format'].format)+'<br>'
-        #         else:
-        #             hover_str = hover_str + hover[key]['description'] + \
-        #                 ': ' + data_frame[key].apply(str)+'<br>'
-        #     hovertemplate = '%{text}'
-        # else:
-        #     hover_str = None
-        #     hovertemplate = None
-
         fig_data = [
-            dict(type='scatter3d',
-                 ids=data_frame.index,
-                 x=data_frame[x_key],
-                 y=data_frame[y_key],
-                 z=data_frame[z_key],
-                 #  text=hover_str,
-                 #  hovertemplate=hovertemplate,
-                 mode='markers',
-                 name=name,
-                 showlegend=showlegend,
-                 marker=dict(size=3,
-                             color=color,
-                             opacity=opacity,
-                             colorbar=dict(title=c_label),
-                             cmin=c_range[0],
-                             cmax=c_range[1],
-                             line=dict(color="#757575",
-                                       width=linewidth)))
+            dict(
+                type='scatter3d',
+                ids=data_frame.index,
+                x=data_frame[x_key],
+                y=data_frame[y_key],
+                z=data_frame[z_key],
+                #  text=hover_str,
+                #  hovertemplate=hovertemplate,
+                mode='markers',
+                name=name,
+                showlegend=showlegend,
+                marker=dict(
+                     size=3,
+                     color=color,
+                     opacity=opacity,
+                     colorbar=dict(title=c_label),
+                     cmin=c_range[0],
+                     cmax=c_range[1],
+                     line=dict(
+                         color='#757575',
+                         width=linewidth
+                     )
+                )
+            )
         ]
     elif c_type == 'categorical':
         fig_data = []
@@ -147,22 +134,6 @@ def get_scatter3d_data(data_frame,
 
         for c_item in color_list:
             new_list = data_frame[data_frame[c_key] == c_item]
-
-            # if hover is not None:
-            #     rows = len(new_list.index)
-            #     hover_str = np.full(rows, '', dtype=object)
-            #     for _, key in enumerate(hover):
-            #         if 'format' in hover[key]:
-            #             hover_str = hover_str + hover[key]['description'] + \
-            #                 ': ' + new_list[key].map(
-            #                     hover[key]['format'].format)+'<br>'
-            #         else:
-            #             hover_str = hover_str + hover[key]['description'] + \
-            #                 ': ' + new_list[key].apply(str)+'<br>'
-            #     hovertemplate = '%{text}'
-            # else:
-            #     hover_str = None
-            #     hovertemplate = None
 
             fig_data.append(
                 dict(
@@ -180,7 +151,7 @@ def get_scatter3d_data(data_frame,
                         size=3,
                         opacity=opacity,
                         line=dict(
-                            color="#757575",
+                            color='#757575',
                             width=linewidth,
                         )
                     ),
@@ -194,7 +165,7 @@ def get_ref_scatter3d_data(data_frame,
                            x_key,
                            y_key,
                            z_key=None,
-                           name=None,
+                           name='Origin',
                            **kwargs):
 
     if data_frame.shape[0] == 0:
@@ -215,12 +186,16 @@ def get_ref_scatter3d_data(data_frame,
         'Longitudinal: %{y:.2f} m<br>',
         mode='markers',
         name=name,
-        marker=dict(color='rgb(255, 255, 255)', size=6, opacity=1,
-                    symbol='circle',
-                    line=dict(
-                        color="#000000",
-                        width=2,
-                    ))
+        marker=dict(
+            color='rgb(255, 255, 255)',
+            size=6,
+            opacity=1,
+            symbol='circle',
+            line=dict(
+                color='#000000',
+                width=2,
+            )
+        )
     )
 
     return fig_data

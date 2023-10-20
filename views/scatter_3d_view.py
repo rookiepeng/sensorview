@@ -289,8 +289,8 @@ def process_overlay_frame(
 
         if hover_list:
             for idx in range(0, len(hover_list)):
-                fig[idx]['text'] = hover_list[idx]
-                fig[idx]['hovertemplate'] = '%{text}'
+                fig['data'][idx]['text'] = hover_list[idx]
+                fig['data'][idx]['hovertemplate'] = '%{text}'
 
     if c_type == 'numerical':
         if 'marker' in fig['data'][0]:
@@ -582,6 +582,7 @@ def visible_table_change_callback(
         vistable_trigger=Input('visible-table-change-trigger', 'data'),
         c_key=Input('c-picker-3d', 'value'),
         left_hide_trigger=Input('left-hide-trigger', 'data'),
+        file_loaded=Input('file-loaded-trigger', 'data'),
     ),
     state=dict(
         ispaused=State('interval-component', 'disabled'),
@@ -609,6 +610,7 @@ def regenerate_figure_callback(
     c_key,
     overlay_enable,
     left_hide_trigger,
+    file_loaded,
     decay,
     colormap,
     outline_enable,
@@ -735,6 +737,7 @@ def regenerate_figure_callback(
         num_values=Input({'type': 'filter-slider', 'index': ALL}, 'value'),
         visible_list=Input('visible-picker', 'value'),
         vistable_trigger=Input('visible-table-change-trigger', 'data'),
+        file_loaded=Input('file-loaded-trigger', 'data'),
     ),
     state=dict(
         trigger_idx=State('filter-trigger', 'data'),
@@ -747,6 +750,7 @@ def invoke_filter_trigger(
     num_values,
     visible_list,
     vistable_trigger,
+    file_loaded,
     trigger_idx,
     click_hide,
     session_id
