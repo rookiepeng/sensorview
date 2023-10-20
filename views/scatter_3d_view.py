@@ -143,7 +143,9 @@ def process_single_frame(
                 fig[idx]['hovertemplate'] = '%{text}'
 
     if c_type == 'numerical':
-        fig[0]['marker']['colorscale'] = colormap
+        # print(fig[0])
+        if 'marker' in fig[0]:
+            fig[0]['marker']['colorscale'] = colormap
 
     if outline_enable:
         fig[0]['marker']['line']['width'] = 1
@@ -189,7 +191,8 @@ def process_single_frame(
                             new_fig[idx]['hovertemplate'] = '%{text}'
 
                 if c_type == 'numerical':
-                    new_fig[0]['marker']['colorscale'] = colormap
+                    if 'marker' in new_fig[0]:
+                        new_fig[0]['marker']['colorscale'] = colormap
                 if outline_enable:
                     new_fig[0]['marker']['line']['width'] = 1
                 fig = fig+new_fig
@@ -290,7 +293,8 @@ def process_overlay_frame(
                 fig['data'][idx]['hovertemplate'] = '%{text}'
 
     if c_type == 'numerical':
-        fig['data'][0]['marker']['colorscale'] = colormap
+        if 'marker' in fig['data'][0]:
+            fig['data'][0]['marker']['colorscale'] = colormap
     if outline_enable:
         fig['data'][0]['marker']['line']['width'] = 1
 
@@ -390,7 +394,8 @@ def slider_change_callback(
                             fig[idx]['hovertemplate'] = '%{text}'
 
                 if c_type == 'numerical':
-                    fig[0]['marker']['colorscale'] = colormap
+                    if 'marker' in fig[0]:
+                        fig[0]['marker']['colorscale'] = colormap
                 if outline_enable:
                     fig[0]['marker']['line']['width'] = 1
 
@@ -414,7 +419,8 @@ def slider_change_callback(
                                             'hovertemplate'] = '%{text}'
 
                             if c_type == 'numerical':
-                                new_fig[0]['marker']['colorscale'] = colormap
+                                if 'marker' in new_fig[0]:
+                                    new_fig[0]['marker']['colorscale'] = colormap
 
                             if outline_enable:
                                 new_fig[0]['marker']['line']['width'] = 1
