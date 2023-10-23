@@ -31,20 +31,19 @@ import os
 
 import datetime
 
-from maindash import app
+import plotly.graph_objs as go
+
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from maindash import app
 
 from tasks import filter_all
 
-from utils import cache_get, CACHE_KEYS, KEY_TYPES
-
 from viz.viz import get_scatter2d
 
+from utils import cache_get, CACHE_KEYS, KEY_TYPES
 from utils import background_callback_manager
 from utils import load_data
-
-import plotly.graph_objs as go
 
 
 @app.callback(
