@@ -99,18 +99,18 @@ def refresh_button_clicked(click, stored_case):
 
 @app.callback(
     background=True,
-    output=dict(
-        file_value=Output("file-picker", "value"),
-        file_options=Output("file-picker", "options"),
-        add_file_value=Output("file-add", "value"),
-        add_file_options=Output("file-add", "options"),
-        stored_case=Output("local-case-selection", "data"),
-    ),
-    inputs=dict(case=Input("case-picker", "value")),
-    state=dict(
-        session_id=State("session-id", "data"),
-        stored_file=State("local-file-selection", "data"),
-    ),
+    output={
+        "file_value": Output("file-picker", "value"),
+        "file_options": Output("file-picker", "options"),
+        "add_file_value": Output("file-add", "value"),
+        "add_file_options": Output("file-add", "options"),
+        "stored_case": Output("local-case-selection", "data"),
+    },
+    inputs={"case": Input("case-picker", "value")},
+    state={
+        "session_id": State("session-id", "data"),
+        "stored_file": State("local-file-selection", "data"),
+    },
     progress=[
         Output("loading-view", "style"),
         Output("case-picker", "disabled"),
@@ -205,42 +205,43 @@ def case_selected(set_progress, case, session_id, stored_file):
             if stored_file == file["value"]:
                 file_value = stored_file
                 break
-    return dict(
-        file_value=file_value,
-        file_options=data_files,
-        add_file_value=[],
-        add_file_options=data_files,
-        stored_case=case,
-    )
+    return {
+        "file_value": file_value,
+        "file_options": data_files,
+        "add_file_value": [],
+        "add_file_options": data_files,
+        "stored_case": case,
+    }
 
 
 @app.callback(
     background=True,
-    output=dict(
-        file_load_trigger=Output("file-loaded-trigger", "data"),
-        stored_file=Output("local-file-selection", "data"),
-        frame_min=Output("slider-frame", "min"),
-        frame_max=Output("slider-frame", "max"),
-        dropdown_container=Output("dropdown-container", "children"),
-        slider_container=Output("slider-container", "children"),
-        dim_picker_opt=Output("dim-picker-parallel", "options"),
-        dim_picker_val=Output("dim-picker-parallel", "value"),
-        dp_opts_all=DROPDOWN_OPTIONS_ALL,
-        dp_vals_all=DROPDOWN_VALUES_ALL,
-        dp_opts_cat_color=DROPDOWN_OPTIONS_CAT_COLOR,
-        dp_vals_cat_color=DROPDOWN_VALUES_CAT_COLOR,
-        dp_opts_cat=DROPDOWN_OPTIONS_CAT,
-        dp_vals_cat=DROPDOWN_VALUES_CAT,
-    ),
-    inputs=dict(
-        file=Input("file-picker", "value"), add_file_value=Input("file-add", "value")
-    ),
-    state=dict(
-        file_loaded=State("file-loaded-trigger", "data"),
-        case=State("case-picker", "value"),
-        session_id=State("session-id", "data"),
-        all_state=DROPDOWN_VALUES_ALL_STATE,
-    ),
+    output={
+        "file_load_trigger": Output("file-loaded-trigger", "data"),
+        "stored_file": Output("local-file-selection", "data"),
+        "frame_min": Output("slider-frame", "min"),
+        "frame_max": Output("slider-frame", "max"),
+        "dropdown_container": Output("dropdown-container", "children"),
+        "slider_container": Output("slider-container", "children"),
+        "dim_picker_opt": Output("dim-picker-parallel", "options"),
+        "dim_picker_val": Output("dim-picker-parallel", "value"),
+        "dp_opts_all": DROPDOWN_OPTIONS_ALL,
+        "dp_vals_all": DROPDOWN_VALUES_ALL,
+        "dp_opts_cat_color": DROPDOWN_OPTIONS_CAT_COLOR,
+        "dp_vals_cat_color": DROPDOWN_VALUES_CAT_COLOR,
+        "dp_opts_cat": DROPDOWN_OPTIONS_CAT,
+        "dp_vals_cat": DROPDOWN_VALUES_CAT,
+    },
+    inputs={
+        "file": Input("file-picker", "value"),
+        "add_file_value": Input("file-add", "value"),
+    },
+    state={
+        "file_loaded": State("file-loaded-trigger", "data"),
+        "case": State("case-picker", "value"),
+        "session_id": State("session-id", "data"),
+        "all_state": DROPDOWN_VALUES_ALL_STATE,
+    },
     progress=[
         Output("loading-view", "style"),
         Output("case-picker", "disabled"),
@@ -464,39 +465,39 @@ def file_select_changed(
         ]
     )
 
-    return dict(
-        file_load_trigger=file_loaded + 1,
-        stored_file=file,
-        frame_min=0,
-        frame_max=len(frame_list) - 1,
-        dropdown_container=new_dropdown,
-        slider_container=new_slider,
-        dim_picker_opt=[{"label": ck, "value": ck} for ck in cat_keys],
-        dim_picker_val=[t_values_cat],
-        dp_opts_all=options_all,
-        dp_vals_all=values_all,
-        dp_opts_cat_color=options_cat_color,
-        dp_vals_cat_color=values_cat_color,
-        dp_opts_cat=options_cat,
-        dp_vals_cat=values_cat,
-    )
+    return {
+        "file_load_trigger": file_loaded + 1,
+        "stored_file": file,
+        "frame_min": 0,
+        "frame_max": len(frame_list) - 1,
+        "dropdown_container": new_dropdown,
+        "slider_container": new_slider,
+        "dim_picker_opt": [{"label": ck, "value": ck} for ck in cat_keys],
+        "dim_picker_val": [t_values_cat],
+        "dp_opts_all": options_all,
+        "dp_vals_all": values_all,
+        "dp_opts_cat_color": options_cat_color,
+        "dp_vals_cat_color": values_cat_color,
+        "dp_opts_cat": options_cat,
+        "dp_vals_cat": values_cat,
+    }
 
 
 @app.callback(
-    output=dict(slider_value=Output("slider-frame", "value")),
-    inputs=dict(
-        file_loaded=Input("file-loaded-trigger", "data"),
-        left_btn=Input("previous-button", "n_clicks"),
-        right_btn=Input("next-button", "n_clicks"),
-        interval=Input("interval-component", "n_intervals"),
-    ),
-    state=dict(
-        file=State("file-picker", "value"),
-        case=State("case-picker", "value"),
-        slider_max=State("slider-frame", "max"),
-        slider_state=State("slider-frame", "value"),
-        session_id=State("session-id", "data"),
-    ),
+    output={"slider_value": Output("slider-frame", "value")},
+    inputs={
+        "file_loaded": Input("file-loaded-trigger", "data"),
+        "left_btn": Input("previous-button", "n_clicks"),
+        "right_btn": Input("next-button", "n_clicks"),
+        "interval": Input("interval-component", "n_intervals"),
+    },
+    state={
+        "file": State("file-picker", "value"),
+        "case": State("case-picker", "value"),
+        "slider_max": State("slider-frame", "max"),
+        "slider_state": State("slider-frame", "value"),
+        "session_id": State("session-id", "data"),
+    },
 )
 def update_slider(
     file_loaded,
@@ -555,47 +556,43 @@ def update_slider(
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if trigger_id == "file-loaded-trigger":
-        return dict(slider_value=0)
+        return {"slider_value": 0}
 
     elif trigger_id == "previous-button":
         if left_btn == 0:
             raise PreventUpdate
 
         # previous button is clicked
-        return dict(slider_value=(slider_state - 1) % (slider_max + 1))
+        return {"slider_value": (slider_state - 1) % (slider_max + 1)}
 
     elif trigger_id == "next-button":
         if right_btn == 0:
             raise PreventUpdate
 
         # next button is clicked
-        return dict(slider_value=(slider_state + 1) % (slider_max + 1))
+        return {"slider_value": (slider_state + 1) % (slider_max + 1)}
 
     elif trigger_id == "interval-component":
         if interval == 0:
             raise PreventUpdate
 
-        # triggerred from interval
-        # if slider_state == slider_max:
-        #     return dict(slider_value=dash.no_update)
-
         fig_idx = cache_get(session_id, CACHE_KEYS["figure_idx"])
         if fig_idx is not None:
             if slider_state > fig_idx:
-                return dict(slider_value=dash.no_update)
-            else:
-                return dict(slider_value=(slider_state + 1) % (slider_max + 1))
-        else:
-            return dict(slider_value=dash.no_update)
+                return {"slider_value": dash.no_update}
+
+            return {"slider_value": (slider_state + 1) % (slider_max + 1)}
+
+        return {"slider_value": dash.no_update}
 
 
 @app.callback(
-    output=dict(state=Output("collapse-add", "is_open")),
-    inputs=dict(click=Input("button-add", "n_clicks")),
-    state=dict(
-        open_state=State("collapse-add", "is_open"),
-        add_file_value=State("file-add", "value"),
-    ),
+    output={"state": Output("collapse-add", "is_open")},
+    inputs={"click": Input("button-add", "n_clicks")},
+    state={
+        "open_state": State("collapse-add", "is_open"),
+        "add_file_value": State("file-add", "value"),
+    },
 )
 def add_data(click, open_state, add_file_value):
     """ """
@@ -603,22 +600,25 @@ def add_data(click, open_state, add_file_value):
         raise PreventUpdate
 
     if open_state is True and not add_file_value:
-        return dict(state=False)
-    else:
-        return dict(state=True)
+        return {"state": False}
+
+    return {"state": True}
 
 
 @app.callback(
-    output=dict(
-        left_switch=Output("left-switch", "value"),
-        right_switch=Output("right-switch", "value"),
-        hist_switch=Output("histogram-switch", "value"),
-        violin_switch=Output("violin-switch", "value"),
-        parallel_switch=Output("parallel-switch", "value"),
-        heat_switch=Output("heat-switch", "value"),
-    ),
-    inputs=dict(file_loaded=Input("file-loaded-trigger", "data")),
-    state=dict(file=State("file-picker", "value"), case=State("case-picker", "value")),
+    output={
+        "left_switch": Output("left-switch", "value"),
+        "right_switch": Output("right-switch", "value"),
+        "hist_switch": Output("histogram-switch", "value"),
+        "violin_switch": Output("violin-switch", "value"),
+        "parallel_switch": Output("parallel-switch", "value"),
+        "heat_switch": Output("heat-switch", "value"),
+    },
+    inputs={"file_loaded": Input("file-loaded-trigger", "data")},
+    state={
+        "file": State("file-picker", "value"),
+        "case": State("case-picker", "value"),
+    },
 )
 def reset_switch_state(file_loaded, file, case):
     """
@@ -646,11 +646,11 @@ def reset_switch_state(file_loaded, file, case):
     if case is None:
         raise PreventUpdate
 
-    return dict(
-        left_switch=[],
-        right_switch=[],
-        hist_switch=[],
-        violin_switch=[],
-        parallel_switch=[],
-        heat_switch=[],
-    )
+    return {
+        "left_switch": [],
+        "right_switch": [],
+        "hist_switch": [],
+        "violin_switch": [],
+        "parallel_switch": [],
+        "heat_switch": [],
+    }

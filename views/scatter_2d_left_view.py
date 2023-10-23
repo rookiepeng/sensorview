@@ -50,25 +50,25 @@ from utils import background_callback_manager
 
 @app.callback(
     background=True,
-    output=dict(
-        figure=Output("scatter2d-left", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        filter_trigger=Input("filter-trigger", "data"),
-        left_hide_trigger=Input("left-hide-trigger", "data"),
-        left_sw=Input("left-switch", "value"),
-        x_left=Input("x-picker-2d-left", "value"),
-        y_left=Input("y-picker-2d-left", "value"),
-        color_left=Input("c-picker-2d-left", "value"),
-    ),
-    state=dict(
-        colormap=State("colormap-scatter2d-left", "value"),
-        session_id=State("session-id", "data"),
-        visible_list=State("visible-picker", "value"),
-        case=State("case-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-    ),
+    output={
+        "figure": Output("scatter2d-left", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "filter_trigger": Input("filter-trigger", "data"),
+        "left_hide_trigger": Input("left-hide-trigger", "data"),
+        "left_sw": Input("left-switch", "value"),
+        "x_left": Input("x-picker-2d-left", "value"),
+        "y_left": Input("y-picker-2d-left", "value"),
+        "color_left": Input("c-picker-2d-left", "value"),
+    },
+    state={
+        "colormap": State("colormap-scatter2d-left", "value"),
+        "session_id": State("session-id", "data"),
+        "visible_list": State("visible-picker", "value"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
     manager=background_callback_manager,
     prevent_initial_call=True,
 )
@@ -127,9 +127,7 @@ def regenerate_scatter2d_left_callback(
             "layout": {},
         }
 
-        return dict(
-            figure=left_fig,
-        )
+        return {"figure": left_fig}
 
     config = cache_get(session_id, CACHE_KEYS["config"])
 
@@ -165,9 +163,7 @@ def regenerate_scatter2d_left_callback(
         c_type=config["keys"][c_key].get("type", KEY_TYPES["NUM"]),
     )
 
-    return dict(
-        figure=left_fig,
-    )
+    return {"figure": left_fig}
 
 
 @app.callback(
