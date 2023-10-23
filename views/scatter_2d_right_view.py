@@ -50,24 +50,24 @@ import plotly.graph_objs as go
 @app.callback(
     background=True,
     output=dict(
-        figure=Output('scatter2d-right', 'figure', allow_duplicate=True),
+        figure=Output("scatter2d-right", "figure", allow_duplicate=True),
     ),
     inputs=dict(
-        filter_trigger=Input('filter-trigger', 'data'),
-        left_hide_trigger=Input('left-hide-trigger', 'data'),
-        right_sw=Input('right-switch', 'value'),
-        x_right=Input('x-picker-2d-right', 'value'),
-        y_right=Input('y-picker-2d-right', 'value'),
-        color_right=Input('c-picker-2d-right', 'value'),
+        filter_trigger=Input("filter-trigger", "data"),
+        left_hide_trigger=Input("left-hide-trigger", "data"),
+        right_sw=Input("right-switch", "value"),
+        x_right=Input("x-picker-2d-right", "value"),
+        y_right=Input("y-picker-2d-right", "value"),
+        color_right=Input("c-picker-2d-right", "value"),
     ),
     state=dict(
-        colormap=State('colormap-scatter2d-right', 'value'),
-        outline_enable=State('outline-switch', 'value'),
-        session_id=State('session-id', 'data'),
-        visible_list=State('visible-picker', 'value'),
-        case=State('case-picker', 'value'),
-        file=State('file-picker', 'value'),
-        file_list=State('file-add', 'value')
+        colormap=State("colormap-scatter2d-right", "value"),
+        # outline_enable=State('outline-switch', 'value'),
+        session_id=State("session-id", "data"),
+        visible_list=State("visible-picker", "value"),
+        case=State("case-picker", "value"),
+        file=State("file-picker", "value"),
+        file_list=State("file-add", "value"),
     ),
     manager=background_callback_manager,
     prevent_initial_call=True,
@@ -80,12 +80,11 @@ def regenerate_scatter2d_right_callback(
     y_right,
     color_right,
     colormap,
-    outline_enable,
     session_id,
     visible_list,
     case,
     file,
-    file_list
+    file_list,
 ):
     """
     Update right 2D scatter graph
@@ -104,8 +103,6 @@ def regenerate_scatter2d_right_callback(
         key for the color
     :param str colormap
         colormap name
-    :param boolean outline_enable
-        flag to enable outline for the scatters
     :param str session_id
         session id
     :param list visible_list
@@ -126,49 +123,34 @@ def regenerate_scatter2d_right_callback(
     """
     if not right_sw:
         right_fig = {
-            'data': [{'mode': 'markers',
-                      'type': 'scattergl',
-                      'x': [],
-                      'y': []}
-                     ],
-            'layout': {
-            }}
+            "data": [{"mode": "markers", "type": "scattergl", "x": [], "y": []}],
+            "layout": {},
+        }
 
         return dict(
             figure=right_fig,
         )
 
-    config = cache_get(session_id, CACHE_KEYS['config'])
-    keys_dict = config['keys']
+    config = cache_get(session_id, CACHE_KEYS["config"])
+    keys_dict = config["keys"]
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-    cat_keys = filter_kwargs['cat_keys']
-    num_keys = filter_kwargs['num_keys']
-    cat_values = filter_kwargs['cat_values']
-    num_values = filter_kwargs['num_values']
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs["cat_keys"]
+    num_keys = filter_kwargs["num_keys"]
+    cat_values = filter_kwargs["cat_values"]
+    num_values = filter_kwargs["num_values"]
 
     x_key = x_right
     y_key = y_right
     c_key = color_right
-    x_label = keys_dict[x_right]['description']
-    y_label = keys_dict[y_right]['description']
-    c_label = keys_dict[color_right]['description']
-
-    if outline_enable:
-        linewidth = 1
-    else:
-        linewidth = 0
+    x_label = keys_dict[x_right]["description"]
+    y_label = keys_dict[y_right]["description"]
+    c_label = keys_dict[color_right]["description"]
 
     data = load_data(file, file_list, case)
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
     filtered_table = filter_all(
-        data,
-        num_keys,
-        num_values,
-        cat_keys,
-        cat_values,
-        visible_table,
-        visible_list
+        data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
 
     right_fig = get_scatter2d(
@@ -180,8 +162,7 @@ def regenerate_scatter2d_right_callback(
         y_label,
         c_label,
         colormap=colormap,
-        linewidth=linewidth,
-        c_type=keys_dict[c_key].get('type', KEY_TYPES['NUM'])
+        c_type=keys_dict[c_key].get("type", KEY_TYPES["NUM"]),
     )
 
     return dict(
@@ -191,62 +172,14 @@ def regenerate_scatter2d_right_callback(
 
 @app.callback(
     output=dict(
-        figure=Output('scatter2d-right', 'figure', allow_duplicate=True),
+        figure=Output("scatter2d-right", "figure", allow_duplicate=True),
     ),
     inputs=dict(
-        outline_enable=Input('outline-switch', 'value'),
+        colormap=Input("colormap-scatter2d-right", "value"),
     ),
     state=dict(
-        fig_in=State('scatter2d-right', 'figure'),
-        right_sw=State('right-switch', 'value'),
-    ),
-    prevent_initial_call=True,
-)
-def scatter2d_right_outline_change_callback(
-    outline_enable,
-    fig_in,
-    right_sw,
-):
-    """
-    Update right 2D scatter graph
-    """
-
-    if not right_sw:
-        right_fig = {
-            'data': [{'mode': 'markers',
-                      'type': 'scattergl',
-                      'x': [],
-                      'y': []}
-                     ],
-            'layout': {
-            }}
-
-        return dict(
-            figure=right_fig,
-        )
-
-    if outline_enable:
-        for idx in range(0, len(fig_in['data'])):
-            fig_in['data'][idx]['marker']['line']['width'] = 1
-    else:
-        for idx in range(0, len(fig_in['data'])):
-            fig_in['data'][idx]['marker']['line']['width'] = 0
-
-    return dict(
-        figure=fig_in,
-    )
-
-
-@app.callback(
-    output=dict(
-        figure=Output('scatter2d-right', 'figure', allow_duplicate=True),
-    ),
-    inputs=dict(
-        colormap=Input('colormap-scatter2d-right', 'value'),
-    ),
-    state=dict(
-        fig_in=State('scatter2d-right', 'figure'),
-        right_sw=State('right-switch', 'value'),
+        fig_in=State("scatter2d-right", "figure"),
+        right_sw=State("right-switch", "value"),
     ),
     prevent_initial_call=True,
 )
@@ -261,20 +194,16 @@ def scatter2d_right_colormap_change_callback(
 
     if not right_sw:
         right_fig = {
-            'data': [{'mode': 'markers',
-                      'type': 'scattergl',
-                      'x': [],
-                      'y': []}
-                     ],
-            'layout': {
-            }}
+            "data": [{"mode": "markers", "type": "scattergl", "x": [], "y": []}],
+            "layout": {},
+        }
 
         return dict(
             figure=right_fig,
         )
 
-    for idx in range(0, len(fig_in['data'])):
-        fig_in['data'][idx]['marker']['colorscale'] = colormap
+    for idx in range(0, len(fig_in["data"])):
+        fig_in["data"][idx]["marker"]["colorscale"] = colormap
 
     return dict(
         figure=fig_in,
@@ -283,39 +212,31 @@ def scatter2d_right_colormap_change_callback(
 
 @app.callback(
     output=dict(
-        collapse=Output('collapse-right2d', 'is_open'),
+        collapse=Output("collapse-right2d", "is_open"),
     ),
     inputs=dict(
-        right_sw=Input('right-switch', 'value'),
+        right_sw=Input("right-switch", "value"),
     ),
 )
 def enable_scatter2d_right_callback(
     right_sw,
 ):
-    """
-    """
+    """ """
 
     if right_sw:
         collapse = True
     else:
         collapse = False
 
-    return dict(
-        collapse=collapse
-    )
+    return dict(collapse=collapse)
 
 
 @app.callback(
-    output=dict(
-        dummy=Output('dummy-export-scatter2d-right', 'data')
-    ),
-    inputs=dict(
-        btn=Input('export-scatter2d-right', 'n_clicks')
-    ),
+    output=dict(dummy=Output("dummy-export-scatter2d-right", "data")),
+    inputs=dict(btn=Input("export-scatter2d-right", "n_clicks")),
     state=dict(
-        fig=State('scatter2d-right', 'figure'),
-        case=State('case-picker', 'value')
-    )
+        fig=State("scatter2d-right", "figure"), case=State("case-picker", "value")
+    ),
 )
 def export_right_2d_scatter(btn, fig, case):
     """
@@ -335,14 +256,13 @@ def export_right_2d_scatter(btn, fig, case):
         raise PreventUpdate
 
     now = datetime.datetime.now()
-    timestamp = now.strftime('%Y%m%d_%H%M%S')
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-    if not os.path.exists('data/'+case+'/images'):
-        os.makedirs('data/'+case+'/images')
+    if not os.path.exists("data/" + case + "/images"):
+        os.makedirs("data/" + case + "/images")
 
     temp_fig = go.Figure(fig)
-    temp_fig.write_image('data/'+case+'/images/' +
-                         timestamp+'_fig_right.png', scale=2)
-    return dict(
-        dummy=0
+    temp_fig.write_image(
+        "data/" + case + "/images/" + timestamp + "_fig_right.png", scale=2
     )
+    return dict(dummy=0)

@@ -52,24 +52,23 @@ import plotly.graph_objs as go
 @app.callback(
     background=True,
     output=dict(
-        figure=Output('scatter2d-left', 'figure', allow_duplicate=True),
+        figure=Output("scatter2d-left", "figure", allow_duplicate=True),
     ),
     inputs=dict(
-        filter_trigger=Input('filter-trigger', 'data'),
-        left_hide_trigger=Input('left-hide-trigger', 'data'),
-        left_sw=Input('left-switch', 'value'),
-        x_left=Input('x-picker-2d-left', 'value'),
-        y_left=Input('y-picker-2d-left', 'value'),
-        color_left=Input('c-picker-2d-left', 'value'),
+        filter_trigger=Input("filter-trigger", "data"),
+        left_hide_trigger=Input("left-hide-trigger", "data"),
+        left_sw=Input("left-switch", "value"),
+        x_left=Input("x-picker-2d-left", "value"),
+        y_left=Input("y-picker-2d-left", "value"),
+        color_left=Input("c-picker-2d-left", "value"),
     ),
     state=dict(
-        colormap=State('colormap-scatter2d-left', 'value'),
-        outline_enable=State('outline-switch', 'value'),
-        session_id=State('session-id', 'data'),
-        visible_list=State('visible-picker', 'value'),
-        case=State('case-picker', 'value'),
-        file=State('file-picker', 'value'),
-        file_list=State('file-add', 'value')
+        colormap=State("colormap-scatter2d-left", "value"),
+        session_id=State("session-id", "data"),
+        visible_list=State("visible-picker", "value"),
+        case=State("case-picker", "value"),
+        file=State("file-picker", "value"),
+        file_list=State("file-add", "value"),
     ),
     manager=background_callback_manager,
     prevent_initial_call=True,
@@ -82,12 +81,11 @@ def regenerate_scatter2d_left_callback(
     y_left,
     color_left,
     colormap,
-    outline_enable,
     session_id,
     visible_list,
     case,
     file,
-    file_list
+    file_list,
 ):
     """
     Update left 2D scatter graph
@@ -106,8 +104,6 @@ def regenerate_scatter2d_left_callback(
         key for the color
     :param str colormap
         colormap name
-    :param boolean outline_enable
-        flag to enable outline for the scatters
     :param str session_id
         session id
     :param list visible_list
@@ -128,49 +124,34 @@ def regenerate_scatter2d_left_callback(
     """
     if not left_sw:
         left_fig = {
-            'data': [{'mode': 'markers',
-                      'type': 'scattergl',
-                      'x': [],
-                      'y': []}
-                     ],
-            'layout': {
-            }}
+            "data": [{"mode": "markers", "type": "scattergl", "x": [], "y": []}],
+            "layout": {},
+        }
 
         return dict(
             figure=left_fig,
         )
 
-    config = cache_get(session_id, CACHE_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS["config"])
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-    cat_keys = filter_kwargs['cat_keys']
-    num_keys = filter_kwargs['num_keys']
-    cat_values = filter_kwargs['cat_values']
-    num_values = filter_kwargs['num_values']
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs["cat_keys"]
+    num_keys = filter_kwargs["num_keys"]
+    cat_values = filter_kwargs["cat_values"]
+    num_values = filter_kwargs["num_values"]
 
     x_key = x_left
     y_key = y_left
     c_key = color_left
-    x_label = config['keys'][x_left]['description']
-    y_label = config['keys'][y_left]['description']
-    c_label = config['keys'][color_left]['description']
-
-    if outline_enable:
-        linewidth = 1
-    else:
-        linewidth = 0
+    x_label = config["keys"][x_left]["description"]
+    y_label = config["keys"][y_left]["description"]
+    c_label = config["keys"][color_left]["description"]
 
     data = load_data(file, file_list, case)
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
     filtered_table = filter_all(
-        data,
-        num_keys,
-        num_values,
-        cat_keys,
-        cat_values,
-        visible_table,
-        visible_list
+        data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
 
     left_fig = get_scatter2d(
@@ -182,8 +163,7 @@ def regenerate_scatter2d_left_callback(
         y_label,
         c_label,
         colormap=colormap,
-        linewidth=linewidth,
-        c_type=config['keys'][c_key].get('type', KEY_TYPES['NUM'])
+        c_type=config["keys"][c_key].get("type", KEY_TYPES["NUM"]),
     )
 
     return dict(
@@ -193,61 +173,14 @@ def regenerate_scatter2d_left_callback(
 
 @app.callback(
     output=dict(
-        figure=Output('scatter2d-left', 'figure', allow_duplicate=True),
+        figure=Output("scatter2d-left", "figure", allow_duplicate=True),
     ),
     inputs=dict(
-        outline_enable=Input('outline-switch', 'value')
+        colormap=Input("colormap-scatter2d-left", "value"),
     ),
     state=dict(
-        fig_in=State('scatter2d-left', 'figure'),
-        left_sw=State('left-switch', 'value'),
-    ),
-    prevent_initial_call=True,
-)
-def scatter2d_left_outline_change_callback(
-    outline_enable,
-    fig_in,
-    left_sw,
-):
-    """
-    Update left 2D scatter graph
-    """
-    if not left_sw:
-        left_fig = {
-            'data': [{'mode': 'markers',
-                      'type': 'scattergl',
-                      'x': [],
-                      'y': []}
-                     ],
-            'layout': {
-            }}
-
-        return dict(
-            figure=left_fig,
-        )
-
-    if outline_enable:
-        for idx in range(0, len(fig_in['data'])):
-            fig_in['data'][idx]['marker']['line']['width'] = 1
-    else:
-        for idx in range(0, len(fig_in['data'])):
-            fig_in['data'][idx]['marker']['line']['width'] = 0
-
-    return dict(
-        figure=fig_in,
-    )
-
-
-@app.callback(
-    output=dict(
-        figure=Output('scatter2d-left', 'figure', allow_duplicate=True),
-    ),
-    inputs=dict(
-        colormap=Input('colormap-scatter2d-left', 'value'),
-    ),
-    state=dict(
-        fig_in=State('scatter2d-left', 'figure'),
-        left_sw=State('left-switch', 'value'),
+        fig_in=State("scatter2d-left", "figure"),
+        left_sw=State("left-switch", "value"),
     ),
     prevent_initial_call=True,
 )
@@ -261,20 +194,16 @@ def scatter2d_left_colormap_change_callback(
     """
     if not left_sw:
         left_fig = {
-            'data': [{'mode': 'markers',
-                      'type': 'scattergl',
-                      'x': [],
-                      'y': []}
-                     ],
-            'layout': {
-            }}
+            "data": [{"mode": "markers", "type": "scattergl", "x": [], "y": []}],
+            "layout": {},
+        }
 
         return dict(
             figure=left_fig,
         )
 
-    for idx in range(0, len(fig_in['data'])):
-        fig_in['data'][idx]['marker']['colorscale'] = colormap
+    for idx in range(0, len(fig_in["data"])):
+        fig_in["data"][idx]["marker"]["colorscale"] = colormap
 
     return dict(
         figure=fig_in,
@@ -283,10 +212,10 @@ def scatter2d_left_colormap_change_callback(
 
 @app.callback(
     output=dict(
-        collapse=Output('collapse-left2d', 'is_open'),
+        collapse=Output("collapse-left2d", "is_open"),
     ),
     inputs=dict(
-        left_sw=Input('left-switch', 'value'),
+        left_sw=Input("left-switch", "value"),
     ),
 )
 def enable_scatter2d_left_callback(
@@ -301,22 +230,15 @@ def enable_scatter2d_left_callback(
     else:
         collapse = False
 
-    return dict(
-        collapse=collapse
-    )
+    return dict(collapse=collapse)
 
 
 @app.callback(
-    output=dict(
-        dummy=Output('dummy-export-scatter2d-left', 'data')
-    ),
-    inputs=dict(
-        btn=Input('export-scatter2d-left', 'n_clicks')
-    ),
+    output=dict(dummy=Output("dummy-export-scatter2d-left", "data")),
+    inputs=dict(btn=Input("export-scatter2d-left", "n_clicks")),
     state=dict(
-        fig=State('scatter2d-left', 'figure'),
-        case=State('case-picker', 'value')
-    )
+        fig=State("scatter2d-left", "figure"), case=State("case-picker", "value")
+    ),
 )
 def export_left_2d_scatter(btn, fig, case):
     """
@@ -336,29 +258,22 @@ def export_left_2d_scatter(btn, fig, case):
         raise PreventUpdate
 
     now = datetime.datetime.now()
-    timestamp = now.strftime('%Y%m%d_%H%M%S')
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-    if not os.path.exists('data/'+case+'/images'):
-        os.makedirs('data/'+case+'/images')
+    if not os.path.exists("data/" + case + "/images"):
+        os.makedirs("data/" + case + "/images")
 
     temp_fig = go.Figure(fig)
-    temp_fig.write_image('data/'+case+'/images/' +
-                         timestamp+'_fig_left.png', scale=2)
-    return dict(
-        dummy=0
+    temp_fig.write_image(
+        "data/" + case + "/images/" + timestamp + "_fig_left.png", scale=2
     )
+    return dict(dummy=0)
 
 
 @app.callback(
-    output=dict(
-        dummy=Output('selected-data-left', 'data')
-    ),
-    inputs=dict(
-        selectedData=Input('scatter2d-left', 'selectedData')
-    ),
-    state=dict(
-        session_id=State('session-id', 'data')
-    ),
+    output=dict(dummy=Output("selected-data-left", "data")),
+    inputs=dict(selectedData=Input("scatter2d-left", "selectedData")),
+    state=dict(session_id=State("session-id", "data")),
 )
 def select_left_figure(selectedData, session_id):
     """
@@ -372,29 +287,19 @@ def select_left_figure(selectedData, session_id):
     :return: selected data
     :rtype: json
     """
-    cache_set(selectedData, session_id, CACHE_KEYS['selected_data'])
-    return dict(
-        dummy=0
-    )
+    cache_set(selectedData, session_id, CACHE_KEYS["selected_data"])
+    return dict(dummy=0)
 
 
 @app.callback(
-    output=dict(
-        output_trigger=Output('left-hide-trigger', 'data')
-    ),
-    inputs=dict(
-        btn=Input('hide-left', 'n_clicks')
-    ),
+    output=dict(output_trigger=Output("left-hide-trigger", "data")),
+    inputs=dict(btn=Input("hide-left", "n_clicks")),
     state=dict(
-        trigger_idx=State('left-hide-trigger', 'data'),
-        session_id=State('session-id', 'data'),
-    )
+        trigger_idx=State("left-hide-trigger", "data"),
+        session_id=State("session-id", "data"),
+    ),
 )
-def left_hide_button(
-    btn,
-    trigger_idx,
-    session_id
-):
+def left_hide_button(btn, trigger_idx, session_id):
     """
     Callback when hide/unhide button is clicked
 
@@ -411,25 +316,23 @@ def left_hide_button(
     if btn == 0:
         raise PreventUpdate
 
-    selectedData = cache_get(session_id, CACHE_KEYS['selected_data'])
+    selectedData = cache_get(session_id, CACHE_KEYS["selected_data"])
 
     if selectedData is None:
         raise PreventUpdate
 
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
-    s_data = pd.DataFrame(selectedData['points'])
-    idx = s_data['id']
+    s_data = pd.DataFrame(selectedData["points"])
+    idx = s_data["id"]
     idx.index = idx
 
-    vis_idx = idx[visible_table['_VIS_'][idx] == 'visible']
-    hid_idx = idx[visible_table['_VIS_'][idx] == 'hidden']
+    vis_idx = idx[visible_table["_VIS_"][idx] == "visible"]
+    hid_idx = idx[visible_table["_VIS_"][idx] == "hidden"]
 
-    visible_table.loc[vis_idx, '_VIS_'] = 'hidden'
-    visible_table.loc[hid_idx, '_VIS_'] = 'visible'
+    visible_table.loc[vis_idx, "_VIS_"] = "hidden"
+    visible_table.loc[hid_idx, "_VIS_"] = "visible"
 
-    cache_set(visible_table, session_id, CACHE_KEYS['visible_table'])
+    cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
-    return dict(
-        output_trigger=trigger_idx+1
-    )
+    return dict(output_trigger=trigger_idx + 1)
