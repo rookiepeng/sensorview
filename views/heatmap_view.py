@@ -30,16 +30,17 @@
 import os
 import datetime
 
-from maindash import app
+import plotly.graph_objs as go
+
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from maindash import app
 
 from tasks import filter_all
 
-from utils import cache_get, CACHE_KEYS
-
-import plotly.graph_objs as go
 from viz.viz import get_heatmap
+
+from utils import cache_get, CACHE_KEYS
 from utils import background_callback_manager
 from utils import load_data
 
@@ -47,21 +48,21 @@ from utils import load_data
 @app.callback(
     background=True,
     output=dict(
-        heatmap=Output('heatmap', 'figure'),
+        heatmap=Output("heatmap", "figure"),
     ),
     inputs=dict(
-        filter_trigger=Input('filter-trigger', 'data'),
-        left_hide_trigger=Input('left-hide-trigger', 'data'),
-        heat_sw=Input('heat-switch', 'value'),
-        x_heat=Input('x-picker-heatmap', 'value'),
-        y_heat=Input('y-picker-heatmap', 'value'),
+        filter_trigger=Input("filter-trigger", "data"),
+        left_hide_trigger=Input("left-hide-trigger", "data"),
+        heat_sw=Input("heat-switch", "value"),
+        x_heat=Input("x-picker-heatmap", "value"),
+        y_heat=Input("y-picker-heatmap", "value"),
     ),
     state=dict(
-        session_id=State('session-id', 'data'),
-        visible_list=State('visible-picker', 'value'),
-        case=State('case-picker', 'value'),
-        file=State('file-picker', 'value'),
-        file_list=State('file-add', 'value')
+        session_id=State("session-id", "data"),
+        visible_list=State("visible-picker", "value"),
+        case=State("case-picker", "value"),
+        file=State("file-picker", "value"),
+        file_list=State("file-add", "value"),
     ),
     manager=background_callback_manager,
 )
@@ -75,7 +76,7 @@ def regenerate_heatmap_callback(
     visible_list,
     case,
     file,
-    file_list
+    file_list,
 ):
     """
     Update heatmap
@@ -107,41 +108,30 @@ def regenerate_heatmap_callback(
     :rtype: list
     """
     if not heat_sw:
-        heat_fig = {
-            'data': [{'type': 'histogram2dcontour',
-                      'x': []}
-                     ],
-            'layout': {
-            }}
+        heat_fig = {"data": [{"type": "histogram2dcontour", "x": []}], "layout": {}}
 
         return dict(
             heatmap=heat_fig,
         )
 
-    config = cache_get(session_id, CACHE_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS["config"])
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-    cat_keys = filter_kwargs['cat_keys']
-    num_keys = filter_kwargs['num_keys']
-    cat_values = filter_kwargs['cat_values']
-    num_values = filter_kwargs['num_values']
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs["cat_keys"]
+    num_keys = filter_kwargs["num_keys"]
+    cat_values = filter_kwargs["cat_values"]
+    num_values = filter_kwargs["num_values"]
 
     x_key = x_heat
-    x_label = config['keys'][x_heat]['description']
+    x_label = config["keys"][x_heat]["description"]
     y_key = y_heat
-    y_label = config['keys'][y_heat]['description']
+    y_label = config["keys"][y_heat]["description"]
 
     data = load_data(file, file_list, case)
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
     filtered_table = filter_all(
-        data,
-        num_keys,
-        num_values,
-        cat_keys,
-        cat_values,
-        visible_table,
-        visible_list
+        data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
 
     heat_fig = get_heatmap(
@@ -159,10 +149,10 @@ def regenerate_heatmap_callback(
 
 @app.callback(
     output=dict(
-        collapse=Output('collapse-heatmap', 'is_open'),
+        collapse=Output("collapse-heatmap", "is_open"),
     ),
     inputs=dict(
-        heat_sw=Input('heat-switch', 'value'),
+        heat_sw=Input("heat-switch", "value"),
     ),
 )
 def enable_heatmap_callback(
@@ -177,22 +167,13 @@ def enable_heatmap_callback(
     else:
         collapse = False
 
-    return dict(
-        collapse=collapse
-    )
+    return dict(collapse=collapse)
 
 
 @app.callback(
-    output=dict(
-        dummy=Output('dummy-export-heatmap', 'data')
-    ),
-    inputs=dict(
-        btn=Input('export-heatmap', 'n_clicks')
-    ),
-    state=dict(
-        fig=State('heatmap', 'figure'),
-        case=State('case-picker', 'value')
-    )
+    output=dict(dummy=Output("dummy-export-heatmap", "data")),
+    inputs=dict(btn=Input("export-heatmap", "n_clicks")),
+    state=dict(fig=State("heatmap", "figure"), case=State("case-picker", "value")),
 )
 def export_heatmap(btn, fig, case):
     """
@@ -212,14 +193,13 @@ def export_heatmap(btn, fig, case):
         raise PreventUpdate
 
     now = datetime.datetime.now()
-    timestamp = now.strftime('%Y%m%d_%H%M%S')
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-    if not os.path.exists('data/'+case+'/images'):
-        os.makedirs('data/'+case+'/images')
+    if not os.path.exists("data/" + case + "/images"):
+        os.makedirs("data/" + case + "/images")
 
     temp_fig = go.Figure(fig)
-    temp_fig.write_image('data/'+case+'/images/' +
-                         timestamp+'_heatmap.png', scale=2)
-    return dict(
-        dummy=0
+    temp_fig.write_image(
+        "data/" + case + "/images/" + timestamp + "_heatmap.png", scale=2
     )
+    return dict(dummy=0)

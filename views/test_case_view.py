@@ -58,10 +58,10 @@ from utils import background_callback_manager
         "case_options": Output("case-picker", "options"),
         "case_value": Output("case-picker", "value"),
     },
-    inputs={"click": Input("refresh-button", "n_clicks")},
+    inputs={"unused_nclick": Input("refresh-button", "n_clicks")},
     state={"stored_case": State("local-case-selection", "data")},
 )
-def refresh_button_clicked(click, stored_case):
+def refresh_button_clicked(unused_nclick, stored_case):
     """
     Callback when the refresh button is clicked
 
@@ -486,7 +486,7 @@ def file_select_changed(
 @app.callback(
     output={"slider_value": Output("slider-frame", "value")},
     inputs={
-        "file_loaded": Input("file-loaded-trigger", "data"),
+        "unused_file_loaded": Input("file-loaded-trigger", "data"),
         "left_btn": Input("previous-button", "n_clicks"),
         "right_btn": Input("next-button", "n_clicks"),
         "interval": Input("interval-component", "n_intervals"),
@@ -500,7 +500,7 @@ def file_select_changed(
     },
 )
 def update_slider(
-    file_loaded,
+    unused_file_loaded,
     left_btn,
     right_btn,
     interval,
@@ -614,13 +614,13 @@ def add_data(click, open_state, add_file_value):
         "parallel_switch": Output("parallel-switch", "value"),
         "heat_switch": Output("heat-switch", "value"),
     },
-    inputs={"file_loaded": Input("file-loaded-trigger", "data")},
+    inputs={"unused_file_loaded": Input("file-loaded-trigger", "data")},
     state={
         "file": State("file-picker", "value"),
         "case": State("case-picker", "value"),
     },
 )
-def reset_switch_state(file_loaded, file, case):
+def reset_switch_state(unused_file_loaded, file, case):
     """
     Reset all the enable switches when a new file is selected
 

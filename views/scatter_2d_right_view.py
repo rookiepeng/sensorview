@@ -52,8 +52,8 @@ from utils import load_data
         figure=Output("scatter2d-right", "figure", allow_duplicate=True),
     ),
     inputs=dict(
-        filter_trigger=Input("filter-trigger", "data"),
-        left_hide_trigger=Input("left-hide-trigger", "data"),
+        unused_filter_trigger=Input("filter-trigger", "data"),
+        unused_left_hide_trigger=Input("left-hide-trigger", "data"),
         right_sw=Input("right-switch", "value"),
         x_right=Input("x-picker-2d-right", "value"),
         y_right=Input("y-picker-2d-right", "value"),
@@ -72,8 +72,8 @@ from utils import load_data
     prevent_initial_call=True,
 )
 def regenerate_scatter2d_right_callback(
-    filter_trigger,
-    left_hide_trigger,
+    unused_filter_trigger,
+    unused_left_hide_trigger,
     right_sw,
     x_right,
     y_right,

@@ -54,8 +54,8 @@ from utils import background_callback_manager
         "figure": Output("scatter2d-left", "figure", allow_duplicate=True),
     },
     inputs={
-        "filter_trigger": Input("filter-trigger", "data"),
-        "left_hide_trigger": Input("left-hide-trigger", "data"),
+        "unused_filter_trigger": Input("filter-trigger", "data"),
+        "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
         "left_sw": Input("left-switch", "value"),
         "x_left": Input("x-picker-2d-left", "value"),
         "y_left": Input("y-picker-2d-left", "value"),
@@ -73,8 +73,8 @@ from utils import background_callback_manager
     prevent_initial_call=True,
 )
 def regenerate_scatter2d_left_callback(
-    filter_trigger,
-    left_hide_trigger,
+    unused_filter_trigger,
+    unused_left_hide_trigger,
     left_sw,
     x_left,
     y_left,
