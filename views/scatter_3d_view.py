@@ -191,7 +191,7 @@ def process_single_frame(
 
     layout = get_scatter3d_layout(**fig_kwargs)
 
-    fig = dict(data=fig_ref + fig, layout=layout)
+    fig = {"data": fig_ref + fig, "layout": layout}
 
     return fig
 
@@ -263,28 +263,28 @@ def process_overlay_frame(
 
 
 @app.callback(
-    output=dict(
-        scatter3d=Output("scatter3d", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        slider_arg=Input("slider-frame", "value"),
-        overlay_enable=Input("overlay-switch", "value"),
-        decay=Input("decay-slider", "value"),
-        unused_stop_click=Input("stop-button", "n_clicks"),
-    ),
-    state=dict(
-        ispaused=State("interval-component", "disabled"),
-        cat_values=State({"type": "filter-dropdown", "index": ALL}, "value"),
-        num_values=State({"type": "filter-slider", "index": ALL}, "value"),
-        colormap=State("colormap-3d", "value"),
-        visible_list=State("visible-picker", "value"),
-        c_key=State("c-picker-3d", "value"),
-        darkmode=State("darkmode-switch", "value"),
-        session_id=State("session-id", "data"),
-        case=State("case-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-    ),
+    output={
+        "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "slider_arg": Input("slider-frame", "value"),
+        "overlay_enable": Input("overlay-switch", "value"),
+        "decay": Input("decay-slider", "value"),
+        "unused_stop_click": Input("stop-button", "n_clicks"),
+    },
+    state={
+        "ispaused": State("interval-component", "disabled"),
+        "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
+        "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
+        "colormap": State("colormap-3d", "value"),
+        "visible_list": State("visible-picker", "value"),
+        "c_key": State("c-picker-3d", "value"),
+        "darkmode": State("darkmode-switch", "value"),
+        "session_id": State("session-id", "data"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
     prevent_initial_call=True,
 )
 def slider_change_callback(
@@ -390,7 +390,7 @@ def slider_change_callback(
                 else:
                     layout["template"] = pio.templates["plotly"]
 
-                return dict(scatter3d=dict(data=fig_ref + fig, layout=layout))
+                return {"scatter3d": {"data": fig_ref + fig, "layout": layout}}
         fig = process_single_frame(
             config,
             cat_values,
@@ -411,7 +411,7 @@ def slider_change_callback(
     else:
         fig["layout"]["template"] = pio.templates["plotly"]
 
-    return dict(scatter3d=fig)
+    return {"scatter3d": fig}
 
 
 @app.callback(

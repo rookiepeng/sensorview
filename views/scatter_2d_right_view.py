@@ -48,26 +48,25 @@ from utils import load_data
 
 @app.callback(
     background=True,
-    output=dict(
-        figure=Output("scatter2d-right", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        unused_filter_trigger=Input("filter-trigger", "data"),
-        unused_left_hide_trigger=Input("left-hide-trigger", "data"),
-        right_sw=Input("right-switch", "value"),
-        x_right=Input("x-picker-2d-right", "value"),
-        y_right=Input("y-picker-2d-right", "value"),
-        color_right=Input("c-picker-2d-right", "value"),
-    ),
-    state=dict(
-        colormap=State("colormap-scatter2d-right", "value"),
-        # outline_enable=State('outline-switch', 'value'),
-        session_id=State("session-id", "data"),
-        visible_list=State("visible-picker", "value"),
-        case=State("case-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-    ),
+    output={
+        "figure": Output("scatter2d-right", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "unused_filter_trigger": Input("filter-trigger", "data"),
+        "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+        "right_sw": Input("right-switch", "value"),
+        "x_right": Input("x-picker-2d-right", "value"),
+        "y_right": Input("y-picker-2d-right", "value"),
+        "color_right": Input("c-picker-2d-right", "value"),
+    },
+    state={
+        "colormap": State("colormap-scatter2d-right", "value"),
+        "session_id": State("session-id", "data"),
+        "visible_list": State("visible-picker", "value"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
     manager=background_callback_manager,
     prevent_initial_call=True,
 )
@@ -126,9 +125,9 @@ def regenerate_scatter2d_right_callback(
             "layout": {},
         }
 
-        return dict(
-            figure=right_fig,
-        )
+        return {
+            "figure": right_fig,
+        }
 
     config = cache_get(session_id, CACHE_KEYS["config"])
     keys_dict = config["keys"]
@@ -164,22 +163,22 @@ def regenerate_scatter2d_right_callback(
         c_type=keys_dict[c_key].get("type", KEY_TYPES["NUM"]),
     )
 
-    return dict(
-        figure=right_fig,
-    )
+    return {
+        "figure": right_fig,
+    }
 
 
 @app.callback(
-    output=dict(
-        figure=Output("scatter2d-right", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        colormap=Input("colormap-scatter2d-right", "value"),
-    ),
-    state=dict(
-        fig_in=State("scatter2d-right", "figure"),
-        right_sw=State("right-switch", "value"),
-    ),
+    output={
+        "figure": Output("scatter2d-right", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "colormap": Input("colormap-scatter2d-right", "value"),
+    },
+    state={
+        "fig_in": State("scatter2d-right", "figure"),
+        "right_sw": State("right-switch", "value"),
+    },
     prevent_initial_call=True,
 )
 def scatter2d_right_colormap_change_callback(
@@ -197,25 +196,25 @@ def scatter2d_right_colormap_change_callback(
             "layout": {},
         }
 
-        return dict(
-            figure=right_fig,
-        )
+        return {
+            "figure": right_fig,
+        }
 
     for idx in range(0, len(fig_in["data"])):
         fig_in["data"][idx]["marker"]["colorscale"] = colormap
 
-    return dict(
-        figure=fig_in,
-    )
+    return {
+        "figure": fig_in,
+    }
 
 
 @app.callback(
-    output=dict(
-        collapse=Output("collapse-right2d", "is_open"),
-    ),
-    inputs=dict(
-        right_sw=Input("right-switch", "value"),
-    ),
+    output={
+        "collapse": Output("collapse-right2d", "is_open"),
+    },
+    inputs={
+        "right_sw": Input("right-switch", "value"),
+    },
 )
 def enable_scatter2d_right_callback(
     right_sw,
@@ -224,18 +223,19 @@ def enable_scatter2d_right_callback(
 
     if right_sw:
         collapse = True
-    else:
-        collapse = False
 
-    return dict(collapse=collapse)
+    collapse = False
+
+    return {"collapse": collapse}
 
 
 @app.callback(
-    output=dict(dummy=Output("dummy-export-scatter2d-right", "data")),
-    inputs=dict(btn=Input("export-scatter2d-right", "n_clicks")),
-    state=dict(
-        fig=State("scatter2d-right", "figure"), case=State("case-picker", "value")
-    ),
+    output={"dummy": Output("dummy-export-scatter2d-right", "data")},
+    inputs={"btn": Input("export-scatter2d-right", "n_clicks")},
+    state={
+        "fig": State("scatter2d-right", "figure"),
+        "case": State("case-picker", "value"),
+    },
 )
 def export_right_2d_scatter(btn, fig, case):
     """
@@ -264,4 +264,4 @@ def export_right_2d_scatter(btn, fig, case):
     temp_fig.write_image(
         "data/" + case + "/images/" + timestamp + "_fig_right.png", scale=2
     )
-    return dict(dummy=0)
+    return {"dummy": 0}

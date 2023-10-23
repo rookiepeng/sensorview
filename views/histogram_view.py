@@ -33,45 +33,45 @@ import datetime
 
 import pandas as pd
 
-from maindash import app
+import plotly.graph_objs as go
+import plotly.express as px
+
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from maindash import app
 
 from tasks import filter_all
 
 from utils import cache_get, CACHE_KEYS
-
-import plotly.graph_objs as go
-import plotly.express as px
 from utils import background_callback_manager
 from utils import load_data
 
 
 @app.callback(
     background=True,
-    output=dict(
-        histogram=Output("histogram", "figure"),
-    ),
-    inputs=dict(
-        filter_trigger=Input("filter-trigger", "data"),
-        left_hide_trigger=Input("left-hide-trigger", "data"),
-        histogram_sw=Input("histogram-switch", "value"),
-        x_histogram=Input("x-picker-histogram", "value"),
-        y_histogram=Input("y-histogram", "value"),
-        c_histogram=Input("c-picker-histogram", "value"),
-    ),
-    state=dict(
-        session_id=State("session-id", "data"),
-        visible_list=State("visible-picker", "value"),
-        case=State("case-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-    ),
+    output={
+        "histogram": Output("histogram", "figure"),
+    },
+    inputs={
+        "unused_filter_trigger": Input("filter-trigger", "data"),
+        "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+        "histogram_sw": Input("histogram-switch", "value"),
+        "x_histogram": Input("x-picker-histogram", "value"),
+        "y_histogram": Input("y-histogram", "value"),
+        "c_histogram": Input("c-picker-histogram", "value"),
+    },
+    state={
+        "session_id": State("session-id", "data"),
+        "visible_list": State("visible-picker", "value"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
     manager=background_callback_manager,
 )
 def regenerate_histogram_callback(
-    filter_trigger,
-    left_hide_trigger,
+    unused_filter_trigger,
+    unused_left_hide_trigger,
     histogram_sw,
     x_histogram,
     y_histogram,
@@ -117,9 +117,9 @@ def regenerate_histogram_callback(
     if not histogram_sw:
         histogram_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
 
-        return dict(
-            histogram=histogram_fig,
-        )
+        return {
+            "histogram": histogram_fig,
+        }
 
     config = cache_get(session_id, CACHE_KEYS["config"])
 
@@ -188,18 +188,18 @@ def regenerate_histogram_callback(
                 labels={x_key: x_label, y_key: y_label},
             )
 
-    return dict(
-        histogram=histogram_fig,
-    )
+    return {
+        "histogram": histogram_fig,
+    }
 
 
 @app.callback(
-    output=dict(
-        collapse=Output("collapse-hist", "is_open"),
-    ),
-    inputs=dict(
-        histogram_sw=Input("histogram-switch", "value"),
-    ),
+    output={
+        "collapse": Output("collapse-hist", "is_open"),
+    },
+    inputs={
+        "histogram_sw": Input("histogram-switch", "value"),
+    },
 )
 def enable_histogram_callback(
     histogram_sw,
@@ -210,16 +210,16 @@ def enable_histogram_callback(
     """
     if histogram_sw:
         collapse = True
-    else:
-        collapse = False
 
-    return dict(collapse=collapse)
+    collapse = False
+
+    return {"collapse": collapse}
 
 
 @app.callback(
-    output=dict(dummy=Output("dummy-export-histogram", "data")),
-    inputs=dict(btn=Input("export-histogram", "n_clicks")),
-    state=dict(fig=State("histogram", "figure"), case=State("case-picker", "value")),
+    output={"dummy": Output("dummy-export-histogram", "data")},
+    inputs={"btn": Input("export-histogram", "n_clicks")},
+    state={"fig": State("histogram", "figure"), "case": State("case-picker", "value")},
 )
 def export_histogram(btn, fig, case):
     """
@@ -248,4 +248,4 @@ def export_histogram(btn, fig, case):
     temp_fig.write_image(
         "data/" + case + "/images/" + timestamp + "_histogram.png", scale=2
     )
-    return dict(dummy=0)
+    return {"dummy": 0}

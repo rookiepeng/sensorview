@@ -167,16 +167,16 @@ def regenerate_scatter2d_left_callback(
 
 
 @app.callback(
-    output=dict(
-        figure=Output("scatter2d-left", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        colormap=Input("colormap-scatter2d-left", "value"),
-    ),
-    state=dict(
-        fig_in=State("scatter2d-left", "figure"),
-        left_sw=State("left-switch", "value"),
-    ),
+    output={
+        "figure": Output("scatter2d-left", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "colormap": Input("colormap-scatter2d-left", "value"),
+    },
+    state={
+        "fig_in": State("scatter2d-left", "figure"),
+        "left_sw": State("left-switch", "value"),
+    },
     prevent_initial_call=True,
 )
 def scatter2d_left_colormap_change_callback(
@@ -193,25 +193,25 @@ def scatter2d_left_colormap_change_callback(
             "layout": {},
         }
 
-        return dict(
-            figure=left_fig,
-        )
+        return {
+            "figure": left_fig,
+        }
 
     for idx in range(0, len(fig_in["data"])):
         fig_in["data"][idx]["marker"]["colorscale"] = colormap
 
-    return dict(
-        figure=fig_in,
-    )
+    return {
+        "figure": fig_in,
+    }
 
 
 @app.callback(
-    output=dict(
-        collapse=Output("collapse-left2d", "is_open"),
-    ),
-    inputs=dict(
-        left_sw=Input("left-switch", "value"),
-    ),
+    output={
+        "collapse": Output("collapse-left2d", "is_open"),
+    },
+    inputs={
+        "left_sw": Input("left-switch", "value"),
+    },
 )
 def enable_scatter2d_left_callback(
     left_sw,
@@ -222,18 +222,19 @@ def enable_scatter2d_left_callback(
 
     if left_sw:
         collapse = True
-    else:
-        collapse = False
 
-    return dict(collapse=collapse)
+    collapse = False
+
+    return {"collapse": collapse}
 
 
 @app.callback(
-    output=dict(dummy=Output("dummy-export-scatter2d-left", "data")),
-    inputs=dict(btn=Input("export-scatter2d-left", "n_clicks")),
-    state=dict(
-        fig=State("scatter2d-left", "figure"), case=State("case-picker", "value")
-    ),
+    output={"dummy": Output("dummy-export-scatter2d-left", "data")},
+    inputs={"btn": Input("export-scatter2d-left", "n_clicks")},
+    state={
+        "fig": State("scatter2d-left", "figure"),
+        "case": State("case-picker", "value"),
+    },
 )
 def export_left_2d_scatter(btn, fig, case):
     """
@@ -262,13 +263,13 @@ def export_left_2d_scatter(btn, fig, case):
     temp_fig.write_image(
         "data/" + case + "/images/" + timestamp + "_fig_left.png", scale=2
     )
-    return dict(dummy=0)
+    return {"dummy": 0}
 
 
 @app.callback(
-    output=dict(dummy=Output("selected-data-left", "data")),
-    inputs=dict(selectedData=Input("scatter2d-left", "selectedData")),
-    state=dict(session_id=State("session-id", "data")),
+    output={"dummy": Output("selected-data-left", "data")},
+    inputs={"selectedData": Input("scatter2d-left", "selectedData")},
+    state={"session_id": State("session-id", "data")},
 )
 def select_left_figure(selectedData, session_id):
     """
@@ -283,16 +284,16 @@ def select_left_figure(selectedData, session_id):
     :rtype: json
     """
     cache_set(selectedData, session_id, CACHE_KEYS["selected_data"])
-    return dict(dummy=0)
+    return {"dummy": 0}
 
 
 @app.callback(
-    output=dict(output_trigger=Output("left-hide-trigger", "data")),
-    inputs=dict(btn=Input("hide-left", "n_clicks")),
-    state=dict(
-        trigger_idx=State("left-hide-trigger", "data"),
-        session_id=State("session-id", "data"),
-    ),
+    output={"output_trigger": Output("left-hide-trigger", "data")},
+    inputs={"btn": Input("hide-left", "n_clicks")},
+    state={
+        "trigger_idx": State("left-hide-trigger", "data"),
+        "session_id": State("session-id", "data"),
+    },
 )
 def left_hide_button(btn, trigger_idx, session_id):
     """
@@ -330,4 +331,4 @@ def left_hide_button(btn, trigger_idx, session_id):
 
     cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
-    return dict(output_trigger=trigger_idx + 1)
+    return {"output_trigger": trigger_idx + 1}

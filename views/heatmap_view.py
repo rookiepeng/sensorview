@@ -47,28 +47,28 @@ from utils import load_data
 
 @app.callback(
     background=True,
-    output=dict(
-        heatmap=Output("heatmap", "figure"),
-    ),
-    inputs=dict(
-        filter_trigger=Input("filter-trigger", "data"),
-        left_hide_trigger=Input("left-hide-trigger", "data"),
-        heat_sw=Input("heat-switch", "value"),
-        x_heat=Input("x-picker-heatmap", "value"),
-        y_heat=Input("y-picker-heatmap", "value"),
-    ),
-    state=dict(
-        session_id=State("session-id", "data"),
-        visible_list=State("visible-picker", "value"),
-        case=State("case-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-    ),
+    output={
+        "heatmap": Output("heatmap", "figure"),
+    },
+    inputs={
+        "unused_filter_trigger": Input("filter-trigger", "data"),
+        "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+        "heat_sw": Input("heat-switch", "value"),
+        "x_heat": Input("x-picker-heatmap", "value"),
+        "y_heat": Input("y-picker-heatmap", "value"),
+    },
+    state={
+        "session_id": State("session-id", "data"),
+        "visible_list": State("visible-picker", "value"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
     manager=background_callback_manager,
 )
 def regenerate_heatmap_callback(
-    filter_trigger,
-    left_hide_trigger,
+    unused_filter_trigger,
+    unused_left_hide_trigger,
     heat_sw,
     x_heat,
     y_heat,
@@ -110,9 +110,9 @@ def regenerate_heatmap_callback(
     if not heat_sw:
         heat_fig = {"data": [{"type": "histogram2dcontour", "x": []}], "layout": {}}
 
-        return dict(
-            heatmap=heat_fig,
-        )
+        return {
+            "heatmap": heat_fig,
+        }
 
     config = cache_get(session_id, CACHE_KEYS["config"])
 
@@ -142,18 +142,18 @@ def regenerate_heatmap_callback(
         y_label,
     )
 
-    return dict(
-        heatmap=heat_fig,
-    )
+    return {
+        "heatmap": heat_fig,
+    }
 
 
 @app.callback(
-    output=dict(
-        collapse=Output("collapse-heatmap", "is_open"),
-    ),
-    inputs=dict(
-        heat_sw=Input("heat-switch", "value"),
-    ),
+    output={
+        "collapse": Output("collapse-heatmap", "is_open"),
+    },
+    inputs={
+        "heat_sw": Input("heat-switch", "value"),
+    },
 )
 def enable_heatmap_callback(
     heat_sw,
@@ -164,16 +164,16 @@ def enable_heatmap_callback(
     """
     if heat_sw:
         collapse = True
-    else:
-        collapse = False
 
-    return dict(collapse=collapse)
+    collapse = False
+
+    return {"collapse": collapse}
 
 
 @app.callback(
-    output=dict(dummy=Output("dummy-export-heatmap", "data")),
-    inputs=dict(btn=Input("export-heatmap", "n_clicks")),
-    state=dict(fig=State("heatmap", "figure"), case=State("case-picker", "value")),
+    output={"dummy": Output("dummy-export-heatmap", "data")},
+    inputs={"btn": Input("export-heatmap", "n_clicks")},
+    state={"fig": State("heatmap", "figure"), "case": State("case-picker", "value")},
 )
 def export_heatmap(btn, fig, case):
     """
@@ -202,4 +202,4 @@ def export_heatmap(btn, fig, case):
     temp_fig.write_image(
         "data/" + case + "/images/" + timestamp + "_heatmap.png", scale=2
     )
-    return dict(dummy=0)
+    return {"dummy": 0}
