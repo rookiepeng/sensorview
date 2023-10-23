@@ -31,40 +31,40 @@ import os
 
 import datetime
 
-from maindash import app
+import plotly.express as px
+import plotly.graph_objs as go
+
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
+from maindash import app
 
 from tasks import filter_all
 
 from utils import cache_get, CACHE_KEYS
 from utils import load_data
-
-import plotly.express as px
-import plotly.graph_objs as go
 from utils import background_callback_manager
 
 
 @app.callback(
     background=True,
-    output=dict(
-        violin=Output('violin', 'figure'),
-    ),
-    inputs=dict(
-        filter_trigger=Input('filter-trigger', 'data'),
-        left_hide_trigger=Input('left-hide-trigger', 'data'),
-        violin_sw=Input('violin-switch', 'value'),
-        x_violin=Input('x-picker-violin', 'value'),
-        y_violin=Input('y-picker-violin', 'value'),
-        c_violin=Input('c-picker-violin', 'value')
-    ),
-    state=dict(
-        session_id=State('session-id', 'data'),
-        visible_list=State('visible-picker', 'value'),
-        case=State('case-picker', 'value'),
-        file=State('file-picker', 'value'),
-        file_list=State('file-add', 'value')
-    ),
+    output={
+        "violin": Output("violin", "figure"),
+    },
+    inputs={
+        "filter_trigger": Input("filter-trigger", "data"),
+        "left_hide_trigger": Input("left-hide-trigger", "data"),
+        "violin_sw": Input("violin-switch", "value"),
+        "x_violin": Input("x-picker-violin", "value"),
+        "y_violin": Input("y-picker-violin", "value"),
+        "c_violin": Input("c-picker-violin", "value"),
+    },
+    state={
+        "session_id": State("session-id", "data"),
+        "visible_list": State("visible-picker", "value"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
     manager=background_callback_manager,
 )
 def regenerate_violin_callback(
@@ -78,7 +78,7 @@ def regenerate_violin_callback(
     visible_list,
     case,
     file,
-    file_list
+    file_list,
 ):
     """
     Update violin plot
@@ -113,75 +113,62 @@ def regenerate_violin_callback(
     :rtype: list
     """
     if not violin_sw:
-        violin_fig = {
-            'data': [{'type': 'histogram',
-                      'x': []}
-                     ],
-            'layout': {
-            }}
+        violin_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
 
-        return dict(
-            violin=violin_fig,
-        )
+        return {"violin": violin_fig}
 
-    config = cache_get(session_id, CACHE_KEYS['config'])
+    config = cache_get(session_id, CACHE_KEYS["config"])
 
-    filter_kwargs = cache_get(session_id, CACHE_KEYS['filter_kwargs'])
-    cat_keys = filter_kwargs['cat_keys']
-    num_keys = filter_kwargs['num_keys']
-    cat_values = filter_kwargs['cat_values']
-    num_values = filter_kwargs['num_values']
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs["cat_keys"]
+    num_keys = filter_kwargs["num_keys"]
+    cat_values = filter_kwargs["cat_values"]
+    num_values = filter_kwargs["num_values"]
 
     x_key = x_violin
     if x_violin is None:
         raise PreventUpdate
 
-    x_label = config['keys'][x_violin].get('description', x_key)
+    x_label = config["keys"][x_violin].get("description", x_key)
     y_key = y_violin
-    y_label = config['keys'][y_violin].get('description', y_key)
+    y_label = config["keys"][y_violin].get("description", y_key)
 
     data = load_data(file, file_list, case)
-    visible_table = cache_get(session_id, CACHE_KEYS['visible_table'])
+    visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
     filtered_table = filter_all(
-        data,
-        num_keys,
-        num_values,
-        cat_keys,
-        cat_values,
-        visible_table,
-        visible_list
+        data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
 
-    if c_violin == 'None':
-        violin_fig = px.violin(filtered_table,
-                               x=x_key,
-                               y=y_key,
-                               box=True,
-                               violinmode='group',
-                               labels={x_key: x_label,
-                                       y_key: y_label})
+    if c_violin == "None":
+        violin_fig = px.violin(
+            filtered_table,
+            x=x_key,
+            y=y_key,
+            box=True,
+            violinmode="group",
+            labels={x_key: x_label, y_key: y_label},
+        )
     else:
-        violin_fig = px.violin(filtered_table,
-                               x=x_key,
-                               y=y_key,
-                               color=c_violin,
-                               box=True,
-                               violinmode='group',
-                               labels={x_key: x_label,
-                                       y_key: y_label})
+        violin_fig = px.violin(
+            filtered_table,
+            x=x_key,
+            y=y_key,
+            color=c_violin,
+            box=True,
+            violinmode="group",
+            labels={x_key: x_label, y_key: y_label},
+        )
 
-    return dict(
-        violin=violin_fig,
-    )
+    return {"violin": violin_fig}
 
 
 @app.callback(
-    output=dict(
-        collapse=Output('collapse-violin', 'is_open'),
-    ),
-    inputs=dict(
-        violin_sw=Input('violin-switch', 'value'),
-    ),
+    output={
+        "collapse": Output("collapse-violin", "is_open"),
+    },
+    inputs={
+        "violin_sw": Input("violin-switch", "value"),
+    },
 )
 def enable_violin_callback(
     violin_sw,
@@ -193,25 +180,16 @@ def enable_violin_callback(
     """
     if violin_sw:
         collapse = True
-    else:
-        collapse = False
 
-    return dict(
-        collapse=collapse
-    )
+    collapse = False
+
+    return {"collapse": collapse}
 
 
 @app.callback(
-    output=dict(
-        dummy=Output('dummy-export-violin', 'data')
-    ),
-    inputs=dict(
-        btn=Input('export-violin', 'n_clicks')
-    ),
-    state=dict(
-        fig=State('violin', 'figure'),
-        case=State('case-picker', 'value')
-    )
+    output={"dummy": Output("dummy-export-violin", "data")},
+    inputs={"btn": Input("export-violin", "n_clicks")},
+    state={"fig": State("violin", "figure"), "case": State("case-picker", "value")},
 )
 def export_violin(btn, fig, case):
     """
@@ -231,14 +209,13 @@ def export_violin(btn, fig, case):
         raise PreventUpdate
 
     now = datetime.datetime.now()
-    timestamp = now.strftime('%Y%m%d_%H%M%S')
+    timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-    if not os.path.exists('data/'+case+'/images'):
-        os.makedirs('data/'+case+'/images')
+    if not os.path.exists("data/" + case + "/images"):
+        os.makedirs("data/" + case + "/images")
 
     temp_fig = go.Figure(fig)
-    temp_fig.write_image('data/'+case+'/images/' +
-                         timestamp+'_violin.png', scale=2)
-    return dict(
-        dummy=0
+    temp_fig.write_image(
+        "data/" + case + "/images/" + timestamp + "_violin.png", scale=2
     )
+    return {"dummy": 0}

@@ -415,34 +415,34 @@ def slider_change_callback(
 
 
 @app.callback(
-    output=dict(
-        scatter3d=Output("scatter3d", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        colormap=Input("colormap-3d", "value"),
-    ),
-    state=dict(
-        fig=State("scatter3d", "figure"),
-    ),
+    output={
+        "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "colormap": Input("colormap-3d", "value"),
+    },
+    state={
+        "fig": State("scatter3d", "figure"),
+    },
     prevent_initial_call=True,
 )
 def colormap_change_callback(colormap, fig):
     for idx in range(0, len(fig["data"])):
         fig["data"][idx]["marker"]["colorscale"] = colormap
 
-    return dict(scatter3d=fig)
+    return {"scatter3d": fig}
 
 
 @app.callback(
-    output=dict(
-        scatter3d=Output("scatter3d", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        darkmode=Input("darkmode-switch", "value"),
-    ),
-    state=dict(
-        fig=State("scatter3d", "figure"),
-    ),
+    output={
+        "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "darkmode": Input("darkmode-switch", "value"),
+    },
+    state={
+        "fig": State("scatter3d", "figure"),
+    },
     prevent_initial_call=True,
 )
 def darkmode_change_callback(darkmode, fig):
@@ -451,21 +451,21 @@ def darkmode_change_callback(darkmode, fig):
     else:
         fig["layout"]["template"] = pio.templates["plotly"]
 
-    return dict(scatter3d=fig)
+    return {"scatter3d": fig}
 
 
 @app.callback(
-    output=dict(
-        trigger=Output("visible-table-change-trigger", "data"),
-    ),
-    inputs=dict(
-        click_data=Input("scatter3d", "clickData"),
-    ),
-    state=dict(
-        trigger_input=State("visible-table-change-trigger", "data"),
-        click_hide=State("click-hide-switch", "value"),
-        session_id=State("session-id", "data"),
-    ),
+    output={
+        "trigger": Output("visible-table-change-trigger", "data"),
+    },
+    inputs={
+        "click_data": Input("scatter3d", "clickData"),
+    },
+    state={
+        "trigger_input": State("visible-table-change-trigger", "data"),
+        "click_hide": State("click-hide-switch", "value"),
+        "session_id": State("session-id", "data"),
+    },
     prevent_initial_call=True,
 )
 def visible_table_change_callback(
@@ -483,37 +483,37 @@ def visible_table_change_callback(
 
         cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
-        return dict(trigger=trigger_input + 1)
+        return {"trigger": trigger_input + 1}
 
     raise PreventUpdate
 
 
 @app.callback(
-    output=dict(
-        scatter3d=Output("scatter3d", "figure", allow_duplicate=True),
-    ),
-    inputs=dict(
-        cat_values=Input({"type": "filter-dropdown", "index": ALL}, "value"),
-        num_values=Input({"type": "filter-slider", "index": ALL}, "value"),
-        visible_list=Input("visible-picker", "value"),
-        vistable_trigger=Input("visible-table-change-trigger", "data"),
-        c_key=Input("c-picker-3d", "value"),
-        left_hide_trigger=Input("left-hide-trigger", "data"),
-        file_loaded=Input("file-loaded-trigger", "data"),
-    ),
-    state=dict(
-        ispaused=State("interval-component", "disabled"),
-        slider_arg=State("slider-frame", "value"),
-        overlay_enable=State("overlay-switch", "value"),
-        decay=State("decay-slider", "value"),
-        colormap=State("colormap-3d", "value"),
-        darkmode=State("darkmode-switch", "value"),
-        click_hide=State("click-hide-switch", "value"),
-        session_id=State("session-id", "data"),
-        case=State("case-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-    ),
+    output={
+        "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
+    },
+    inputs={
+        "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
+        "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
+        "visible_list": Input("visible-picker", "value"),
+        "vistable_trigger": Input("visible-table-change-trigger", "data"),
+        "c_key": Input("c-picker-3d", "value"),
+        "left_hide_trigger": Input("left-hide-trigger", "data"),
+        "file_loaded": Input("file-loaded-trigger", "data"),
+    },
+    state={
+        "ispaused": State("interval-component", "disabled"),
+        "slider_arg": State("slider-frame", "value"),
+        "overlay_enable": State("overlay-switch", "value"),
+        "decay": State("decay-slider", "value"),
+        "colormap": State("colormap-3d", "value"),
+        "darkmode": State("darkmode-switch", "value"),
+        "click_hide": State("click-hide-switch", "value"),
+        "session_id": State("session-id", "data"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
     prevent_initial_call=True,
 )
 def regenerate_figure_callback(
@@ -583,7 +583,7 @@ def regenerate_figure_callback(
     filter_kwargs["cat_values"] = cat_values
     cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
 
-    task_kwargs = dict()
+    task_kwargs = {}
     task_kwargs["c_key"] = c_key
 
     # invoke celery task
@@ -635,25 +635,23 @@ def regenerate_figure_callback(
     else:
         fig["layout"]["template"] = pio.templates["plotly"]
 
-    return dict(
-        scatter3d=fig,
-    )
+    return {"scatter3d": fig}
 
 
 @app.callback(
-    output=dict(filter_trigger=Output("filter-trigger", "data")),
-    inputs=dict(
-        cat_values=Input({"type": "filter-dropdown", "index": ALL}, "value"),
-        num_values=Input({"type": "filter-slider", "index": ALL}, "value"),
-        visible_list=Input("visible-picker", "value"),
-        vistable_trigger=Input("visible-table-change-trigger", "data"),
-        file_loaded=Input("file-loaded-trigger", "data"),
-    ),
-    state=dict(
-        trigger_idx=State("filter-trigger", "data"),
-        click_hide=State("click-hide-switch", "value"),
-        session_id=State("session-id", "data"),
-    ),
+    output={"filter_trigger": Output("filter-trigger", "data")},
+    inputs={
+        "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
+        "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
+        "visible_list": Input("visible-picker", "value"),
+        "vistable_trigger": Input("visible-table-change-trigger", "data"),
+        "file_loaded": Input("file-loaded-trigger", "data"),
+    },
+    state={
+        "trigger_idx": State("filter-trigger", "data"),
+        "click_hide": State("click-hide-switch", "value"),
+        "session_id": State("session-id", "data"),
+    },
 )
 def invoke_filter_trigger(
     cat_values,
@@ -667,23 +665,23 @@ def invoke_filter_trigger(
 ):
     filter_trig = trigger_idx + 1
 
-    return dict(filter_trigger=filter_trig)
+    return {"filter_trigger": filter_trig}
 
 
 @app.callback(
-    output=dict(dummy=Output("hidden-scatter3d", "children")),
-    inputs=dict(btn=Input("export-scatter3d", "n_clicks")),
-    state=dict(
-        case=State("case-picker", "value"),
-        session_id=State("session-id", "data"),
-        c_key=State("c-picker-3d", "value"),
-        colormap=State("colormap-3d", "value"),
-        visible_list=State("visible-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-        decay=State("decay-slider", "value"),
-        darkmode=State("darkmode-switch", "value"),
-    ),
+    output={"dummy": Output("hidden-scatter3d", "children")},
+    inputs={"btn": Input("export-scatter3d", "n_clicks")},
+    state={
+        "case": State("case-picker", "value"),
+        "session_id": State("session-id", "data"),
+        "c_key": State("c-picker-3d", "value"),
+        "colormap": State("colormap-3d", "value"),
+        "visible_list": State("visible-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+        "decay": State("decay-slider", "value"),
+        "darkmode": State("darkmode-switch", "value"),
+    },
 )
 def export_3d_scatter_animation(
     btn,
@@ -742,19 +740,19 @@ def export_3d_scatter_animation(
         serializer="json",
     )
 
-    return dict(dummy=0)
+    return {"dummy": 0}
 
 
 @app.callback(
-    output=dict(dummy=Output("dummy-export-data", "data")),
-    inputs=dict(btn=Input("export-data", "n_clicks")),
-    state=dict(
-        session_id=State("session-id", "data"),
-        visible_list=State("visible-picker", "value"),
-        case=State("case-picker", "value"),
-        file=State("file-picker", "value"),
-        file_list=State("file-add", "value"),
-    ),
+    output={"dummy": Output("dummy-export-data", "data")},
+    inputs={"btn": Input("export-data", "n_clicks")},
+    state={
+        "session_id": State("session-id", "data"),
+        "visible_list": State("visible-picker", "value"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
 )
 def export_data(btn, session_id, visible_list, case, file, file_list):
     """
@@ -794,4 +792,4 @@ def export_data(btn, session_id, visible_list, case, file, file_list):
         "./data/" + case + file["path"] + "/" + file["name"][0:-4] + "_filtered.pkl"
     )
 
-    return dict(dummy=0)
+    return {"dummy": 0}
