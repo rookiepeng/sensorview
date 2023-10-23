@@ -61,7 +61,7 @@ from utils import background_callback_manager
     inputs={"click": Input("refresh-button", "n_clicks")},
     state={"stored_case": State("local-case-selection", "data")},
 )
-def refresh_button_clicked(_, stored_case):
+def refresh_button_clicked(click, stored_case):
     """
     Callback when the refresh button is clicked
 
