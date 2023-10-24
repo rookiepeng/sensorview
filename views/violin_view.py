@@ -178,10 +178,9 @@ def enable_violin_callback(
 
     :rtype: list
     """
+    collapse = False
     if violin_sw:
         collapse = True
-
-    collapse = False
 
     return {"collapse": collapse}
 

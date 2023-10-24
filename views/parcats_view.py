@@ -208,10 +208,9 @@ def enable_parallel_callback(
     ]
     :rtype: list
     """
+    collapse = False
     if parallel_sw:
         collapse = True
-
-    collapse = False
 
     return {"collapse": collapse}
 

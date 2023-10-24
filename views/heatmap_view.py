@@ -162,10 +162,9 @@ def enable_heatmap_callback(
     Update heatmap
 
     """
+    collapse = False
     if heat_sw:
         collapse = True
-
-    collapse = False
 
     return {"collapse": collapse}
 

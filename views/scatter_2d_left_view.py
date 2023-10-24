@@ -219,11 +219,9 @@ def enable_scatter2d_left_callback(
     """
     Update left 2D scatter graph
     """
-
+    collapse = False
     if left_sw:
         collapse = True
-
-    collapse = False
 
     return {"collapse": collapse}
 

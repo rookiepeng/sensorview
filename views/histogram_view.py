@@ -208,10 +208,9 @@ def enable_histogram_callback(
     Update histogram
 
     """
+    collapse = False
     if histogram_sw:
         collapse = True
-
-    collapse = False
 
     return {"collapse": collapse}
 

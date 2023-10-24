@@ -221,10 +221,9 @@ def enable_scatter2d_right_callback(
 ):
     """ """
 
+    collapse = False
     if right_sw:
         collapse = True
-
-    collapse = False
 
     return {"collapse": collapse}
 
