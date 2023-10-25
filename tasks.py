@@ -29,13 +29,13 @@
 
 import datetime
 
-from celery import Celery
-from celery.utils.log import get_task_logger
 import os
-import base64
-import numpy as np
 import json
 
+from celery import Celery
+from celery.utils.log import get_task_logger
+
+import numpy as np
 import plotly.graph_objs as go
 
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data

@@ -51,8 +51,8 @@ from utils import background_callback_manager
         "violin": Output("violin", "figure"),
     },
     inputs={
-        "filter_trigger": Input("filter-trigger", "data"),
-        "left_hide_trigger": Input("left-hide-trigger", "data"),
+        "unused_filter_trigger": Input("filter-trigger", "data"),
+        "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
         "violin_sw": Input("violin-switch", "value"),
         "x_violin": Input("x-picker-violin", "value"),
         "y_violin": Input("y-picker-violin", "value"),
@@ -68,8 +68,8 @@ from utils import background_callback_manager
     manager=background_callback_manager,
 )
 def regenerate_violin_callback(
-    filter_trigger,
-    left_hide_trigger,
+    unused_filter_trigger,
+    unused_left_hide_trigger,
     violin_sw,
     x_violin,
     y_violin,
