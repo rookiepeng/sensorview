@@ -183,7 +183,7 @@ def celery_filtering_data(self, session_id, case, file_list, visible_picker, **k
         num_values,
     )
 
-    for slider_arg in range(0, len(frame_list)):
+    for slider_arg, frame_idx in enumerate(frame_list):
         file = json.loads(file_list[0])
         img_path = (
             "./data/"
@@ -205,11 +205,11 @@ def celery_filtering_data(self, session_id, case, file_list, visible_picker, **k
             + " ("
             + slider_label
             + ": "
-            + str(frame_list[slider_arg])
+            + str(frame_idx)
             + ")"
         )
 
-        data = frame_group.get_group(frame_list[slider_arg])
+        data = frame_group.get_group(frame_idx)
         filterd_frame = filter_all(
             data,
             num_keys,
