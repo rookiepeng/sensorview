@@ -27,13 +27,13 @@
 
 """
 
+import base64
+
 import numpy as np
 import pandas as pd
 
 from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from .graph_layout import get_scatter3d_layout
-
-import base64
 
 
 def get_scatter3d(
