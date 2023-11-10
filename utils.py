@@ -80,6 +80,17 @@ def load_config(json_file):
 
 
 def load_data(file, file_list, case):
+    """_summary_
+
+    :param file: _description_
+    :type file: _type_
+    :param file_list: _description_
+    :type file_list: _type_
+    :param case: _description_
+    :type case: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     if file not in file_list:
         file_list.append(file)
 
@@ -97,6 +108,15 @@ def load_data(file, file_list, case):
 
 
 def load_data_list(file_list, case):
+    """_summary_
+
+    :param file_list: _description_
+    :type file_list: _type_
+    :param case: _description_
+    :type case: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     data_list = []
     for _, f_dict in enumerate(file_list):
         file = json.loads(f_dict)
@@ -111,6 +131,13 @@ def load_data_list(file_list, case):
 
 
 def load_image(img_path):
+    """_summary_
+
+    :param img_path: _description_
+    :type img_path: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     try:
         encoding = base64.b64encode(open(img_path, "rb").read())
         img = "data:image/jpeg;base64,{}".format(encoding.decode())
@@ -130,6 +157,23 @@ def prepare_figure_kwargs(
     num_values,
     slider_arg=0,
 ):
+    """_summary_
+
+    :param config: _description_
+    :type config: _type_
+    :param frame_list: _description_
+    :type frame_list: _type_
+    :param c_key: _description_
+    :type c_key: _type_
+    :param num_keys: _description_
+    :type num_keys: _type_
+    :param num_values: _description_
+    :type num_values: _type_
+    :param slider_arg: _description_, defaults to 0
+    :type slider_arg: int, optional
+    :return: _description_
+    :rtype: _type_
+    """
     keys_dict = config["keys"]
     # prepare figure key word arguments
     fig_kwargs = dict()

@@ -395,7 +395,11 @@ def celery_export_video(session_id, case, file_list, visible_picker, **kwargs):
 
     fig_kwargs["height"] = 750
 
-    fig = go.Figure(get_animation_data(filtered_table, img_list=img_list, **fig_kwargs))
+    fig = go.Figure(
+        get_animation_data(
+            filtered_table, frame_key=config["slider"], img_list=img_list, **fig_kwargs
+        )
+    )
 
     now = datetime.datetime.now()
     timestamp = now.strftime("%Y%m%d_%H%M%S")
