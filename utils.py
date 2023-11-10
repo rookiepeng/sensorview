@@ -27,11 +27,12 @@
 
 """
 
-import redis
 import os
 import json
 import pickle
 import base64
+
+import redis
 from diskcache import Cache
 from dash import DiskcacheManager
 
