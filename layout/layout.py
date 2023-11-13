@@ -125,12 +125,6 @@ view3d_card = dbc.Card([
                         className='mt-2'
                     ),
 
-                    dcc.Interval(
-                        id='buffer-interval',
-                        interval=2000,  # in milliseconds
-                        disabled=False,
-                        n_intervals=0
-                    ),
                     dbc.Col(
                         dbc.Progress(
                             id='buffer',

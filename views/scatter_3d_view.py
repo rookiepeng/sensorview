@@ -817,9 +817,14 @@ def regenerate_figure_background_trigger(
         "file_list": State("file-add", "value"),
     },
     cancel=[Input("background-trigger", "data")],
+    progress=[
+        Output("buffer", "value"),
+        Output("buffer-tooltip", "children"),
+    ],
     manager=background_callback_manager,
 )
 def regenerate_figure_background_callback(
+    set_progress,
     trigger,
     cat_values,
     num_values,
@@ -839,6 +844,8 @@ def regenerate_figure_background_callback(
     file,
     file_list,
 ):
+    set_progress([0,"Buffering ... (0 %)"])
+
     # invoke task
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
@@ -854,7 +861,9 @@ def regenerate_figure_background_callback(
     cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
     if file not in file_list:
         file_list.append(file)
-    celery_filtering_data(session_id, case, file_list, visible_list, **task_kwargs)
+    celery_filtering_data(session_id, case, file_list, visible_list, set_progress, **task_kwargs)
+
+    set_progress([100,"Buffer ready (100 %)"])
 
     return {"dummy": 0}
 

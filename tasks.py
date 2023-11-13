@@ -41,6 +41,7 @@ from utils import prepare_figure_kwargs
 redis_ip = os.environ.get("REDIS_SERVER_SERVICE_HOST", "127.0.0.1")
 redis_url = "redis://" + redis_ip + ":6379"
 
+
 def filter_all(
     data,
     num_list,
@@ -111,7 +112,9 @@ def filter_all(
     return data.loc[condition]
 
 
-def celery_filtering_data(session_id, case, file_list, visible_picker, **kwargs):
+def celery_filtering_data(
+    session_id, case, file_list, visible_picker, set_progress, **kwargs
+):
     """
     Celery task for preparing the frame figures
 
@@ -153,10 +156,6 @@ def celery_filtering_data(session_id, case, file_list, visible_picker, **kwargs)
 
     dataset = load_data_list(file_list, case)
     frame_group = dataset.groupby(config["slider"])
-
-    # if cache_get(session_id, CACHE_KEYS["task_id"]) != task_id:
-    #     logger.info("Task " + str(task_id) + " terminated by a new task")
-    #     return
 
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
@@ -228,10 +227,13 @@ def celery_filtering_data(session_id, case, file_list, visible_picker, **kwargs)
         cache_set(fig, session_id, CACHE_KEYS["figure"], str(slider_arg))
         cache_set(hover_strings, session_id, CACHE_KEYS["hover"], str(slider_arg))
         cache_set(ref_fig, session_id, CACHE_KEYS["figure_ref"], str(slider_arg))
-        cache_set(
-            fig_layout, session_id, CACHE_KEYS["figure_layout"], str(slider_arg)
-        )
+        cache_set(fig_layout, session_id, CACHE_KEYS["figure_layout"], str(slider_arg))
         cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
-        # else:
-        #     logger.info("Task " + str(task_id) + " terminated by a new task")
-        #     return
+
+        percent = slider_arg / len(frame_list) * 100
+        set_progress(
+            [
+                percent,
+                "Buffering ... (" + str(round(percent, 2)) + " %)",
+            ]
+        )
