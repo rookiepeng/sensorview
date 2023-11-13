@@ -711,19 +711,12 @@ def regenerate_figure_callback(
     filter_kwargs["cat_values"] = cat_values
     cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
 
-    task_kwargs = {}
-    task_kwargs["c_key"] = c_key
-
     # invoke celery task
     cache_set(0, session_id, CACHE_KEYS["task_id"])
     cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
     if file not in file_list:
         file_list.append(file)
-    celery_filtering_data.apply_async(
-        args=[session_id, case, file_list, visible_list],
-        kwargs=task_kwargs,
-        serializer="json",
-    )
+
     # get config from Redis
     config = cache_get(session_id, CACHE_KEYS["config"])
 
@@ -764,6 +757,106 @@ def regenerate_figure_callback(
         fig["layout"]["template"] = pio.templates["plotly"]
 
     return {"scatter3d": fig}
+
+
+@app.callback(
+    output={
+        "trigger": Output("background-trigger", "data"),
+    },
+    inputs={
+        "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
+        "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
+        "visible_list": Input("visible-picker", "value"),
+        "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
+        "c_key": Input("c-picker-3d", "value"),
+        "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+        "unused_file_loaded": Input("file-loaded-trigger", "data"),
+    },
+    state={
+        "trigger_val": State("background-trigger", "data"),
+    },
+)
+def regenerate_figure_background_trigger(
+    cat_values,
+    num_values,
+    visible_list,
+    unused_vistable_trigger,
+    c_key,
+    unused_left_hide_trigger,
+    unused_file_loaded,
+    trigger_val,
+):
+    return {"trigger": trigger_val + 1}
+
+
+@app.callback(
+    background=True,
+    output={
+        "dummy": Output("dummy-background", "data"),
+    },
+    inputs={
+        "trigger": Input("background-trigger", "data"),
+    },
+    state={
+        "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
+        "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
+        "visible_list": State("visible-picker", "value"),
+        "unused_vistable_trigger": State("visible-table-change-trigger", "data"),
+        "c_key": State("c-picker-3d", "value"),
+        "unused_left_hide_trigger": State("left-hide-trigger", "data"),
+        "unused_file_loaded": State("file-loaded-trigger", "data"),
+        "ispaused": State("interval-component", "disabled"),
+        "slider_arg": State("slider-frame", "value"),
+        "overlay_enable": State("overlay-switch", "value"),
+        "decay": State("decay-slider", "value"),
+        "colormap": State("colormap-3d", "value"),
+        "darkmode": State("darkmode-switch", "value"),
+        "session_id": State("session-id", "data"),
+        "case": State("case-picker", "value"),
+        "file": State("file-picker", "value"),
+        "file_list": State("file-add", "value"),
+    },
+    cancel=[Input("background-trigger", "data")],
+    manager=background_callback_manager,
+)
+def regenerate_figure_background_callback(
+    trigger,
+    cat_values,
+    num_values,
+    visible_list,
+    unused_vistable_trigger,
+    ispaused,
+    slider_arg,
+    c_key,
+    overlay_enable,
+    unused_left_hide_trigger,
+    unused_file_loaded,
+    decay,
+    colormap,
+    darkmode,
+    session_id,
+    case,
+    file,
+    file_list,
+):
+    # invoke task
+    # save filter key word arguments to Redis
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    filter_kwargs["num_values"] = num_values
+    filter_kwargs["cat_values"] = cat_values
+    cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
+
+    task_kwargs = {}
+    task_kwargs["c_key"] = c_key
+
+    # invoke celery task
+    cache_set(0, session_id, CACHE_KEYS["task_id"])
+    cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
+    if file not in file_list:
+        file_list.append(file)
+    celery_filtering_data(session_id, case, file_list, visible_list, **task_kwargs)
+
+    return {"dummy": 0}
 
 
 @app.callback(

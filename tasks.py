@@ -30,9 +30,6 @@
 import os
 import json
 
-from celery import Celery
-from celery.utils.log import get_task_logger
-
 from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from viz.graph_data import get_hover_strings
 from viz.graph_layout import get_scatter3d_layout
@@ -41,14 +38,8 @@ from utils import load_data_list
 from utils import load_image
 from utils import prepare_figure_kwargs
 
-logger = get_task_logger(__name__)
-
 redis_ip = os.environ.get("REDIS_SERVER_SERVICE_HOST", "127.0.0.1")
 redis_url = "redis://" + redis_ip + ":6379"
-celery_app = Celery("Celery_App", broker=redis_url, backend=redis_url)
-
-celery_app.conf.broker_connection_retry_on_startup = False
-
 
 def filter_all(
     data,
@@ -120,8 +111,7 @@ def filter_all(
     return data.loc[condition]
 
 
-@celery_app.task(bind=True)
-def celery_filtering_data(self, session_id, case, file_list, visible_picker, **kwargs):
+def celery_filtering_data(session_id, case, file_list, visible_picker, **kwargs):
     """
     Celery task for preparing the frame figures
 
@@ -144,8 +134,8 @@ def celery_filtering_data(self, session_id, case, file_list, visible_picker, **k
     cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
     # set new task_id in Redis, this will terminate the previously running task
-    task_id = self.request.id
-    cache_set(task_id, session_id, CACHE_KEYS["task_id"])
+    # task_id = self.request.id
+    # cache_set(task_id, session_id, CACHE_KEYS["task_id"])
 
     config = cache_get(session_id, CACHE_KEYS["config"])
     keys_dict = config["keys"]
@@ -164,9 +154,9 @@ def celery_filtering_data(self, session_id, case, file_list, visible_picker, **k
     dataset = load_data_list(file_list, case)
     frame_group = dataset.groupby(config["slider"])
 
-    if cache_get(session_id, CACHE_KEYS["task_id"]) != task_id:
-        logger.info("Task " + str(task_id) + " terminated by a new task")
-        return
+    # if cache_get(session_id, CACHE_KEYS["task_id"]) != task_id:
+    #     logger.info("Task " + str(task_id) + " terminated by a new task")
+    #     return
 
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
@@ -234,14 +224,14 @@ def celery_filtering_data(self, session_id, case, file_list, visible_picker, **k
 
         fig_layout = get_scatter3d_layout(**fig_kwargs)
 
-        if cache_get(session_id, CACHE_KEYS["task_id"]) == task_id:
-            cache_set(fig, session_id, CACHE_KEYS["figure"], str(slider_arg))
-            cache_set(hover_strings, session_id, CACHE_KEYS["hover"], str(slider_arg))
-            cache_set(ref_fig, session_id, CACHE_KEYS["figure_ref"], str(slider_arg))
-            cache_set(
-                fig_layout, session_id, CACHE_KEYS["figure_layout"], str(slider_arg)
-            )
-            cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
-        else:
-            logger.info("Task " + str(task_id) + " terminated by a new task")
-            return
+        # if cache_get(session_id, CACHE_KEYS["task_id"]) == task_id:
+        cache_set(fig, session_id, CACHE_KEYS["figure"], str(slider_arg))
+        cache_set(hover_strings, session_id, CACHE_KEYS["hover"], str(slider_arg))
+        cache_set(ref_fig, session_id, CACHE_KEYS["figure_ref"], str(slider_arg))
+        cache_set(
+            fig_layout, session_id, CACHE_KEYS["figure_layout"], str(slider_arg)
+        )
+        cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
+        # else:
+        #     logger.info("Task " + str(task_id) + " terminated by a new task")
+        #     return

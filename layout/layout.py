@@ -971,6 +971,8 @@ def get_app_layout():
         dcc.Store(id='dummy-export-parallel'),
         dcc.Store(id='dummy-export-heatmap'),
         dcc.Store(id='dummy-export-data'),
+        dcc.Store(id='background-trigger', data=0),
+        dcc.Store(id='dummy-background'),
         dcc.Store(id='visible-table-change-trigger', data=0),
 
         dcc.Store(id='local-case-selection', storage_type='local'),
