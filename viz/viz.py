@@ -81,6 +81,21 @@ def get_scatter3d(
 
 
 def get_heatmap(data_frame, x_key, y_key, x_label=None, y_label=None):
+    """_summary_
+
+    :param data_frame: _description_
+    :type data_frame: _type_
+    :param x_key: _description_
+    :type x_key: _type_
+    :param y_key: _description_
+    :type y_key: _type_
+    :param x_label: _description_, defaults to None
+    :type x_label: _type_, optional
+    :param y_label: _description_, defaults to None
+    :type y_label: _type_, optional
+    :return: _description_
+    :rtype: _type_
+    """
     if x_label is None:
         x_label = x_key
 
@@ -115,6 +130,29 @@ def get_scatter2d(
     margin={"l": 40, "r": 40, "b": 40, "t": 60},
     **kwargs
 ):
+    """_summary_
+
+    :param data_frame: _description_
+    :type data_frame: _type_
+    :param x_key: _description_
+    :type x_key: _type_
+    :param y_key: _description_
+    :type y_key: _type_
+    :param c_key: _description_
+    :type c_key: _type_
+    :param x_label: _description_, defaults to None
+    :type x_label: _type_, optional
+    :param y_label: _description_, defaults to None
+    :type y_label: _type_, optional
+    :param uirevision: _description_, defaults to "no_change"
+    :type uirevision: str, optional
+    :param colormap: _description_, defaults to "Jet"
+    :type colormap: str, optional
+    :param margin: _description_, defaults to {"l": 40, "r": 40, "b": 40, "t": 60}
+    :type margin: dict, optional
+    :return: _description_
+    :rtype: _type_
+    """
     linewidth = kwargs.get("linewidth", 0)
 
     if x_label is None:
@@ -157,7 +195,8 @@ def get_scatter2d(
                 "uirevision": uirevision,
             },
         }
-    elif c_type == "categorical":
+
+    if c_type == "categorical":
         data = []
         color_list = pd.unique(data_frame[c_key])
         for c_item in color_list:
@@ -192,6 +231,13 @@ def get_scatter2d(
 
 
 def frame_args(duration):
+    """_summary_
+
+    :param duration: _description_
+    :type duration: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     return {
         "frame": {"duration": duration},
         "mode": "immediate",
@@ -212,6 +258,29 @@ def get_animation_data(
     decay=0,
     **kwargs
 ):
+    """_summary_
+
+    :param data_frame: _description_
+    :type data_frame: _type_
+    :param x_key: _description_
+    :type x_key: _type_
+    :param y_key: _description_
+    :type y_key: _type_
+    :param z_key: _description_
+    :type z_key: _type_
+    :param x_ref: _description_, defaults to None
+    :type x_ref: _type_, optional
+    :param y_ref: _description_, defaults to None
+    :type y_ref: _type_, optional
+    :param frame_key: _description_, defaults to "Frame"
+    :type frame_key: str, optional
+    :param img_list: _description_, defaults to None
+    :type img_list: _type_, optional
+    :param decay: _description_, defaults to 0
+    :type decay: int, optional
+    :return: _description_
+    :rtype: _type_
+    """
     ani_frames = []
     frame_list = data_frame[frame_key].unique()
     opacity = np.linspace(1, 0.2, decay + 1)

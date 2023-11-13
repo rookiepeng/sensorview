@@ -72,6 +72,35 @@ def process_single_frame(
     frame_idx=0,
     load_hover=False,
 ):
+    """_summary_
+
+    :param config: _description_
+    :type config: _type_
+    :param cat_values: _description_
+    :type cat_values: _type_
+    :param num_values: _description_
+    :type num_values: _type_
+    :param colormap: _description_
+    :type colormap: _type_
+    :param visible_list: _description_
+    :type visible_list: _type_
+    :param c_key: _description_
+    :type c_key: _type_
+    :param decay: _description_
+    :type decay: _type_
+    :param session_id: _description_
+    :type session_id: _type_
+    :param case: _description_
+    :type case: _type_
+    :param file: _description_
+    :type file: _type_
+    :param frame_idx: _description_, defaults to 0
+    :type frame_idx: int, optional
+    :param load_hover: _description_, defaults to False
+    :type load_hover: bool, optional
+    :return: _description_
+    :rtype: _type_
+    """
     keys_dict = config["keys"]
 
     opacity = np.linspace(1, 0.2, decay + 1)
@@ -215,6 +244,35 @@ def process_overlay_frame(
     file_list,
     load_hover=False,
 ):
+    """_summary_
+
+    :param frame_idx: _description_
+    :type frame_idx: _type_
+    :param config: _description_
+    :type config: _type_
+    :param cat_values: _description_
+    :type cat_values: _type_
+    :param num_values: _description_
+    :type num_values: _type_
+    :param colormap: _description_
+    :type colormap: _type_
+    :param visible_list: _description_
+    :type visible_list: _type_
+    :param c_key: _description_
+    :type c_key: _type_
+    :param session_id: _description_
+    :type session_id: _type_
+    :param case: _description_
+    :type case: _type_
+    :param file: _description_
+    :type file: _type_
+    :param file_list: _description_
+    :type file_list: _type_
+    :param load_hover: _description_, defaults to False
+    :type load_hover: bool, optional
+    :return: _description_
+    :rtype: _type_
+    """
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs["cat_keys"]
@@ -309,6 +367,41 @@ def slider_change_callback(
     file,
     file_list,
 ):
+    """_summary_
+
+    :param slider_arg: _description_
+    :type slider_arg: _type_
+    :param cat_values: _description_
+    :type cat_values: _type_
+    :param num_values: _description_
+    :type num_values: _type_
+    :param unused_stop_click: _description_
+    :type unused_stop_click: _type_
+    :param ispaused: _description_
+    :type ispaused: bool
+    :param colormap: _description_
+    :type colormap: _type_
+    :param visible_list: _description_
+    :type visible_list: _type_
+    :param c_key: _description_
+    :type c_key: _type_
+    :param overlay_enable: _description_
+    :type overlay_enable: _type_
+    :param decay: _description_
+    :type decay: _type_
+    :param darkmode: _description_
+    :type darkmode: _type_
+    :param session_id: _description_
+    :type session_id: _type_
+    :param case: _description_
+    :type case: _type_
+    :param file: _description_
+    :type file: _type_
+    :param file_list: _description_
+    :type file_list: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     ctx = dash.callback_context
     trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
@@ -432,6 +525,15 @@ def slider_change_callback(
     prevent_initial_call=True,
 )
 def colormap_change_callback(colormap, fig):
+    """_summary_
+
+    :param colormap: _description_
+    :type colormap: _type_
+    :param fig: _description_
+    :type fig: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     for idx in range(0, len(fig["data"])):
         fig["data"][idx]["marker"]["colorscale"] = colormap
 
@@ -451,6 +553,15 @@ def colormap_change_callback(colormap, fig):
     prevent_initial_call=True,
 )
 def darkmode_change_callback(darkmode, fig):
+    """_summary_
+
+    :param darkmode: _description_
+    :type darkmode: _type_
+    :param fig: _description_
+    :type fig: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     if darkmode:
         fig["layout"]["template"] = pio.templates["plotly_dark"]
     else:
@@ -479,6 +590,20 @@ def visible_table_change_callback(
     click_hide,
     session_id,
 ):
+    """_summary_
+
+    :param click_data: _description_
+    :type click_data: _type_
+    :param trigger_input: _description_
+    :type trigger_input: _type_
+    :param click_hide: _description_
+    :type click_hide: _type_
+    :param session_id: _description_
+    :type session_id: _type_
+    :raises PreventUpdate: _description_
+    :return: _description_
+    :rtype: _type_
+    """
     visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
     if click_hide:
         if visible_table["_VIS_"][click_data["points"][0]["id"]] == "visible":
@@ -662,6 +787,23 @@ def invoke_filter_trigger(
     unused_file_loaded,
     trigger_idx,
 ):
+    """_summary_
+
+    :param unused_cat_values: _description_
+    :type unused_cat_values: _type_
+    :param unused_num_values: _description_
+    :type unused_num_values: _type_
+    :param unused_visible_list: _description_
+    :type unused_visible_list: _type_
+    :param unused_vistable_trigger: _description_
+    :type unused_vistable_trigger: _type_
+    :param unused_file_loaded: _description_
+    :type unused_file_loaded: _type_
+    :param trigger_idx: _description_
+    :type trigger_idx: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     filter_trig = trigger_idx + 1
 
     return {"filter_trigger": filter_trig}
