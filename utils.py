@@ -141,7 +141,7 @@ def load_image(img_path):
     """
     try:
         encoding = base64.b64encode(open(img_path, "rb").read())
-        img = "data:image/jpeg;base64,{}".format(encoding.decode())
+        img = "data:image/jpeg;base64,"+encoding.decode()
     except FileNotFoundError:
         img = None
     except NotADirectoryError:

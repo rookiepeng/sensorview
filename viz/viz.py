@@ -77,7 +77,7 @@ def get_scatter3d(
             )
         ]
 
-    return dict(data=data, layout=get_scatter3d_layout(**kwargs))
+    return {"data": data, "layout": get_scatter3d_layout(**kwargs)}
 
 
 def get_heatmap(data_frame, x_key, y_key, x_label=None, y_label=None):
@@ -87,20 +87,20 @@ def get_heatmap(data_frame, x_key, y_key, x_label=None, y_label=None):
     if y_label is None:
         y_label = y_key
 
-    return dict(
-        data=[
-            dict(
-                type="histogram2dcontour",
-                x=data_frame[x_key],
-                y=data_frame[y_key],
-                colorscale="Jet",
-            )
+    return {
+        "data": [
+            {
+                "type": "histogram2dcontour",
+                "x": data_frame[x_key],
+                "y": data_frame[y_key],
+                "colorscale": "Jet",
+            }
         ],
-        layout=dict(
-            xaxis=dict(title=x_label),
-            yaxis=dict(title=y_label),
-        ),
-    )
+        "layout": {
+            "xaxis": {"title": x_label},
+            "yaxis": {"title": y_label},
+        },
+    }
 
 
 def get_scatter2d(
@@ -127,68 +127,68 @@ def get_scatter2d(
     c_type = kwargs.get("c_type", "numerical")
 
     if c_type == "numerical":
-        return dict(
-            data=[
-                dict(
-                    type="scattergl",
-                    ids=data_frame.index,
-                    x=data_frame[x_key],
-                    y=data_frame[y_key],
-                    mode="markers",
-                    marker=dict(
-                        size=6,
-                        color=data_frame[c_key],
-                        colorscale=colormap,
-                        opacity=0.8,
-                        colorbar=dict(
-                            title=c_label,
-                        ),
-                        line=dict(
-                            color="#FFFFFF",
-                            width=linewidth,
-                        ),
-                    ),
-                )
+        return {
+            "data": [
+                {
+                    "type": "scattergl",
+                    "ids": data_frame.index,
+                    "x": data_frame[x_key],
+                    "y": data_frame[y_key],
+                    "mode": "markers",
+                    "marker": {
+                        "size": 6,
+                        "color": data_frame[c_key],
+                        "colorscale": colormap,
+                        "opacity": 0.8,
+                        "colorbar": {
+                            "title": c_label,
+                        },
+                        "line": {
+                            "color": "#FFFFFF",
+                            "width": linewidth,
+                        },
+                    },
+                }
             ],
-            layout=dict(
-                xaxis=dict(title=x_label),
-                yaxis=dict(title=y_label),
-                margin=margin,
-                uirevision=uirevision,
-            ),
-        )
+            "layout": {
+                "xaxis": {"title": x_label},
+                "yaxis": {"title": y_label},
+                "margin": margin,
+                "uirevision": uirevision,
+            },
+        }
     elif c_type == "categorical":
         data = []
         color_list = pd.unique(data_frame[c_key])
         for c_item in color_list:
             new_list = data_frame[data_frame[c_key] == c_item]
             data.append(
-                dict(
-                    type="scattergl",
-                    ids=new_list.index,
-                    x=new_list[x_key],
-                    y=new_list[y_key],
-                    mode="markers",
-                    marker=dict(
-                        size=6,
-                        opacity=0.8,
-                        line=dict(
-                            color="#FFFFFF",
-                            width=linewidth,
-                        ),
-                    ),
-                    name=c_item,
-                )
+                {
+                    "type": "scattergl",
+                    "ids": new_list.index,
+                    "x": new_list[x_key],
+                    "y": new_list[y_key],
+                    "mode": "markers",
+                    "marker": {
+                        "size": 6,
+                        "opacity": 0.8,
+                        "line": {
+                            "color": "#FFFFFF",
+                            "width": linewidth,
+                        },
+                    },
+                    "name": c_item,
+                }
             )
-        return dict(
-            data=data,
-            layout=dict(
-                xaxis=dict(title=x_label),
-                yaxis=dict(title=y_label),
-                margin=margin,
-                uirevision=uirevision,
-            ),
-        )
+        return {
+            "data": data,
+            "layout": {
+                "xaxis": {"title": x_label},
+                "yaxis": {"title": y_label},
+                "margin": margin,
+                "uirevision": uirevision,
+            },
+        }
 
 
 def frame_args(duration):
@@ -226,7 +226,7 @@ def get_animation_data(
         if img_list is not None:
             try:
                 encoded_image = base64.b64encode(open(img_list[idx], "rb").read())
-                img = "data:image/jpeg;base64,{}".format(encoded_image.decode())
+                img = "data:image/jpeg;base64,"+encoded_image.decode()
             except FileNotFoundError:
                 img = None
             except NotADirectoryError:
@@ -285,7 +285,7 @@ def get_animation_data(
             fig_ref = []
         layout = get_scatter3d_layout(image=img, **kwargs)
 
-        new_frame = dict(data=fig_ref + fig, layout=layout)
+        new_frame = {"data": fig_ref + fig, "layout": layout}
 
         # need 'name' to make sure animation works properly
         new_frame["name"] = str(frame_idx)
@@ -311,7 +311,7 @@ def get_animation_data(
     if img_list is not None:
         try:
             encoded_image = base64.b64encode(open(img_list[0], "rb").read())
-            img = "data:image/jpeg;base64,{}".format(encoded_image.decode())
+            img = "data:image/jpeg;base64,"+encoded_image.decode()
         except FileNotFoundError:
             img = None
         except NotADirectoryError:
@@ -348,4 +348,8 @@ def get_animation_data(
     ]
     figure_layout["sliders"] = sliders
 
-    return dict(data=ani_frames[0]["data"], frames=ani_frames, layout=figure_layout)
+    return {
+        "data": ani_frames[0]["data"],
+        "frames": ani_frames,
+        "layout": figure_layout,
+    }

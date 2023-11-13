@@ -723,15 +723,15 @@ def export_3d_scatter_animation(
     if not os.path.exists("data/" + case + "/images"):
         os.makedirs("data/" + case + "/images")
 
-    task_kwargs = {}
-    task_kwargs["c_key"] = c_key
-    task_kwargs["colormap"] = colormap
-    task_kwargs["decay"] = decay
+    fig_kwargs = {}
+    fig_kwargs["c_key"] = c_key
+    fig_kwargs["colormap"] = colormap
+    fig_kwargs["decay"] = decay
 
     if darkmode:
-        task_kwargs["template"] = "plotly_dark"
+        fig_kwargs["template"] = "plotly_dark"
     else:
-        task_kwargs["template"] = "plotly"
+        fig_kwargs["template"] = "plotly"
 
     if file not in file_list:
         file_list.append(file)
@@ -776,8 +776,6 @@ def export_3d_scatter_animation(
         )
 
     # prepare figure key word arguments
-    fig_kwargs = task_kwargs
-
     fig_kwargs["hover"] = keys_dict
 
     fig_kwargs["x_key"] = config.get("x_3d", num_keys[0])
