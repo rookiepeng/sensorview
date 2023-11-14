@@ -294,7 +294,8 @@ def get_animation_data(
 
         if img_list is not None:
             try:
-                encoded_image = base64.b64encode(open(img_list[idx], "rb").read())
+                with open(img_list[idx], "rb") as img_file:
+                    encoded_image = base64.b64encode(img_file.read())
                 img = "data:image/jpeg;base64,"+encoded_image.decode()
             except FileNotFoundError:
                 img = None

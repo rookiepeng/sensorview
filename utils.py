@@ -141,7 +141,8 @@ def load_image(img_path):
     :rtype: _type_
     """
     try:
-        encoding = base64.b64encode(open(img_path, "rb").read())
+        with open(img_path, "rb") as img_file:
+            encoding = base64.b64encode(img_file.read())
         img = "data:image/jpeg;base64," + encoding.decode()
     except FileNotFoundError:
         img = None
@@ -269,13 +270,13 @@ def prepare_figure_kwargs(
     return fig_kwargs
 
 
-def cache_set(data, id, key_major, key_minor=None):
+def cache_set(data, id_str, key_major, key_minor=None):
     """
     Set data to Redis
 
     :param dict/str/pandas.Dataframe data
         data to be stored in Redis
-    :param str id
+    :param str id_str
         unique id (session id)
     :param str key_major
         major key name
@@ -283,20 +284,25 @@ def cache_set(data, id, key_major, key_minor=None):
         minor key name
     """
     if key_minor is None:
-        key_str = key_major + id
+        key_str = key_major + id_str
     else:
-        key_str = key_major + id + key_minor
+        key_str = key_major + id_str + key_minor
 
     frame_cache.set(key_str, data, expire=EXPIRATION)
 
 
-def redis_set(data, id, key_major, key_minor=None):
+def cache_expire():
+    """_summary_"""
+    frame_cache.expire()
+
+
+def redis_set(data, id_str, key_major, key_minor=None):
     """
     Set data to Redis
 
     :param dict/str/pandas.Dataframe data
         data to be stored in Redis
-    :param str id
+    :param str id_str
         unique id (session id)
     :param str key_major
         major key name
@@ -304,18 +310,18 @@ def redis_set(data, id, key_major, key_minor=None):
         minor key name
     """
     if key_minor is None:
-        key_str = key_major + id
+        key_str = key_major + id_str
     else:
-        key_str = key_major + id + key_minor
+        key_str = key_major + id_str + key_minor
 
     redis_instance.set(key_str, pickle.dumps(data), ex=EXPIRATION)
 
 
-def cache_get(id, key_major, key_minor=None):
+def cache_get(id_str, key_major, key_minor=None):
     """
     Get data from Redis
 
-    :param str id
+    :param str id_str
         unique id (session id)
     :param str key_major
         major key name
@@ -326,19 +332,19 @@ def cache_get(id, key_major, key_minor=None):
     :rtype: dict/str/pandas.Dataframe
     """
     if key_minor is None:
-        key_str = key_major + id
+        key_str = key_major + id_str
     else:
-        key_str = key_major + id + key_minor
+        key_str = key_major + id_str + key_minor
 
     val = frame_cache.get(key_str, default=None, retry=True)
     return val
 
 
-def redis_get(id, key_major, key_minor=None):
+def redis_get(id_str, key_major, key_minor=None):
     """
     Get data from Redis
 
-    :param str id
+    :param str id_str
         unique id (session id)
     :param str key_major
         major key name
@@ -349,9 +355,9 @@ def redis_get(id, key_major, key_minor=None):
     :rtype: dict/str/pandas.Dataframe
     """
     if key_minor is None:
-        key_str = key_major + id
+        key_str = key_major + id_str
     else:
-        key_str = key_major + id + key_minor
+        key_str = key_major + id_str + key_minor
 
     val = redis_instance.get(key_str)
 

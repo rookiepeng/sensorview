@@ -42,7 +42,7 @@ import plotly.graph_objs as go
 from maindash import app
 
 from utils import filter_all
-from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
+from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES, cache_expire
 from utils import load_data
 from utils import load_data_list
 from utils import load_image
@@ -877,6 +877,8 @@ def regenerate_figure_background_callback(
     cache_set(trigger_idx, session_id, CACHE_KEYS["task_id"])
     set_progress([0, "Buffering ... (0 %)"])
 
+    cache_expire()
+
     if file not in file_list:
         file_list.append(file)
 
@@ -968,11 +970,11 @@ def regenerate_figure_background_callback(
             print("task cancelled")
             return {"dummy": 0}
 
+        cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
         cache_set(fig, session_id, CACHE_KEYS["figure"], str(slider_arg))
         cache_set(hover_strings, session_id, CACHE_KEYS["hover"], str(slider_arg))
         cache_set(ref_fig, session_id, CACHE_KEYS["figure_ref"], str(slider_arg))
         cache_set(fig_layout, session_id, CACHE_KEYS["figure_layout"], str(slider_arg))
-        cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
 
         percent = slider_arg / len(frame_list) * 100
         set_progress(
