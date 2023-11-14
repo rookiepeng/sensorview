@@ -39,10 +39,9 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from maindash import app
 
-from tasks import filter_all
-
 from viz.viz import get_scatter2d
 
+from utils import filter_all
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 from utils import load_data
 from utils import background_callback_manager

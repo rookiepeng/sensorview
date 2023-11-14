@@ -38,8 +38,7 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from maindash import app
 
-from tasks import filter_all
-
+from utils import filter_all
 from utils import cache_get, CACHE_KEYS
 from utils import load_data
 from utils import background_callback_manager

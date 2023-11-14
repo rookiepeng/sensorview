@@ -36,10 +36,9 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 from maindash import app
 
-from tasks import filter_all
-
 from viz.viz import get_heatmap
 
+from utils import filter_all
 from utils import cache_get, CACHE_KEYS
 from utils import background_callback_manager
 from utils import load_data

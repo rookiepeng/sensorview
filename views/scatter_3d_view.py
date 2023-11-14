@@ -41,9 +41,7 @@ import plotly.graph_objs as go
 
 from maindash import app
 
-from tasks import filter_all
-from tasks import celery_filtering_data
-
+from utils import filter_all
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 from utils import load_data
 from utils import load_data_list
@@ -764,11 +762,11 @@ def regenerate_figure_callback(
         "trigger": Output("background-trigger", "data"),
     },
     inputs={
-        "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
-        "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
-        "visible_list": Input("visible-picker", "value"),
+        "unused_cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
+        "unused_num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
+        "unused_visible_list": Input("visible-picker", "value"),
         "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
-        "c_key": Input("c-picker-3d", "value"),
+        "unused_c_key": Input("c-picker-3d", "value"),
         "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
         "unused_file_loaded": Input("file-loaded-trigger", "data"),
     },
@@ -777,15 +775,36 @@ def regenerate_figure_callback(
     },
 )
 def regenerate_figure_background_trigger(
-    cat_values,
-    num_values,
-    visible_list,
+    unused_cat_values,
+    unused_num_values,
+    unused_visible_list,
     unused_vistable_trigger,
-    c_key,
+    unused_c_key,
     unused_left_hide_trigger,
     unused_file_loaded,
     trigger_val,
 ):
+    """_summary_
+
+    :param unused_cat_values: _description_
+    :type unused_cat_values: _type_
+    :param unused_num_values: _description_
+    :type unused_num_values: _type_
+    :param unused_visible_list: _description_
+    :type unused_visible_list: _type_
+    :param unused_vistable_trigger: _description_
+    :type unused_vistable_trigger: _type_
+    :param unused_c_key: _description_
+    :type unused_c_key: _type_
+    :param unused_left_hide_trigger: _description_
+    :type unused_left_hide_trigger: _type_
+    :param unused_file_loaded: _description_
+    :type unused_file_loaded: _type_
+    :param trigger_val: _description_
+    :type trigger_val: _type_
+    :return: _description_
+    :rtype: _type_
+    """
     return {"trigger": trigger_val + 1}
 
 
@@ -795,22 +814,14 @@ def regenerate_figure_background_trigger(
         "dummy": Output("dummy-background", "data"),
     },
     inputs={
-        "trigger": Input("background-trigger", "data"),
+        "trigger_idx": Input("background-trigger", "data"),
     },
     state={
         "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
         "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
         "visible_list": State("visible-picker", "value"),
-        "unused_vistable_trigger": State("visible-table-change-trigger", "data"),
         "c_key": State("c-picker-3d", "value"),
-        "unused_left_hide_trigger": State("left-hide-trigger", "data"),
-        "unused_file_loaded": State("file-loaded-trigger", "data"),
-        "ispaused": State("interval-component", "disabled"),
         "slider_arg": State("slider-frame", "value"),
-        "overlay_enable": State("overlay-switch", "value"),
-        "decay": State("decay-slider", "value"),
-        "colormap": State("colormap-3d", "value"),
-        "darkmode": State("darkmode-switch", "value"),
         "session_id": State("session-id", "data"),
         "case": State("case-picker", "value"),
         "file": State("file-picker", "value"),
@@ -825,45 +836,153 @@ def regenerate_figure_background_trigger(
 )
 def regenerate_figure_background_callback(
     set_progress,
-    trigger,
+    trigger_idx,
     cat_values,
     num_values,
     visible_list,
-    unused_vistable_trigger,
-    ispaused,
     slider_arg,
     c_key,
-    overlay_enable,
-    unused_left_hide_trigger,
-    unused_file_loaded,
-    decay,
-    colormap,
-    darkmode,
     session_id,
     case,
     file,
     file_list,
 ):
-    set_progress([0,"Buffering ... (0 %)"])
+    """_summary_
 
-    # invoke task
-    # save filter key word arguments to Redis
-    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
-    filter_kwargs["num_values"] = num_values
-    filter_kwargs["cat_values"] = cat_values
-    cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
+    :param set_progress: _description_
+    :type set_progress: _type_
+    :param unused_trigger: _description_
+    :type unused_trigger: _type_
+    :param cat_values: _description_
+    :type cat_values: _type_
+    :param num_values: _description_
+    :type num_values: _type_
+    :param visible_list: _description_
+    :type visible_list: _type_
+    :param slider_arg: _description_
+    :type slider_arg: _type_
+    :param c_key: _description_
+    :type c_key: _type_
+    :param session_id: _description_
+    :type session_id: _type_
+    :param case: _description_
+    :type case: _type_
+    :param file: _description_
+    :type file: _type_
+    :param file_list: _description_
+    :type file_list: _type_
+    :return: _description_
+    :rtype: _type_
+    """
+    cache_set(trigger_idx, session_id, CACHE_KEYS["task_id"])
+    set_progress([0, "Buffering ... (0 %)"])
 
-    task_kwargs = {}
-    task_kwargs["c_key"] = c_key
-
-    # invoke celery task
-    cache_set(0, session_id, CACHE_KEYS["task_id"])
-    cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
     if file not in file_list:
         file_list.append(file)
-    celery_filtering_data(session_id, case, file_list, visible_list, set_progress, **task_kwargs)
 
-    set_progress([100,"Buffer ready (100 %)"])
+    # set figure index to -1 (no buffer is ready)
+    cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
+
+    config = cache_get(session_id, CACHE_KEYS["config"])
+    keys_dict = config["keys"]
+
+    slider_label = keys_dict[config["slider"]]["description"]
+
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs["cat_keys"]
+    num_keys = filter_kwargs["num_keys"]
+
+    visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
+    frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+
+    dataset = load_data_list(file_list, case)
+    frame_group = dataset.groupby(config["slider"])
+
+    # prepare figure key word arguments
+    fig_kwargs = prepare_figure_kwargs(
+        config,
+        frame_list,
+        c_key,
+        num_keys,
+        num_values,
+    )
+
+    for slider_arg, frame_idx in enumerate(frame_list):
+        file = json.loads(file_list[0])
+        img_path = (
+            "./data/"
+            + case
+            + file["path"]
+            + "/"
+            + file["name"][0:-4]
+            + "/"
+            + str(slider_arg)
+            + ".jpg"
+        )
+
+        # encode image frame
+        fig_kwargs["image"] = load_image(img_path)
+
+        fig_kwargs["name"] = (
+            "Index: "
+            + str(slider_arg)
+            + " ("
+            + slider_label
+            + ": "
+            + str(frame_idx)
+            + ")"
+        )
+
+        data = frame_group.get_group(frame_idx)
+        filterd_frame = filter_all(
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list,
+        )
+
+        fig = get_scatter3d_data(filterd_frame, **fig_kwargs)
+
+        hover_strings = get_hover_strings(
+            filterd_frame, fig_kwargs["c_key"], fig_kwargs["c_type"], keys_dict
+        )
+        if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
+            ref_fig = [
+                get_ref_scatter3d_data(
+                    data_frame=filterd_frame,
+                    x_key=fig_kwargs["x_ref"],
+                    y_key=fig_kwargs["y_ref"],
+                    z_key=None,
+                    name=fig_kwargs.get("ref_name", None),
+                )
+            ]
+        else:
+            ref_fig = []
+
+        fig_layout = get_scatter3d_layout(**fig_kwargs)
+
+        if trigger_idx != cache_get(session_id, CACHE_KEYS["task_id"]):
+            print("task cancelled")
+            return {"dummy": 0}
+
+        cache_set(fig, session_id, CACHE_KEYS["figure"], str(slider_arg))
+        cache_set(hover_strings, session_id, CACHE_KEYS["hover"], str(slider_arg))
+        cache_set(ref_fig, session_id, CACHE_KEYS["figure_ref"], str(slider_arg))
+        cache_set(fig_layout, session_id, CACHE_KEYS["figure_layout"], str(slider_arg))
+        cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
+
+        percent = slider_arg / len(frame_list) * 100
+        set_progress(
+            [
+                percent,
+                "Buffering ... (" + str(round(percent, 2)) + " %)",
+            ]
+        )
+
+    set_progress([100, "Buffer ready (100 %)"])
 
     return {"dummy": 0}
 

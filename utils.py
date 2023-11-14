@@ -38,6 +38,7 @@ from dash import DiskcacheManager
 
 import pandas as pd
 
+
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {
     "dataset": "DATASET",
@@ -76,7 +77,7 @@ def load_config(json_file):
     :return: configuration struct
     :rtype: dict
     """
-    with open(json_file, "r") as read_file:
+    with open(json_file, "r", encoding="utf-8") as read_file:
         return json.load(read_file)
 
 
@@ -141,7 +142,7 @@ def load_image(img_path):
     """
     try:
         encoding = base64.b64encode(open(img_path, "rb").read())
-        img = "data:image/jpeg;base64,"+encoding.decode()
+        img = "data:image/jpeg;base64," + encoding.decode()
     except FileNotFoundError:
         img = None
     except NotADirectoryError:
@@ -358,3 +359,73 @@ def redis_get(id, key_major, key_minor=None):
         return pickle.loads(val)
     else:
         return None
+
+
+def filter_all(
+    data,
+    num_list,
+    num_values,
+    cat_list,
+    cat_values,
+    visible_table=None,
+    visible_list=None,
+):
+    """
+    Filter the DataFrame
+
+    :param pandas.DataFrame data
+        initial data table
+    :param [str] num_list
+        list of numerical keys
+    :param [list] num_values
+        numberical value ranges
+    :param [str] cat_list
+        list of categorical keys
+    :param [list] cat_values
+        categorical item lists
+    :param pandas.DataFrame visible_table=None
+        visibility table
+    :param [str] visible_list=None
+        visibility list
+
+    :return: filtered data table
+    :rtype: pandas.DataFrame
+    """
+
+    for f_idx, f_name in enumerate(num_list):
+        if f_name not in data.columns:
+            continue
+
+        if f_idx == 0:
+            condition = (data[f_name] >= num_values[f_idx][0]) & (
+                data[f_name] <= num_values[f_idx][1]
+            )
+        else:
+            condition = (
+                condition
+                & (data[f_name] >= num_values[f_idx][0])
+                & (data[f_name] <= num_values[f_idx][1])
+            )
+
+    for f_idx, f_name in enumerate(cat_list):
+        if f_name not in data.columns:
+            continue
+
+        if not cat_values[f_idx]:
+            condition = condition & False
+            break
+        else:
+            for val_idx, val in enumerate(cat_values[f_idx]):
+                if val_idx == 0:
+                    val_condition = data[f_name] == val
+                else:
+                    val_condition = val_condition | (data[f_name] == val)
+
+            condition = condition & val_condition
+
+    if len(visible_list) == 1:
+        condition = condition & (visible_table["_VIS_"] == visible_list[0])
+    elif not visible_list:
+        condition = condition & False
+
+    return data.loc[condition]
