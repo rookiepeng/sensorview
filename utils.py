@@ -61,9 +61,9 @@ redis_ip = os.environ.get("REDIS_SERVER_SERVICE_HOST", "127.0.0.1")
 redis_url = "redis://" + redis_ip + ":6379"
 redis_instance = redis.StrictRedis.from_url(redis_url)
 
-frame_cache = Cache("./cache/frame", eviction_policy="none")
+frame_cache = Cache("./cache/frame", timeout=120, eviction_policy="none")
 
-dash_cache = Cache("./cache/dash", eviction_policy="none")
+dash_cache = Cache("./cache/dash", timeout=120, eviction_policy="none")
 background_callback_manager = DiskcacheManager(dash_cache)
 
 
@@ -179,7 +179,7 @@ def prepare_figure_kwargs(
     """
     keys_dict = config["keys"]
     # prepare figure key word arguments
-    fig_kwargs = dict()
+    fig_kwargs = {}
     fig_kwargs["image"] = None
 
     fig_kwargs["x_key"] = config.get("x_3d", num_keys[0])

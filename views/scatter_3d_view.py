@@ -619,6 +619,7 @@ def visible_table_change_callback(
 @app.callback(
     output={
         "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
+        "trigger": Output("background-trigger", "data"),
     },
     inputs={
         "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
@@ -640,6 +641,7 @@ def visible_table_change_callback(
         "case": State("case-picker", "value"),
         "file": State("file-picker", "value"),
         "file_list": State("file-add", "value"),
+        "trigger_val": State("background-trigger", "data"),
     },
     prevent_initial_call=True,
 )
@@ -661,6 +663,7 @@ def regenerate_figure_callback(
     case,
     file,
     file_list,
+    trigger_val,
 ):
     """
     Callback when filter changed
@@ -703,14 +706,14 @@ def regenerate_figure_callback(
     """
 
     # invoke task
+    cache_set(-1, session_id, CACHE_KEYS["task_id"])
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
     filter_kwargs["num_values"] = num_values
     filter_kwargs["cat_values"] = cat_values
     cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
 
-    # invoke celery task
-    cache_set(0, session_id, CACHE_KEYS["task_id"])
+    # cache_set(0, session_id, CACHE_KEYS["task_id"])
     cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
     if file not in file_list:
         file_list.append(file)
@@ -754,58 +757,7 @@ def regenerate_figure_callback(
     else:
         fig["layout"]["template"] = pio.templates["plotly"]
 
-    return {"scatter3d": fig}
-
-
-@app.callback(
-    output={
-        "trigger": Output("background-trigger", "data"),
-    },
-    inputs={
-        "unused_cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
-        "unused_num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
-        "unused_visible_list": Input("visible-picker", "value"),
-        "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
-        "unused_c_key": Input("c-picker-3d", "value"),
-        "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
-        "unused_file_loaded": Input("file-loaded-trigger", "data"),
-    },
-    state={
-        "trigger_val": State("background-trigger", "data"),
-    },
-)
-def regenerate_figure_background_trigger(
-    unused_cat_values,
-    unused_num_values,
-    unused_visible_list,
-    unused_vistable_trigger,
-    unused_c_key,
-    unused_left_hide_trigger,
-    unused_file_loaded,
-    trigger_val,
-):
-    """_summary_
-
-    :param unused_cat_values: _description_
-    :type unused_cat_values: _type_
-    :param unused_num_values: _description_
-    :type unused_num_values: _type_
-    :param unused_visible_list: _description_
-    :type unused_visible_list: _type_
-    :param unused_vistable_trigger: _description_
-    :type unused_vistable_trigger: _type_
-    :param unused_c_key: _description_
-    :type unused_c_key: _type_
-    :param unused_left_hide_trigger: _description_
-    :type unused_left_hide_trigger: _type_
-    :param unused_file_loaded: _description_
-    :type unused_file_loaded: _type_
-    :param trigger_val: _description_
-    :type trigger_val: _type_
-    :return: _description_
-    :rtype: _type_
-    """
-    return {"trigger": trigger_val + 1}
+    return {"scatter3d": fig, "trigger": trigger_val + 1}
 
 
 @app.callback(
@@ -821,7 +773,6 @@ def regenerate_figure_background_trigger(
         "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
         "visible_list": State("visible-picker", "value"),
         "c_key": State("c-picker-3d", "value"),
-        "slider_arg": State("slider-frame", "value"),
         "session_id": State("session-id", "data"),
         "case": State("case-picker", "value"),
         "file": State("file-picker", "value"),
@@ -840,7 +791,6 @@ def regenerate_figure_background_callback(
     cat_values,
     num_values,
     visible_list,
-    slider_arg,
     c_key,
     session_id,
     case,
@@ -875,6 +825,8 @@ def regenerate_figure_background_callback(
     :rtype: _type_
     """
     cache_set(trigger_idx, session_id, CACHE_KEYS["task_id"])
+    print("start new task (" + str(trigger_idx) + ")")
+
     set_progress([0, "Buffering ... (0 %)"])
 
     cache_expire()
@@ -967,7 +919,8 @@ def regenerate_figure_background_callback(
         fig_layout = get_scatter3d_layout(**fig_kwargs)
 
         if trigger_idx != cache_get(session_id, CACHE_KEYS["task_id"]):
-            print("task cancelled")
+            print("task (" + str(trigger_idx) + ") cancelled")
+            set_progress([0, "Buffering ... (0 %)"])
             return {"dummy": 0}
 
         cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
@@ -985,6 +938,8 @@ def regenerate_figure_background_callback(
         )
 
     set_progress([100, "Buffer ready (100 %)"])
+
+    print("task (" + str(trigger_idx) + ") completed")
 
     return {"dummy": 0}
 

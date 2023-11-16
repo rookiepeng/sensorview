@@ -268,6 +268,7 @@ def file_select_changed(
             True,
         ]
     )
+    cache_set(-1, session_id, CACHE_KEYS["task_id"])
     # get keys from Redis
     config = cache_get(session_id, CACHE_KEYS["config"])
 
