@@ -296,14 +296,15 @@ def get_animation_data(
             try:
                 with open(img_list[idx], "rb") as img_file:
                     encoded_image = base64.b64encode(img_file.read())
-                img = "data:image/jpeg;base64,"+encoded_image.decode()
+                kwargs["image"] = "data:image/jpeg;base64,"+encoded_image.decode()
             except FileNotFoundError:
-                img = None
+                kwargs["image"] = None
             except NotADirectoryError:
-                img = None
+                kwargs["image"] = None
         else:
-            img = None
+            kwargs["image"] = None
 
+        kwargs["name"] = "Frame: " + str(frame_idx)
         fig = get_scatter3d_data(
             filtered_list,
             x_key,
@@ -311,8 +312,8 @@ def get_animation_data(
             z_key,
             x_ref=x_ref,
             y_ref=y_ref,
-            name="Frame: " + str(frame_idx),
-            image=img,
+            # name="Frame: " + str(frame_idx),
+            # image=img,
             opacity=opacity[0],
             **kwargs
         )
@@ -326,6 +327,7 @@ def get_animation_data(
                     ]
                     frame_temp = frame_temp.reset_index()
 
+                    kwargs["name"] = "Frame: " + str(frame_list[idx - val])
                     fig = fig + get_scatter3d_data(
                         frame_temp,
                         x_key,
@@ -333,7 +335,7 @@ def get_animation_data(
                         z_key,
                         x_ref=x_ref,
                         y_ref=y_ref,
-                        name="Frame: " + str(frame_list[idx - val]),
+                        # name="Frame: " + str(frame_list[idx - val]),
                         opacity=opacity[val],
                         **kwargs
                     )
@@ -353,7 +355,7 @@ def get_animation_data(
             ]
         else:
             fig_ref = []
-        layout = get_scatter3d_layout(image=img, **kwargs)
+        layout = get_scatter3d_layout(**kwargs)
 
         new_frame = {"data": fig_ref + fig, "layout": layout}
 
@@ -381,16 +383,16 @@ def get_animation_data(
     if img_list is not None:
         try:
             encoded_image = base64.b64encode(open(img_list[0], "rb").read())
-            img = "data:image/jpeg;base64,"+encoded_image.decode()
+            kwargs["image"] = "data:image/jpeg;base64,"+encoded_image.decode()
         except FileNotFoundError:
-            img = None
+            kwargs["image"] = None
         except NotADirectoryError:
-            img = None
+            kwargs["image"] = None
     else:
-        img = None
+        kwargs["image"] = None
 
     # Layout
-    figure_layout = get_scatter3d_layout(image=img, **kwargs)
+    figure_layout = get_scatter3d_layout(**kwargs)
     figure_layout["updatemenus"] = [
         {
             "bgcolor": "#9E9E9E",

@@ -1043,10 +1043,23 @@ def export_3d_scatter_animation(
     if not os.path.exists("data/" + case + "/images"):
         os.makedirs("data/" + case + "/images")
 
-    fig_kwargs = {}
-    fig_kwargs["c_key"] = c_key
-    fig_kwargs["colormap"] = colormap
-    fig_kwargs["decay"] = decay
+    config = cache_get(session_id, CACHE_KEYS["config"])
+
+    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+    cat_keys = filter_kwargs["cat_keys"]
+    num_keys = filter_kwargs["num_keys"]
+    num_values = filter_kwargs["num_values"]
+    cat_values = filter_kwargs["cat_values"]
+
+    frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+
+    fig_kwargs = prepare_figure_kwargs(
+        config,
+        frame_list,
+        c_key,
+        num_keys,
+        num_values,
+    )
 
     if darkmode:
         fig_kwargs["template"] = "plotly_dark"
@@ -1056,17 +1069,7 @@ def export_3d_scatter_animation(
     if file not in file_list:
         file_list.append(file)
 
-    config = cache_get(session_id, CACHE_KEYS["config"])
-    keys_dict = config["keys"]
-
-    filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
-    cat_keys = filter_kwargs["cat_keys"]
-    num_keys = filter_kwargs["num_keys"]
-    num_values = filter_kwargs["num_values"]
-    cat_values = filter_kwargs["cat_values"]
-
     visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-    frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
 
     dataset = load_data_list(file_list, case)
     filtered_table = filter_all(
@@ -1094,84 +1097,6 @@ def export_3d_scatter_animation(
             + str(img_idx)
             + ".jpg"
         )
-
-    # prepare figure key word arguments
-    fig_kwargs["hover"] = keys_dict
-
-    fig_kwargs["x_key"] = config.get("x_3d", num_keys[0])
-    fig_kwargs["x_label"] = keys_dict[fig_kwargs["x_key"]].get(
-        "description", fig_kwargs["x_key"]
-    )
-    fig_kwargs["y_key"] = config.get("y_3d", num_keys[1])
-    fig_kwargs["y_label"] = keys_dict[fig_kwargs["y_key"]].get(
-        "description", fig_kwargs["y_key"]
-    )
-    fig_kwargs["z_key"] = config.get("z_3d", num_keys[2])
-    fig_kwargs["z_label"] = keys_dict[fig_kwargs["z_key"]].get(
-        "description", fig_kwargs["z_key"]
-    )
-    # c_key = fig_kwargs['c_key']
-    fig_kwargs["c_label"] = keys_dict[fig_kwargs["c_key"]].get(
-        "description", fig_kwargs["c_key"]
-    )
-    fig_kwargs["x_ref"] = config.get("x_ref", None)
-    fig_kwargs["y_ref"] = config.get("y_ref", None)
-
-    # set graph's range the same for all the frames
-    if (fig_kwargs["x_ref"] is not None) and (fig_kwargs["y_ref"] is not None):
-        fig_kwargs["x_range"] = [
-            min(
-                [
-                    num_values[num_keys.index(fig_kwargs["x_key"])][0],
-                    num_values[num_keys.index(fig_kwargs["x_ref"])][0],
-                ]
-            ),
-            max(
-                [
-                    num_values[num_keys.index(fig_kwargs["x_key"])][1],
-                    num_values[num_keys.index(fig_kwargs["x_ref"])][1],
-                ]
-            ),
-        ]
-        fig_kwargs["y_range"] = [
-            min(
-                [
-                    num_values[num_keys.index(fig_kwargs["y_key"])][0],
-                    num_values[num_keys.index(fig_kwargs["y_ref"])][0],
-                ]
-            ),
-            max(
-                [
-                    num_values[num_keys.index(fig_kwargs["y_key"])][1],
-                    num_values[num_keys.index(fig_kwargs["y_ref"])][1],
-                ]
-            ),
-        ]
-    else:
-        fig_kwargs["x_range"] = [
-            num_values[num_keys.index(fig_kwargs["x_key"])][0],
-            num_values[num_keys.index(fig_kwargs["x_key"])][1],
-        ]
-        fig_kwargs["y_range"] = [
-            num_values[num_keys.index(fig_kwargs["y_key"])][0],
-            num_values[num_keys.index(fig_kwargs["y_key"])][1],
-        ]
-    fig_kwargs["z_range"] = [
-        num_values[num_keys.index(fig_kwargs["z_key"])][0],
-        num_values[num_keys.index(fig_kwargs["z_key"])][1],
-    ]
-
-    if keys_dict[fig_kwargs["c_key"]].get("type", KEY_TYPES["NUM"]) == KEY_TYPES["NUM"]:
-        fig_kwargs["c_range"] = [
-            num_values[num_keys.index(fig_kwargs["c_key"])][0],
-            num_values[num_keys.index(fig_kwargs["c_key"])][1],
-        ]
-    else:
-        fig_kwargs["c_range"] = [0, 0]
-
-    fig_kwargs["c_type"] = keys_dict[fig_kwargs["c_key"]].get("type", KEY_TYPES["NUM"])
-    fig_kwargs["ref_name"] = "Host Vehicle"
-    fig_kwargs["hover"] = keys_dict
 
     fig_kwargs["title"] = file["name"][0:-4]
 
