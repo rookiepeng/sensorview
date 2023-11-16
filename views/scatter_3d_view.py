@@ -1102,6 +1102,8 @@ def export_3d_scatter_animation(
 
     fig_kwargs["height"] = 750
 
+    fig_kwargs["decay"] = decay
+
     fig = go.Figure(
         get_animation_data(
             filtered_table, frame_key=config["slider"], img_list=img_list, **fig_kwargs
