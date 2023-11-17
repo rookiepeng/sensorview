@@ -1044,6 +1044,8 @@ def export_3d_scatter_animation(
         os.makedirs("data/" + case + "/images")
 
     config = cache_get(session_id, CACHE_KEYS["config"])
+    keys_dict = config["keys"]
+    c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
 
     filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
     cat_keys = filter_kwargs["cat_keys"]
@@ -1103,6 +1105,8 @@ def export_3d_scatter_animation(
     fig_kwargs["height"] = 750
 
     fig_kwargs["decay"] = decay
+    fig_kwargs["c_type"] = c_type
+    fig_kwargs["keys_dict"] = keys_dict
 
     fig = go.Figure(
         get_animation_data(
