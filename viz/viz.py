@@ -315,19 +315,17 @@ def get_animation_data(
             z_key,
             x_ref=x_ref,
             y_ref=y_ref,
-            # name="Frame: " + str(frame_idx),
-            # image=img,
             opacity=opacity[0],
             **kwargs
         )
-        # hover_list = get_hover_strings(
-        #     filtered_list, kwargs["c_key"], c_type, keys_dict
-        # )
+        hover_list = get_hover_strings(
+            filtered_list, kwargs["c_key"], kwargs["c_type"], kwargs["keys_dict"]
+        )
 
-        # if hover_list:
-        #     for idx, hover_str in enumerate(hover_list):
-        #         fig[idx]["text"] = hover_str
-        #         fig[idx]["hovertemplate"] = "%{text}"
+        if hover_list:
+            for hover_idx, hover_str in enumerate(hover_list):
+                fig[hover_idx]["text"] = hover_str
+                fig[hover_idx]["hovertemplate"] = "%{text}"
 
         if colormap is not None and "marker" in fig[0]:
             fig[0]["marker"]["colorscale"] = colormap
@@ -349,12 +347,24 @@ def get_animation_data(
                         z_key,
                         x_ref=x_ref,
                         y_ref=y_ref,
-                        # name="Frame: " + str(frame_list[idx - val]),
                         opacity=opacity[val],
                         **kwargs
                     )
+                    hover_list = get_hover_strings(
+                        frame_temp,
+                        kwargs["c_key"],
+                        kwargs["c_type"],
+                        kwargs["keys_dict"],
+                    )
+
+                    if hover_list:
+                        for hover_idx, hover_str in enumerate(hover_list):
+                            new_fig[hover_idx]["text"] = hover_str
+                            new_fig[hover_idx]["hovertemplate"] = "%{text}"
+
                     if colormap is not None and "marker" in new_fig[0]:
                         new_fig[0]["marker"]["colorscale"] = colormap
+
                     fig = fig + new_fig
 
                 else:
