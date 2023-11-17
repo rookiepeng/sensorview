@@ -1106,7 +1106,7 @@ def export_3d_scatter_animation(
 
     fig = go.Figure(
         get_animation_data(
-            filtered_table, frame_key=config["slider"], img_list=img_list, **fig_kwargs
+            filtered_table, frame_key=config["slider"], img_list=img_list, colormap=colormap, **fig_kwargs
         )
     )
 
