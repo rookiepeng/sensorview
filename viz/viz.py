@@ -35,6 +35,8 @@ import pandas as pd
 from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from .graph_layout import get_scatter3d_layout
 
+from .graph_data import get_hover_strings
+
 
 def get_scatter3d(
     data_frame, x_key, y_key, z_key, c_key, x_ref=None, y_ref=None, z_ref=None, **kwargs
@@ -255,6 +257,7 @@ def get_animation_data(
     y_ref=None,
     frame_key="Frame",
     img_list=None,
+    colormap=None,
     decay=0,
     **kwargs
 ):
@@ -296,7 +299,7 @@ def get_animation_data(
             try:
                 with open(img_list[idx], "rb") as img_file:
                     encoded_image = base64.b64encode(img_file.read())
-                kwargs["image"] = "data:image/jpeg;base64,"+encoded_image.decode()
+                kwargs["image"] = "data:image/jpeg;base64," + encoded_image.decode()
             except FileNotFoundError:
                 kwargs["image"] = None
             except NotADirectoryError:
@@ -317,6 +320,17 @@ def get_animation_data(
             opacity=opacity[0],
             **kwargs
         )
+        # hover_list = get_hover_strings(
+        #     filtered_list, kwargs["c_key"], c_type, keys_dict
+        # )
+
+        # if hover_list:
+        #     for idx, hover_str in enumerate(hover_list):
+        #         fig[idx]["text"] = hover_str
+        #         fig[idx]["hovertemplate"] = "%{text}"
+
+        if colormap is not None and "marker" in fig[0]:
+            fig[0]["marker"]["colorscale"] = colormap
 
         if decay > 0:
             for val in range(1, decay + 1):
@@ -328,7 +342,7 @@ def get_animation_data(
                     frame_temp = frame_temp.reset_index()
 
                     kwargs["name"] = "Frame: " + str(frame_list[idx - val])
-                    fig = fig + get_scatter3d_data(
+                    new_fig = get_scatter3d_data(
                         frame_temp,
                         x_key,
                         y_key,
@@ -339,6 +353,9 @@ def get_animation_data(
                         opacity=opacity[val],
                         **kwargs
                     )
+                    if colormap is not None and "marker" in new_fig[0]:
+                        new_fig[0]["marker"]["colorscale"] = colormap
+                    fig = fig + new_fig
 
                 else:
                     break
@@ -383,7 +400,7 @@ def get_animation_data(
     if img_list is not None:
         try:
             encoded_image = base64.b64encode(open(img_list[0], "rb").read())
-            kwargs["image"] = "data:image/jpeg;base64,"+encoded_image.decode()
+            kwargs["image"] = "data:image/jpeg;base64," + encoded_image.decode()
         except FileNotFoundError:
             kwargs["image"] = None
         except NotADirectoryError:
