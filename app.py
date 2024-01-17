@@ -44,6 +44,8 @@ from views import scatter_2d_left_view
 from views import scatter_2d_right_view
 from views import violin_view
 
+from flaskwebgui import FlaskUI
+
 
 server = app.server
 app.scripts.config.serve_locally = True
@@ -88,4 +90,5 @@ app.clientside_callback(
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
+    # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
+    FlaskUI(app=server, server="flask", port=46734).run()
