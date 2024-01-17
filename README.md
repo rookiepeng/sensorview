@@ -38,9 +38,9 @@ Put the `config.json` in the same directory, and specify the `columns` of the da
 
 ### Debug
 
-```
-$ redis-server
-$ python app.py
+```bash
+redis-server
+python app.py
 ```
 
 - Open `http://127.0.0.1:8050/` in a browser
