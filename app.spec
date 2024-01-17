@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['app.py', 'maindash.py'],
+a = Analysis(['app.py'],
              pathex=['./sensorview'],
              binaries=[],
              datas=[('./assets', 'assets'), ('./assets/fonts/bootstrap-icons.woff', "assets/fonts"), ('./assets/fonts/bootstrap-icons.woff2', "assets/fonts")],
