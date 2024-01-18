@@ -10,3 +10,4 @@ celery
 diskcache
 redis
 flaskwebgui
+waitress
