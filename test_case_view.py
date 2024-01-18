@@ -63,18 +63,37 @@ from utils import background_callback_manager
 )
 def refresh_button_clicked(unused_nclick, stored_case):
     """
-    Callback when the refresh button is clicked
+    Callback when the refresh button is clicked.
 
-        Scan all the folders under './data' with 'config.json' inside
+    Scan all the folders under './data' with 'config.json' inside.
 
-    :param unused:
-        Number of clicks
+    Parameters:
+    - unused_nclick (int): Number of clicks (unused in the function).
+    - stored_case (str): Previously selected test case stored in the browser's cache.
 
-    :return: [
-        Test case options,
-        Test case default value
-    ]
-    :rtype: list
+    Returns:
+    dict: A dictionary containing test case options and the default test case value.
+
+    Dictionary structure:
+    {
+        "case_options": [
+            {"label": str, "value": str},
+            # Additional test case options as needed
+        ],
+        "case_value": str  # Default test case value
+    }
+
+    Example:
+    ```python
+    {
+        "case_options": [
+            {"label": "Option1", "value": "option1"},
+            {"label": "Option2", "value": "option2"},
+            # Additional test case options as needed
+        ],
+        "case_value": "option1"  # Default test case value
+    }
+    ```
     """
 
     options = []
@@ -121,24 +140,49 @@ def refresh_button_clicked(unused_nclick, stored_case):
 )
 def case_selected(set_progress, case, session_id, stored_file):
     """
-    Callback when a test case is selected
+    Callback when a test case is selected.
 
-    :param str case:
-        Selected test case
-    :param str session_id:
-        Session id
+    Parameters:
+    - set_progress (function): A function to set the progress visual indicators.
+    - case (str): Selected test case.
+    - session_id (str): Session id.
+    - stored_file (str): Previously selected test file stored in the browser's cache.
 
-    :return: [
-        Test file default value,
-        Test file option lists,
-        Options for dropdown components with all the keys,
-        Values for dropdown components with all the keys,
-        Options for dropdown components with categorical keys and `None`,
-        Values for dropdown components with categorical keys and `None`,
-        Options for dropdown components with categorical keys,
-        Values for dropdown components with categorical keys
-    ]
-    :rtype: list
+    Returns:
+    dict: A dictionary containing various options and values for dropdown components.
+
+    Dictionary structure:
+    {
+        "file_value": str,  # Default test file value
+        "file_options": [
+            {"label": str, "value": str},
+            # Additional test file options as needed
+        ],
+        "add_file_value": [],  # Placeholder for additional file values
+        "add_file_options": [],  # Placeholder for additional file options
+        "stored_case": str  # Stored test case value
+    }
+
+    Example:
+    ```python
+    {
+        "file_value": "path/to/default_file.csv",  # Default test file value
+        "file_options": [
+            {"label": "path/to/file1.csv",
+             "value": '{"path": "path/to",
+             "name": "file1.csv",
+             "feather_name": "file1.feather"}'},
+            {"label": "path/to/file2.csv",
+             "value": '{"path": "path/to",
+                        "name": "file2.csv",
+                        "feather_name": "file2.feather"}'},
+            # Additional test file options as needed
+        ],
+        "add_file_value": [],  # Placeholder for additional file values
+        "add_file_options": [],  # Placeholder for additional file options
+        "stored_case": "selected_case"  # Stored test case value
+    }
+    ```
     """
 
     if case is None:
@@ -253,6 +297,90 @@ def case_selected(set_progress, case, session_id, stored_file):
 def file_select_changed(
     set_progress, file, add_file_value, file_loaded, case, session_id, all_state
 ):
+    """
+    Callback when a file selection is changed.
+
+    Parameters:
+    - set_progress (function): A function to set the progress visual indicators.
+    - file (str): Selected file value.
+    - add_file_value (list): List containing additional file values.
+    - file_loaded (int): Number of times the file has been loaded.
+    - case (str): Selected test case.
+    - session_id (str): Session id.
+    - all_state: State of all dropdown components.
+
+    Returns:
+    dict: A dictionary containing various options and values for different components.
+
+    Dictionary structure:
+    {
+        "file_load_trigger": int,  # File load trigger count
+        "stored_file": str,  # Stored file value
+        "frame_min": int,  # Minimum frame index
+        "frame_max": int,  # Maximum frame index
+        "dropdown_container": list,  # Dropdown components for categorical values
+        "slider_container": list,  # Slider components for numerical values
+        "dim_picker_opt": list,  # Dimension picker options
+        "dim_picker_val": list,  # Dimension picker values
+        "dp_opts_all": list,  # Dropdown options for all keys
+        "dp_vals_all": list,  # Dropdown values for all keys
+        "dp_opts_cat_color": list,  # Dropdown options for categorical color keys
+        "dp_vals_cat_color": list,  # Dropdown values for categorical color keys
+        "dp_opts_cat": list,  # Dropdown options for categorical keys
+        "dp_vals_cat": list,  # Dropdown values for categorical keys
+    }
+
+    Example:
+    ```python
+    {
+        "file_load_trigger": 2,
+        "stored_file": "path/to/selected_file.csv",
+        "frame_min": 0,
+        "frame_max": 10,
+        "dropdown_container": [
+            dbc.Label("Category 1"),
+            dcc.Dropdown(
+                id={"type": "filter-dropdown", "index": 0},
+                options=[{"label": "Option1", "value": "option1"}],
+                value=["option1"],
+                multi=True,
+            ),
+            # Additional dropdown components as needed
+        ],
+        "slider_container": [
+            dbc.Label("Numeric Key 1"),
+            dcc.RangeSlider(
+                id={"type": "filter-slider", "index": 0},
+                min=0,
+                max=100,
+                marks=None,
+                step=1,
+                value=[0, 100],
+                tooltip={"always_visible": False},
+            ),
+            # Additional slider components as needed
+        ],
+        "dim_picker_opt": [{"label": "Category 1", "value": "Category1"}],
+        "dim_picker_val": ["Category1"],
+        "dp_opts_all": [
+            [{"label": "Key1", "value": "Key1"}],
+            # Additional dropdown options for all keys as needed
+        ],
+        "dp_vals_all": ["Key1"],
+        "dp_opts_cat_color": [
+            [{"label": "None", "value": "None"}],
+            [{"label": "Category1", "value": "Category1"}],
+            # Additional dropdown options for categorical color keys as needed
+        ],
+        "dp_vals_cat_color": ["None"],
+        "dp_opts_cat": [
+            [{"label": "Category1", "value": "Category1"}],
+            # Additional dropdown options for categorical keys as needed
+        ],
+        "dp_vals_cat": ["Category1"],
+    }
+    ```
+    """
     set_progress(
         [
             {
@@ -512,40 +640,40 @@ def update_slider(
     session_id,
 ):
     """
-    Callback when a data file is selected
+    Callback for updating the slider position.
 
-    :param json file
-        json string of the selected file
-        `path`, `name`, `feather_name`
-    :param int left_btn
-        number of clicks from next button
-    :param int right_btn
-        number of clicks from previous button
-    :param int interval
-        number of intervals
-    :param int play_clicks
-        number of clicks from play button
-    :param int stop_clicks
-        number of clicks from stop button
-    :param str case
-        case name
-    :param int slider_max
-        maximum number of slider
-    :param int slider_state
-        current slider position
+    Parameters:
+    - unused_file_loaded (int): Unused file load trigger count.
+    - left_btn (int): Number of clicks from the next button.
+    - right_btn (int): Number of clicks from the previous button.
+    - interval (int): Number of intervals.
+    - file: JSON string of the selected file containing `path`, `name`, `feather_name`.
+    - case (str): Case name.
+    - slider_max (int): Maximum number of slider positions.
+    - slider_state (int): Current slider position.
+    - session_id (str): Session id.
 
+    Returns:
+    dict: A dictionary containing the new slider value.
 
-    :return: [
-        Set default slider value to 0,
-        Minimal slider range,
-        Maximal slider range,
-        Dropdown layouts,
-        Slider layouts,
-        Enable/disable interval component,
-        Dimensions picker options for parallel categories plot,
-        Dimensions picker default value
-    ]
-    :rtype: list
+    Dictionary structure:
+    {
+        "slider_value": int,  # New slider position
+    }
+
+    Example:
+    ```python
+    {
+        "slider_value": 2,
+    }
+    ```
+
+    Raises:
+    PreventUpdate: If either `file` or `case` is None.
+
+    Note:
+    This callback is triggered by different components like file-loaded trigger, previous button,
+    next button, or interval component.
     """
     if file is None:
         raise PreventUpdate
@@ -596,7 +724,39 @@ def update_slider(
     },
 )
 def add_data(click, open_state, add_file_value):
-    """ """
+    """
+    Callback for toggling the state of a collapse element based on a button click.
+
+    Parameters:
+    - click (int): Number of clicks from the "button-add" button.
+    - open_state (bool): Current state of the "collapse-add" element.
+    - add_file_value: Value of the "file-add" input component.
+
+    Returns:
+    dict: A dictionary containing the new state of the "collapse-add" element.
+
+    Dictionary structure:
+    {
+        "state": bool,  # New state of the "collapse-add" element
+    }
+
+    Example:
+    ```python
+    {
+        "state": True,
+    }
+    ```
+
+    Raises:
+    PreventUpdate: If the button click count is 0.
+
+    Note:
+    This callback is triggered by the "button-add" button.
+    It toggles the state of the "collapse-add" element based
+    on the button click. If the "collapse-add" element is already
+    open and the "file-add" input has no value, the state is set
+    to False; otherwise, it is set to True.
+    """
     if click == 0:
         raise PreventUpdate
 
@@ -623,23 +783,46 @@ def add_data(click, open_state, add_file_value):
 )
 def reset_switch_state(unused_file_loaded, file, case):
     """
-    Reset all the enable switches when a new file is selected
+    Callback for resetting the state of multiple switch components.
 
-    :param json file
-        json string of the selected file
-        `path`, `name`, `feather_name`
-    :param str case
-        case name
+    Parameters:
+    - unused_file_loaded: Unused file load trigger data.
+    - file: Value of the "file-picker" component.
+    - case: Value of the "case-picker" component.
 
-    :return: [
-        Left figure enable switch,
-        Right figure enable switch,
-        Histogram figure enable switch,
-        Violin figure enable switch,
-        Parallel categories figure enable switch,
-        Heatmap figure enable switch
-    ]
-    :rtype: list
+    Returns:
+    dict: A dictionary containing the reset state for multiple switch components.
+
+    Dictionary structure:
+    {
+        "left_switch": list,  # Reset state for the "left-switch" component
+        "right_switch": list,  # Reset state for the "right-switch" component
+        "hist_switch": list,  # Reset state for the "histogram-switch" component
+        "violin_switch": list,  # Reset state for the "violin-switch" component
+        "parallel_switch": list,  # Reset state for the "parallel-switch" component
+        "heat_switch": list,  # Reset state for the "heat-switch" component
+    }
+
+    Example:
+    ```python
+    {
+        "left_switch": [],
+        "right_switch": [],
+        "hist_switch": [],
+        "violin_switch": [],
+        "parallel_switch": [],
+        "heat_switch": [],
+    }
+    ```
+
+    Raises:
+    PreventUpdate: If either `file` or `case` is None.
+
+    Note:
+    This callback is triggered by the "file-loaded-trigger" data.
+    It resets the state of multiple switch components ("left-switch",
+    "right-switch", "histogram-switch", "violin-switch", "parallel-switch",
+    "heat-switch"). If either `file` or `case` is None, it raises `PreventUpdate`.
     """
     if file is None:
         raise PreventUpdate
