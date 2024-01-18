@@ -45,7 +45,7 @@ import scatter_2d_right_view # pylint: disable=unused-import
 import violin_view # pylint: disable=unused-import
 
 # from flaskwebgui import FlaskUI
-from waitress import serve
+# from waitress import serve
 
 
 server = app.server
@@ -91,6 +91,6 @@ app.clientside_callback(
 
 
 if __name__ == "__main__":
-    # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
+    app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
     # FlaskUI(app=server, server="flask", port=46734).run()
-    serve(server, listen='*:8080')
+    # serve(server, listen='*:8080')
