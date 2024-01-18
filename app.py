@@ -34,15 +34,15 @@ from maindash import app
 
 from layout.layout import get_app_layout
 
-import test_case_view
-import control_view
-import scatter_3d_view
-import heatmap_view
-import histogram_view
-import parcats_view
-import scatter_2d_left_view
-import scatter_2d_right_view
-import violin_view
+from test_case_view import *
+from control_view import *
+from scatter_3d_view import *
+from heatmap_view import *
+from histogram_view import *
+from parcats_view import *
+from scatter_2d_left_view import *
+from scatter_2d_right_view import *
+from violin_view import *
 
 from flaskwebgui import FlaskUI
 
