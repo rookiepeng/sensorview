@@ -32,18 +32,17 @@ import pandas as pd
 
 
 def get_hover_strings(data_frame, c_key, c_type, hover):
-    """_summary_
+    """
+    Generate the hover strings for the data frame.
 
-    :param data_frame: _description_
-    :type data_frame: _type_
-    :param c_key: _description_
-    :type c_key: _type_
-    :param c_type: _description_
-    :type c_type: _type_
-    :param hover: _description_
-    :type hover: _type_
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - data_frame (pd.DataFrame): The data frame containing the data.
+    - c_key (str): The key for the color data.
+    - c_type (str): The type of the color data.
+    - hover (dict): The dictionary specifying the hover descriptions and formats.
+
+    Returns:
+    - list: The list of hover strings.
     """
     hover_str_list = []
     if hover is None:
@@ -106,20 +105,19 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
 
 
 def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
-    """_summary_
+    """
+    Generate the 3D scatter plot data.
 
-    :param data_frame: _description_
-    :type data_frame: _type_
-    :param x_key: _description_
-    :type x_key: _type_
-    :param y_key: _description_
-    :type y_key: _type_
-    :param z_key: _description_
-    :type z_key: _type_
-    :param c_key: _description_
-    :type c_key: _type_
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - data_frame (pd.DataFrame): The data frame containing the data.
+    - x_key (str): The key for the x-axis data.
+    - y_key (str): The key for the y-axis data.
+    - z_key (str): The key for the z-axis data.
+    - c_key (str): The key for the color data.
+    - **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+    - list: The 3D scatter plot data.
     """
     if data_frame.shape[0] == 0:
         return [{"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}]
@@ -197,20 +195,19 @@ def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
 def get_ref_scatter3d_data(
     data_frame, x_key, y_key, z_key=None, name="Origin", **kwargs
 ):
-    """_summary_
+    """
+    Generate the reference scatter plot data.
 
-    :param data_frame: _description_
-    :type data_frame: _type_
-    :param x_key: _description_
-    :type x_key: _type_
-    :param y_key: _description_
-    :type y_key: _type_
-    :param z_key: _description_, defaults to None
-    :type z_key: _type_, optional
-    :param name: _description_, defaults to "Origin"
-    :type name: str, optional
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - data_frame (pd.DataFrame): The data frame containing the data.
+    - x_key (str): The key for the x-axis data.
+    - y_key (str): The key for the y-axis data.
+    - z_key (str): The key for the z-axis data.
+    - name (str): The name of the reference data.
+    - **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+    - dict: The reference scatter plot data.
     """
     if data_frame.shape[0] == 0:
         return {"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}

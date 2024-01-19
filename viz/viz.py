@@ -42,27 +42,21 @@ def get_scatter3d(
     data_frame, x_key, y_key, z_key, c_key, x_ref=None, y_ref=None, z_ref=None, **kwargs
 ):
     """
-    Get scatter 3D data
+    Generate the scatter 3D plot data and layout.
 
-    :param pandas.DataFrame data_frame:
-        DataFrame
-    :param str x_key:
-        Key name for x axis
-    :param str y_key:
-        Key name for y axis
-    :param str z_key:
-        Key name for z axis
-    :param str c_key:
-        Key name for color
-    :param str x_ref:
-        Key name for x reference point
-    :param str y_ref:
-        Key name for y reference point
-    :param str z_ref:
-        Key name for z reference point
+    Parameters:
+    - data_frame (pd.DataFrame): The data frame containing the data.
+    - x_key (str): The key for the x-axis data.
+    - y_key (str): The key for the y-axis data.
+    - z_key (str): The key for the z-axis data.
+    - c_key (str): The key for the color data.
+    - x_ref (str): The key for the x-axis reference data.
+    - y_ref (str): The key for the y-axis reference data.
+    - z_ref (str): The key for the z-axis reference data.
+    - **kwargs: Additional keyword arguments for customization.
 
-    :return: plotly Scatter 3D
-    :rtype: dict
+    Returns:
+    - dict: The scatter 3D plot data and layout.
     """
     ref_name = kwargs.get("ref_name", None)
 
@@ -83,20 +77,18 @@ def get_scatter3d(
 
 
 def get_heatmap(data_frame, x_key, y_key, x_label=None, y_label=None):
-    """_summary_
+    """
+    Generate the heatmap plot data and layout.
 
-    :param data_frame: _description_
-    :type data_frame: _type_
-    :param x_key: _description_
-    :type x_key: _type_
-    :param y_key: _description_
-    :type y_key: _type_
-    :param x_label: _description_, defaults to None
-    :type x_label: _type_, optional
-    :param y_label: _description_, defaults to None
-    :type y_label: _type_, optional
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - data_frame (pd.DataFrame): The data frame containing the data.
+    - x_key (str): The key for the x-axis data.
+    - y_key (str): The key for the y-axis data.
+    - x_label (str): The label for the x-axis.
+    - y_label (str): The label for the y-axis.
+
+    Returns:
+    - dict: The heatmap plot data and layout.
     """
     if x_label is None:
         x_label = x_key
@@ -132,28 +124,23 @@ def get_scatter2d(
     margin={"l": 40, "r": 40, "b": 40, "t": 60},
     **kwargs
 ):
-    """_summary_
+    """
+    Generate the 2D scatter plot data and layout.
 
-    :param data_frame: _description_
-    :type data_frame: _type_
-    :param x_key: _description_
-    :type x_key: _type_
-    :param y_key: _description_
-    :type y_key: _type_
-    :param c_key: _description_
-    :type c_key: _type_
-    :param x_label: _description_, defaults to None
-    :type x_label: _type_, optional
-    :param y_label: _description_, defaults to None
-    :type y_label: _type_, optional
-    :param uirevision: _description_, defaults to "no_change"
-    :type uirevision: str, optional
-    :param colormap: _description_, defaults to "Jet"
-    :type colormap: str, optional
-    :param margin: _description_, defaults to {"l": 40, "r": 40, "b": 40, "t": 60}
-    :type margin: dict, optional
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - data_frame (pd.DataFrame): The data frame containing the data.
+    - x_key (str): The key for the x-axis data.
+    - y_key (str): The key for the y-axis data.
+    - c_key (str): The key for the color data.
+    - x_label (str): The label for the x-axis.
+    - y_label (str): The label for the y-axis.
+    - uirevision (str): The revision id for updating the plot.
+    - colormap (str): The name of the colormap for the color data.
+    - margin (dict): The margin settings for the plot.
+    - **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+    - dict: The 2D scatter plot data and layout.
     """
     linewidth = kwargs.get("linewidth", 0)
 
@@ -233,12 +220,14 @@ def get_scatter2d(
 
 
 def frame_args(duration):
-    """_summary_
+    """
+    Generate the frame arguments for animation.
 
-    :param duration: _description_
-    :type duration: _type_
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - duration (int): The duration of each frame in milliseconds.
+
+    Returns:
+    - dict: The frame arguments for animation.
     """
     return {
         "frame": {"duration": duration},
@@ -261,28 +250,24 @@ def get_animation_data(
     decay=0,
     **kwargs
 ):
-    """_summary_
+    """
+    Generate the animation data, frames, and layout.
 
-    :param data_frame: _description_
-    :type data_frame: _type_
-    :param x_key: _description_
-    :type x_key: _type_
-    :param y_key: _description_
-    :type y_key: _type_
-    :param z_key: _description_
-    :type z_key: _type_
-    :param x_ref: _description_, defaults to None
-    :type x_ref: _type_, optional
-    :param y_ref: _description_, defaults to None
-    :type y_ref: _type_, optional
-    :param frame_key: _description_, defaults to "Frame"
-    :type frame_key: str, optional
-    :param img_list: _description_, defaults to None
-    :type img_list: _type_, optional
-    :param decay: _description_, defaults to 0
-    :type decay: int, optional
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - data_frame (pd.DataFrame): The data frame containing the data.
+    - x_key (str): The key for the x-axis data.
+    - y_key (str): The key for the y-axis data.
+    - z_key (str): The key for the z-axis data.
+    - x_ref (str): The key for the x-axis reference data.
+    - y_ref (str): The key for the y-axis reference data.
+    - frame_key (str): The key for the frame data.
+    - img_list (list): The list of image file paths for each frame.
+    - colormap (str): The name of the colormap for the color data.
+    - decay (int): The number of frames to decay the opacity.
+    - **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+    - dict: The animation data, frames, and layout.
     """
     ani_frames = []
     frame_list = data_frame[frame_key].unique()

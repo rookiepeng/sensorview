@@ -33,16 +33,17 @@ import plotly.io as pio
 
 
 def get_scatter3d_layout(x_range, y_range, z_range=[-20, 20], **kwargs):
-    """_summary_
+    """
+    Generate the layout for the 3D scatter plot.
 
-    :param x_range: _description_
-    :type x_range: _type_
-    :param y_range: _description_
-    :type y_range: _type_
-    :param z_range: _description_, defaults to [-20, 20]
-    :type z_range: list, optional
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - x_range (list): The range of the x-axis.
+    - y_range (list): The range of the y-axis.
+    - z_range (list): The range of the z-axis.
+    - **kwargs: Additional keyword arguments for customization.
+
+    Returns:
+    - dict: The layout for the 3D scatter plot.
     """
     scale = np.min(
         [x_range[1] - x_range[0], y_range[1] - y_range[0], z_range[1] - z_range[0]]
