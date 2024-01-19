@@ -33,6 +33,8 @@ import dash
 from dash.dependencies import Output, State
 
 
+APP_TITLE = "SensorView"
+
 # options for dropdown components with all the keys
 DROPDOWN_OPTIONS_ALL = [
     Output("c-picker-3d", "options"),
@@ -109,9 +111,9 @@ app = dash.Dash(
 )
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
-app.title = "SensorView"
+app.title = APP_TITLE
 
 
 """ Global Variables """
-REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", app.title)
+REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", APP_TITLE)
 SPECIAL_FOLDERS = ["images"]

@@ -28,16 +28,19 @@
 """
 
 
+from waitress import serve
+
 from dash.dependencies import Input, Output
+
+from view_callbacks.test_case_view import get_test_case_view_callbacks
+from view_callbacks.control_view import get_control_view_callbacks
+from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
 
 from dash_config import app
 from layout import get_app_layout
 
 app.layout = get_app_layout
 
-import test_case_view  # pylint: disable=unused-import, wrong-import-position
-import control_view  # pylint: disable=unused-import, wrong-import-position
-import scatter_3d_view  # pylint: disable=unused-import, wrong-import-position
 import heatmap_view  # pylint: disable=unused-import, wrong-import-position
 import histogram_view  # pylint: disable=unused-import, wrong-import-position
 import parcats_view  # pylint: disable=unused-import, wrong-import-position
@@ -46,7 +49,6 @@ import scatter_2d_right_view  # pylint: disable=unused-import, wrong-import-posi
 import violin_view  # pylint: disable=unused-import, wrong-import-position
 
 # from flaskwebgui import FlaskUI
-# from waitress import serve
 
 server = app.server
 
@@ -90,8 +92,11 @@ app.clientside_callback(
     Input("stop-button", "n_clicks"),
 )
 
+get_test_case_view_callbacks(app)
+get_control_view_callbacks(app)
+get_scatter_3d_view_callbacks(app)
 
 if __name__ == "__main__":
-    app.run_server(debug=False, threaded=True, processes=1, host="0.0.0.0")
+    # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
     # FlaskUI(app=server, server="flask", port=46734).run()
-    # serve(server, listen='*:8080')
+    serve(server, listen="*:8080")
