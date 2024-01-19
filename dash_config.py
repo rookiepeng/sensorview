@@ -29,7 +29,6 @@
 
 import os
 
-import dash
 from dash.dependencies import Output, State
 
 
@@ -104,15 +103,6 @@ DROPDOWN_VALUES_CAT_COLOR = [
     Output("c-picker-violin", "value"),
     Output("c-picker-parallel", "value"),
 ]
-
-app = dash.Dash(
-    __name__,
-    meta_tags=[{"name": "viewport", "content": "width=device-width,initial-scale=1"}],
-)
-app.scripts.config.serve_locally = True
-app.css.config.serve_locally = True
-app.title = APP_TITLE
-
 
 """ Global Variables """
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", APP_TITLE)
