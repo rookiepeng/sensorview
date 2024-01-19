@@ -79,7 +79,8 @@ def regenerate_parallel_callback(
     file_list,
 ):
     """
-    Background callback function to regenerate the parallel coordinates figure based on the input values.
+    Background callback function to regenerate the parallel coordinates figure
+    based on the input values.
 
     Parameters:
     - unused_filter_trigger (any): Unused input trigger for filtering data.

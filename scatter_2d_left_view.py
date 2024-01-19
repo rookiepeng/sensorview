@@ -86,39 +86,27 @@ def regenerate_scatter2d_left_callback(
     file_list,
 ):
     """
-    Update left 2D scatter graph
+    Background callback function to regenerate the left 2D scatter plot based on the input values.
 
-    :param int unused1
-        unused trigger data
-    :param int unused2
-        unused trigger data
-    :param boolean left_sw
-        flag to indicate if this graph is enabled or disabled
-    :param str x_left
-        key for the x-axis
-    :param str y_left
-        key for the y-axis
-    :param str color_left
-        key for the color
-    :param str colormap
-        colormap name
-    :param str session_id
-        session id
-    :param list visible_list
-        visibility list
-    :param str case
-        case name
-    :param json file
-        selected file
+    Parameters:
+    - unused_filter_trigger (any): Unused input trigger for filtering data.
+    - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
+    - left_sw (bool): The value of the left switch.
+    - x_left (str): The selected x-axis key for the left scatter plot.
+    - y_left (str): The selected y-axis key for the left scatter plot.
+    - color_left (str): The selected color key for the left scatter plot.
+    - colormap (str): The selected colormap for the left scatter plot.
+    - session_id (str): The ID of the current session.
+    - visible_list (list): The list of visible items.
+    - case (str): The selected case.
+    - file (str): The selected file.
+    - file_list (list): The list of selected files.
 
-    :return: [
-        2D Scatter graph,
-        X axis picker enable/disable,
-        Y axis picker enable/disable,
-        Color picker enable/disable,
-        Colormap picker enable/disable
-    ]
-    :rtype: list
+    Returns:
+    - dict: A dictionary containing the updated left 2D scatter plot figure.
+
+    Output Properties:
+    - figure (dict): The updated left 2D scatter plot figure.
     """
     if not left_sw:
         left_fig = {
@@ -184,7 +172,18 @@ def scatter2d_left_colormap_change_callback(
     left_sw,
 ):
     """
-    Update left 2D scatter graph
+    Callback function to update the colormap of the left 2D scatter plot.
+
+    Parameters:
+    - colormap (str): The selected colormap.
+    - fig_in (dict): The current figure of the left 2D scatter plot.
+    - left_sw (bool): The value of the left switch.
+
+    Returns:
+    - dict: A dictionary containing the updated figure of the left 2D scatter plot.
+
+    Output Properties:
+    - figure (dict): The updated figure of the left 2D scatter plot.
     """
     if not left_sw:
         left_fig = {
@@ -216,7 +215,16 @@ def enable_scatter2d_left_callback(
     left_sw,
 ):
     """
-    Update left 2D scatter graph
+    Callback function to enable or disable the left 2D scatter plot collapse.
+
+    Parameters:
+    - left_sw (bool): The value of the left switch.
+
+    Returns:
+    - dict: A dictionary containing the updated value for the collapse property.
+
+    Output Properties:
+    - collapse (bool): Whether the left 2D scatter plot should be collapsed or not.
     """
     collapse = False
     if left_sw:
@@ -235,17 +243,18 @@ def enable_scatter2d_left_callback(
 )
 def export_left_2d_scatter(btn, fig, case):
     """
-    Export 2D scatter into a png
+    Callback function to export the left 2D scatter plot as an image.
 
-    :param int btn
-        number of clicks
-    :param graph fig
-        2D figure
-    :param str case
-        case name
+    Parameters:
+    - btn (int): The number of times the export button has been clicked.
+    - fig (dict): The left 2D scatter plot figure.
+    - case (str): The selected case.
 
-    :return: dummy
-    :rtype: int
+    Returns:
+    - dict: A dictionary containing a dummy value for the output property.
+
+    Output Properties:
+    - dummy (int): A dummy value to trigger the export.
     """
     if btn == 0:
         raise PreventUpdate
@@ -265,22 +274,24 @@ def export_left_2d_scatter(btn, fig, case):
 
 @app.callback(
     output={"dummy": Output("selected-data-left", "data")},
-    inputs={"selectedData": Input("scatter2d-left", "selectedData")},
+    inputs={"selected_data": Input("scatter2d-left", "selectedData")},
     state={"session_id": State("session-id", "data")},
 )
-def select_left_figure(selectedData, session_id):
+def select_left_figure(selected_data, session_id):
     """
-    Callback when data selected on the left 2D scatter
+    Callback function to store the selected data from the left 2D scatter plot.
 
-    :param json selectedData
-        selected data
-    :param str session_id
-        session id
+    Parameters:
+    - selectedData (dict): The selected data from the left 2D scatter plot.
+    - session_id (str): The ID of the current session.
 
-    :return: selected data
-    :rtype: json
+    Returns:
+    - dict: A dictionary containing a dummy value for the output property.
+
+    Output Properties:
+    - dummy (int): A dummy value to trigger the update.
     """
-    cache_set(selectedData, session_id, CACHE_KEYS["selected_data"])
+    cache_set(selected_data, session_id, CACHE_KEYS["selected_data"])
     return {"dummy": 0}
 
 
@@ -294,29 +305,30 @@ def select_left_figure(selectedData, session_id):
 )
 def left_hide_button(btn, trigger_idx, session_id):
     """
-    Callback when hide/unhide button is clicked
+    Callback function to handle the hide left button click event.
 
-    :param int btn
-        number of clicks
-    :param int trigger_idx
-        trigger value
-    :param int session_id
-        session id
+    Parameters:
+    - btn (int): The number of times the hide left button has been clicked.
+    - trigger_idx (int): The current value of the left hide trigger.
+    - session_id (str): The ID of the current session.
 
-    :return: trigger signal
-    :rtype: int
+    Returns:
+    - dict: A dictionary containing the updated value for the output trigger.
+
+    Output Properties:
+    - output_trigger (int): The updated value for the left hide trigger.
     """
     if btn == 0:
         raise PreventUpdate
 
-    selectedData = cache_get(session_id, CACHE_KEYS["selected_data"])
+    selected_data = cache_get(session_id, CACHE_KEYS["selected_data"])
 
-    if selectedData is None:
+    if selected_data is None:
         raise PreventUpdate
 
     visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
-    s_data = pd.DataFrame(selectedData["points"])
+    s_data = pd.DataFrame(selected_data["points"])
     idx = s_data["id"]
     idx.index = idx
 

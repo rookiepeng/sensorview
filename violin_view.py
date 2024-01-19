@@ -80,36 +80,23 @@ def regenerate_violin_callback(
     file_list,
 ):
     """
-    Update violin plot
+    Regenerate the violin plot based on user inputs.
 
-    :param int unused1
-        unused trigger data
-    :param int unused2
-        unused trigger data
-    :param boolean violin_sw
-        flag to indicate if this graph is enabled or disabled
-    :param str x_violin
-        key for the x-axis
-    :param str y_violin
-        key for the y-axis
-    :param str c_violin
-        key for the color
-    :param str session_id
-        session id
-    :param list visible_list
-        visibility list
-    :param str case
-        case name
-    :param json file
-        selected file
+    Parameters:
+    - unused_filter_trigger (any): Unused filter trigger input.
+    - unused_left_hide_trigger (any): Unused left hide trigger input.
+    - violin_sw (bool): The violin switch value.
+    - x_violin (str): The selected x-axis violin key.
+    - y_violin (str): The selected y-axis violin key.
+    - c_violin (str): The selected color key for the violin plot.
+    - session_id (str): The session ID.
+    - visible_list (list): The list of visible values.
+    - case (str): The selected case.
+    - file (str): The selected file.
+    - file_list (list): The list of selected files.
 
-    :return: [
-        Violin graph,
-        X axis picker enable/disable,
-        Y axis picker enable/disable,
-        Color picker enable/disable,
-    ]
-    :rtype: list
+    Returns:
+    - dict: The output figure dictionary.
     """
     if not violin_sw:
         violin_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
@@ -173,9 +160,13 @@ def enable_violin_callback(
     violin_sw,
 ):
     """
-    Update violin plot
+    Enable or disable the violin plot collapse based on the violin switch value.
 
-    :rtype: list
+    Parameters:
+    - violin_sw (bool): The violin switch value.
+
+    Returns:
+    - dict: The output collapse value.
     """
     collapse = False
     if violin_sw:
@@ -191,17 +182,15 @@ def enable_violin_callback(
 )
 def export_violin(btn, fig, case):
     """
-    Export violin plot into a png
+    Export the violin plot as an image.
 
-    :param int btn
-        number of clicks
-    :param graph fig
-        violin plot
-    :param str case
-        case name
+    Parameters:
+    - btn (int): The number of clicks on the export button.
+    - fig (dict): The figure dictionary of the violin plot.
+    - case (str): The selected case.
 
-    :return: dummy
-    :rtype: int
+    Returns:
+    - dict: The output dummy data.
     """
     if btn == 0:
         raise PreventUpdate

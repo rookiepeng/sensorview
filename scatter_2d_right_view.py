@@ -84,39 +84,27 @@ def regenerate_scatter2d_right_callback(
     file_list,
 ):
     """
-    Update right 2D scatter graph
+    Background callback function to regenerate the right 2D scatter plot based on the input values.
 
-    :param int unused1
-        unused trigger data
-    :param int unused2
-        unused trigger data
-    :param boolean left_sw
-        flag to indicate if this graph is enabled or disabled
-    :param str x_left
-        key for the x-axis
-    :param str y_left
-        key for the y-axis
-    :param str color_left
-        key for the color
-    :param str colormap
-        colormap name
-    :param str session_id
-        session id
-    :param list visible_list
-        visibility list
-    :param str case
-        case name
-    :param json file
-        selected file
+    Parameters:
+    - unused_filter_trigger (any): Unused input trigger for filtering data.
+    - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
+    - right_sw (bool): The value of the right switch.
+    - x_right (str): The selected x-axis key for the right scatter plot.
+    - y_right (str): The selected y-axis key for the right scatter plot.
+    - color_right (str): The selected color key for the right scatter plot.
+    - colormap (str): The selected colormap for the right scatter plot.
+    - session_id (str): The ID of the current session.
+    - visible_list (list): The list of visible items.
+    - case (str): The selected case.
+    - file (str): The selected file.
+    - file_list (list): The list of selected files.
 
-    :return: [
-        2D Scatter graph,
-        X axis picker enable/disable,
-        Y axis picker enable/disable,
-        Color picker enable/disable,
-        Colormap picker enable/disable
-    ]
-    :rtype: list
+    Returns:
+    - dict: A dictionary containing the updated right 2D scatter plot figure.
+
+    Output Properties:
+    - figure (dict): The updated right 2D scatter plot figure.
     """
     if not right_sw:
         right_fig = {
@@ -186,9 +174,19 @@ def scatter2d_right_colormap_change_callback(
     right_sw,
 ):
     """
-    Update right 2D scatter graph
-    """
+    Callback function to update the colormap of the right 2D scatter plot.
 
+    Parameters:
+    - colormap (str): The selected colormap.
+    - fig_in (dict): The current figure of the right 2D scatter plot.
+    - right_sw (bool): The value of the right switch.
+
+    Returns:
+    - dict: A dictionary containing the updated figure of the right 2D scatter plot.
+
+    Output Properties:
+    - figure (dict): The updated figure of the right 2D scatter plot.
+    """
     if not right_sw:
         right_fig = {
             "data": [{"mode": "markers", "type": "scattergl", "x": [], "y": []}],
@@ -218,8 +216,18 @@ def scatter2d_right_colormap_change_callback(
 def enable_scatter2d_right_callback(
     right_sw,
 ):
-    """ """
+    """
+    Callback function to enable or disable the right 2D scatter plot collapse.
 
+    Parameters:
+    - right_sw (bool): The value of the right switch.
+
+    Returns:
+    - dict: A dictionary containing the updated value for the collapse property.
+
+    Output Properties:
+    - collapse (bool): Whether the right 2D scatter plot should be collapsed or not.
+    """
     collapse = False
     if right_sw:
         collapse = True
@@ -237,17 +245,18 @@ def enable_scatter2d_right_callback(
 )
 def export_right_2d_scatter(btn, fig, case):
     """
-    Export 2D scatter into a png
+    Callback function to export the right 2D scatter plot as an image.
 
-    :param int btn
-        number of clicks
-    :param graph fig
-        2D figure
-    :param str case
-        case name
+    Parameters:
+    - btn (int): The number of times the export button has been clicked.
+    - fig (dict): The right 2D scatter plot figure.
+    - case (str): The selected case.
 
-    :return: dummy
-    :rtype: int
+    Returns:
+    - dict: A dictionary containing a dummy value for the output property.
+
+    Output Properties:
+    - dummy (int): A dummy value to trigger the export.
     """
     if btn == 0:
         raise PreventUpdate

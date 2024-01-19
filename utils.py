@@ -69,29 +69,29 @@ background_callback_manager = DiskcacheManager(dash_cache)
 
 def load_config(json_file):
     """
-    Load config json file
+    Load a configuration file.
 
-    :param str json_file
-        json file path
+    Parameters:
+    - json_file (str): The path to the JSON configuration file.
 
-    :return: configuration struct
-    :rtype: dict
+    Returns:
+    - dict: The loaded configuration as a dictionary.
     """
     with open(json_file, "r", encoding="utf-8") as read_file:
         return json.load(read_file)
 
 
 def load_data(file, file_list, case):
-    """_summary_
+    """
+    Load data from file(s).
 
-    :param file: _description_
-    :type file: _type_
-    :param file_list: _description_
-    :type file_list: _type_
-    :param case: _description_
-    :type case: _type_
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - file (str): The selected file.
+    - file_list (list): The list of selected files.
+    - case (str): The selected case.
+
+    Returns:
+    - pd.DataFrame: The loaded data.
     """
     if file not in file_list:
         file_list.append(file)
@@ -110,14 +110,15 @@ def load_data(file, file_list, case):
 
 
 def load_data_list(file_list, case):
-    """_summary_
+    """
+    Load data from a list of files.
 
-    :param file_list: _description_
-    :type file_list: _type_
-    :param case: _description_
-    :type case: _type_
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - file_list (list): The list of selected files.
+    - case (str): The selected case.
+
+    Returns:
+    - pd.DataFrame: The loaded data.
     """
     data_list = []
     for _, f_dict in enumerate(file_list):
@@ -133,12 +134,14 @@ def load_data_list(file_list, case):
 
 
 def load_image(img_path):
-    """_summary_
+    """
+    Load an image from a file.
 
-    :param img_path: _description_
-    :type img_path: _type_
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - img_path (str): The path to the image file.
+
+    Returns:
+    - str: The base64-encoded image data.
     """
     try:
         with open(img_path, "rb") as img_file:
@@ -160,22 +163,19 @@ def prepare_figure_kwargs(
     num_values,
     slider_arg=0,
 ):
-    """_summary_
+    """
+    Prepare keyword arguments for creating a 3D scatter plot figure.
 
-    :param config: _description_
-    :type config: _type_
-    :param frame_list: _description_
-    :type frame_list: _type_
-    :param c_key: _description_
-    :type c_key: _type_
-    :param num_keys: _description_
-    :type num_keys: _type_
-    :param num_values: _description_
-    :type num_values: _type_
-    :param slider_arg: _description_, defaults to 0
-    :type slider_arg: int, optional
-    :return: _description_
-    :rtype: _type_
+    Parameters:
+    - config (dict): The configuration dictionary.
+    - frame_list (np.ndarray): The list of frame values.
+    - c_key (str): The selected color key.
+    - num_keys (list): The list of numerical keys.
+    - num_values (list): The list of numerical values.
+    - slider_arg (int, optional): The index of the slider argument. Defaults to 0.
+
+    Returns:
+    - dict: The figure keyword arguments.
     """
     keys_dict = config["keys"]
     # prepare figure key word arguments
@@ -272,16 +272,13 @@ def prepare_figure_kwargs(
 
 def cache_set(data, id_str, key_major, key_minor=None):
     """
-    Set data to Redis
+    Set data in the cache.
 
-    :param dict/str/pandas.Dataframe data
-        data to be stored in Redis
-    :param str id_str
-        unique id (session id)
-    :param str key_major
-        major key name
-    :param str key_minor=None
-        minor key name
+    Parameters:
+    - data (any): The data to be cached.
+    - id_str (str): A unique identifier string.
+    - key_major (str): The major cache key.
+    - key_minor (str, optional): The minor cache key. Defaults to None.
     """
     if key_minor is None:
         key_str = key_major + id_str
@@ -292,22 +289,21 @@ def cache_set(data, id_str, key_major, key_minor=None):
 
 
 def cache_expire():
-    """_summary_"""
+    """
+    Expire all items in the cache.
+    """
     frame_cache.expire()
 
 
 def redis_set(data, id_str, key_major, key_minor=None):
     """
-    Set data to Redis
+    Set data in Redis.
 
-    :param dict/str/pandas.Dataframe data
-        data to be stored in Redis
-    :param str id_str
-        unique id (session id)
-    :param str key_major
-        major key name
-    :param str key_minor=None
-        minor key name
+    Parameters:
+    - data (any): The data to be stored in Redis.
+    - id_str (str): A unique identifier string.
+    - key_major (str): The major Redis key.
+    - key_minor (str, optional): The minor Redis key. Defaults to None.
     """
     if key_minor is None:
         key_str = key_major + id_str
@@ -319,17 +315,15 @@ def redis_set(data, id_str, key_major, key_minor=None):
 
 def cache_get(id_str, key_major, key_minor=None):
     """
-    Get data from Redis
+    Get data from the cache.
 
-    :param str id_str
-        unique id (session id)
-    :param str key_major
-        major key name
-    :param str key_minor=None
-        minor key name
+    Parameters:
+    - id_str (str): A unique identifier string.
+    - key_major (str): The major cache key.
+    - key_minor (str, optional): The minor cache key. Defaults to None.
 
-    :return: data in Redis
-    :rtype: dict/str/pandas.Dataframe
+    Returns:
+    - any: The cached data, or None if not found.
     """
     if key_minor is None:
         key_str = key_major + id_str
@@ -342,17 +336,15 @@ def cache_get(id_str, key_major, key_minor=None):
 
 def redis_get(id_str, key_major, key_minor=None):
     """
-    Get data from Redis
+    Get data from Redis.
 
-    :param str id_str
-        unique id (session id)
-    :param str key_major
-        major key name
-    :param str key_minor=None
-        minor key name
+    Parameters:
+    - id_str (str): A unique identifier string.
+    - key_major (str): The major Redis key.
+    - key_minor (str, optional): The minor Redis key. Defaults to None.
 
-    :return: data in Redis
-    :rtype: dict/str/pandas.Dataframe
+    Returns:
+    - any: The retrieved data, or None if not found.
     """
     if key_minor is None:
         key_str = key_major + id_str
@@ -377,27 +369,20 @@ def filter_all(
     visible_list=None,
 ):
     """
-    Filter the DataFrame
+    Filter data based on numerical and categorical conditions.
 
-    :param pandas.DataFrame data
-        initial data table
-    :param [str] num_list
-        list of numerical keys
-    :param [list] num_values
-        numberical value ranges
-    :param [str] cat_list
-        list of categorical keys
-    :param [list] cat_values
-        categorical item lists
-    :param pandas.DataFrame visible_table=None
-        visibility table
-    :param [str] visible_list=None
-        visibility list
+    Parameters:
+    - data (pd.DataFrame): The data to be filtered.
+    - num_list (list): The list of numerical columns to filter on.
+    - num_values (list): The list of numerical filter values.
+    - cat_list (list): The list of categorical columns to filter on.
+    - cat_values (list): The list of categorical filter values.
+    - visible_table (pd.DataFrame, optional): The visible table. Defaults to None.
+    - visible_list (list, optional): The list of visible values. Defaults to None.
 
-    :return: filtered data table
-    :rtype: pandas.DataFrame
+    Returns:
+    - pd.DataFrame: The filtered data.
     """
-
     for f_idx, f_name in enumerate(num_list):
         if f_name not in data.columns:
             continue
