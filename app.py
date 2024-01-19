@@ -31,7 +31,7 @@
 from dash.dependencies import Input, Output
 
 from dash_config import app
-from layout.layout import get_app_layout
+from layout import get_app_layout
 
 app.layout = get_app_layout
 
@@ -46,7 +46,7 @@ import scatter_2d_right_view  # pylint: disable=unused-import, wrong-import-posi
 import violin_view  # pylint: disable=unused-import, wrong-import-position
 
 # from flaskwebgui import FlaskUI
-# from waitress import serve
+from waitress import serve
 
 server = app.server
 
@@ -92,6 +92,6 @@ app.clientside_callback(
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
+    # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
     # FlaskUI(app=server, server="flask", port=46734).run()
-    # serve(server, listen='*:8080')
+    serve(server, listen='*:8080')
