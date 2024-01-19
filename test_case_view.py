@@ -687,21 +687,21 @@ def update_slider(
     if trigger_id == "file-loaded-trigger":
         return {"slider_value": 0}
 
-    elif trigger_id == "previous-button":
+    if trigger_id == "previous-button":
         if left_btn == 0:
             raise PreventUpdate
 
         # previous button is clicked
         return {"slider_value": (slider_state - 1) % (slider_max + 1)}
 
-    elif trigger_id == "next-button":
+    if trigger_id == "next-button":
         if right_btn == 0:
             raise PreventUpdate
 
         # next button is clicked
         return {"slider_value": (slider_state + 1) % (slider_max + 1)}
 
-    elif trigger_id == "interval-component":
+    if trigger_id == "interval-component":
         if interval == 0:
             raise PreventUpdate
 
