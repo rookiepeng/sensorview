@@ -35,17 +35,17 @@ from dash.dependencies import Input, Output
 from view_callbacks.test_case_view import get_test_case_view_callbacks
 from view_callbacks.control_view import get_control_view_callbacks
 from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
+from view_callbacks.scatter_2d_left_view import get_scatter_2d_left_view_callbacks
+from view_callbacks.scatter_2d_right_view import get_scatter_2d_right_view_callbacks
+from view_callbacks.heatmap_view import get_heatmap_view_callbacks
 
 from dash_config import app
 from layout import get_app_layout
 
 app.layout = get_app_layout
 
-import heatmap_view  # pylint: disable=unused-import, wrong-import-position
 import histogram_view  # pylint: disable=unused-import, wrong-import-position
 import parcats_view  # pylint: disable=unused-import, wrong-import-position
-import scatter_2d_left_view  # pylint: disable=unused-import, wrong-import-position
-import scatter_2d_right_view  # pylint: disable=unused-import, wrong-import-position
 import violin_view  # pylint: disable=unused-import, wrong-import-position
 
 # from flaskwebgui import FlaskUI
@@ -95,6 +95,9 @@ app.clientside_callback(
 get_test_case_view_callbacks(app)
 get_control_view_callbacks(app)
 get_scatter_3d_view_callbacks(app)
+get_scatter_2d_left_view_callbacks(app)
+get_scatter_2d_right_view_callbacks(app)
+get_heatmap_view_callbacks(app)
 
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
