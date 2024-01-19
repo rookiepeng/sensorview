@@ -92,6 +92,6 @@ app.clientside_callback(
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
+    app.run_server(debug=False, threaded=True, processes=1, host="0.0.0.0")
     # FlaskUI(app=server, server="flask", port=46734).run()
     # serve(server, listen='*:8080')
