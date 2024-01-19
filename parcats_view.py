@@ -79,33 +79,25 @@ def regenerate_parallel_callback(
     file_list,
 ):
     """
-    Update parallel categories diagram
+    Background callback function to regenerate the parallel coordinates figure based on the input values.
 
-    :param int unused1
-        unused trigger data
-    :param int unused2
-        unused trigger data
-    :param boolean parallel_sw
-        flag to indicate if this graph is enabled or disabled
-    :param str dim_parallel
-        keys of the dimensions
-    :param str c_key
-        key for the color
-    :param str session_id
-        session id
-    :param list visible_list
-        visibility list
-    :param str case
-        case name
-    :param json file
-        selected file
+    Parameters:
+    - unused_filter_trigger (any): Unused input trigger for filtering data.
+    - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
+    - parallel_sw (bool): The value of the parallel coordinates switch.
+    - dim_parallel (list): The selected dimensions for the parallel coordinates.
+    - c_key (str): The selected color key for the parallel coordinates.
+    - session_id (str): The ID of the current session.
+    - visible_list (list): The list of visible items.
+    - case (str): The selected case.
+    - file (str): The selected file.
+    - file_list (list): The list of selected files.
 
-    :return: [
-        Parallel categories diagram,
-        Dimensions picker enable/disable,
-        Color picker enable/disable,
-    ]
-    :rtype: list
+    Returns:
+    - dict: A dictionary containing the updated parallel coordinates figure.
+
+    Output Properties:
+    - parallel (dict): The updated parallel coordinates figure.
     """
     if not parallel_sw:
         parallel_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
@@ -198,14 +190,16 @@ def enable_parallel_callback(
     parallel_sw,
 ):
     """
-    Update parallel categories diagram
+    Callback function to enable or disable the parallel coordinates collapse.
 
-    :return: [
-        Parallel categories diagram,
-        Dimensions picker enable/disable,
-        Color picker enable/disable,
-    ]
-    :rtype: list
+    Parameters:
+    - parallel_sw (bool): The value of the parallel coordinates switch.
+
+    Returns:
+    - dict: A dictionary containing the updated value for the collapse property.
+
+    Output Properties:
+    - collapse (bool): Whether the parallel coordinates should be collapsed or not.
     """
     collapse = False
     if parallel_sw:
@@ -221,17 +215,18 @@ def enable_parallel_callback(
 )
 def export_parallel(btn, fig, case):
     """
-    Export parallel categories plot into a png
+    Callback function to export the parallel coordinates figure as an image.
 
-    :param int btn
-        number of clicks
-    :param graph fig
-        parallel categories plot
-    :param str case
-        case name
+    Parameters:
+    - btn (int): The number of times the export button has been clicked.
+    - fig (dict): The parallel coordinates figure.
+    - case (str): The selected case.
 
-    :return: dummy
-    :rtype: int
+    Returns:
+    - dict: A dictionary containing a dummy value for the output property.
+
+    Output Properties:
+    - dummy (int): A dummy value to trigger the export.
     """
     if btn == 0:
         raise PreventUpdate

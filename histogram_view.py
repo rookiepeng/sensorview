@@ -82,36 +82,26 @@ def regenerate_histogram_callback(
     file_list,
 ):
     """
-    Update histogram
+    Background callback function to regenerate the histogram figure based on the input values.
 
-    :param int unused1
-        unused trigger data
-    :param int unused2
-        unused trigger data
-    :param boolean histogram_sw
-        flag to indicate if this graph is enabled or disabled
-    :param str x_histogram
-        key for the x-axis
-    :param str y_histogram
-        key for the y-axis
-    :param str c_histogram
-        key for the color
-    :param str session_id
-        session id
-    :param list visible_list
-        visibility list
-    :param str case
-        case name
-    :param json file
-        selected file
+    Parameters:
+    - unused_filter_trigger (any): Unused input trigger for filtering data.
+    - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
+    - histogram_sw (bool): The value of the histogram switch.
+    - x_histogram (str): The selected x-axis key for the histogram.
+    - y_histogram (str): The selected y-axis key for the histogram.
+    - c_histogram (str): The selected color key for the histogram.
+    - session_id (str): The ID of the current session.
+    - visible_list (list): The list of visible items.
+    - case (str): The selected case.
+    - file (str): The selected file.
+    - file_list (list): The list of selected files.
 
-    :return: [
-        Histogram graph,
-        X axis picker enable/disable,
-        Y axis picker enable/disable,
-        Color picker enable/disable,
-    ]
-    :rtype: list
+    Returns:
+    - dict: A dictionary containing the updated histogram figure.
+
+    Output Properties:
+    - histogram (dict): The updated histogram figure.
     """
     if not histogram_sw:
         histogram_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
@@ -204,8 +194,16 @@ def enable_histogram_callback(
     histogram_sw,
 ):
     """
-    Update histogram
+    Callback function to enable or disable the histogram collapse.
 
+    Parameters:
+    - histogram_sw (bool): The value of the histogram switch.
+
+    Returns:
+    - dict: A dictionary containing the updated value for the collapse property.
+
+    Output Properties:
+    - collapse (bool): Whether the histogram should be collapsed or not.
     """
     collapse = False
     if histogram_sw:
@@ -221,17 +219,18 @@ def enable_histogram_callback(
 )
 def export_histogram(btn, fig, case):
     """
-    Export histogram into a png
+    Callback function to export the histogram figure as an image.
 
-    :param int btn
-        number of clicks
-    :param graph fig
-        histogram
-    :param str case
-        case name
+    Parameters:
+    - btn (int): The number of times the export button has been clicked.
+    - fig (dict): The histogram figure.
+    - case (str): The selected case.
 
-    :return: dummy
-    :rtype: int
+    Returns:
+    - dict: A dictionary containing a dummy value for the output property.
+
+    Output Properties:
+    - dummy (int): A dummy value to trigger the export.
     """
     if btn == 0:
         raise PreventUpdate

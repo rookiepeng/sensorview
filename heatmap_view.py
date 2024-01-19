@@ -78,33 +78,25 @@ def regenerate_heatmap_callback(
     file_list,
 ):
     """
-    Update heatmap
+    Background callback function to regenerate the heatmap figure based on the input values.
 
-    :param int unused1
-        unused trigger data
-    :param int unused2
-        unused trigger data
-    :param boolean heat_sw
-        flag to indicate if this graph is enabled or disabled
-    :param str x_heat
-        key for the x-axis
-    :param str y_heat
-        key for the y-axis
-    :param str session_id
-        session id
-    :param list visible_list
-        visibility list
-    :param str case
-        case name
-    :param json file
-        selected file
+    Parameters:
+    - unused_filter_trigger (any): Unused input trigger for filtering data.
+    - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
+    - heat_sw (bool): The value of the heat switch.
+    - x_heat (str): The selected x-axis key for the heatmap.
+    - y_heat (str): The selected y-axis key for the heatmap.
+    - session_id (str): The ID of the current session.
+    - visible_list (list): The list of visible items.
+    - case (str): The selected case.
+    - file (str): The selected file.
+    - file_list (list): The list of selected files.
 
-    :return: [
-        Heatmap,
-        X axis picker enable/disable,
-        Y axis picker enable/disable
-    ]
-    :rtype: list
+    Returns:
+    - dict: A dictionary containing the updated heatmap figure.
+
+    Output Properties:
+    - heatmap (dict): The updated heatmap figure.
     """
     if not heat_sw:
         heat_fig = {"data": [{"type": "histogram2dcontour", "x": []}], "layout": {}}
@@ -158,8 +150,16 @@ def enable_heatmap_callback(
     heat_sw,
 ):
     """
-    Update heatmap
+    Callback function to enable or disable the heatmap collapse.
 
+    Parameters:
+    - heat_sw (bool): The value of the heat switch.
+
+    Returns:
+    - dict: A dictionary containing the updated value for the collapse property.
+
+    Output Properties:
+    - collapse (bool): Whether the heatmap should be collapsed or not.
     """
     collapse = False
     if heat_sw:
@@ -175,17 +175,18 @@ def enable_heatmap_callback(
 )
 def export_heatmap(btn, fig, case):
     """
-    Export heatmap into a png
+    Callback function to export the heatmap figure as an image.
 
-    :param int btn
-        number of clicks
-    :param graph fig
-        heatmap
-    :param str case
-        case name
+    Parameters:
+    - btn (int): The number of times the export button has been clicked.
+    - fig (dict): The heatmap figure.
+    - case (str): The selected case.
 
-    :return: dummy
-    :rtype: int
+    Returns:
+    - dict: A dictionary containing a dummy value for the output property.
+
+    Output Properties:
+    - dummy (int): A dummy value to trigger the export.
     """
     if btn == 0:
         raise PreventUpdate

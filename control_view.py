@@ -43,19 +43,20 @@ from maindash import app
 )
 def overlay_switch_changed(overlay):
     """
-    Callback when the overlay switch state is changed
+    Callback function to handle changes in the overlay switch.
 
-    :param boolean overlay
-        overlay switch state
+    Parameters:
+    - overlay (bool): The value of the overlay switch.
 
-    :return: [
-        Frame slider enable/disable,
-        Previous button enable/disable,
-        Next button enable/disable,
-        Play button enable/disable,
-        Stop button enable/disable
-    ]
-    :rtype: list
+    Returns:
+    - dict: A dictionary containing the updated values for the output properties.
+
+    Output Properties:
+    - frame_slider_disabled (bool): Whether the frame slider should be disabled.
+    - previous_button_disabled (bool): Whether the previous button should be disabled.
+    - next_button_disabled (bool): Whether the next button should be disabled.
+    - play_button_disabled (bool): Whether the play button should be disabled.
+    - stop_button_disabled (bool): Whether the stop button should be disabled.
     """
     if overlay:
         return {
