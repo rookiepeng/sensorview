@@ -30,33 +30,34 @@
 
 from dash.dependencies import Input, Output
 
-from maindash import app
-
+from dash_config import app
 from layout.layout import get_app_layout
 
-import test_case_view # pylint: disable=unused-import
-import control_view # pylint: disable=unused-import
-import scatter_3d_view # pylint: disable=unused-import
-import heatmap_view # pylint: disable=unused-import
-import histogram_view # pylint: disable=unused-import
-import parcats_view # pylint: disable=unused-import
-import scatter_2d_left_view # pylint: disable=unused-import
-import scatter_2d_right_view # pylint: disable=unused-import
-import violin_view # pylint: disable=unused-import
+app.layout = get_app_layout
+
+import test_case_view  # pylint: disable=unused-import, wrong-import-position
+import control_view  # pylint: disable=unused-import, wrong-import-position
+import scatter_3d_view  # pylint: disable=unused-import, wrong-import-position
+import heatmap_view  # pylint: disable=unused-import, wrong-import-position
+import histogram_view  # pylint: disable=unused-import, wrong-import-position
+import parcats_view  # pylint: disable=unused-import, wrong-import-position
+import scatter_2d_left_view  # pylint: disable=unused-import, wrong-import-position
+import scatter_2d_right_view  # pylint: disable=unused-import, wrong-import-position
+import violin_view  # pylint: disable=unused-import, wrong-import-position
 
 # from flaskwebgui import FlaskUI
 # from waitress import serve
 
-
 server = app.server
-app.scripts.config.serve_locally = True
-app.css.config.serve_locally = True
-app.title = "SensorView"
-app.layout = get_app_layout
 
-
-""" Callbacks """
-
+"""
+This clientside callback function disables the interval component based on
+the number of clicks on the play button and stop button. If the play button
+is clicked and the number of play clicks is greater than 0, the interval
+component is disabled. If the stop button is clicked and the number of stop
+clicks is greater than 0, the interval component is enabled. If neither button
+is clicked, the interval component remains unchanged.
+"""
 app.clientside_callback(
     """
     function(play_clicks, stop_clicks) {

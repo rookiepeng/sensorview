@@ -34,7 +34,7 @@ import plotly.graph_objs as go
 
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from maindash import app
+from dash_config import app
 
 from viz.viz import get_heatmap
 

@@ -27,6 +27,8 @@
 
 """
 
+import uuid
+
 from dash import dcc
 from dash import html
 
@@ -34,8 +36,7 @@ import dash_bootstrap_components as dbc
 
 import plotly.io as pio
 
-import uuid
-from maindash import app
+from dash_config import app
 
 colorscales = ['Blackbody',
                'Bluered',
@@ -951,6 +952,12 @@ heatmap_card = dbc.Card([
 
 
 def get_app_layout():
+    """
+    Get the layout for the Dash app.
+
+    Returns:
+    - dbc.Container: The app layout container.
+    """
     return dbc.Container([
         dcc.Store(id='selected-data-left'),
         dcc.Store(id='selected-data-right'),

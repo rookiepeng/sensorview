@@ -39,15 +39,15 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-from maindash import app
-from maindash import SPECIAL_FOLDERS
-from maindash import (
+from dash_config import app
+from dash_config import SPECIAL_FOLDERS
+from dash_config import (
     DROPDOWN_OPTIONS_ALL,
     DROPDOWN_VALUES_ALL,
     DROPDOWN_VALUES_ALL_STATE,
 )
-from maindash import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
-from maindash import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
+from dash_config import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
+from dash_config import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
 
 from utils import load_config, cache_set, cache_get, CACHE_KEYS, KEY_TYPES
 from utils import background_callback_manager

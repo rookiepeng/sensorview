@@ -37,7 +37,7 @@ import plotly.graph_objs as go
 
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from maindash import app
+from dash_config import app
 
 from utils import filter_all
 from utils import cache_get, CACHE_KEYS

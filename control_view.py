@@ -28,7 +28,7 @@
 """
 
 from dash.dependencies import Input, Output
-from maindash import app
+from dash_config import app
 
 
 @app.callback(

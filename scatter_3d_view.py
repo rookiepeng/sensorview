@@ -39,7 +39,7 @@ from dash.exceptions import PreventUpdate
 import plotly.io as pio
 import plotly.graph_objs as go
 
-from maindash import app
+from dash_config import app
 
 from utils import filter_all
 from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES, cache_expire
