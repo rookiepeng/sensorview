@@ -31,6 +31,16 @@ from dash.dependencies import Input, Output
 
 
 def get_control_view_callbacks(app):
+    """
+    Register the callback function to handle changes in the overlay switch.
+
+    Parameters:
+    - app (Dash app): The Dash app.
+
+    Returns:
+    - None
+    """
+
     @app.callback(
         output={
             "frame_slider_disabled": Output("slider-frame", "disabled"),

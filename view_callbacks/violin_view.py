@@ -46,6 +46,16 @@ from utils import load_data
 
 
 def get_violin_view_callbacks(app):
+    """
+    Register the callback functions for the violin view.
+
+    Parameters:
+    - app (Dash app): The Dash app.
+
+    Returns:
+    - None
+    """
+
     @app.callback(
         background=True,
         output={

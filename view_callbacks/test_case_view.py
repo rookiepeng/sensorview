@@ -54,6 +54,16 @@ from utils import load_config, cache_set, cache_get
 
 
 def get_test_case_view_callbacks(app):
+    """
+    Register the callback functions for the test case selection view.
+
+    Parameters:
+    - app (Dash app): The Dash app.
+
+    Returns:
+    - None
+    """
+
     @app.callback(
         output={
             "case_options": Output("case-picker", "options"),

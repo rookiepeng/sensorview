@@ -60,8 +60,6 @@ app.title = APP_TITLE
 app.layout = get_app_layout
 
 
-server = app.server
-
 """
 This clientside callback function disables the interval component based on
 the number of clicks on the play button and stop button. If the play button
@@ -114,5 +112,5 @@ get_violin_view_callbacks(app)
 
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
-    # FlaskUI(app=server, server="flask", port=46734).run()
-    serve(server, listen="*:8080")
+    # FlaskUI(app=app.server, server="flask", port=46734).run()
+    serve(app.server, listen="*:8080")

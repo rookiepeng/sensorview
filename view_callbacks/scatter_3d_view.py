@@ -312,6 +312,16 @@ def process_overlay_frame(
 
 
 def get_scatter_3d_view_callbacks(app):
+    """
+    Register the callback functions for the 3D view.
+
+    Parameters:
+    - app (Dash app): The Dash app.
+
+    Returns:
+    - None
+    """
+
     @app.callback(
         output={
             "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),

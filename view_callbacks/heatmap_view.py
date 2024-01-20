@@ -46,6 +46,16 @@ from utils import load_data
 
 
 def get_heatmap_view_callbacks(app):
+    """
+    Register the callback functions for the heatmap view.
+
+    Parameters:
+    - app (Dash app): The Dash app.
+
+    Returns:
+    - None
+    """
+
     @app.callback(
         background=True,
         output={

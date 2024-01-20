@@ -47,6 +47,16 @@ from utils import load_data
 
 
 def get_parcats_view_callbacks(app):
+    """
+    Register the callback functions for the parallel coordinates view.
+
+    Parameters:
+    - app (Dash app): The Dash app.
+
+    Returns:
+    - None
+    """
+
     @app.callback(
         background=True,
         output={
