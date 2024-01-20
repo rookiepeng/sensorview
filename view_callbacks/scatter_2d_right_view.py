@@ -38,9 +38,11 @@ from dash.exceptions import PreventUpdate
 
 from viz.viz import get_scatter2d
 
+from dash_config import background_callback_manager
+from dash_config import CACHE_KEYS, KEY_TYPES
+
 from utils import filter_all
-from utils import cache_get, CACHE_KEYS, KEY_TYPES
-from utils import background_callback_manager
+from utils import cache_get
 from utils import load_data
 
 

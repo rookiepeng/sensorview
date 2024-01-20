@@ -29,10 +29,41 @@
 
 import os
 
+from dash import DiskcacheManager
 from dash.dependencies import Output, State
+
+import redis
+from diskcache import Cache
 
 
 APP_TITLE = "SensorView"
+
+EXPIRATION = 172800  # 2 days in seconds
+CACHE_KEYS = {
+    "dataset": "DATASET",
+    "frame_list": "FRAME_LIST",
+    "frame_data": "FRAME_DATA",
+    "visible_table": "VIS_TABLE",
+    "config": "CONFIG",
+    "figure_idx": "FIGURE_IDX",
+    "figure": "FIGURE",
+    "hover": "HOVER",
+    "figure_ref": "FIGURE_REF",
+    "figure_layout": "FIGURE_LAYOUT",
+    "task_id": "TASK_ID",
+    "filter_kwargs": "FILTGER_KWARGS",
+    "selected_data": "SELECTED_DATA",
+}
+KEY_TYPES = {"CAT": "categorical", "NUM": "numerical"}
+
+redis_ip = os.environ.get("REDIS_SERVER_SERVICE_HOST", "127.0.0.1")
+redis_url = "redis://" + redis_ip + ":6379"
+redis_instance = redis.StrictRedis.from_url(redis_url)
+
+frame_cache = Cache("./cache/frame", timeout=120, eviction_policy="none")
+
+dash_cache = Cache("./cache/dash", timeout=120, eviction_policy="none")
+background_callback_manager = DiskcacheManager(dash_cache)
 
 # options for dropdown components with all the keys
 DROPDOWN_OPTIONS_ALL = [

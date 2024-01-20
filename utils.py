@@ -27,44 +27,15 @@
 
 """
 
-import os
 import json
 import pickle
 import base64
 
-import redis
-from diskcache import Cache
-from dash import DiskcacheManager
-
 import pandas as pd
 
-
-EXPIRATION = 172800  # 2 days in seconds
-CACHE_KEYS = {
-    "dataset": "DATASET",
-    "frame_list": "FRAME_LIST",
-    "frame_data": "FRAME_DATA",
-    "visible_table": "VIS_TABLE",
-    "config": "CONFIG",
-    "figure_idx": "FIGURE_IDX",
-    "figure": "FIGURE",
-    "hover": "HOVER",
-    "figure_ref": "FIGURE_REF",
-    "figure_layout": "FIGURE_LAYOUT",
-    "task_id": "TASK_ID",
-    "filter_kwargs": "FILTGER_KWARGS",
-    "selected_data": "SELECTED_DATA",
-}
-KEY_TYPES = {"CAT": "categorical", "NUM": "numerical"}
-
-redis_ip = os.environ.get("REDIS_SERVER_SERVICE_HOST", "127.0.0.1")
-redis_url = "redis://" + redis_ip + ":6379"
-redis_instance = redis.StrictRedis.from_url(redis_url)
-
-frame_cache = Cache("./cache/frame", timeout=120, eviction_policy="none")
-
-dash_cache = Cache("./cache/dash", timeout=120, eviction_policy="none")
-background_callback_manager = DiskcacheManager(dash_cache)
+from dash_config import EXPIRATION, KEY_TYPES
+from dash_config import frame_cache
+from dash_config import redis_instance
 
 
 def load_config(json_file):

@@ -39,13 +39,15 @@ from dash.exceptions import PreventUpdate
 import plotly.io as pio
 import plotly.graph_objs as go
 
+from dash_config import background_callback_manager
+from dash_config import CACHE_KEYS, KEY_TYPES
+
 from utils import filter_all
-from utils import cache_set, cache_get, CACHE_KEYS, KEY_TYPES, cache_expire
+from utils import cache_set, cache_get, cache_expire
 from utils import load_data
 from utils import load_data_list
 from utils import load_image
 from utils import prepare_figure_kwargs
-from utils import background_callback_manager
 
 from viz.viz import get_scatter3d
 from viz.viz import get_animation_data
