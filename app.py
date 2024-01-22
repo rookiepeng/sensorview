@@ -47,7 +47,7 @@ from view_callbacks.violin_view import get_violin_view_callbacks
 
 from dash_config import APP_TITLE
 
-from layout import get_app_layout
+from app_layout import get_app_layout
 
 
 app = dash.Dash(

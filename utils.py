@@ -326,8 +326,8 @@ def redis_get(id_str, key_major, key_minor=None):
 
     if val is not None:
         return pickle.loads(val)
-    else:
-        return None
+
+    return None
 
 
 def filter_all(
@@ -376,14 +376,14 @@ def filter_all(
         if not cat_values[f_idx]:
             condition = condition & False
             break
-        else:
-            for val_idx, val in enumerate(cat_values[f_idx]):
-                if val_idx == 0:
-                    val_condition = data[f_name] == val
-                else:
-                    val_condition = val_condition | (data[f_name] == val)
 
-            condition = condition & val_condition
+        for val_idx, val in enumerate(cat_values[f_idx]):
+            if val_idx == 0:
+                val_condition = data[f_name] == val
+            else:
+                val_condition = val_condition | (data[f_name] == val)
+
+        condition = condition & val_condition
 
     if len(visible_list) == 1:
         condition = condition & (visible_table["_VIS_"] == visible_list[0])
