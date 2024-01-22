@@ -312,8 +312,8 @@ view3d_card = dbc.Card(
                                         switch=True,
                                     ),
                                     dbc.Tooltip(
-                                        "When this is enabled, you can click a scatter on the graph \
-                    to toggle its hidden/visible state",
+                                        "When this is enabled, you can click a scatter \
+                                            on the graph to toggle its hidden/visible state",
                                         target="click-hide-switch",
                                         placement="top",
                                     ),
