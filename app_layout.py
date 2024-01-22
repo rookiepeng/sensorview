@@ -37,7 +37,7 @@ import dash_bootstrap_components as dbc
 
 import plotly.io as pio
 
-from dash_config import APP_TITLE
+from app_config import APP_TITLE
 
 colorscales = [
     "Blackbody",

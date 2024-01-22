@@ -33,9 +33,9 @@ import base64
 
 import pandas as pd
 
-from dash_config import EXPIRATION, KEY_TYPES
-from dash_config import frame_cache
-from dash_config import redis_instance
+from app_config import EXPIRATION, KEY_TYPES
+from app_config import frame_cache
+from app_config import redis_instance
 
 
 def load_config(json_file):

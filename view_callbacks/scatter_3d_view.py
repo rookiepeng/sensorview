@@ -39,8 +39,8 @@ from dash.exceptions import PreventUpdate
 import plotly.io as pio
 import plotly.graph_objs as go
 
-from dash_config import background_callback_manager
-from dash_config import CACHE_KEYS, KEY_TYPES
+from app_config import background_callback_manager
+from app_config import CACHE_KEYS, KEY_TYPES
 
 from utils import filter_all
 from utils import cache_set, cache_get, cache_expire
