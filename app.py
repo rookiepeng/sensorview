@@ -113,4 +113,4 @@ get_violin_view_callbacks(app)
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
     # FlaskUI(app=app.server, server="flask", port=46734).run()
-    serve(app.server, listen="*:8080")
+    serve(app.server, listen="*:8000")
