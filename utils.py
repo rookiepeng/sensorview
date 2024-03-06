@@ -27,6 +27,7 @@
 
 """
 
+import os
 import json
 import pickle
 import base64
@@ -71,9 +72,7 @@ def load_data(file, file_list, case):
     for _, f_dict in enumerate(file_list):
         file = json.loads(f_dict)
         data_list.append(
-            pd.read_feather(
-                "./data/" + case + file["path"] + "/" + file["feather_name"]
-            )
+            pd.read_feather(os.path.join(file["path"], file["feather_name"]))
         )
 
     data = pd.concat(data_list)
@@ -95,9 +94,7 @@ def load_data_list(file_list, case):
     for _, f_dict in enumerate(file_list):
         file = json.loads(f_dict)
         data_list.append(
-            pd.read_feather(
-                "./data/" + case + file["path"] + "/" + file["feather_name"]
-            )
+            pd.read_feather(os.path.join(file["path"], file["feather_name"]))
         )
 
     data = pd.concat(data_list)

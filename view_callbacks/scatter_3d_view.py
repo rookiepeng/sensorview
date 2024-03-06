@@ -119,16 +119,7 @@ def process_single_frame(
     )
 
     file = json.loads(file)
-    img_path = (
-        "./data/"
-        + case
-        + file["path"]
-        + "/"
-        + file["name"][0:-4]
-        + "/"
-        + str(frame_idx)
-        + ".jpg"
-    )
+    img_path = os.path.join(file["path"], file["name"][0:-4], str(frame_idx) + ".jpg")
 
     # encode image frame
     fig_kwargs["image"] = load_image(img_path)
@@ -842,15 +833,8 @@ def get_scatter_3d_view_callbacks(app):
 
         for slider_arg, frame_idx in enumerate(frame_list):
             file = json.loads(file_list[0])
-            img_path = (
-                "./data/"
-                + case
-                + file["path"]
-                + "/"
-                + file["name"][0:-4]
-                + "/"
-                + str(slider_arg)
-                + ".jpg"
+            img_path = os.path.join(
+                file["path"], file["name"][0:-4], str(slider_arg) + ".jpg"
             )
 
             # encode image frame
@@ -1073,14 +1057,7 @@ def get_scatter_3d_view_callbacks(app):
             file = json.loads(file_list[0])
             img_idx = np.where(frame_list == f_val)[0][0]
             img_list.append(
-                "./data/"
-                + case
-                + file["path"]
-                + "/"
-                + file["name"][0:-4]
-                + "/"
-                + str(img_idx)
-                + ".jpg"
+                os.path.join(file["path"], file["name"][0:-4], str(img_idx) + ".jpg")
             )
 
         fig_kwargs["title"] = file["name"][0:-4]
@@ -1169,7 +1146,7 @@ def get_scatter_3d_view_callbacks(app):
         )
         file = json.loads(file)
         filtered_table.to_pickle(
-            "./data/" + case + file["path"] + "/" + file["name"][0:-4] + "_filtered.pkl"
+            os.path.join(file["path"], file["name"][0:-4] + "_filtered.pkl")
         )
 
         return {"dummy": 0}

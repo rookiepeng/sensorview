@@ -49,6 +49,7 @@ from app_config import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
 from app_config import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES
+from app_config import DATA_PATH
 
 from utils import load_config, cache_set, cache_get
 
@@ -108,11 +109,11 @@ def get_test_case_view_callbacks(app):
         """
 
         options = []
-        obj = os.scandir("./data")
+        obj = os.scandir(DATA_PATH)
         for entry in obj:
             if entry.is_dir():
                 # only add the folder with 'config.json'
-                if os.path.exists("./data/" + entry.name + "/config.json"):
+                if os.path.exists(os.path.join(DATA_PATH, entry.name, "config.json")):
                     options.append({"label": entry.name, "value": entry.name})
 
         case_val = options[0]["value"]
@@ -215,10 +216,10 @@ def get_test_case_view_callbacks(app):
         )
 
         data_files = []
-        case_dir = "./data/" + case
+        case_dir = os.path.join(DATA_PATH, case)
 
-        if os.path.exists("./data/" + case + "/config.json"):
-            config = load_config("./data/" + case + "/config.json")
+        if os.path.exists(os.path.join(DATA_PATH, case, "config.json")):
+            config = load_config(os.path.join(DATA_PATH, case, "config.json"))
             cache_set(config, session_id, CACHE_KEYS["config"])
         else:
             raise PreventUpdate
@@ -232,7 +233,7 @@ def get_test_case_view_callbacks(app):
                             "label": os.path.join(dirpath[len(case_dir) :], name),
                             "value": json.dumps(
                                 {
-                                    "path": dirpath[len(case_dir) :],
+                                    "path": dirpath,
                                     "name": name,
                                     "feather_name": name.replace(".csv", ".feather"),
                                 }
@@ -245,7 +246,7 @@ def get_test_case_view_callbacks(app):
                             "label": os.path.join(dirpath[len(case_dir) :], name),
                             "value": json.dumps(
                                 {
-                                    "path": dirpath[len(case_dir) :],
+                                    "path": dirpath,
                                     "name": name,
                                     "feather_name": name.replace(".pkl", ".feather"),
                                 }
@@ -481,33 +482,25 @@ def get_test_case_view_callbacks(app):
         for _, f_dict in enumerate(add_file_value):
             file_dict = json.loads(f_dict)
             if os.path.exists(
-                "./data/" + case + file_dict["path"] + "/" + file_dict["feather_name"]
+                os.path.join(file_dict["path"], file_dict["feather_name"])
             ):
                 new_data = pd.read_feather(
-                    "./data/"
-                    + case
-                    + file_dict["path"]
-                    + "/"
-                    + file_dict["feather_name"]
+                    os.path.join(file_dict["path"], file_dict["feather_name"])
                 )
             else:
                 if ".pkl" in file_dict["name"]:
                     new_data = pd.read_pickle(
-                        "./data/" + case + file_dict["path"] + "/" + file_dict["name"]
+                        os.path.join(file_dict["path"], file_dict["name"])
                     )
                     new_data = new_data.reset_index(drop=True)
 
                 elif ".csv" in file_dict["name"]:
                     new_data = pd.read_csv(
-                        "./data/" + case + file_dict["path"] + "/" + file_dict["name"]
+                        os.path.join(file_dict["path"], file_dict["name"])
                     )
 
                 new_data.to_feather(
-                    "./data/"
-                    + case
-                    + file_dict["path"]
-                    + "/"
-                    + file_dict["feather_name"]
+                    os.path.join(file_dict["path"], file_dict["feather_name"])
                 )
             new_data_list.append(new_data)
 
