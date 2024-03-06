@@ -68,11 +68,15 @@ def get_test_case_view_callbacks(app):
         output={
             "case_options": Output("case-picker", "options"),
             "case_value": Output("case-picker", "value"),
+            "data_path": Output("data-path", "data"),
         },
         inputs={"unused_nclick": Input("refresh-button", "n_clicks")},
-        state={"stored_case": State("local-case-selection", "data")},
+        state={
+            "stored_case": State("local-case-selection", "data"),
+            "data_path": State("data-path", "data"),
+        },
     )
-    def refresh_button_clicked(unused_nclick, stored_case):
+    def refresh_button_clicked(unused_nclick, stored_case, data_path):
         """
         Callback when the refresh button is clicked.
 
@@ -106,13 +110,15 @@ def get_test_case_view_callbacks(app):
         }
         ```
         """
+        app_config = load_config("./env/config.json")
+        data_path = app_config.get("data_path", "./data")
 
         options = []
-        obj = os.scandir("./data")
+        obj = os.scandir(data_path)
         for entry in obj:
             if entry.is_dir():
                 # only add the folder with 'config.json'
-                if os.path.exists("./data/" + entry.name + "/config.json"):
+                if os.path.exists(os.path.join(data_path, entry.name, "config.json")):
                     options.append({"label": entry.name, "value": entry.name})
 
         case_val = options[0]["value"]
@@ -124,7 +130,11 @@ def get_test_case_view_callbacks(app):
                     case_val = stored_case
                     break
 
-        return {"case_options": options, "case_value": case_val}
+        return {
+            "case_options": options,
+            "case_value": case_val,
+            "data_path": data_path,
+        }
 
     @app.callback(
         background=True,
@@ -139,6 +149,7 @@ def get_test_case_view_callbacks(app):
         state={
             "session_id": State("session-id", "data"),
             "stored_file": State("local-file-selection", "data"),
+            "data_path": State("data-path", "data"),
         },
         progress=[
             Output("loading-view", "style"),
@@ -148,7 +159,7 @@ def get_test_case_view_callbacks(app):
         ],
         manager=background_callback_manager,
     )
-    def case_selected(set_progress, case, session_id, stored_file):
+    def case_selected(set_progress, case, session_id, stored_file, data_path):
         """
         Callback when a test case is selected.
 
@@ -215,10 +226,10 @@ def get_test_case_view_callbacks(app):
         )
 
         data_files = []
-        case_dir = "./data/" + case
+        case_dir = os.path.join(data_path, case)
 
-        if os.path.exists("./data/" + case + "/config.json"):
-            config = load_config("./data/" + case + "/config.json")
+        if os.path.exists(os.path.join(data_path, case, "config.json")):
+            config = load_config(os.path.join(data_path, case, "config.json"))
             cache_set(config, session_id, CACHE_KEYS["config"])
         else:
             raise PreventUpdate
@@ -293,6 +304,7 @@ def get_test_case_view_callbacks(app):
             "file_loaded": State("file-loaded-trigger", "data"),
             "case": State("case-picker", "value"),
             "session_id": State("session-id", "data"),
+            "data_path": State("data-path", "data"),
             "all_state": DROPDOWN_VALUES_ALL_STATE,
         },
         progress=[
@@ -304,7 +316,14 @@ def get_test_case_view_callbacks(app):
         manager=background_callback_manager,
     )
     def file_select_changed(
-        set_progress, file, add_file_value, file_loaded, case, session_id, all_state
+        set_progress,
+        file,
+        add_file_value,
+        file_loaded,
+        case,
+        session_id,
+        data_path,
+        all_state,
     ):
         """
         Callback when a file selection is changed.
@@ -481,33 +500,36 @@ def get_test_case_view_callbacks(app):
         for _, f_dict in enumerate(add_file_value):
             file_dict = json.loads(f_dict)
             if os.path.exists(
-                "./data/" + case + file_dict["path"] + "/" + file_dict["feather_name"]
+                os.path.join(
+                    data_path, case, file_dict["path"], file_dict["feather_name"]
+                )
             ):
                 new_data = pd.read_feather(
-                    "./data/"
-                    + case
-                    + file_dict["path"]
-                    + "/"
-                    + file_dict["feather_name"]
+                    os.path.join(
+                        data_path, case, file_dict["path"], file_dict["feather_name"]
+                    )
                 )
             else:
                 if ".pkl" in file_dict["name"]:
                     new_data = pd.read_pickle(
-                        "./data/" + case + file_dict["path"] + "/" + file_dict["name"]
+                        os.path.join(
+                            data_path, case, file_dict["path"], file_dict["name"]
+                        )
                     )
                     new_data = new_data.reset_index(drop=True)
 
                 elif ".csv" in file_dict["name"]:
+                    print(data_path)
                     new_data = pd.read_csv(
-                        "./data/" + case + file_dict["path"] + "/" + file_dict["name"]
+                        os.path.join(
+                            data_path, case, file_dict["path"], file_dict["name"]
+                        )
                     )
 
                 new_data.to_feather(
-                    "./data/"
-                    + case
-                    + file_dict["path"]
-                    + "/"
-                    + file_dict["feather_name"]
+                    os.path.join(
+                        data_path, case, file_dict["path"], file_dict["feather_name"]
+                    )
                 )
             new_data_list.append(new_data)
 
