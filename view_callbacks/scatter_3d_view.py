@@ -1148,5 +1148,8 @@ def get_scatter_3d_view_callbacks(app):
         filtered_table.to_pickle(
             os.path.join(file["path"], file["name"][0:-4] + "_filtered.pkl")
         )
+        filtered_table.to_csv(
+            os.path.join(file["path"], file["name"][0:-4] + "_filtered.csv")
+        )
 
         return {"dummy": 0}
