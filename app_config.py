@@ -38,6 +38,8 @@ from diskcache import Cache
 
 APP_TITLE = "SensorView"
 
+DATA_PATH = "C:/Users/zjx8rj/OneDrive - Aptiv/radarviz"
+
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {
     "dataset": "DATASET",
