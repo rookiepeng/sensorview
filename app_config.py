@@ -39,6 +39,8 @@ from diskcache import Cache
 APP_TITLE = "SensorView"
 
 DATA_PATH = "C:/Users/zjx8rj/OneDrive - Aptiv/radarviz"
+FRAME_CACHE_PATH = "./cache/frame"
+DASH_CACHE_PATH = "./cache/dash"
 
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {
@@ -62,9 +64,9 @@ redis_ip = os.environ.get("REDIS_SERVER_SERVICE_HOST", "127.0.0.1")
 redis_url = "redis://" + redis_ip + ":6379"
 redis_instance = redis.StrictRedis.from_url(redis_url)
 
-frame_cache = Cache("./cache/frame", timeout=120, eviction_policy="none")
+frame_cache = Cache(FRAME_CACHE_PATH, timeout=120, eviction_policy="none")
 
-dash_cache = Cache("./cache/dash", timeout=120, eviction_policy="none")
+dash_cache = Cache(DASH_CACHE_PATH, timeout=120, eviction_policy="none")
 background_callback_manager = DiskcacheManager(dash_cache)
 
 # options for dropdown components with all the keys
