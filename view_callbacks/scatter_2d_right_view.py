@@ -33,6 +33,7 @@ import datetime
 
 import plotly.graph_objs as go
 
+from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -251,21 +252,20 @@ def get_scatter_2d_right_view_callbacks(app):
         return {"collapse": collapse}
 
     @app.callback(
-        output={"dummy": Output("dummy-export-scatter2d-right", "data")},
+        output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-scatter2d-right", "n_clicks")},
         state={
             "fig": State("scatter2d-right", "figure"),
-            "case": State("case-picker", "value"),
         },
+        prevent_initial_call=True,
     )
-    def export_right_2d_scatter(btn, fig, case):
+    def export_right_2d_scatter(btn, fig):
         """
         Callback function to export the right 2D scatter plot as an image.
 
         Parameters:
         - btn (int): The number of times the export button has been clicked.
         - fig (dict): The right 2D scatter plot figure.
-        - case (str): The selected case.
 
         Returns:
         - dict: A dictionary containing a dummy value for the output property.
@@ -279,11 +279,12 @@ def get_scatter_2d_right_view_callbacks(app):
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        if not os.path.exists("data/" + case + "/images"):
-            os.makedirs("data/" + case + "/images")
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
+
+        file_name = "temp/" + timestamp + "_fig_right.png"
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image(
-            "data/" + case + "/images/" + timestamp + "_fig_right.png", scale=2
-        )
-        return {"dummy": 0}
+        temp_fig.write_image(file_name, scale=2)
+
+        return {"download": dcc.send_file(file_name)}

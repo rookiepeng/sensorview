@@ -1093,8 +1093,6 @@ def get_app_layout():
             dcc.Store(id="filter-trigger", data=0),
             dcc.Store(id="left-hide-trigger", data=0),
             dcc.Store(id="file-loaded-trigger", data=0),
-            dcc.Store(id="dummy-export-scatter2d-left"),
-            dcc.Store(id="dummy-export-scatter2d-right"),
             dcc.Store(id="dummy-export-histogram"),
             dcc.Store(id="dummy-export-violin"),
             dcc.Store(id="dummy-export-parallel"),
@@ -1105,6 +1103,7 @@ def get_app_layout():
             dcc.Store(id="visible-table-change-trigger", data=0),
             dcc.Store(id="local-case-selection", storage_type="local"),
             dcc.Store(id="local-file-selection", storage_type="local"),
+            dcc.Download(id="download"),
             dbc.Card(
                 dbc.CardBody(
                     [
