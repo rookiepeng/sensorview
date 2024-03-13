@@ -35,6 +35,7 @@ import numpy as np
 
 import plotly.graph_objs as go
 
+from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -220,21 +221,20 @@ def get_parcats_view_callbacks(app):
         return {"collapse": collapse}
 
     @app.callback(
-        output={"dummy": Output("dummy-export-parallel", "data")},
+        output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-parallel", "n_clicks")},
         state={
             "fig": State("parallel", "figure"),
-            "case": State("case-picker", "value"),
         },
+        prevent_initial_call=True,
     )
-    def export_parallel(btn, fig, case):
+    def export_parallel(btn, fig):
         """
         Callback function to export the parallel coordinates figure as an image.
 
         Parameters:
         - btn (int): The number of times the export button has been clicked.
         - fig (dict): The parallel coordinates figure.
-        - case (str): The selected case.
 
         Returns:
         - dict: A dictionary containing a dummy value for the output property.
@@ -248,11 +248,12 @@ def get_parcats_view_callbacks(app):
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        if not os.path.exists("data/" + case + "/images"):
-            os.makedirs("data/" + case + "/images")
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
+
+        file_name = "temp/" + timestamp + "_parallel.png"
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image(
-            "data/" + case + "/images/" + timestamp + "_parallel.png", scale=2
-        )
-        return {"dummy": 0}
+        temp_fig.write_image(file_name, scale=2)
+
+        return {"download": dcc.send_file(file_name)}

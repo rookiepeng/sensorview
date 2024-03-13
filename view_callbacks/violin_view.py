@@ -34,6 +34,7 @@ import datetime
 import plotly.express as px
 import plotly.graph_objs as go
 
+from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -134,7 +135,13 @@ def get_violin_view_callbacks(app):
         data = load_data(file, file_list, case)
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
         filtered_table = filter_all(
-            data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list,
         )
 
         if c_violin == "None":
@@ -158,7 +165,6 @@ def get_violin_view_callbacks(app):
             )
 
         return {"violin": violin_fig}
-
 
     @app.callback(
         output={
@@ -186,20 +192,19 @@ def get_violin_view_callbacks(app):
 
         return {"collapse": collapse}
 
-
     @app.callback(
-        output={"dummy": Output("dummy-export-violin", "data")},
+        output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-violin", "n_clicks")},
-        state={"fig": State("violin", "figure"), "case": State("case-picker", "value")},
+        state={"fig": State("violin", "figure")},
+        prevent_initial_call=True,
     )
-    def export_violin(btn, fig, case):
+    def export_violin(btn, fig):
         """
         Export the violin plot as an image.
 
         Parameters:
         - btn (int): The number of clicks on the export button.
         - fig (dict): The figure dictionary of the violin plot.
-        - case (str): The selected case.
 
         Returns:
         - dict: The output dummy data.
@@ -210,11 +215,12 @@ def get_violin_view_callbacks(app):
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        if not os.path.exists("data/" + case + "/images"):
-            os.makedirs("data/" + case + "/images")
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
+
+        file_name = "temp/" + timestamp + "_violin.png"
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image(
-            "data/" + case + "/images/" + timestamp + "_violin.png", scale=2
-        )
-        return {"dummy": 0}
+        temp_fig.write_image(file_name, scale=2)
+
+        return {"download": dcc.send_file(file_name)}

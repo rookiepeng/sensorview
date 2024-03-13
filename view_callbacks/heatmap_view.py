@@ -32,6 +32,7 @@ import datetime
 
 import plotly.graph_objs as go
 
+from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -185,21 +186,20 @@ def get_heatmap_view_callbacks(app):
         return {"collapse": collapse}
 
     @app.callback(
-        output={"dummy": Output("dummy-export-heatmap", "data")},
+        output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-heatmap", "n_clicks")},
         state={
             "fig": State("heatmap", "figure"),
-            "case": State("case-picker", "value"),
         },
+        prevent_initial_call=True,
     )
-    def export_heatmap(btn, fig, case):
+    def export_heatmap(btn, fig):
         """
         Callback function to export the heatmap figure as an image.
 
         Parameters:
         - btn (int): The number of times the export button has been clicked.
         - fig (dict): The heatmap figure.
-        - case (str): The selected case.
 
         Returns:
         - dict: A dictionary containing a dummy value for the output property.
@@ -213,11 +213,12 @@ def get_heatmap_view_callbacks(app):
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        if not os.path.exists("data/" + case + "/images"):
-            os.makedirs("data/" + case + "/images")
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
+
+        file_name = "temp/" + timestamp + "_heatmap.png"
 
         temp_fig = go.Figure(fig)
-        temp_fig.write_image(
-            "data/" + case + "/images/" + timestamp + "_heatmap.png", scale=2
-        )
-        return {"dummy": 0}
+        temp_fig.write_image(file_name, scale=2)
+
+        return {"download": dcc.send_file(file_name)}
