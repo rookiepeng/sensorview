@@ -35,6 +35,7 @@ import pandas as pd
 
 import plotly.graph_objs as go
 
+import dash
 from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -61,6 +62,58 @@ def get_scatter_2d_left_view_callbacks(app):
     """
 
     @app.callback(
+        output={"regenerate_trigger": Output("left-regenerate-trigger", "data")},
+        inputs={
+            "unused_slider_arg": Input("slider-frame", "value"),
+            "unused_stop_click": Input("stop-button", "n_clicks"),
+            "all_frame_sw": Input("scatter2dl-allframe-switch", "value"),
+        },
+        state={
+            "ispaused": State("interval-component", "disabled"),
+            "left_sw": State("left-switch", "value"),
+            "current_regenerate_trigger": State("left-regenerate-trigger", "data"),
+        },
+    )
+    def invoke_scatter2d_left_frame_trigger(
+        unused_slider_arg,
+        unused_stop_click,
+        all_frame_sw,
+        ispaused,
+        left_sw,
+        current_regenerate_trigger,
+    ):
+        """
+        Callback function to invoke the trigger to regenerate per-frame plot of left scatter2d figure.
+
+        Parameters:
+        - unused_slider_arg (int): The unused slider value.
+        - unused_stop_click (int): The unused stop click value.
+        - all_frame_sw (str): The selection between current frame of all frames.
+        - ispaused (bool): If the video is paused.
+        - left_sw (bool): If the figure is enabled.
+        - current_regenerate_trigger (int): The current value of the trigger.
+
+        Returns:
+        - dict: A dictionary containing the updated filter trigger value.
+
+        Output Properties:
+        - regenerate_trigger (int): The updated filter trigger value.
+        """
+
+        ctx = dash.callback_context
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+        if trigger_id == "stop-button":
+            ispaused = True
+
+        if ispaused and all_frame_sw == "current" and left_sw:
+            trig = current_regenerate_trigger + 1
+
+            return {"regenerate_trigger": trig}
+
+        raise PreventUpdate
+
+    @app.callback(
         background=True,
         output={
             "figure": Output("scatter2d-left", "figure", allow_duplicate=True),
@@ -68,16 +121,18 @@ def get_scatter_2d_left_view_callbacks(app):
         inputs={
             "unused_filter_trigger": Input("filter-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_regenerate_trigger": Input("left-regenerate-trigger", "data"),
             "left_sw": Input("left-switch", "value"),
             "x_left": Input("x-picker-2d-left", "value"),
             "y_left": Input("y-picker-2d-left", "value"),
             "color_left": Input("c-picker-2d-left", "value"),
         },
         state={
+            "slider_arg": State("slider-frame", "value"),
+            "all_frame_sw": State("scatter2dl-allframe-switch", "value"),
             "colormap": State("colormap-scatter2d-left", "value"),
             "session_id": State("session-id", "data"),
             "visible_list": State("visible-picker", "value"),
-            "case": State("case-picker", "value"),
             "file": State("file-picker", "value"),
             "file_list": State("file-add", "value"),
         },
@@ -87,14 +142,16 @@ def get_scatter_2d_left_view_callbacks(app):
     def regenerate_scatter2d_left_callback(
         unused_filter_trigger,
         unused_left_hide_trigger,
+        unused_regenerate_trigger,
         left_sw,
         x_left,
         y_left,
         color_left,
+        slider_arg,
+        all_frame_sw,
         colormap,
         session_id,
         visible_list,
-        case,
         file,
         file_list,
     ):
@@ -103,7 +160,9 @@ def get_scatter_2d_left_view_callbacks(app):
 
         Parameters:
         - unused_filter_trigger (any): Unused input trigger for filtering data.
-        - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
+        - unused_left_hide_trigger (any): Unused input trigger for hiding left
+        panel.
+        - unused_regenerate_trigger (any): Input trigger to update the per-frame plot.
         - left_sw (bool): The value of the left switch.
         - x_left (str): The selected x-axis key for the left scatter plot.
         - y_left (str): The selected y-axis key for the left scatter plot.
@@ -111,7 +170,6 @@ def get_scatter_2d_left_view_callbacks(app):
         - colormap (str): The selected colormap for the left scatter plot.
         - session_id (str): The ID of the current session.
         - visible_list (list): The list of visible items.
-        - case (str): The selected case.
         - file (str): The selected file.
         - file_list (list): The list of selected files.
 
@@ -144,7 +202,14 @@ def get_scatter_2d_left_view_callbacks(app):
         y_label = config["keys"][y_left]["description"]
         c_label = config["keys"][color_left]["description"]
 
-        data = load_data(file, file_list, case)
+        if all_frame_sw == "all":
+            data = load_data(file, file_list)
+        else:
+            frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+            data = cache_get(
+                session_id, CACHE_KEYS["frame_data"], str(frame_list[slider_arg])
+            )
+
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
         filtered_table = filter_all(

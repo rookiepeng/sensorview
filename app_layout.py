@@ -1135,6 +1135,8 @@ def get_app_layout():
             dcc.Store(id="selected-data-right"),
             dcc.Store(id="session-id", data=str(uuid.uuid4())),
             dcc.Store(id="filter-trigger", data=0),
+            dcc.Store(id="left-regenerate-trigger", data=0),
+            dcc.Store(id="right-regenerate-trigger", data=0),
             dcc.Store(id="left-hide-trigger", data=0),
             dcc.Store(id="file-loaded-trigger", data=0),
             dcc.Store(id="dummy-export-data"),
