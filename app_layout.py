@@ -261,8 +261,13 @@ view3d_card = dbc.Card(
                                                         n_clicks=0,
                                                     ),
                                                     dbc.DropdownMenuItem(
-                                                        "Save filtered data",
-                                                        id="export-data",
+                                                        "Filtered Data (Current Frame)",
+                                                        id="export-data-current",
+                                                        n_clicks=0,
+                                                    ),
+                                                    dbc.DropdownMenuItem(
+                                                        "Filtered Data (All Frames)",
+                                                        id="export-data-all",
                                                         n_clicks=0,
                                                     ),
                                                 ],
@@ -1139,7 +1144,6 @@ def get_app_layout():
             dcc.Store(id="right-regenerate-trigger", data=0),
             dcc.Store(id="left-hide-trigger", data=0),
             dcc.Store(id="file-loaded-trigger", data=0),
-            dcc.Store(id="dummy-export-data"),
             dcc.Store(id="background-trigger", data=0),
             dcc.Store(id="dummy-background"),
             dcc.Store(id="visible-table-change-trigger", data=0),

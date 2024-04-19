@@ -34,6 +34,7 @@ import datetime
 import numpy as np
 
 import dash
+from dash import dcc
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import plotly.io as pio
@@ -1094,17 +1095,17 @@ def get_scatter_3d_view_callbacks(app):
         return {"dummy": 0}
 
     @app.callback(
-        output={"dummy": Output("dummy-export-data", "data")},
-        inputs={"btn": Input("export-data", "n_clicks")},
+        output={"download": Output("download", "data", allow_duplicate=True)},
+        inputs={"btn": Input("export-data-all", "n_clicks")},
         state={
             "session_id": State("session-id", "data"),
             "visible_list": State("visible-picker", "value"),
-            "case": State("case-picker", "value"),
             "file": State("file-picker", "value"),
             "file_list": State("file-add", "value"),
         },
+        prevent_initial_call=True,
     )
-    def export_data(btn, session_id, visible_list, case, file, file_list):
+    def export_all_frame_data(btn, session_id, visible_list, file, file_list):
         """
         Callback function for exporting filtered data.
 
@@ -1112,7 +1113,6 @@ def get_scatter_3d_view_callbacks(app):
         - btn (int): The number of clicks on the export button.
         - session_id (str): The ID of the current session.
         - visible_list (list): The list of visible items.
-        - case (str): The selected case.
         - file (str): The selected file.
         - file_list (list): The list of selected files.
 
@@ -1145,12 +1145,81 @@ def get_scatter_3d_view_callbacks(app):
             visible_list,
         )
         file = json.loads(file)
-        filtered_table.to_pickle(
-            os.path.join(file["path"], file["name"][0:-4] + "_filtered.pkl")
-        )
+
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+        file_name = "temp/" + file["name"][0:-4] + "_" + timestamp + ".csv"
+
         filtered_table.to_csv(
-            os.path.join(file["path"], file["name"][0:-4] + "_filtered.csv"),
+            file_name,
             index=False,
         )
 
-        return {"dummy": 0}
+        return {"download": dcc.send_file(file_name)}
+
+    @app.callback(
+        output={"download": Output("download", "data", allow_duplicate=True)},
+        inputs={"btn": Input("export-data-current", "n_clicks")},
+        state={
+            "slider_arg": State("slider-frame", "value"),
+            "session_id": State("session-id", "data"),
+            "visible_list": State("visible-picker", "value"),
+            "file": State("file-picker", "value"),
+        },
+        prevent_initial_call=True,
+    )
+    def export_current_frame_data(btn, slider_arg, session_id, visible_list, file):
+        """
+        Callback function for exporting filtered data.
+
+        Parameters:
+        - btn (int): The number of clicks on the export button.
+        - session_id (str): The ID of the current session.
+        - visible_list (list): The list of visible items.
+        - file (str): The selected file.
+
+        Returns:
+        - dict: A dictionary containing a dummy output.
+
+        Output Properties:
+        - dummy (any): A dummy output value.
+        """
+        if btn == 0:
+            raise PreventUpdate
+
+        filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        cat_keys = filter_kwargs["cat_keys"]
+        num_keys = filter_kwargs["num_keys"]
+        cat_values = filter_kwargs["cat_values"]
+        num_values = filter_kwargs["num_values"]
+
+        # file = json.loads(file)
+        frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        data = cache_get(
+            session_id, CACHE_KEYS["frame_data"], str(frame_list[slider_arg])
+        )
+        visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
+
+        filtered_table = filter_all(
+            data,
+            num_keys,
+            num_values,
+            cat_keys,
+            cat_values,
+            visible_table,
+            visible_list,
+        )
+        file = json.loads(file)
+
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+        file_name = "temp/" + file["name"][0:-4] + "_" + timestamp + ".csv"
+
+        filtered_table.to_csv(
+            file_name,
+            index=False,
+        )
+
+        return {"download": dcc.send_file(file_name)}
