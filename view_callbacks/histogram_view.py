@@ -135,7 +135,7 @@ def get_histogram_view_callbacks(app):
         x_label = config["keys"][x_histogram]["description"]
         y_key = y_histogram
 
-        data = load_data(file, file_list, case)
+        data = load_data(file, file_list)
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
         filtered_table = filter_all(
             data,

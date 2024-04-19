@@ -292,7 +292,6 @@ def get_test_case_view_callbacks(app):
         },
         state={
             "file_loaded": State("file-loaded-trigger", "data"),
-            "case": State("case-picker", "value"),
             "session_id": State("session-id", "data"),
             "all_state": DROPDOWN_VALUES_ALL_STATE,
         },
@@ -305,7 +304,7 @@ def get_test_case_view_callbacks(app):
         manager=background_callback_manager,
     )
     def file_select_changed(
-        set_progress, file, add_file_value, file_loaded, case, session_id, all_state
+        set_progress, file, add_file_value, file_loaded, session_id, all_state
     ):
         """
         Callback when a file selection is changed.
@@ -315,7 +314,6 @@ def get_test_case_view_callbacks(app):
         - file (str): Selected file value.
         - add_file_value (list): List containing additional file values.
         - file_loaded (int): Number of times the file has been loaded.
-        - case (str): Selected test case.
         - session_id (str): Session id.
         - all_state: State of all dropdown components.
 
@@ -631,7 +629,6 @@ def get_test_case_view_callbacks(app):
         },
         state={
             "file": State("file-picker", "value"),
-            "case": State("case-picker", "value"),
             "slider_max": State("slider-frame", "max"),
             "slider_state": State("slider-frame", "value"),
             "session_id": State("session-id", "data"),
@@ -643,7 +640,6 @@ def get_test_case_view_callbacks(app):
         right_btn,
         interval,
         file,
-        case,
         slider_max,
         slider_state,
         session_id,
@@ -685,9 +681,6 @@ def get_test_case_view_callbacks(app):
         next button, or interval component.
         """
         if file is None:
-            raise PreventUpdate
-
-        if case is None:
             raise PreventUpdate
 
         ctx = dash.callback_context

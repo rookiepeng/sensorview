@@ -34,7 +34,6 @@ import datetime
 import numpy as np
 
 import dash
-from dash import dcc
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import plotly.io as pio
@@ -274,7 +273,7 @@ def process_overlay_frame(
 
     # overlay all the frames
     # get data from .feather file on the disk
-    data = load_data(file, file_list, case)
+    data = load_data(file, file_list)
     filterd_frame = filter_all(
         data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
@@ -1133,7 +1132,7 @@ def get_scatter_3d_view_callbacks(app):
         num_values = filter_kwargs["num_values"]
 
         # file = json.loads(file)
-        data = load_data(file, file_list, case)
+        data = load_data(file, file_list)
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
         filtered_table = filter_all(

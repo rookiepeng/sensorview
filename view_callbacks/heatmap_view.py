@@ -131,7 +131,7 @@ def get_heatmap_view_callbacks(app):
         y_key = y_heat
         y_label = config["keys"][y_heat]["description"]
 
-        data = load_data(file, file_list, case)
+        data = load_data(file, file_list)
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
         filtered_table = filter_all(

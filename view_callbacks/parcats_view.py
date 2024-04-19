@@ -127,7 +127,7 @@ def get_parcats_view_callbacks(app):
         num_values = filter_kwargs["num_values"]
 
         if len(dim_parallel) > 0:
-            data = load_data(file, file_list, case)
+            data = load_data(file, file_list)
             visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
             filtered_table = filter_all(
                 data,

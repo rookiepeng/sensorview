@@ -53,14 +53,13 @@ def load_config(json_file):
         return json.load(read_file)
 
 
-def load_data(file, file_list, case):
+def load_data(file, file_list):
     """
     Load data from file(s).
 
     Parameters:
     - file (str): The selected file.
     - file_list (list): The list of selected files.
-    - case (str): The selected case.
 
     Returns:
     - pd.DataFrame: The loaded data.
