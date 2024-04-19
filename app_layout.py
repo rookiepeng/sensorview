@@ -470,6 +470,28 @@ left2d_card = dbc.Card(
                         dbc.Collapse(
                             html.Div(
                                 [
+                                    dbc.Row(
+                                        [
+                                            dbc.Col(
+                                                dbc.RadioItems(
+                                                    options=[
+                                                        {
+                                                            "label": "Current frame",
+                                                            "value": "current",
+                                                        },
+                                                        {
+                                                            "label": "All frames",
+                                                            "value": "all",
+                                                        },
+                                                    ],
+                                                    value="current",
+                                                    id="scatter2dl-allframe-switch",
+                                                    inline=True,
+                                                    style={"float": "right"},
+                                                ),
+                                            )
+                                        ]
+                                    ),
                                     dcc.Graph(
                                         id="scatter2d-left",
                                         config={"displaylogo": False},
@@ -629,6 +651,28 @@ right2d_card = dbc.Card(
                         dbc.Collapse(
                             html.Div(
                                 [
+                                    dbc.Row(
+                                        [
+                                            dbc.Col(
+                                                dbc.RadioItems(
+                                                    options=[
+                                                        {
+                                                            "label": "Current frame",
+                                                            "value": "current",
+                                                        },
+                                                        {
+                                                            "label": "All frames",
+                                                            "value": "all",
+                                                        },
+                                                    ],
+                                                    value="current",
+                                                    id="scatter2dr-allframe-switch",
+                                                    inline=True,
+                                                    style={"float": "right"},
+                                                ),
+                                            )
+                                        ]
+                                    ),
                                     dcc.Graph(
                                         id="scatter2d-right",
                                         config={"displaylogo": False},
