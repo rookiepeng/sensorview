@@ -154,7 +154,8 @@ def get_scatter_2d_right_view_callbacks(app):
         file_list,
     ):
         """
-        Background callback function to regenerate the right 2D scatter plot based on the input values.
+        Background callback function to regenerate the right 2D scatter plot based on
+        the input values.
 
         Parameters:
         - unused_filter_trigger (any): Unused input trigger for filtering data.
