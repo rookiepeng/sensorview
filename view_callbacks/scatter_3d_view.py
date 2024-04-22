@@ -66,7 +66,6 @@ def process_single_frame(
     c_key,
     decay,
     session_id,
-    case,
     file,
     frame_idx=0,
     load_hover=False,
@@ -223,7 +222,6 @@ def process_overlay_frame(
     visible_list,
     c_key,
     session_id,
-    case,
     file,
     file_list,
     load_hover=False,
@@ -333,7 +331,6 @@ def get_scatter_3d_view_callbacks(app):
             "c_key": State("c-picker-3d", "value"),
             "darkmode": State("darkmode-switch", "value"),
             "session_id": State("session-id", "data"),
-            "case": State("case-picker", "value"),
             "file": State("file-picker", "value"),
             "file_list": State("file-add", "value"),
         },
@@ -352,7 +349,6 @@ def get_scatter_3d_view_callbacks(app):
         decay,
         darkmode,
         session_id,
-        case,
         file,
         file_list,
     ):
@@ -372,7 +368,6 @@ def get_scatter_3d_view_callbacks(app):
         - decay (int): The number of past frames to include in the figure.
         - darkmode (bool): Whether dark mode is enabled or not.
         - session_id (str): The ID of the current session.
-        - case (str): The selected case.
         - file (str): The selected file.
         - file_list (list): The list of selected files.
 
@@ -402,7 +397,6 @@ def get_scatter_3d_view_callbacks(app):
                 visible_list,
                 c_key,
                 session_id,
-                case,
                 file,
                 file_list,
                 ispaused,
@@ -480,7 +474,6 @@ def get_scatter_3d_view_callbacks(app):
                 c_key,
                 decay,
                 session_id,
-                case,
                 file,
                 slider_arg,
                 ispaused,
@@ -627,7 +620,6 @@ def get_scatter_3d_view_callbacks(app):
             "colormap": State("colormap-3d", "value"),
             "darkmode": State("darkmode-switch", "value"),
             "session_id": State("session-id", "data"),
-            "case": State("case-picker", "value"),
             "file": State("file-picker", "value"),
             "file_list": State("file-add", "value"),
             "trigger_val": State("background-trigger", "data"),
@@ -649,7 +641,6 @@ def get_scatter_3d_view_callbacks(app):
         colormap,
         darkmode,
         session_id,
-        case,
         file,
         file_list,
         trigger_val,
@@ -672,7 +663,6 @@ def get_scatter_3d_view_callbacks(app):
         - colormap (str): The selected colormap.
         - darkmode (bool): Whether dark mode is enabled or not.
         - session_id (str): The ID of the current session.
-        - case (str): The selected case.
         - file (str): The selected file.
         - file_list (list): The list of selected files.
         - trigger_val (int): The trigger value.
@@ -709,7 +699,6 @@ def get_scatter_3d_view_callbacks(app):
                 visible_list,
                 c_key,
                 session_id,
-                case,
                 file,
                 file_list,
                 ispaused,
@@ -724,7 +713,6 @@ def get_scatter_3d_view_callbacks(app):
                 c_key,
                 decay,
                 session_id,
-                case,
                 file,
                 slider_arg,
                 ispaused,
