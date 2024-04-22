@@ -494,7 +494,8 @@ def get_test_case_view_callbacks(app):
 
                 elif ".csv" in file_dict["name"]:
                     new_data = pd.read_csv(
-                        os.path.join(file_dict["path"], file_dict["name"])
+                        os.path.join(file_dict["path"], file_dict["name"]),
+                        engine="pyarrow"
                     )
 
                 new_data.to_feather(
