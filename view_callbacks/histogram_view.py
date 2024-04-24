@@ -75,7 +75,6 @@ def get_histogram_view_callbacks(app):
         state={
             "session_id": State("session-id", "data"),
             "visible_list": State("visible-picker", "value"),
-            "case": State("case-picker", "value"),
             "file": State("file-picker", "value"),
             "file_list": State("file-add", "value"),
         },
@@ -90,7 +89,6 @@ def get_histogram_view_callbacks(app):
         c_histogram,
         session_id,
         visible_list,
-        case,
         file,
         file_list,
     ):
@@ -106,7 +104,6 @@ def get_histogram_view_callbacks(app):
         - c_histogram (str): The selected color key for the histogram.
         - session_id (str): The ID of the current session.
         - visible_list (list): The list of visible items.
-        - case (str): The selected case.
         - file (str): The selected file.
         - file_list (list): The list of selected files.
 

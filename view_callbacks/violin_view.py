@@ -73,7 +73,6 @@ def get_violin_view_callbacks(app):
         state={
             "session_id": State("session-id", "data"),
             "visible_list": State("visible-picker", "value"),
-            "case": State("case-picker", "value"),
             "file": State("file-picker", "value"),
             "file_list": State("file-add", "value"),
         },
@@ -88,7 +87,6 @@ def get_violin_view_callbacks(app):
         c_violin,
         session_id,
         visible_list,
-        case,
         file,
         file_list,
     ):
@@ -104,7 +102,6 @@ def get_violin_view_callbacks(app):
         - c_violin (str): The selected color key for the violin plot.
         - session_id (str): The session ID.
         - visible_list (list): The list of visible values.
-        - case (str): The selected case.
         - file (str): The selected file.
         - file_list (list): The list of selected files.
 
