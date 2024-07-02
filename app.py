@@ -27,7 +27,6 @@
 
 """
 
-
 from waitress import serve
 
 import dash
