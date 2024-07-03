@@ -81,7 +81,8 @@ def get_scatter_2d_right_view_callbacks(app):
         current_regenerate_trigger,
     ):
         """
-        Callback function to invoke the trigger to regenerate per-frame plot of right scatter2d figure.
+        Callback function to invoke the trigger to regenerate per-frame plot of
+        right scatter2d figure.
 
         Parameters:
         - unused_slider_arg (int): The unused slider value.

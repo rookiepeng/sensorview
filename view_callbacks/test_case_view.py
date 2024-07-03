@@ -678,8 +678,8 @@ def get_test_case_view_callbacks(app):
         PreventUpdate: If either `file` or `case` is None.
 
         Note:
-        This callback is triggered by different components like file-loaded trigger, previous button,
-        next button, or interval component.
+        This callback is triggered by different components like file-loaded trigger,
+        previous button, next button, or interval component.
         """
         if file is None:
             raise PreventUpdate

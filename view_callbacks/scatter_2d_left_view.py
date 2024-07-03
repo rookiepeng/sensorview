@@ -83,7 +83,8 @@ def get_scatter_2d_left_view_callbacks(app):
         current_regenerate_trigger,
     ):
         """
-        Callback function to invoke the trigger to regenerate per-frame plot of left scatter2d figure.
+        Callback function to invoke the trigger to regenerate per-frame plot of
+        left scatter2d figure.
 
         Parameters:
         - unused_slider_arg (int): The unused slider value.
@@ -156,7 +157,8 @@ def get_scatter_2d_left_view_callbacks(app):
         file_list,
     ):
         """
-        Background callback function to regenerate the left 2D scatter plot based on the input values.
+        Background callback function to regenerate the left 2D scatter plot
+        based on the input values.
 
         Parameters:
         - unused_filter_trigger (any): Unused input trigger for filtering data.

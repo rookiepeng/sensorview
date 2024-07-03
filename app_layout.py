@@ -650,34 +650,34 @@ right2d_card = dbc.Card(
                     ],
                     className="g-1 mb-2",
                 ),
+                dbc.Row(
+                    [
+                        dbc.Col(
+                            dbc.RadioItems(
+                                options=[
+                                    {
+                                        "label": "Current frame",
+                                        "value": "current",
+                                    },
+                                    {
+                                        "label": "All frames",
+                                        "value": "all",
+                                    },
+                                ],
+                                value="current",
+                                id="scatter2dr-allframe-switch",
+                                inline=True,
+                                style={"float": "right"},
+                            ),
+                        )
+                    ]
+                ),
                 dcc.Loading(
                     id="loading_right",
                     children=[
                         dbc.Collapse(
                             html.Div(
                                 [
-                                    dbc.Row(
-                                        [
-                                            dbc.Col(
-                                                dbc.RadioItems(
-                                                    options=[
-                                                        {
-                                                            "label": "Current frame",
-                                                            "value": "current",
-                                                        },
-                                                        {
-                                                            "label": "All frames",
-                                                            "value": "all",
-                                                        },
-                                                    ],
-                                                    value="current",
-                                                    id="scatter2dr-allframe-switch",
-                                                    inline=True,
-                                                    style={"float": "right"},
-                                                ),
-                                            )
-                                        ]
-                                    ),
                                     dcc.Graph(
                                         id="scatter2d-right",
                                         config={"displaylogo": False},
