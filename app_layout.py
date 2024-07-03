@@ -1309,9 +1309,7 @@ def get_app_layout():
             ),
             dcc.Markdown(
                 "Designed and developed by **Zhengyu Peng** \
-                | Powered by [Dash](https://plotly.com/dash/),\
-                [Redis](https://redis.io/),\
-                [Celery](https://docs.celeryproject.org/en/stable/)"
+                | Powered by [Dash](https://plotly.com/dash/)"
             ),
         ],
         fluid=True,
