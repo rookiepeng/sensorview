@@ -27,8 +27,8 @@
 
 """
 
-import subprocess
-# from waitress import serve
+from multiprocessing import Process
+from waitress import serve
 import webview
 
 import dash
@@ -111,11 +111,17 @@ get_histogram_view_callbacks(app)
 get_parcats_view_callbacks(app)
 get_violin_view_callbacks(app)
 
+
+def start_server():
+    serve(app.server, listen="*:8000")
+
+
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
 
     # serve(app.server, listen="*:8000")
-    proc = subprocess.Popen("waitress-serve --port=8000 app:app.server", shell=False)
+    proc = Process(target=start_server)
+    proc.start()
 
     webview.create_window("Dash", "http://127.0.0.1:8000")
     webview.start()
