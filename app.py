@@ -28,7 +28,6 @@
 """
 
 from waitress import serve
-# import webbrowser
 
 import dash
 from dash.dependencies import Input, Output
@@ -111,13 +110,6 @@ get_parcats_view_callbacks(app)
 get_violin_view_callbacks(app)
 
 
-# def start_server():
-#     serve(app.server, listen="*:8000")
-
-
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
-
-    # webbrowser.open("http://127.0.0.1:8000", new=0, autoraise=True)
-
     serve(app.server, listen="*:8000")
