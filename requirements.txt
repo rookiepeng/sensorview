@@ -9,4 +9,3 @@ kaleido==v0.1.0.post1
 diskcache
 redis
 waitress
-pywebview

@@ -29,8 +29,7 @@
 
 from multiprocessing import Process
 from waitress import serve
-# import webbrowser
-import webview
+import webbrowser
 
 import dash
 from dash.dependencies import Input, Output
@@ -124,12 +123,6 @@ if __name__ == "__main__":
     proc = Process(target=start_server)
     proc.start()
 
-    # webbrowser.open("http://127.0.0.1:8000", new=0, autoraise=True)
-    # serve(app.server, listen="*:8000")
+    webbrowser.open("http://127.0.0.1:8000", new=0, autoraise=True)
 
-    webview.create_window("Dash", "http://127.0.0.1:8000")
-    webview.start()
-    # proc.join()
-
-    print("kill waitress process")
-    proc.kill()
+    proc.join()
