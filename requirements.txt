@@ -6,7 +6,6 @@ pyarrow
 numpy
 pandas
 kaleido==v0.1.0.post1
-celery
 diskcache
 redis
 waitress

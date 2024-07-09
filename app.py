@@ -27,7 +27,9 @@
 
 """
 
-from waitress import serve
+import subprocess
+# from waitress import serve
+import webview
 
 import dash
 from dash.dependencies import Input, Output
@@ -111,5 +113,12 @@ get_violin_view_callbacks(app)
 
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
-    # FlaskUI(app=app.server, server="flask", port=46734).run()
-    serve(app.server, listen="*:8000")
+
+    # serve(app.server, listen="*:8000")
+    proc = subprocess.Popen("waitress-serve --port=8000 app:app.server", shell=False)
+
+    webview.create_window("Dash", "http://127.0.0.1:8000")
+    webview.start()
+
+    print("kill waitress process")
+    proc.kill()
