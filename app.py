@@ -27,9 +27,9 @@
 
 """
 
-from multiprocessing import Process
+# from multiprocessing import Process
 from waitress import serve
-import webview
+# import webview
 
 import dash
 from dash.dependencies import Input, Output
@@ -112,19 +112,19 @@ get_parcats_view_callbacks(app)
 get_violin_view_callbacks(app)
 
 
-def start_server():
-    serve(app.server, listen="*:8000")
+# def start_server():
+#     serve(app.server, listen="*:8000")
 
 
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
 
-    # serve(app.server, listen="*:8000")
-    proc = Process(target=start_server)
-    proc.start()
+    serve(app.server, listen="*:8000")
+    # proc = Process(target=start_server)
+    # proc.start()
 
-    webview.create_window("Dash", "http://127.0.0.1:8000")
-    webview.start()
+    # webview.create_window("Dash", "http://127.0.0.1:8000")
+    # webview.start()
 
-    print("kill waitress process")
-    proc.kill()
+    # print("kill waitress process")
+    # proc.kill()
