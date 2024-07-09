@@ -27,7 +27,6 @@
 
 """
 
-from multiprocessing import Process
 from waitress import serve
 import webbrowser
 
@@ -112,17 +111,13 @@ get_parcats_view_callbacks(app)
 get_violin_view_callbacks(app)
 
 
-def start_server():
-    serve(app.server, listen="*:8000")
+# def start_server():
+#     serve(app.server, listen="*:8000")
 
 
 if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
 
-    # serve(app.server, listen="*:8000")
-    proc = Process(target=start_server)
-    proc.start()
-
     webbrowser.open("http://127.0.0.1:8000", new=0, autoraise=True)
 
-    proc.join()
+    serve(app.server, listen="*:8000")

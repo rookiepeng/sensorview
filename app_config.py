@@ -38,7 +38,7 @@ from diskcache import Cache
 
 APP_TITLE = "SensorView"
 
-DATA_PATH = "C:/Users/zjx8rj/OneDrive - Aptiv/radarviz"
+DATA_PATH = "./radarviz"
 FRAME_CACHE_PATH = "./cache/frame"
 DASH_CACHE_PATH = "./cache/dash"
 
