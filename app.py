@@ -28,6 +28,7 @@
 """
 
 from waitress import serve
+from multiprocessing import freeze_support
 
 import dash
 from dash.dependencies import Input, Output
@@ -111,5 +112,6 @@ get_violin_view_callbacks(app)
 
 
 if __name__ == "__main__":
+    freeze_support()
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
     serve(app.server, listen="*:8000")
