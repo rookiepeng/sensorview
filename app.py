@@ -27,12 +27,19 @@
 
 """
 
-# from waitress import serve
-from flaskwebgui import FlaskUI
+import json
+import os
+
+from waitress import serve
+
+# from flaskwebgui import FlaskUI
 from multiprocessing import freeze_support
 
 import dash
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+
+from utils import load_config
 
 from view_callbacks.test_case_view import get_test_case_view_callbacks
 from view_callbacks.control_view import get_control_view_callbacks
@@ -44,9 +51,8 @@ from view_callbacks.histogram_view import get_histogram_view_callbacks
 from view_callbacks.parcats_view import get_parcats_view_callbacks
 from view_callbacks.violin_view import get_violin_view_callbacks
 
-# from flaskwebgui import FlaskUI
-
-from app_config import APP_TITLE
+from app_config import APP_TITLE, DATA_PATH
+from app_config import SPECIAL_FOLDERS
 
 from app_layout import get_app_layout
 
@@ -59,6 +65,234 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = APP_TITLE
 app.layout = get_app_layout
+
+
+@app.callback(
+    output={
+        "data_path": Output("data-path-modal", "value"),
+    },
+    inputs={"modal_open": Input("modal-centered", "is_open")},
+)
+def on_modal_open(modal_open):
+    if os.path.isfile("./config.json"):
+        config = load_config("./config.json")
+    else:
+        config = {}
+
+    data_path = config.get("DATA_PATH", DATA_PATH)
+
+    config["DATA_PATH"] = data_path
+    json.dump(config, open("./config.json", "w+"))
+
+    return {
+        "data_path": data_path,
+    }
+
+
+@app.callback(
+    output={
+        "case_options": Output("case-picker-modal", "options"),
+        "case_value": Output("case-picker-modal", "value"),
+    },
+    inputs={
+        "data_path": Input("data-path-modal", "value"),
+        "refresh": Input("refresh-button-modal", "n_clicks"),
+    },
+)
+def on_path_change(data_path, refresh):
+    config = load_config("./config.json")
+
+    stored_case = config.get("CASE", "")
+
+    options = []
+    try:
+        obj = os.scandir(data_path)
+    except:
+        return {
+            "case_options": "",
+            "case_value": "",
+        }
+
+    for entry in obj:
+        if entry.is_dir():
+            # only add the folder with 'config.json'
+            if os.path.exists(os.path.join(data_path, entry.name, "config.json")):
+                options.append({"label": entry.name, "value": entry.name})
+
+    case_val = options[0]["value"]
+
+    # check previously loaded case in the browser's cache
+    if stored_case:
+        for _, case in enumerate(options):
+            if stored_case == case["value"]:
+                case_val = stored_case
+                break
+
+    config["DATA_PATH"] = data_path
+    config["CASE"] = case_val
+    json.dump(config, open("./config.json", "w+"))
+
+    return {
+        "case_options": options,
+        "case_value": case_val,
+    }
+
+
+@app.callback(
+    output={
+        "file_value": Output("file-picker-modal", "value"),
+        "file_options": Output("file-picker-modal", "options"),
+    },
+    inputs={
+        "case_val": Input("case-picker-modal", "value"),
+    },
+    state={
+        "data_path": State("data-path-modal", "value"),
+    },
+)
+def on_case_change(case_val, data_path):
+    config = load_config("./config.json")
+
+    stored_file = config.get("FILE", "")
+
+    if not case_val:
+        return {
+            "file_value": "",
+            "file_options": "",
+        }
+
+    case_dir = os.path.join(data_path, case_val)
+    data_files = []
+    for dirpath, dirnames, files in os.walk(case_dir):
+        dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
+        for name in files:
+            if name.lower().endswith(".csv"):
+                data_files.append(
+                    {
+                        "label": os.path.join(dirpath[len(case_dir) :], name),
+                        "value": json.dumps(
+                            {
+                                "path": dirpath,
+                                "name": name,
+                                "feather_name": name.replace(".csv", ".feather"),
+                            }
+                        ),
+                    }
+                )
+            elif name.lower().endswith(".pkl"):
+                data_files.append(
+                    {
+                        "label": os.path.join(dirpath[len(case_dir) :], name),
+                        "value": json.dumps(
+                            {
+                                "path": dirpath,
+                                "name": name,
+                                "feather_name": name.replace(".pkl", ".feather"),
+                            }
+                        ),
+                    }
+                )
+
+    if not data_files:
+        return {
+            "file_value": "",
+            "file_options": "",
+        }
+
+    file_value = data_files[0]["value"]
+    if stored_file:
+        for _, file in enumerate(data_files):
+            if stored_file == file["value"]:
+                file_value = stored_file
+                break
+
+    config["DATA_PATH"] = data_path
+    config["CASE"] = case_val
+    config["FILE"] = file_value
+    json.dump(config, open("./config.json", "w+"))
+
+    return {
+        "file_value": file_value,
+        "file_options": data_files,
+    }
+
+
+@app.callback(
+    output={
+        "modal_is_open": Output("modal-centered", "is_open", allow_duplicate=True),
+        "data_path_str": Output("data-path", "value"),
+        "test_case_str": Output("test-case", "value"),
+        "log_file_str": Output("log-file", "value"),
+        "current_file_update": Output("current-file", "data"),
+        "add_file_value": Output("file-add", "value"),
+        "add_file_options": Output("file-add", "options"),
+    },
+    inputs={
+        "ok_modal": Input("ok-modal", "n_clicks"),
+    },
+    state={
+        "data_path": State("data-path-modal", "value"),
+        "case_val": State("case-picker-modal", "value"),
+        "file_value": State("file-picker-modal", "value"),
+        "file_options": State("file-picker-modal", "options"),
+        "current_file": State("current-file", "data"),
+    },
+    prevent_initial_call=True,
+)
+def on_modal_close(ok_modal, data_path, case_val, file_value, file_options, current_file):
+
+    if not file_value:
+        raise PreventUpdate
+
+    config = load_config("./config.json")
+
+    file_dict = json.loads(file_value)
+
+    case_dir = os.path.join(data_path, case_val)
+
+    config["DATA_PATH"] = data_path
+    config["CASE"] = case_val
+    config["FILE"] = file_value
+    json.dump(config, open("./config.json", "w+"))
+
+    if current_file == file_value:
+        return {
+        "modal_is_open": False,
+        "data_path_str": data_path,
+        "test_case_str": case_val,
+        "log_file_str": os.path.join(
+            file_dict["path"][len(case_dir) :], file_dict["name"]
+        ),
+        "current_file_update":dash.no_update,
+        "add_file_value": dash.no_update,
+        "add_file_options":dash.no_update
+    }
+
+    return {
+        "modal_is_open": False,
+        "data_path_str": data_path,
+        "test_case_str": case_val,
+        "log_file_str": os.path.join(
+            file_dict["path"][len(case_dir) :], file_dict["name"]
+        ),
+        "current_file_update":file_value,
+        "add_file_value": [],
+        "add_file_options":file_options
+    }
+
+@app.callback(
+    output={
+        "modal_is_open": Output("modal-centered", "is_open", allow_duplicate=True),
+    },
+    inputs={
+        "select_modal": Input("select-button", "n_clicks"),
+    },
+    prevent_initial_call=True,
+)
+def open_modal(select_modal):
+    return {
+        "modal_is_open": True
+    }
 
 
 """
@@ -115,8 +349,8 @@ get_violin_view_callbacks(app)
 if __name__ == "__main__":
     freeze_support()
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
-    # serve(app.server, listen="*:8000")
+    serve(app.server, listen="*:8000")
 
-    FlaskUI(
-        app=app.server, server="flask", port=46754, profile_dir_prefix="sensorview"
-    ).run()
+    # FlaskUI(
+    #     app=app.server, server="flask", port=46754, profile_dir_prefix="sensorview"
+    # ).run()

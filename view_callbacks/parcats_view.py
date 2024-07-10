@@ -73,7 +73,7 @@ def get_parcats_view_callbacks(app):
         state={
             "session_id": State("session-id", "data"),
             "visible_list": State("visible-picker", "value"),
-            "file": State("file-picker", "value"),
+            "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
         },
         manager=background_callback_manager,
