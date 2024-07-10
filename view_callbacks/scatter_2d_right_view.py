@@ -132,7 +132,7 @@ def get_scatter_2d_right_view_callbacks(app):
             "colormap": State("colormap-scatter2d-right", "value"),
             "session_id": State("session-id", "data"),
             "visible_list": State("visible-picker", "value"),
-            "file": State("file-picker", "value"),
+            "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
         },
         manager=background_callback_manager,
