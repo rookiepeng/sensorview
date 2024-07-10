@@ -117,4 +117,6 @@ if __name__ == "__main__":
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
     # serve(app.server, listen="*:8000")
 
-    FlaskUI(app=app.server, server="flask", port=46734).run()
+    FlaskUI(
+        app=app.server, server="flask", port=46754, profile_dir_prefix="sensorview"
+    ).run()
