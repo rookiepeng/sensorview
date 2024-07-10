@@ -4,7 +4,7 @@ block_cipher = None
 
 
 a = Analysis(['app.py'],
-             pathex=['./sensorview'],
+             pathex=['./radarviz'],
              binaries=[],
              datas=[('./assets', 'assets'), ('./assets/fonts/bootstrap-icons.woff', "assets/fonts"), ('./assets/fonts/bootstrap-icons.woff2', "assets/fonts"), ("./view_callbacks", "view_callbacks")],
              hiddenimports=[],
@@ -21,7 +21,7 @@ exe = EXE(pyz,
           a.scripts,
           [],
           exclude_binaries=True,
-          name='sensorview',
+          name='radarviz',
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
@@ -35,4 +35,4 @@ coll = COLLECT(exe,
                strip=False,
                upx=True,
                upx_exclude=[],
-               name='sensorview')
+               name='radarviz')

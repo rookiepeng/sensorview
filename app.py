@@ -27,8 +27,8 @@
 
 """
 
-# from waitress import serve
-from flaskwebgui import FlaskUI
+from waitress import serve
+# from flaskwebgui import FlaskUI
 from multiprocessing import freeze_support
 
 import dash
@@ -43,8 +43,6 @@ from view_callbacks.heatmap_view import get_heatmap_view_callbacks
 from view_callbacks.histogram_view import get_histogram_view_callbacks
 from view_callbacks.parcats_view import get_parcats_view_callbacks
 from view_callbacks.violin_view import get_violin_view_callbacks
-
-# from flaskwebgui import FlaskUI
 
 from app_config import APP_TITLE
 
@@ -115,8 +113,8 @@ get_violin_view_callbacks(app)
 if __name__ == "__main__":
     freeze_support()
     # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
-    # serve(app.server, listen="*:8000")
+    serve(app.server, listen="*:8000")
 
-    FlaskUI(
-        app=app.server, server="flask", port=46754, profile_dir_prefix="sensorview"
-    ).run()
+    # FlaskUI(
+    #     app=app.server, server="flask", port=46754, profile_dir_prefix="sensorview"
+    # ).run()

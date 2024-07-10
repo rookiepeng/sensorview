@@ -4,9 +4,9 @@ name: Build Windows App
 on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
-    branches: [master]
+    branches: [radarviz]
   pull_request:
-    branches: [master]
+    branches: [radarviz]
 
 jobs:
   build:
@@ -31,5 +31,5 @@ jobs:
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: sensorview
-        path: .\dist\sensorview
+        name: radarviz
+        path: .\dist\radarviz

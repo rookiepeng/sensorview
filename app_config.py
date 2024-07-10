@@ -36,9 +36,9 @@ import redis
 from diskcache import Cache
 
 
-APP_TITLE = "SensorView"
+APP_TITLE = "RadarViz"
 
-DATA_PATH = "./radarviz"
+DATA_PATH = "C:/Users/zjx8rj/OneDrive - Aptiv/radarviz"
 FRAME_CACHE_PATH = "./cache/frame"
 DASH_CACHE_PATH = "./cache/dash"
 
