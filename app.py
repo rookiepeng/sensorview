@@ -239,7 +239,9 @@ def on_case_change(case_val, data_path):
     },
     prevent_initial_call=True,
 )
-def on_modal_close(ok_modal, data_path, case_val, file_value, file_options, current_file):
+def on_modal_close(
+    ok_modal, data_path, case_val, file_value, file_options, current_file
+):
 
     if not file_value:
         raise PreventUpdate
@@ -257,16 +259,16 @@ def on_modal_close(ok_modal, data_path, case_val, file_value, file_options, curr
 
     if current_file == file_value:
         return {
-        "modal_is_open": False,
-        "data_path_str": data_path,
-        "test_case_str": case_val,
-        "log_file_str": os.path.join(
-            file_dict["path"][len(case_dir) :], file_dict["name"]
-        ),
-        "current_file_update":dash.no_update,
-        "add_file_value": dash.no_update,
-        "add_file_options":dash.no_update
-    }
+            "modal_is_open": False,
+            "data_path_str": data_path,
+            "test_case_str": case_val,
+            "log_file_str": os.path.join(
+                file_dict["path"][len(case_dir) :], file_dict["name"]
+            ),
+            "current_file_update": dash.no_update,
+            "add_file_value": dash.no_update,
+            "add_file_options": dash.no_update,
+        }
 
     return {
         "modal_is_open": False,
@@ -275,10 +277,11 @@ def on_modal_close(ok_modal, data_path, case_val, file_value, file_options, curr
         "log_file_str": os.path.join(
             file_dict["path"][len(case_dir) :], file_dict["name"]
         ),
-        "current_file_update":file_value,
+        "current_file_update": file_value,
         "add_file_value": [],
-        "add_file_options":file_options
+        "add_file_options": file_options,
     }
+
 
 @app.callback(
     output={
@@ -290,9 +293,7 @@ def on_modal_close(ok_modal, data_path, case_val, file_value, file_options, curr
     prevent_initial_call=True,
 )
 def open_modal(select_modal):
-    return {
-        "modal_is_open": True
-    }
+    return {"modal_is_open": True}
 
 
 """
