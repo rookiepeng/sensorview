@@ -749,6 +749,7 @@ def get_scatter_3d_view_callbacks(app):
             Output("buffer-tooltip", "children"),
         ],
         manager=background_callback_manager,
+        prevent_initial_call=True,
     )
     def regenerate_figure_background_callback(
         set_progress,

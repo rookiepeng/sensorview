@@ -64,205 +64,6 @@ def get_test_case_view_callbacks(app):
     - None
     """
 
-    # @app.callback(
-    #     output={
-    #         "case_options": Output("case-picker", "options"),
-    #         "case_value": Output("case-picker", "value"),
-    #     },
-    #     inputs={"unused_nclick": Input("refresh-button", "n_clicks")},
-    #     state={"stored_case": State("local-case-selection", "data")},
-    # )
-    # def refresh_button_clicked(unused_nclick, stored_case):
-    #     """
-    #     Callback when the refresh button is clicked.
-
-    #     Scan all the folders under './data' with 'config.json' inside.
-
-    #     Parameters:
-    #     - unused_nclick (int): Number of clicks (unused in the function).
-    #     - stored_case (str): Previously selected test case stored in the browser's cache.
-
-    #     Returns:
-    #     dict: A dictionary containing test case options and the default test case value.
-
-    #     Dictionary structure:
-    #     {
-    #         "case_options": [
-    #             {"label": str, "value": str},
-    #             # Additional test case options as needed
-    #         ],
-    #         "case_value": str  # Default test case value
-    #     }
-
-    #     Example:
-    #     ```python
-    #     {
-    #         "case_options": [
-    #             {"label": "Option1", "value": "option1"},
-    #             {"label": "Option2", "value": "option2"},
-    #             # Additional test case options as needed
-    #         ],
-    #         "case_value": "option1"  # Default test case value
-    #     }
-    #     ```
-    #     """
-
-    #     options = []
-    #     obj = os.scandir(DATA_PATH)
-    #     for entry in obj:
-    #         if entry.is_dir():
-    #             # only add the folder with 'config.json'
-    #             if os.path.exists(os.path.join(DATA_PATH, entry.name, "config.json")):
-    #                 options.append({"label": entry.name, "value": entry.name})
-
-    #     case_val = options[0]["value"]
-
-    #     # check previously loaded case in the browser's cache
-    #     if stored_case:
-    #         for _, case in enumerate(options):
-    #             if stored_case == case["value"]:
-    #                 case_val = stored_case
-    #                 break
-
-    #     return {"case_options": options, "case_value": case_val}
-
-    # @app.callback(
-    #     background=True,
-    #     output={
-    #         "file_value": Output("file-picker", "value"),
-    #         "file_options": Output("file-picker", "options"),
-    #         "stored_case": Output("local-case-selection", "data"),
-    #     },
-    #     inputs={"case": Input("case-picker", "value")},
-    #     state={
-    #         "session_id": State("session-id", "data"),
-    #         "stored_file": State("local-file-selection", "data"),
-    #     },
-    #     progress=[
-    #         Output("loading-view", "style"),
-    #         Output("case-picker", "disabled"),
-    #         Output("file-picker", "disabled"),
-    #         Output("refresh-button", "disabled"),
-    #     ],
-    #     manager=background_callback_manager,
-    # )
-    # def case_selected(set_progress, case, session_id, stored_file):
-    #     """
-    #     Callback when a test case is selected.
-
-    #     Parameters:
-    #     - set_progress (function): A function to set the progress visual indicators.
-    #     - case (str): Selected test case.
-    #     - session_id (str): Session id.
-    #     - stored_file (str): Previously selected test file stored in the browser's cache.
-
-    #     Returns:
-    #     dict: A dictionary containing various options and values for dropdown components.
-
-    #     Dictionary structure:
-    #     {
-    #         "file_value": str,  # Default test file value
-    #         "file_options": [
-    #             {"label": str, "value": str},
-    #             # Additional test file options as needed
-    #         ],
-    #         "add_file_value": [],  # Placeholder for additional file values
-    #         "add_file_options": [],  # Placeholder for additional file options
-    #         "stored_case": str  # Stored test case value
-    #     }
-
-    #     Example:
-    #     ```python
-    #     {
-    #         "file_value": "path/to/default_file.csv",  # Default test file value
-    #         "file_options": [
-    #             {"label": "path/to/file1.csv",
-    #             "value": '{"path": "path/to",
-    #             "name": "file1.csv",
-    #             "feather_name": "file1.feather"}'},
-    #             {"label": "path/to/file2.csv",
-    #             "value": '{"path": "path/to",
-    #                         "name": "file2.csv",
-    #                         "feather_name": "file2.feather"}'},
-    #             # Additional test file options as needed
-    #         ],
-    #         "add_file_value": [],  # Placeholder for additional file values
-    #         "add_file_options": [],  # Placeholder for additional file options
-    #         "stored_case": "selected_case"  # Stored test case value
-    #     }
-    #     ```
-    #     """
-
-    #     if case is None:
-    #         raise PreventUpdate
-
-    #     set_progress(
-    #         [
-    #             {
-    #                 "position": "fixed",
-    #                 "top": 0,
-    #                 "left": 0,
-    #                 "width": "100%",
-    #                 "height": "100%",
-    #                 "background-color": "rgba(0, 0, 0, 0.9)",
-    #             },
-    #             True,
-    #             True,
-    #             True,
-    #         ]
-    #     )
-
-    #     data_files = []
-    #     case_dir = os.path.join(DATA_PATH, case)
-
-    #     if os.path.exists(os.path.join(DATA_PATH, case, "config.json")):
-    #         config = load_config(os.path.join(DATA_PATH, case, "config.json"))
-    #         cache_set(config, session_id, CACHE_KEYS["config"])
-    #     else:
-    #         raise PreventUpdate
-
-    #     for dirpath, dirnames, files in os.walk(case_dir):
-    #         dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
-    #         for name in files:
-    #             if name.lower().endswith(".csv"):
-    #                 data_files.append(
-    #                     {
-    #                         "label": os.path.join(dirpath[len(case_dir) :], name),
-    #                         "value": json.dumps(
-    #                             {
-    #                                 "path": dirpath,
-    #                                 "name": name,
-    #                                 "feather_name": name.replace(".csv", ".feather"),
-    #                             }
-    #                         ),
-    #                     }
-    #                 )
-    #             elif name.lower().endswith(".pkl"):
-    #                 data_files.append(
-    #                     {
-    #                         "label": os.path.join(dirpath[len(case_dir) :], name),
-    #                         "value": json.dumps(
-    #                             {
-    #                                 "path": dirpath,
-    #                                 "name": name,
-    #                                 "feather_name": name.replace(".pkl", ".feather"),
-    #                             }
-    #                         ),
-    #                     }
-    #                 )
-
-    #     file_value = data_files[0]["value"]
-    #     if stored_file:
-    #         for _, file in enumerate(data_files):
-    #             if stored_file == file["value"]:
-    #                 file_value = stored_file
-    #                 break
-    #     return {
-    #         "file_value": file_value,
-    #         "file_options": data_files,
-    #         "stored_case": case,
-    #     }
-
     @app.callback(
         background=True,
         output={
@@ -294,9 +95,9 @@ def get_test_case_view_callbacks(app):
         },
         progress=[
             Output("loading-view", "style"),
-            Output("case-picker", "disabled"),
-            Output("file-picker", "disabled"),
-            Output("refresh-button", "disabled"),
+            # Output("case-picker", "disabled"),
+            # Output("file-picker", "disabled"),
+            # Output("refresh-button", "disabled"),
         ],
         manager=background_callback_manager,
     )
@@ -399,9 +200,6 @@ def get_test_case_view_callbacks(app):
                     "height": "100%",
                     "background-color": "rgba(0, 0, 0, 0.9)",
                 },
-                True,
-                True,
-                True,
             ]
         )
         cache_set(-1, session_id, CACHE_KEYS["task_id"])
@@ -603,9 +401,6 @@ def get_test_case_view_callbacks(app):
                     "background-color": "rgba(0, 0, 0, 0.9)",
                     "display": "none",
                 },
-                False,
-                False,
-                False,
             ]
         )
 

@@ -281,7 +281,7 @@ view3d_card = dbc.Card(
                                                                 className="bi bi-skip-backward-fill"
                                                             ),
                                                             id="previous-button",
-                                                            color="dark",
+                                                            color="secondary",
                                                             n_clicks=0,
                                                         ),
                                                         dbc.Button(
@@ -305,7 +305,7 @@ view3d_card = dbc.Card(
                                                                 className="bi bi-skip-forward-fill"
                                                             ),
                                                             id="next-button",
-                                                            color="dark",
+                                                            color="secondary",
                                                             n_clicks=0,
                                                         ),
                                                     ]
@@ -1314,46 +1314,6 @@ def get_app_layout():
                                         className="h-100 w-100",
                                     ),
                                     width=1,
-                                ),
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText("Test Case"),
-                                            dbc.Select(id="case-picker"),
-                                        ]
-                                    ),
-                                    width=4,
-                                ),
-                                dbc.Tooltip(
-                                    "Select a test case",
-                                    target="case-picker",
-                                    placement="top",
-                                ),
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText("Log File"),
-                                            dbc.Select(id="file-picker"),
-                                            dbc.Button(
-                                                html.I(
-                                                    className="bi bi-arrow-clockwise"
-                                                ),
-                                                id="refresh-button",
-                                                n_clicks=0,
-                                            ),
-                                        ]
-                                    ),
-                                    width=8,
-                                ),
-                                dbc.Tooltip(
-                                    "Select a log file",
-                                    target="file-picker",
-                                    placement="top",
-                                ),
-                                dbc.Tooltip(
-                                    "Refresh test cases",
-                                    target="refresh-button",
-                                    placement="top",
                                 ),
                                 dbc.Col(
                                     html.Div(
