@@ -31,9 +31,9 @@ import json
 import os
 
 # from waitress import serve
+from multiprocessing import freeze_support
 
 from flaskwebgui import FlaskUI
-from multiprocessing import freeze_support
 
 import dash
 from dash.dependencies import Input, Output, State

@@ -39,7 +39,6 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-from app_config import SPECIAL_FOLDERS
 from app_config import (
     DROPDOWN_OPTIONS_ALL,
     DROPDOWN_VALUES_ALL,
