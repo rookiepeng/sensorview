@@ -27,121 +27,48 @@
 
 """
 
+# from waitress import serve
+from flaskwebgui import FlaskUI
+from multiprocessing import freeze_support
 
 import dash
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 
-from maindash import app
+from view_callbacks.test_case_view import get_test_case_view_callbacks
+from view_callbacks.control_view import get_control_view_callbacks
+from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
+from view_callbacks.scatter_2d_left_view import get_scatter_2d_left_view_callbacks
+from view_callbacks.scatter_2d_right_view import get_scatter_2d_right_view_callbacks
+from view_callbacks.heatmap_view import get_heatmap_view_callbacks
+from view_callbacks.histogram_view import get_histogram_view_callbacks
+from view_callbacks.parcats_view import get_parcats_view_callbacks
+from view_callbacks.violin_view import get_violin_view_callbacks
 
-from layout.layout import get_app_layout
+# from flaskwebgui import FlaskUI
 
-from utils import cache_get, CACHE_KEYS
+from app_config import APP_TITLE
 
-from views import test_case_view
-from views import control_view
-from views import scatter_3d_view
-from views import heatmap_view
-from views import histogram_view
-from views import parcats_view
-from views import scatter_2d_left_view
-from views import scatter_2d_right_view
-from views import violin_view
+from app_layout import get_app_layout
 
 
-server = app.server
+app = dash.Dash(
+    __name__,
+    meta_tags=[{"name": "viewport", "content": "width=device-width,initial-scale=1"}],
+)
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
-app.title = 'RadarViz'
+app.title = APP_TITLE
 app.layout = get_app_layout
 
 
-""" Callbacks """
-
-
-@app.callback(
-    output=dict(
-        buffer_progress=Output('buffer', 'value', allow_duplicate=True),
-        buffer_intrval_disabled=Output(
-            'buffer-interval', 'disabled', allow_duplicate=True),
-        buffer_tooltip=Output(
-            'buffer-tooltip', 'children', allow_duplicate=True),
-    ),
-    inputs=dict(
-        interval=Input('buffer-interval', 'n_intervals'),
-    ),
-    state=dict(
-        max_frame=State('slider-frame', 'max'),
-        session_id=State('session-id', 'data'),
-    ),
-    prevent_initial_call=True,
-)
-def update_buffer_indicator_callback(
-    interval,
-    max_frame,
-    session_id
-):
-
-    if max_frame is None:
-        return dict(
-            buffer_progress=0,
-            buffer_intrval_disabled=False,
-            buffer_tooltip='Buffering ... (0 %)',
-        )
-
-    fig_idx = cache_get(session_id, CACHE_KEYS['figure_idx'])
-    if fig_idx is not None:
-        percent = fig_idx/max_frame*100
-        if percent == 100:
-            return dict(
-                buffer_progress=percent,
-                buffer_intrval_disabled=True,
-                buffer_tooltip='Buffer ready (100 %)',
-            )
-        else:
-            return dict(
-                buffer_progress=percent,
-                buffer_intrval_disabled=dash.no_update,
-                buffer_tooltip='Buffering ... (' +
-                str(round(percent, 2))+' %)',
-            )
-    else:
-        return dict(
-            buffer_progress=0,
-            buffer_intrval_disabled=dash.no_update,
-            buffer_tooltip='Buffering ... (0 %)',
-        )
-
-
-@app.callback(
-    output=dict(
-        buffer_progress=Output('buffer', 'value', allow_duplicate=True),
-        buffer_intrval_disabled=Output(
-            'buffer-interval', 'disabled', allow_duplicate=True),
-        buffer_tooltip=Output(
-            'buffer-tooltip', 'children', allow_duplicate=True),
-    ),
-    inputs=dict(
-        filter_trigger=Input('filter-trigger', 'data'),
-        c_key=Input('c-picker-3d', 'value'),
-        left_hide_trigger=Input('left-hide-trigger', 'data'),
-        file_loaded=Input('file-loaded-trigger', 'data'),
-    ),
-    prevent_initial_call=True,
-)
-def reset_buffer_indicator_callback(
-    filter_trigger,
-    c_key,
-    left_hide_trigger,
-    file_loaded,
-):
-
-    return dict(
-        buffer_progress=0,
-        buffer_intrval_disabled=False,
-        buffer_tooltip='Buffering ... (0 %)',
-    )
-
-
+"""
+This clientside callback function disables the interval component based on
+the number of clicks on the play button and stop button. If the play button
+is clicked and the number of play clicks is greater than 0, the interval
+component is disabled. If the stop button is clicked and the number of stop
+clicks is greater than 0, the interval component is enabled. If neither button
+is clicked, the interval component remains unchanged.
+"""
 app.clientside_callback(
     """
     function(play_clicks, stop_clicks) {
@@ -169,11 +96,27 @@ app.clientside_callback(
         return window.dash_clientside.no_update;
     }
     """,
-    Output('interval-component', 'disabled'),
-    Input('play-button', 'n_clicks'),
-    Input('stop-button', 'n_clicks')
+    Output("interval-component", "disabled"),
+    Input("play-button", "n_clicks"),
+    Input("stop-button", "n_clicks"),
 )
 
+get_test_case_view_callbacks(app)
+get_control_view_callbacks(app)
+get_scatter_3d_view_callbacks(app)
+get_scatter_2d_left_view_callbacks(app)
+get_scatter_2d_right_view_callbacks(app)
+get_heatmap_view_callbacks(app)
+get_histogram_view_callbacks(app)
+get_parcats_view_callbacks(app)
+get_violin_view_callbacks(app)
 
-if __name__ == '__main__':
-    app.run_server(debug=True, threaded=True, processes=1, host='0.0.0.0')
+
+if __name__ == "__main__":
+    freeze_support()
+    # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
+    # serve(app.server, listen="*:8000")
+
+    FlaskUI(
+        app=app.server, server="flask", port=46754, profile_dir_prefix="sensorview"
+    ).run()

@@ -2,11 +2,11 @@ dash
 dash[diskcache]
 dash-daq
 dash-bootstrap-components
-gunicorn
 pyarrow
 numpy
 pandas
-kaleido
-celery
+kaleido==v0.1.0.post1
 diskcache
 redis
+waitress
+flaskwebgui
