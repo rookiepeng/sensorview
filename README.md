@@ -1,12 +1,6 @@
 # SensorView
 
-<img src="./assets/sensorview_logo.svg" alt="logo" width="200"/>
-
-A sensor data visualization and analysis tool.
-
-## Screenshots
-
-![screenshot]("./assets/sensorview.jpeg")
+![screenshot](./assets/sensorview.jpeg)
 
 ## Features
 
