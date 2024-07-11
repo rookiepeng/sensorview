@@ -44,3 +44,4 @@ images/
 data/*
 !data/Example/
 /temp
+config.json
