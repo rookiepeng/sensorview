@@ -2,7 +2,7 @@
 
 <img src="./assets/sensorview_logo.svg" alt="logo" width="200"/>
 
-A lightweight sensor data visualization and analysis tool.
+A sensor data visualization and analysis tool.
 
 ## Screenshots
 
@@ -28,19 +28,8 @@ A lightweight sensor data visualization and analysis tool.
 
 See `requirements.txt`
 
-### [Redis](https://redis.io/)
-
 ## Usage
 
 Save data as the `.pkl` or `.csv` files under `./data` directory. See `./data/Example`.
 
 Put the `config.json` in the same directory, and specify the `columns` of the data in `config.json`. Check `./data/Example/config.json`.
-
-### Debug
-
-```bash
-redis-server
-python app.py
-```
-
-- Open `http://127.0.0.1:8050/` in a browser
