@@ -36,7 +36,8 @@ import redis
 from diskcache import Cache
 
 
-APP_TITLE = "RadarViz"
+APP_TITLE = "SensorView"
+APP_VERSION = "v10.0"
 
 DATA_PATH = "./data"
 FRAME_CACHE_PATH = "./cache/frame"

@@ -37,7 +37,7 @@ import dash_bootstrap_components as dbc
 
 import plotly.io as pio
 
-from app_config import APP_TITLE
+from app_config import APP_TITLE, APP_VERSION
 
 colorscales = [
     "Blackbody",
@@ -1392,7 +1392,8 @@ def get_app_layout():
                 },
             ),
             dcc.Markdown(
-                "Designed and developed by **Zhengyu Peng** \
+                APP_VERSION
+                + " | Designed and developed by **Zhengyu Peng** \
                 | Powered by [Dash](https://plotly.com/dash/)"
             ),
         ],
