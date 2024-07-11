@@ -1254,7 +1254,7 @@ def get_app_layout():
                                 ),
                                 html.H4(APP_TITLE, className="text-center"),
                                 html.P(
-                                    "Radar Data Visualization",
+                                    "Sensor Data Visualization",
                                     className="text-center",
                                 ),
                             ]
