@@ -1356,7 +1356,6 @@ def get_app_layout():
                 align="center",
                 className="my-3",
             ),
-            html.Hr(),
             view3d_card,
             dbc.CardGroup([left2d_card, right2d_card], className="mb-3"),
             dbc.CardGroup([hist_card, violin_card], className="mb-3"),
