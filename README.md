@@ -1,6 +1,6 @@
 # SensorView
 
-![screenshot](./assets/sensorview.jpeg)
+![screenshot](./assets/sensorview.png)
 
 ## Features
 
