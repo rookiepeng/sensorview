@@ -163,7 +163,8 @@ view3d_card = dbc.Card(
                                                     target="c-picker-3d",
                                                     placement="top",
                                                 ),
-                                            ]
+                                            ],
+                                            size="sm",
                                         ),
                                         width=3,
                                     ),
@@ -184,7 +185,8 @@ view3d_card = dbc.Card(
                                                     target="colormap-3d",
                                                     placement="top",
                                                 ),
-                                            ]
+                                            ],
+                                            size="sm",
                                         ),
                                         width=3,
                                     ),
@@ -225,7 +227,7 @@ view3d_card = dbc.Card(
                                                     "uirevision": "no_change",
                                                 },
                                             },
-                                            style={"height": "85vh"},
+                                            style={"height": "80vh"},
                                         ),
                                         className="mt-2",
                                     ),
@@ -267,11 +269,14 @@ view3d_card = dbc.Card(
                                     ),
                                     dbc.Row(
                                         [
-                                            dcc.Interval(
-                                                id="interval-component",
-                                                interval=2 * 100,  # in milliseconds
-                                                disabled=True,
-                                                n_intervals=0,
+                                            dbc.Col(
+                                                dcc.Interval(
+                                                    id="interval-component",
+                                                    interval=2 * 100,  # in milliseconds
+                                                    disabled=True,
+                                                    n_intervals=0,
+                                                ),
+                                                width=4,
                                             ),
                                             dbc.Col(
                                                 dbc.ButtonGroup(
@@ -308,9 +313,35 @@ view3d_card = dbc.Card(
                                                             color="secondary",
                                                             n_clicks=0,
                                                         ),
-                                                    ]
+                                                    ],
+                                                    className="w-100 mx-auto",
                                                 ),
-                                                width=2,
+                                                width=4,
+                                            ),
+                                            dbc.Col(
+                                                dbc.DropdownMenu(
+                                                    [
+                                                        dbc.DropdownMenuItem(
+                                                            "Export all frames as an HTML video",
+                                                            id="export-scatter3d",
+                                                            n_clicks=0,
+                                                        ),
+                                                        dbc.DropdownMenuItem(
+                                                            "Filtered Data (Current Frame)",
+                                                            id="export-data-current",
+                                                            n_clicks=0,
+                                                        ),
+                                                        dbc.DropdownMenuItem(
+                                                            "Filtered Data (All Frames)",
+                                                            id="export-data-all",
+                                                            n_clicks=0,
+                                                        ),
+                                                    ],
+                                                    label="Export",
+                                                    right=True,
+                                                    style={"float": "right"},
+                                                ),
+                                                width=4,
                                             ),
                                             dbc.Tooltip(
                                                 "Previous frame",
@@ -332,38 +363,11 @@ view3d_card = dbc.Card(
                                                 target="next-button",
                                                 placement="top",
                                             ),
-                                        ],
-                                        justify="center",
-                                    ),
-                                    html.Div(
-                                        [
-                                            dbc.DropdownMenu(
-                                                [
-                                                    dbc.DropdownMenuItem(
-                                                        "Export all frames as an HTML video",
-                                                        id="export-scatter3d",
-                                                        n_clicks=0,
-                                                    ),
-                                                    dbc.DropdownMenuItem(
-                                                        "Filtered Data (Current Frame)",
-                                                        id="export-data-current",
-                                                        n_clicks=0,
-                                                    ),
-                                                    dbc.DropdownMenuItem(
-                                                        "Filtered Data (All Frames)",
-                                                        id="export-data-all",
-                                                        n_clicks=0,
-                                                    ),
-                                                ],
-                                                label="Export",
-                                                right=True,
-                                                style={"float": "right"},
-                                            ),
                                             html.Div(
                                                 id="hidden-scatter3d",
                                                 style={"display": "none"},
                                             ),
-                                        ]
+                                        ],
                                     ),
                                 ]
                             ),
@@ -444,7 +448,7 @@ view3d_card = dbc.Card(
                                     ),
                                 ]
                             ),
-                            style={"overflow-y": "scroll", "height": "110vh"},
+                            style={"overflow-y": "scroll", "height": "100vh"},
                         ),
                     ]
                 )
@@ -1316,16 +1320,13 @@ def get_app_layout():
                                     width=1,
                                 ),
                                 dbc.Col(
-                                    html.Div(
-                                        [
-                                            dbc.Button(
-                                                html.I(className="bi bi-link-45deg"),
-                                                id="button-add",
-                                                n_clicks=0,
-                                                size="sm",
-                                            )
-                                        ],
-                                        className="d-grid",
+                                    dbc.Button(
+                                        html.I(className="bi bi-link-45deg"),
+                                        id="button-add",
+                                        n_clicks=0,
+                                        color="secondary",
+                                        size="sm",
+                                        className="w-100",
                                     ),
                                     width=12,
                                     className="my-2",

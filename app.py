@@ -39,7 +39,7 @@ import dash
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from utils import load_config
+from utils import load_config, save_config
 
 from view_callbacks.test_case_view import get_test_case_view_callbacks
 from view_callbacks.control_view import get_control_view_callbacks
@@ -82,7 +82,7 @@ def on_modal_open(modal_open):
     data_path = config.get("DATA_PATH", DATA_PATH)
 
     config["DATA_PATH"] = data_path
-    json.dump(config, open("./config.json", "w+"))
+    save_config(config, "./config.json")
 
     return {
         "data_path": data_path,
@@ -130,7 +130,7 @@ def on_path_change(data_path, refresh):
 
     config["DATA_PATH"] = data_path
     config["CASE"] = case_val
-    json.dump(config, open("./config.json", "w+"))
+    save_config(config, "./config.json")
 
     return {
         "case_options": options,
@@ -209,7 +209,7 @@ def on_case_change(case_val, data_path):
     config["DATA_PATH"] = data_path
     config["CASE"] = case_val
     config["FILE"] = file_value
-    json.dump(config, open("./config.json", "w+"))
+    save_config(config, "./config.json")
 
     return {
         "file_value": file_value,
@@ -255,7 +255,7 @@ def on_modal_close(
     config["DATA_PATH"] = data_path
     config["CASE"] = case_val
     config["FILE"] = file_value
-    json.dump(config, open("./config.json", "w+"))
+    save_config(config, "./config.json")
 
     if current_file == file_value:
         return {
@@ -296,14 +296,12 @@ def open_modal(select_modal):
     return {"modal_is_open": True}
 
 
-"""
-This clientside callback function disables the interval component based on
-the number of clicks on the play button and stop button. If the play button
-is clicked and the number of play clicks is greater than 0, the interval
-component is disabled. If the stop button is clicked and the number of stop
-clicks is greater than 0, the interval component is enabled. If neither button
-is clicked, the interval component remains unchanged.
-"""
+# This clientside callback function disables the interval component based on
+# the number of clicks on the play button and stop button. If the play button
+# is clicked and the number of play clicks is greater than 0, the interval
+# component is disabled. If the stop button is clicked and the number of stop
+# clicks is greater than 0, the interval component is enabled. If neither button
+# is clicked, the interval component remains unchanged.
 app.clientside_callback(
     """
     function(play_clicks, stop_clicks) {
@@ -353,5 +351,5 @@ if __name__ == "__main__":
     # serve(app.server, listen="*:8000")
 
     FlaskUI(
-        app=app.server, server="flask", port=46754, profile_dir_prefix="sensorview"
+        app=app.server, server="flask", port=45678, profile_dir_prefix="sensorview"
     ).run()

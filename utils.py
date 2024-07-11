@@ -53,6 +53,18 @@ def load_config(json_file):
         return json.load(read_file)
 
 
+def save_config(json_dict, json_file):
+    """
+    Save configuration file.
+
+    Parameters:
+    - json_dict (dict): Python dict
+    - json_file (str): The path to the JSON configuration file.
+    """
+    with open(json_file, "w+", encoding="utf-8") as write_file:
+        json.dump(json_dict, write_file, indent=4)
+
+
 def load_data(file, file_list):
     """
     Load data from file(s).
