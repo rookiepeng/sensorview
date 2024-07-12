@@ -63,6 +63,15 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
                     + data_frame[key].map(hover[key]["format"].format)
                     + "<br>"
                 )
+            elif "decimal" in hover[key]:
+                format_str = "{:,."+str(hover[key]["decimal"])+"f}"
+                hover_str = (
+                    hover_str
+                    + hover[key]["description"]
+                    + ": "
+                    + data_frame[key].map(format_str.format)
+                    + "<br>"
+                )
             else:
                 hover_str = (
                     hover_str
@@ -88,6 +97,15 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
                         + hover[key]["description"]
                         + ": "
                         + new_list[key].map(hover[key]["format"].format)
+                        + "<br>"
+                    )
+                elif "decimal" in hover[key]:
+                    format_str = "{:,."+str(hover[key]["decimal"])+"f}"
+                    hover_str = (
+                        hover_str
+                        + hover[key]["description"]
+                        + ": "
+                        + new_list[key].map(format_str.format)
                         + "<br>"
                     )
                 else:
