@@ -29,14 +29,16 @@
 
 import os
 import json
-import pickle
+
+# import pickle
 import base64
 
 import pandas as pd
 
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
-from app_config import redis_instance
+
+# from app_config import redis_instance
 
 
 def load_config(json_file):
@@ -260,22 +262,22 @@ def cache_expire():
     frame_cache.expire()
 
 
-def redis_set(data, id_str, key_major, key_minor=None):
-    """
-    Set data in Redis.
+# def redis_set(data, id_str, key_major, key_minor=None):
+#     """
+#     Set data in Redis.
 
-    Parameters:
-    - data (any): The data to be stored in Redis.
-    - id_str (str): A unique identifier string.
-    - key_major (str): The major Redis key.
-    - key_minor (str, optional): The minor Redis key. Defaults to None.
-    """
-    if key_minor is None:
-        key_str = key_major + id_str
-    else:
-        key_str = key_major + id_str + key_minor
+#     Parameters:
+#     - data (any): The data to be stored in Redis.
+#     - id_str (str): A unique identifier string.
+#     - key_major (str): The major Redis key.
+#     - key_minor (str, optional): The minor Redis key. Defaults to None.
+#     """
+#     if key_minor is None:
+#         key_str = key_major + id_str
+#     else:
+#         key_str = key_major + id_str + key_minor
 
-    redis_instance.set(key_str, pickle.dumps(data), ex=EXPIRATION)
+#     redis_instance.set(key_str, pickle.dumps(data), ex=EXPIRATION)
 
 
 def cache_get(id_str, key_major, key_minor=None):
@@ -299,29 +301,29 @@ def cache_get(id_str, key_major, key_minor=None):
     return val
 
 
-def redis_get(id_str, key_major, key_minor=None):
-    """
-    Get data from Redis.
+# def redis_get(id_str, key_major, key_minor=None):
+#     """
+#     Get data from Redis.
 
-    Parameters:
-    - id_str (str): A unique identifier string.
-    - key_major (str): The major Redis key.
-    - key_minor (str, optional): The minor Redis key. Defaults to None.
+#     Parameters:
+#     - id_str (str): A unique identifier string.
+#     - key_major (str): The major Redis key.
+#     - key_minor (str, optional): The minor Redis key. Defaults to None.
 
-    Returns:
-    - any: The retrieved data, or None if not found.
-    """
-    if key_minor is None:
-        key_str = key_major + id_str
-    else:
-        key_str = key_major + id_str + key_minor
+#     Returns:
+#     - any: The retrieved data, or None if not found.
+#     """
+#     if key_minor is None:
+#         key_str = key_major + id_str
+#     else:
+#         key_str = key_major + id_str + key_minor
 
-    val = redis_instance.get(key_str)
+#     val = redis_instance.get(key_str)
 
-    if val is not None:
-        return pickle.loads(val)
+#     if val is not None:
+#         return pickle.loads(val)
 
-    return None
+#     return None
 
 
 def filter_all(
