@@ -6,7 +6,7 @@
 
 ### 3D Visualization and Filtering
 
-<img src="./assets/3d.gif" alt="3d" width="600"/>
+![3d](./assets/3d.gif)
 
 ### 2D Visualization and Filtering
 
