@@ -14,7 +14,7 @@
 
 ### Statistical Visualization
 
-<img src="./assets/stat.gif" alt="stat" width="600"/>
+![stat](./assets/stat.gif)
 
 ## Dependence
 
