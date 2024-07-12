@@ -261,9 +261,7 @@ def on_modal_close(
             "modal_is_open": False,
             "data_path_str": data_path,
             "test_case_str": case_val,
-            "log_file_str": os.path.join(
-                file_dict["path"][len(case_dir) :], file_dict["name"]
-            ),
+            "log_file_str": file_dict["label"],
             "current_file_update": dash.no_update,
             "add_file_value": dash.no_update,
             "add_file_options": dash.no_update,
@@ -273,9 +271,7 @@ def on_modal_close(
         "modal_is_open": False,
         "data_path_str": data_path,
         "test_case_str": case_val,
-        "log_file_str": os.path.join(
-            file_dict["path"][len(case_dir) :], file_dict["name"]
-        ),
+        "log_file_str": file_dict["label"],
         "current_file_update": file_value,
         "add_file_value": [],
         "add_file_options": file_options,
