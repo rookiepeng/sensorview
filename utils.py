@@ -65,7 +65,7 @@ def save_config(json_dict, json_file):
         json.dump(json_dict, write_file, indent=4)
 
 
-def load_data(file, file_list):
+def load_data(file_list, file=None):
     """
     Load data from file(s).
 
@@ -76,50 +76,22 @@ def load_data(file, file_list):
     Returns:
     - pd.DataFrame: The loaded data.
     """
-    if file not in file_list:
+    if file is not None and file not in file_list:
         file_list.append(file)
 
     data_list = []
     for _, f_dict in enumerate(file_list):
         file = json.loads(f_dict)
 
-        if ".pkl" in file["name"]:
+        if file["name"].endswith(".pkl"):
             new_data = pd.read_pickle(os.path.join(file["path"], file["name"]))
             new_data = new_data.reset_index(drop=True)
 
-        elif ".csv" in file["name"]:
+        elif file["name"].endswith(".csv"):
             new_data = pd.read_csv(
                 os.path.join(file["path"], file["name"]), engine="pyarrow"
             )
 
-        data_list.append(new_data)
-
-    data = pd.concat(data_list)
-    return data.reset_index(drop=True)
-
-
-def load_data_list(file_list, case):
-    """
-    Load data from a list of files.
-
-    Parameters:
-    - file_list (list): The list of selected files.
-    - case (str): The selected case.
-
-    Returns:
-    - pd.DataFrame: The loaded data.
-    """
-    data_list = []
-    for _, f_dict in enumerate(file_list):
-        file = json.loads(f_dict)
-        if ".pkl" in file["name"]:
-            new_data = pd.read_pickle(os.path.join(file["path"], file["name"]))
-            new_data = new_data.reset_index(drop=True)
-
-        elif ".csv" in file["name"]:
-            new_data = pd.read_csv(
-                os.path.join(file["path"], file["name"]), engine="pyarrow"
-            )
         data_list.append(new_data)
 
     data = pd.concat(data_list)

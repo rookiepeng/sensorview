@@ -27,7 +27,6 @@
 
 """
 
-import json
 import os
 
 import pandas as pd
@@ -50,6 +49,7 @@ from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES
 
 from utils import load_config, cache_set, cache_get
+from utils import load_data
 
 
 def get_test_case_view_callbacks(app):
@@ -224,28 +224,7 @@ def get_test_case_view_callbacks(app):
 
         keys_dict = config["keys"]
 
-        if file not in add_file_value:
-            add_file_value.append(file)
-
-        new_data_list = []
-        for _, f_dict in enumerate(add_file_value):
-            file_dict = json.loads(f_dict)
-
-            if ".pkl" in file_dict["name"]:
-                new_data = pd.read_pickle(
-                    os.path.join(file_dict["path"], file_dict["name"])
-                )
-                new_data = new_data.reset_index(drop=True)
-
-            elif ".csv" in file_dict["name"]:
-                new_data = pd.read_csv(
-                    os.path.join(file_dict["path"], file_dict["name"]), engine="pyarrow"
-                )
-
-            new_data_list.append(new_data)
-
-        new_data = pd.concat(new_data_list)
-        new_data = new_data.reset_index(drop=True)
+        new_data = load_data(add_file_value, file)
         # get the list of frames and save to Redis
         frame_list = np.sort(new_data[config["slider"]].unique())
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
