@@ -94,9 +94,6 @@ def get_test_case_view_callbacks(app):
         },
         progress=[
             Output("loading-view", "style"),
-            # Output("case-picker", "disabled"),
-            # Output("file-picker", "disabled"),
-            # Output("refresh-button", "disabled"),
         ],
         manager=background_callback_manager,
     )
@@ -141,57 +138,6 @@ def get_test_case_view_callbacks(app):
             "dp_opts_cat": list,  # Dropdown options for categorical keys
             "dp_vals_cat": list,  # Dropdown values for categorical keys
         }
-
-        Example:
-        ```python
-        {
-            "file_load_trigger": 2,
-            "stored_file": "path/to/selected_file.csv",
-            "frame_min": 0,
-            "frame_max": 10,
-            "dropdown_container": [
-                dbc.Label("Category 1"),
-                dcc.Dropdown(
-                    id={"type": "filter-dropdown", "index": 0},
-                    options=[{"label": "Option1", "value": "option1"}],
-                    value=["option1"],
-                    multi=True,
-                ),
-                # Additional dropdown components as needed
-            ],
-            "slider_container": [
-                dbc.Label("Numeric Key 1"),
-                dcc.RangeSlider(
-                    id={"type": "filter-slider", "index": 0},
-                    min=0,
-                    max=100,
-                    marks=None,
-                    step=1,
-                    value=[0, 100],
-                    tooltip={"always_visible": False},
-                ),
-                # Additional slider components as needed
-            ],
-            "dim_picker_opt": [{"label": "Category 1", "value": "Category1"}],
-            "dim_picker_val": ["Category1"],
-            "dp_opts_all": [
-                [{"label": "Key1", "value": "Key1"}],
-                # Additional dropdown options for all keys as needed
-            ],
-            "dp_vals_all": ["Key1"],
-            "dp_opts_cat_color": [
-                [{"label": "None", "value": "None"}],
-                [{"label": "Category1", "value": "Category1"}],
-                # Additional dropdown options for categorical color keys as needed
-            ],
-            "dp_vals_cat_color": ["None"],
-            "dp_opts_cat": [
-                [{"label": "Category1", "value": "Category1"}],
-                # Additional dropdown options for categorical keys as needed
-            ],
-            "dp_vals_cat": ["Category1"],
-        }
-        ```
         """
         if not file:
             raise PreventUpdate
@@ -278,11 +224,6 @@ def get_test_case_view_callbacks(app):
 
         keys_dict = config["keys"]
 
-        # load data from selected file (supoprt .csv or .pickle)
-        #   - check if there is a .feather file with the same name
-        #   - if the .feather file exits, load through the .feather file
-        #   - otherwise, load the file and save the DataFrame into a
-        #     .feather file
         if file not in add_file_value:
             add_file_value.append(file)
 
@@ -464,13 +405,6 @@ def get_test_case_view_callbacks(app):
             "slider_value": int,  # New slider position
         }
 
-        Example:
-        ```python
-        {
-            "slider_value": 2,
-        }
-        ```
-
         Raises:
         PreventUpdate: If either `file` or `case` is None.
 
@@ -539,13 +473,6 @@ def get_test_case_view_callbacks(app):
             "state": bool,  # New state of the "collapse-add" element
         }
 
-        Example:
-        ```python
-        {
-            "state": True,
-        }
-        ```
-
         Raises:
         PreventUpdate: If the button click count is 0.
 
@@ -600,18 +527,6 @@ def get_test_case_view_callbacks(app):
             "parallel_switch": list,  # Reset state for the "parallel-switch" component
             "heat_switch": list,  # Reset state for the "heat-switch" component
         }
-
-        Example:
-        ```python
-        {
-            "left_switch": [],
-            "right_switch": [],
-            "hist_switch": [],
-            "violin_switch": [],
-            "parallel_switch": [],
-            "heat_switch": [],
-        }
-        ```
 
         Raises:
         PreventUpdate: If either `file` or `case` is None.
