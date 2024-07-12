@@ -674,14 +674,14 @@ def get_scatter_3d_view_callbacks(app):
         """
         # invoke task
         cache_set(-1, session_id, CACHE_KEYS["task_id"])
+        cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
+
         # save filter key word arguments to Redis
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
         filter_kwargs["num_values"] = num_values
         filter_kwargs["cat_values"] = cat_values
         cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
 
-        # cache_set(0, session_id, CACHE_KEYS["task_id"])
-        cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
         if file not in file_list:
             file_list.append(file)
 
