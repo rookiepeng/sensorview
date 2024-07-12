@@ -9,22 +9,22 @@
     "keys": {
         "Height": {
             "description": "Height (m)",
-            "format": "{:,.2f}",
+            "decimal": 2,
             "type": "numerical"
         },
         "Longitude": {
             "description": "Longitude (m)",
-            "format": "{:,.2f}",
+            "decimal": 2,
             "type": "numerical"
         },
         "Latitude": {
             "description": "Latitude (m)",
-            "format": "{:,.2f}",
+            "decimal": 2,
             "type": "numerical"
         },
         "Time": {
             "description": "Time (s)",
-            "format": "{:,.2f}",
+            "decimal": 2,
             "type": "numerical"
         },
         "Sensor": {
@@ -33,17 +33,17 @@
         },
         "Frame": {
             "description": "Frame",
-            "format": "{:,.0f}",
+            "decimal": 0,
             "type": "numerical"
         },
         "Host_Longitude": {
             "description": "Ref Longitude (m)",
-            "format": "{:,.2f}",
+            "decimal": 2,
             "type": "numerical"
         },
         "Host_Latitude": {
             "description": "Ref Latitude (m)",
-            "format": "{:,.2f}",
+            "decimal": 2,
             "type": "numerical"
         }
     }
