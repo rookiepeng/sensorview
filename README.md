@@ -10,7 +10,7 @@
 
 ### 2D Visualization and Filtering
 
-<img src="./assets/2d.gif" alt="2d" width="600"/>
+![2d](./assets/2d.gif)
 
 ### Statistical Visualization
 
