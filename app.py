@@ -28,7 +28,7 @@
 """
 
 import json
-import os
+import os, shutil
 
 # from waitress import serve
 from multiprocessing import freeze_support
@@ -71,21 +71,21 @@ app.layout = get_app_layout
     output={
         "data_path": Output("data-path-modal", "value"),
     },
-    inputs={"modal_open": Input("modal-centered", "is_open")},
+    inputs={"is_modal_open": Input("modal-centered", "is_open")},
 )
-def on_modal_open(modal_open):
+def on_modal_open(is_modal_open):
+    if not is_modal_open:
+        raise PreventUpdate
+
     if os.path.isfile("./config.json"):
         config = load_config("./config.json")
     else:
         config = {}
-
     data_path = config.get("DATA_PATH", DATA_PATH)
 
-    config["DATA_PATH"] = data_path
-    save_config(config, "./config.json")
-
-    if not os.path.exists("./temp"):
-        os.makedirs("./temp")
+    if os.path.exists("./temp"):
+        shutil.rmtree("./temp")
+    os.makedirs("./temp")
 
     return {
         "data_path": data_path,
@@ -99,10 +99,10 @@ def on_modal_open(modal_open):
     },
     inputs={
         "data_path": Input("data-path-modal", "value"),
-        "refresh": Input("refresh-button-modal", "n_clicks"),
+        "unused_refresh": Input("refresh-button-modal", "n_clicks"),
     },
 )
-def on_path_change(data_path, refresh):
+def on_path_change(data_path, unused_refresh):
     config = load_config("./config.json")
 
     stored_case = config.get("CASE", "")
@@ -110,7 +110,7 @@ def on_path_change(data_path, refresh):
     options = []
     try:
         obj = os.scandir(data_path)
-    except:
+    except OSError:
         return {
             "case_options": "",
             "case_value": "",
@@ -118,7 +118,7 @@ def on_path_change(data_path, refresh):
 
     for entry in obj:
         if entry.is_dir():
-            # only add the folder with 'config.json'
+            # only add the folder with 'info.json'
             if os.path.exists(os.path.join(data_path, entry.name, "info.json")):
                 options.append({"label": entry.name, "value": entry.name})
 
@@ -130,10 +130,6 @@ def on_path_change(data_path, refresh):
             if stored_case == case["value"]:
                 case_val = stored_case
                 break
-
-    config["DATA_PATH"] = data_path
-    config["CASE"] = case_val
-    save_config(config, "./config.json")
 
     return {
         "case_options": options,
@@ -177,7 +173,7 @@ def on_case_change(case_val, data_path):
                             {
                                 "path": dirpath,
                                 "name": name,
-                                # "feather_name": name.replace(".csv", ".feather"),
+                                "label": os.path.join(dirpath[len(case_dir) :], name),
                             }
                         ),
                     }
@@ -190,7 +186,7 @@ def on_case_change(case_val, data_path):
                             {
                                 "path": dirpath,
                                 "name": name,
-                                # "feather_name": name.replace(".pkl", ".feather"),
+                                "label": os.path.join(dirpath[len(case_dir) :], name),
                             }
                         ),
                     }

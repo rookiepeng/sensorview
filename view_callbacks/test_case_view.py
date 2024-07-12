@@ -155,16 +155,15 @@ def get_test_case_view_callbacks(app):
             ]
         )
         cache_set(-1, session_id, CACHE_KEYS["task_id"])
+        cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
         if os.path.exists(os.path.join(data_path, case, "info.json")):
             config = load_config(os.path.join(data_path, case, "info.json"))
             cache_set(config, session_id, CACHE_KEYS["config"])
         else:
             raise PreventUpdate
-        # get keys from Redis
-        # config = cache_get(session_id, CACHE_KEYS["config"])
 
-        # extract keys and save to Redis
+        # extract keys and save to Cache
         num_keys = []
         cat_keys = []
         for _, item in enumerate(config["keys"]):
@@ -225,11 +224,11 @@ def get_test_case_view_callbacks(app):
         keys_dict = config["keys"]
 
         new_data = load_data(add_file_value, file)
-        # get the list of frames and save to Redis
+        # get the list of frames and save to Cache
         frame_list = np.sort(new_data[config["slider"]].unique())
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
 
-        # create the visibility table and save to Redis
+        # create the visibility table and save to Cache
         #   the visibility table is used to indicate if the data point is
         #   `visible` or `hidden`
         visible_table = pd.DataFrame()
@@ -238,7 +237,7 @@ def get_test_case_view_callbacks(app):
         cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
         # group the DataFrame by frame and save the grouped data one by one
-        # into Redis
+        # into Cache
         frame_group = new_data.groupby(config["slider"])
         for frame_idx, frame_data in frame_group:
             cache_set(frame_data, session_id, CACHE_KEYS["frame_data"], str(frame_idx))
@@ -295,7 +294,7 @@ def get_test_case_view_callbacks(app):
 
             num_values.append([var_min, var_max])
 
-        # save categorical values and numerical values to Redis
+        # save categorical values and numerical values to Cache
         filter_kwargs["num_values"] = num_values
         filter_kwargs["cat_values"] = cat_values
         cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
