@@ -82,9 +82,17 @@ def load_data(file, file_list):
     data_list = []
     for _, f_dict in enumerate(file_list):
         file = json.loads(f_dict)
-        data_list.append(
-            pd.read_feather(os.path.join(file["path"], file["feather_name"]))
-        )
+
+        if ".pkl" in file["name"]:
+            new_data = pd.read_pickle(os.path.join(file["path"], file["name"]))
+            new_data = new_data.reset_index(drop=True)
+
+        elif ".csv" in file["name"]:
+            new_data = pd.read_csv(
+                os.path.join(file["path"], file["name"]), engine="pyarrow"
+            )
+
+        data_list.append(new_data)
 
     data = pd.concat(data_list)
     return data.reset_index(drop=True)
@@ -104,9 +112,15 @@ def load_data_list(file_list, case):
     data_list = []
     for _, f_dict in enumerate(file_list):
         file = json.loads(f_dict)
-        data_list.append(
-            pd.read_feather(os.path.join(file["path"], file["feather_name"]))
-        )
+        if ".pkl" in file["name"]:
+            new_data = pd.read_pickle(os.path.join(file["path"], file["name"]))
+            new_data = new_data.reset_index(drop=True)
+
+        elif ".csv" in file["name"]:
+            new_data = pd.read_csv(
+                os.path.join(file["path"], file["name"]), engine="pyarrow"
+            )
+        data_list.append(new_data)
 
     data = pd.concat(data_list)
     return data.reset_index(drop=True)

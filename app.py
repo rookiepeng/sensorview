@@ -84,6 +84,9 @@ def on_modal_open(modal_open):
     config["DATA_PATH"] = data_path
     save_config(config, "./config.json")
 
+    if not os.path.exists("./temp"):
+        os.makedirs("./temp")
+
     return {
         "data_path": data_path,
     }
@@ -116,7 +119,7 @@ def on_path_change(data_path, refresh):
     for entry in obj:
         if entry.is_dir():
             # only add the folder with 'config.json'
-            if os.path.exists(os.path.join(data_path, entry.name, "config.json")):
+            if os.path.exists(os.path.join(data_path, entry.name, "info.json")):
                 options.append({"label": entry.name, "value": entry.name})
 
     case_val = options[0]["value"]
@@ -174,7 +177,7 @@ def on_case_change(case_val, data_path):
                             {
                                 "path": dirpath,
                                 "name": name,
-                                "feather_name": name.replace(".csv", ".feather"),
+                                # "feather_name": name.replace(".csv", ".feather"),
                             }
                         ),
                     }
@@ -187,7 +190,7 @@ def on_case_change(case_val, data_path):
                             {
                                 "path": dirpath,
                                 "name": name,
-                                "feather_name": name.replace(".pkl", ".feather"),
+                                # "feather_name": name.replace(".pkl", ".feather"),
                             }
                         ),
                     }

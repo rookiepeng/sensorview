@@ -101,7 +101,14 @@ def get_test_case_view_callbacks(app):
         manager=background_callback_manager,
     )
     def file_select_changed(
-        set_progress, file, add_file_value, data_path, case, file_loaded, session_id, all_state
+        set_progress,
+        file,
+        add_file_value,
+        data_path,
+        case,
+        file_loaded,
+        session_id,
+        all_state,
     ):
         """
         Callback when a file selection is changed.
@@ -203,8 +210,8 @@ def get_test_case_view_callbacks(app):
         )
         cache_set(-1, session_id, CACHE_KEYS["task_id"])
 
-        if os.path.exists(os.path.join(data_path, case, "config.json")):
-            config = load_config(os.path.join(data_path, case, "config.json"))
+        if os.path.exists(os.path.join(data_path, case, "info.json")):
+            config = load_config(os.path.join(data_path, case, "info.json"))
             cache_set(config, session_id, CACHE_KEYS["config"])
         else:
             raise PreventUpdate
@@ -282,28 +289,18 @@ def get_test_case_view_callbacks(app):
         new_data_list = []
         for _, f_dict in enumerate(add_file_value):
             file_dict = json.loads(f_dict)
-            if os.path.exists(
-                os.path.join(file_dict["path"], file_dict["feather_name"])
-            ):
-                new_data = pd.read_feather(
-                    os.path.join(file_dict["path"], file_dict["feather_name"])
-                )
-            else:
-                if ".pkl" in file_dict["name"]:
-                    new_data = pd.read_pickle(
-                        os.path.join(file_dict["path"], file_dict["name"])
-                    )
-                    new_data = new_data.reset_index(drop=True)
 
-                elif ".csv" in file_dict["name"]:
-                    new_data = pd.read_csv(
-                        os.path.join(file_dict["path"], file_dict["name"]),
-                        engine="pyarrow"
-                    )
-
-                new_data.to_feather(
-                    os.path.join(file_dict["path"], file_dict["feather_name"])
+            if ".pkl" in file_dict["name"]:
+                new_data = pd.read_pickle(
+                    os.path.join(file_dict["path"], file_dict["name"])
                 )
+                new_data = new_data.reset_index(drop=True)
+
+            elif ".csv" in file_dict["name"]:
+                new_data = pd.read_csv(
+                    os.path.join(file_dict["path"], file_dict["name"]), engine="pyarrow"
+                )
+
             new_data_list.append(new_data)
 
         new_data = pd.concat(new_data_list)
