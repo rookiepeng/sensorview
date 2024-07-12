@@ -205,7 +205,7 @@ def get_scatter_2d_right_view_callbacks(app):
         c_label = keys_dict[color_right]["description"]
 
         if all_frame_sw == "all":
-            data = load_data(file, file_list)
+            data = load_data(file_list, file)
         else:
             frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
             data = cache_get(

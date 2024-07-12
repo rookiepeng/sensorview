@@ -46,7 +46,6 @@ from app_config import CACHE_KEYS, KEY_TYPES
 from utils import filter_all
 from utils import cache_set, cache_get, cache_expire
 from utils import load_data
-from utils import load_data_list
 from utils import load_image
 from utils import prepare_figure_kwargs
 
@@ -272,7 +271,7 @@ def process_overlay_frame(
 
     # overlay all the frames
     # get data from .feather file on the disk
-    data = load_data(file, file_list)
+    data = load_data(file_list, file)
     filterd_frame = filter_all(
         data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
@@ -809,7 +808,7 @@ def get_scatter_3d_view_callbacks(app):
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
 
-        dataset = load_data_list(file_list, case)
+        dataset = load_data(file_list)
         frame_group = dataset.groupby(config["slider"])
 
         # prepare figure key word arguments
@@ -1030,7 +1029,7 @@ def get_scatter_3d_view_callbacks(app):
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
-        dataset = load_data_list(file_list, case)
+        dataset = load_data(file_list)
         filtered_table = filter_all(
             dataset,
             num_keys,
@@ -1121,7 +1120,7 @@ def get_scatter_3d_view_callbacks(app):
         num_values = filter_kwargs["num_values"]
 
         # file = json.loads(file)
-        data = load_data(file, file_list)
+        data = load_data(file_list, file)
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
         filtered_table = filter_all(
