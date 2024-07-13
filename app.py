@@ -28,7 +28,8 @@
 """
 
 import json
-import os, shutil
+import os
+import shutil
 
 # from waitress import serve
 from multiprocessing import freeze_support
@@ -248,8 +249,6 @@ def on_modal_close(
     config = load_config("./config.json")
 
     file_dict = json.loads(file_value)
-
-    case_dir = os.path.join(data_path, case_val)
 
     config["DATA_PATH"] = data_path
     config["CASE"] = case_val
