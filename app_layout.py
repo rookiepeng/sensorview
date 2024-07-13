@@ -337,7 +337,10 @@ view3d_card = dbc.Card(
                                                             n_clicks=0,
                                                         ),
                                                     ],
-                                                    label="Export",
+                                                    label=html.I(
+                                                        className="bi bi-box-arrow-up"
+                                                    ),
+                                                    id="export-dropdown",
                                                     right=True,
                                                     style={"float": "right"},
                                                 ),
@@ -361,6 +364,11 @@ view3d_card = dbc.Card(
                                             dbc.Tooltip(
                                                 "Next frame",
                                                 target="next-button",
+                                                placement="top",
+                                            ),
+                                            dbc.Tooltip(
+                                                "Export",
+                                                target="export-dropdown",
                                                 placement="top",
                                             ),
                                             html.Div(
@@ -604,7 +612,9 @@ left2d_card = dbc.Card(
                                         [
                                             dbc.Col(
                                                 dbc.Button(
-                                                    "Hide/Unhide",
+                                                    html.I(
+                                                        className="bi bi-eye-slash-fill"
+                                                    ),
                                                     id="hide-left",
                                                     color="warning",
                                                     n_clicks=0,
@@ -618,11 +628,18 @@ left2d_card = dbc.Card(
                                             ),
                                             dbc.Col(
                                                 dbc.Button(
-                                                    "Export",
+                                                    html.I(
+                                                        className="bi bi-camera-fill"
+                                                    ),
                                                     id="export-scatter2d-left",
                                                     n_clicks=0,
                                                     style={"float": "right"},
                                                 )
+                                            ),
+                                            dbc.Tooltip(
+                                                "Export the current figure",
+                                                target="export-scatter2d-left",
+                                                placement="top",
                                             ),
                                         ],
                                         style={"margin-top": 10},
@@ -785,7 +802,9 @@ right2d_card = dbc.Card(
                                         [
                                             dbc.Col(
                                                 dbc.Button(
-                                                    "Export",
+                                                    html.I(
+                                                        className="bi bi-camera-fill"
+                                                    ),
                                                     id="export-scatter2d-right",
                                                     n_clicks=0,
                                                     style={"float": "right"},
@@ -793,6 +812,11 @@ right2d_card = dbc.Card(
                                             )
                                         ],
                                         style={"margin-top": 10},
+                                    ),
+                                    dbc.Tooltip(
+                                        "Export the current figure",
+                                        target="export-scatter2d-right",
+                                        placement="top",
                                     ),
                                 ]
                             ),
@@ -905,13 +929,20 @@ hist_card = dbc.Card(
                                         [
                                             dbc.Col(
                                                 dbc.Button(
-                                                    "Export",
+                                                    html.I(
+                                                        className="bi bi-camera-fill"
+                                                    ),
                                                     id="export-histogram",
                                                     n_clicks=0,
                                                     style={"float": "right"},
                                                 )
                                             ),
                                         ]
+                                    ),
+                                    dbc.Tooltip(
+                                        "Export the current figure",
+                                        target="export-histogram",
+                                        placement="top",
                                     ),
                                 ]
                             ),
@@ -1012,13 +1043,20 @@ violin_card = dbc.Card(
                                         [
                                             dbc.Col(
                                                 dbc.Button(
-                                                    "Export",
+                                                    html.I(
+                                                        className="bi bi-camera-fill"
+                                                    ),
                                                     id="export-violin",
                                                     n_clicks=0,
                                                     style={"float": "right"},
                                                 )
                                             ),
                                         ]
+                                    ),
+                                    dbc.Tooltip(
+                                        "Export the current figure",
+                                        target="export-violin",
+                                        placement="top",
                                     ),
                                 ]
                             ),
@@ -1095,13 +1133,20 @@ parallel_card = dbc.Card(
                                         [
                                             dbc.Col(
                                                 dbc.Button(
-                                                    "Export",
+                                                    html.I(
+                                                        className="bi bi-camera-fill"
+                                                    ),
                                                     id="export-parallel",
                                                     n_clicks=0,
                                                     style={"float": "right"},
                                                 )
                                             ),
                                         ]
+                                    ),
+                                    dbc.Tooltip(
+                                        "Export the current figure",
+                                        target="export-parallel",
+                                        placement="top",
                                     ),
                                 ]
                             ),
@@ -1192,13 +1237,20 @@ heatmap_card = dbc.Card(
                                         [
                                             dbc.Col(
                                                 dbc.Button(
-                                                    "Export",
+                                                    html.I(
+                                                        className="bi bi-camera-fill"
+                                                    ),
                                                     id="export-heatmap",
                                                     n_clicks=0,
                                                     style={"float": "right"},
                                                 )
                                             ),
                                         ]
+                                    ),
+                                    dbc.Tooltip(
+                                        "Export the current figure",
+                                        target="export-heatmap",
+                                        placement="top",
                                     ),
                                 ]
                             ),
