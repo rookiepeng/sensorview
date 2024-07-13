@@ -34,6 +34,7 @@ import numpy as np
 
 import dash
 from dash import dcc
+from dash import html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
@@ -46,7 +47,7 @@ from app_config import (
 from app_config import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
 from app_config import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
 from app_config import background_callback_manager
-from app_config import CACHE_KEYS, KEY_TYPES
+from app_config import CACHE_KEYS, KEY_TYPES, THEME
 
 from utils import load_config, cache_set, cache_get
 from utils import load_data
@@ -256,11 +257,14 @@ def get_test_case_view_callbacks(app):
 
             new_dropdown.append(dbc.Label(keys_dict[d_item]["description"]))
             new_dropdown.append(
-                dcc.Dropdown(
-                    id={"type": "filter-dropdown", "index": idx},
-                    options=[{"label": i, "value": i} for i in var_list],
-                    value=value_list,
-                    multi=True,
+                html.Div(
+                    dcc.Dropdown(
+                        id={"type": "filter-dropdown", "index": idx},
+                        options=[{"label": i, "value": i} for i in var_list],
+                        value=value_list,
+                        multi=True,
+                    ),
+                    className=THEME,
                 )
             )
 

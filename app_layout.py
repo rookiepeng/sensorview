@@ -37,7 +37,7 @@ import dash_bootstrap_components as dbc
 
 import plotly.io as pio
 
-from app_config import APP_TITLE, APP_VERSION
+from app_config import APP_TITLE, APP_VERSION, THEME
 
 colorscales = [
     "Blackbody",
@@ -446,6 +446,16 @@ view3d_card = dbc.Card(
                                     dbc.CardHeader("Filter"),
                                     dbc.CardBody(
                                         [
+                                            dbc.Label("Visibility Options"),
+                                            html.Div(
+                                                dcc.Dropdown(
+                                                    id="dropdown-visibility",
+                                                    options=["visible", "hidden"],
+                                                    value=["visible"],
+                                                    multi=True,
+                                                ),
+                                                className=THEME,
+                                            ),
                                             html.Div(
                                                 id="dropdown-container", children=[]
                                             ),
@@ -1095,7 +1105,10 @@ parallel_card = dbc.Card(
                 dbc.Row(
                     [
                         dbc.Col(
-                            dcc.Dropdown(id="dim-picker-parallel", multi=True),
+                            html.Div(
+                                dcc.Dropdown(id="dim-picker-parallel", multi=True),
+                                className=THEME,
+                            ),
                         ),
                         dbc.Tooltip(
                             "Dimensions",
@@ -1390,7 +1403,10 @@ def get_app_layout():
                                 ),
                                 dbc.Col(
                                     dbc.Collapse(
-                                        dcc.Dropdown(id="file-add", multi=True),
+                                        html.Div(
+                                            dcc.Dropdown(id="file-add", multi=True),
+                                            className=THEME,
+                                        ),
                                         id="collapse-add",
                                         is_open=False,
                                     ),

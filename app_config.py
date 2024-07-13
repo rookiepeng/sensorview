@@ -42,6 +42,7 @@ APP_VERSION = "v10.0"
 DATA_PATH = "./data"
 FRAME_CACHE_PATH = "./cache/frame"
 DASH_CACHE_PATH = "./cache/dash"
+THEME = "dbc"
 
 EXPIRATION = 172800  # 2 days in seconds
 CACHE_KEYS = {
