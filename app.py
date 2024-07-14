@@ -81,7 +81,8 @@ def on_modal_open(is_modal_open):
     if os.path.isfile("./config.json"):
         config = load_config("./config.json")
     else:
-        config = {}
+        config = {"DATA_PATH": DATA_PATH}
+        save_config(config, "./config.json")
     data_path = config.get("DATA_PATH", DATA_PATH)
 
     if os.path.exists("./temp"):

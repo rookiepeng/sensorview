@@ -87,7 +87,7 @@ def load_data(file_list, file=None):
 
         if file["name"].endswith(".pkl"):
             new_data = pd.read_pickle(os.path.join(file["path"], file["name"]))
-            new_data = new_data.reset_index(drop=True)
+            # new_data = new_data.reset_index(drop=True)
 
         elif file["name"].endswith(".csv"):
             new_data = pd.read_csv(
