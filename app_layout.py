@@ -418,18 +418,6 @@ view3d_card = dbc.Card(
                                         target="click-hide-switch",
                                         placement="top",
                                     ),
-                                    dbc.Label("Visibility options"),
-                                    dbc.Checklist(
-                                        options=[
-                                            {
-                                                "label": "Show visible",
-                                                "value": "visible",
-                                            },
-                                            {"label": "Show hidden", "value": "hidden"},
-                                        ],
-                                        value=["visible"],
-                                        id="visible-picker",
-                                    ),
                                     dbc.Label("Decay"),
                                     dcc.Slider(
                                         id="decay-slider",
@@ -449,12 +437,18 @@ view3d_card = dbc.Card(
                                             dbc.Label("Visibility Options"),
                                             html.Div(
                                                 dcc.Dropdown(
-                                                    id="dropdown-visibility",
+                                                    id="visible-picker",
                                                     options=["visible", "hidden"],
                                                     value=["visible"],
                                                     multi=True,
                                                 ),
                                                 className=THEME,
+                                            ),
+                                            dbc.Tooltip(
+                                                "By default, all the data is initially labeled as 'visible.' \
+                                                    You can change the label of the data to 'hidden' using this tool.",
+                                                target="visible-picker",
+                                                placement="top",
                                             ),
                                             html.Div(
                                                 id="dropdown-container", children=[]
