@@ -373,7 +373,7 @@ def get_scatter_2d_left_view_callbacks(app):
         Output Properties:
         - dummy (int): A dummy value to trigger the update.
         """
-        cache_set(selected_data, session_id, CACHE_KEYS["selected_data"])
+        cache_set(selected_data, session_id, CACHE_KEYS["selected_data_left"])
         return {"dummy": 0}
 
     @app.callback(
@@ -402,7 +402,7 @@ def get_scatter_2d_left_view_callbacks(app):
         if btn == 0:
             raise PreventUpdate
 
-        selected_data = cache_get(session_id, CACHE_KEYS["selected_data"])
+        selected_data = cache_get(session_id, CACHE_KEYS["selected_data_left"])
 
         if selected_data is None:
             raise PreventUpdate

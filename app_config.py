@@ -58,7 +58,7 @@ CACHE_KEYS = {
     "figure_layout": "FIGURE_LAYOUT",
     "task_id": "TASK_ID",
     "filter_kwargs": "FILTGER_KWARGS",
-    "selected_data": "SELECTED_DATA",
+    "selected_data_left": "SELECTED_DATA_LEFT",
 }
 KEY_TYPES = {"CAT": "categorical", "NUM": "numerical"}
 
