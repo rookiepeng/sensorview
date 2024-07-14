@@ -807,13 +807,29 @@ right2d_card = dbc.Card(
                                             dbc.Col(
                                                 dbc.Button(
                                                     html.I(
+                                                        className="bi bi-eye-slash-fill"
+                                                    ),
+                                                    id="hide-right",
+                                                    color="warning",
+                                                    n_clicks=0,
+                                                )
+                                            ),
+                                            dbc.Tooltip(
+                                                "Toggle the hidden/visible states of \
+                                    the selected dots",
+                                                target="hide-right",
+                                                placement="top",
+                                            ),
+                                            dbc.Col(
+                                                dbc.Button(
+                                                    html.I(
                                                         className="bi bi-camera-fill"
                                                     ),
                                                     id="export-scatter2d-right",
                                                     n_clicks=0,
                                                     style={"float": "right"},
                                                 )
-                                            )
+                                            ),
                                         ],
                                         style={"margin-top": 10},
                                     ),
