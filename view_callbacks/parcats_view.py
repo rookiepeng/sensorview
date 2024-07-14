@@ -66,6 +66,7 @@ def get_parcats_view_callbacks(app):
         inputs={
             "unused_filter_trigger": Input("filter-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "parallel_sw": Input("parallel-switch", "value"),
             "dim_parallel": Input("dim-picker-parallel", "value"),
             "c_key": Input("c-picker-parallel", "value"),
@@ -81,6 +82,7 @@ def get_parcats_view_callbacks(app):
     def regenerate_parallel_callback(
         unused_filter_trigger,
         unused_left_hide_trigger,
+        unused_right_hide_trigger,
         parallel_sw,
         dim_parallel,
         c_key,

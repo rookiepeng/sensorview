@@ -59,6 +59,7 @@ CACHE_KEYS = {
     "task_id": "TASK_ID",
     "filter_kwargs": "FILTGER_KWARGS",
     "selected_data_left": "SELECTED_DATA_LEFT",
+    "selected_data_right": "SELECTED_DATA_RIGHT",
 }
 KEY_TYPES = {"CAT": "categorical", "NUM": "numerical"}
 

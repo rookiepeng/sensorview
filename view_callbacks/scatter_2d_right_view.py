@@ -31,6 +31,8 @@ import os
 
 import datetime
 
+import pandas as pd
+
 import plotly.graph_objs as go
 
 import dash
@@ -44,7 +46,7 @@ from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES
 
 from utils import filter_all
-from utils import cache_get
+from utils import cache_get, cache_set
 from utils import load_data
 
 
@@ -120,6 +122,7 @@ def get_scatter_2d_right_view_callbacks(app):
         inputs={
             "unused_filter_trigger": Input("filter-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "unused_regenerate_trigger": Input("right-regenerate-trigger", "data"),
             "right_sw": Input("right-switch", "value"),
             "all_frame_sw": Input("scatter2dr-allframe-switch", "value"),
@@ -141,6 +144,7 @@ def get_scatter_2d_right_view_callbacks(app):
     def regenerate_scatter2d_right_callback(
         unused_filter_trigger,
         unused_left_hide_trigger,
+        unused_right_hide_trigger,
         unused_regenerate_trigger,
         right_sw,
         x_right,
@@ -354,3 +358,72 @@ def get_scatter_2d_right_view_callbacks(app):
         temp_fig.write_image(file_name, scale=2)
 
         return {"download": dcc.send_file(file_name)}
+
+    @app.callback(
+        output={"dummy": Output("selected-data-right", "data")},
+        inputs={"selected_data": Input("scatter2d-right", "selectedData")},
+        state={"session_id": State("session-id", "data")},
+    )
+    def select_right_figure(selected_data, session_id):
+        """
+        Callback function to store the selected data from the right 2D scatter plot.
+
+        Parameters:
+        - selectedData (dict): The selected data from the right 2D scatter plot.
+        - session_id (str): The ID of the current session.
+
+        Returns:
+        - dict: A dictionary containing a dummy value for the output property.
+
+        Output Properties:
+        - dummy (int): A dummy value to trigger the update.
+        """
+        cache_set(selected_data, session_id, CACHE_KEYS["selected_data_right"])
+        return {"dummy": 0}
+
+    @app.callback(
+        output={"output_trigger": Output("right-hide-trigger", "data")},
+        inputs={"btn": Input("hide-right", "n_clicks")},
+        state={
+            "trigger_idx": State("right-hide-trigger", "data"),
+            "session_id": State("session-id", "data"),
+        },
+    )
+    def right_hide_button(btn, trigger_idx, session_id):
+        """
+        Callback function to handle the hide right button click event.
+
+        Parameters:
+        - btn (int): The number of times the hide right button has been clicked.
+        - trigger_idx (int): The current value of the right hide trigger.
+        - session_id (str): The ID of the current session.
+
+        Returns:
+        - dict: A dictionary containing the updated value for the output trigger.
+
+        Output Properties:
+        - output_trigger (int): The updated value for the right hide trigger.
+        """
+        if btn == 0:
+            raise PreventUpdate
+
+        selected_data = cache_get(session_id, CACHE_KEYS["selected_data_right"])
+
+        if selected_data is None:
+            raise PreventUpdate
+
+        visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
+
+        s_data = pd.DataFrame(selected_data["points"])
+        idx = s_data["id"]
+        idx.index = idx
+
+        vis_idx = idx[visible_table["_VIS_"][idx] == "visible"]
+        hid_idx = idx[visible_table["_VIS_"][idx] == "hidden"]
+
+        visible_table.loc[vis_idx, "_VIS_"] = "hidden"
+        visible_table.loc[hid_idx, "_VIS_"] = "visible"
+
+        cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
+
+        return {"output_trigger": trigger_idx + 1}

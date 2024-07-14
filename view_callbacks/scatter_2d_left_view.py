@@ -122,6 +122,7 @@ def get_scatter_2d_left_view_callbacks(app):
         inputs={
             "unused_filter_trigger": Input("filter-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "unused_regenerate_trigger": Input("left-regenerate-trigger", "data"),
             "left_sw": Input("left-switch", "value"),
             "all_frame_sw": Input("scatter2dl-allframe-switch", "value"),
@@ -143,6 +144,7 @@ def get_scatter_2d_left_view_callbacks(app):
     def regenerate_scatter2d_left_callback(
         unused_filter_trigger,
         unused_left_hide_trigger,
+        unused_right_hide_trigger,
         unused_regenerate_trigger,
         left_sw,
         x_left,

@@ -65,6 +65,7 @@ def get_violin_view_callbacks(app):
         inputs={
             "unused_filter_trigger": Input("filter-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "violin_sw": Input("violin-switch", "value"),
             "x_violin": Input("x-picker-violin", "value"),
             "y_violin": Input("y-picker-violin", "value"),
@@ -81,6 +82,7 @@ def get_violin_view_callbacks(app):
     def regenerate_violin_callback(
         unused_filter_trigger,
         unused_left_hide_trigger,
+        unused_right_hide_trigger,
         violin_sw,
         x_violin,
         y_violin,

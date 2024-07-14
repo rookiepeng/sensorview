@@ -65,6 +65,7 @@ def get_heatmap_view_callbacks(app):
         inputs={
             "unused_filter_trigger": Input("filter-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "heat_sw": Input("heat-switch", "value"),
             "x_heat": Input("x-picker-heatmap", "value"),
             "y_heat": Input("y-picker-heatmap", "value"),
@@ -80,6 +81,7 @@ def get_heatmap_view_callbacks(app):
     def regenerate_heatmap_callback(
         unused_filter_trigger,
         unused_left_hide_trigger,
+        unused_right_hide_trigger,
         heat_sw,
         x_heat,
         y_heat,
