@@ -1306,6 +1306,7 @@ def get_app_layout():
             dcc.Store(id="left-regenerate-trigger", data=0),
             dcc.Store(id="right-regenerate-trigger", data=0),
             dcc.Store(id="left-hide-trigger", data=0),
+            dcc.Store(id="right-hide-trigger", data=0),
             dcc.Store(id="file-loaded-trigger", data=0),
             dcc.Store(id="background-trigger", data=0),
             dcc.Store(id="dummy-background"),

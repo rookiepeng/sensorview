@@ -609,6 +609,7 @@ def get_scatter_3d_view_callbacks(app):
             "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
             "c_key": Input("c-picker-3d", "value"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "unused_file_loaded": Input("file-loaded-trigger", "data"),
         },
         state={
@@ -635,6 +636,7 @@ def get_scatter_3d_view_callbacks(app):
         c_key,
         overlay_enable,
         unused_left_hide_trigger,
+        unused_right_hide_trigger,
         unused_file_loaded,
         decay,
         colormap,

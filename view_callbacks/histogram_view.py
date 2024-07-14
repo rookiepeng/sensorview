@@ -67,6 +67,7 @@ def get_histogram_view_callbacks(app):
         inputs={
             "unused_filter_trigger": Input("filter-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "histogram_sw": Input("histogram-switch", "value"),
             "x_histogram": Input("x-picker-histogram", "value"),
             "y_histogram": Input("y-histogram", "value"),
@@ -83,6 +84,7 @@ def get_histogram_view_callbacks(app):
     def regenerate_histogram_callback(
         unused_filter_trigger,
         unused_left_hide_trigger,
+        unused_right_hide_trigger,
         histogram_sw,
         x_histogram,
         y_histogram,
