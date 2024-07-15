@@ -75,6 +75,15 @@ app.layout = get_app_layout
     inputs={"is_modal_open": Input("modal-centered", "is_open")},
 )
 def on_modal_open(is_modal_open):
+    """
+    Callback function to update the data path when the modal is opened.
+
+    Parameters:
+    - is_modal_open (bool): Whether the modal is open.
+
+    Returns:
+    - dict: A dictionary containing the data path.
+    """
     if not is_modal_open:
         raise PreventUpdate
 
@@ -105,6 +114,16 @@ def on_modal_open(is_modal_open):
     },
 )
 def on_path_change(data_path, unused_refresh):
+    """
+    Callback function to update the case options and value when the data path changes.
+
+    Parameters:
+    - data_path (str): The path to the data directory.
+    - unused_refresh (int): The number of times the refresh button has been clicked.
+
+    Returns:
+    - dict: A dictionary containing the case options and value.
+    """
     config = load_config("./config.json")
 
     stored_case = config.get("CASE", "")
@@ -152,6 +171,16 @@ def on_path_change(data_path, unused_refresh):
     },
 )
 def on_case_change(case_val, data_path):
+    """
+    Callback function to update the file options and value when the case changes.
+
+    Parameters:
+    - case_val (str): The name of the case.
+    - data_path (str): The path to the data directory.
+
+    Returns:
+    - dict: A dictionary containing the file options and value.
+    """
     config = load_config("./config.json")
 
     stored_file = config.get("FILE", "")
@@ -229,7 +258,7 @@ def on_case_change(case_val, data_path):
         "add_file_options": Output("file-add", "options"),
     },
     inputs={
-        "ok_modal": Input("ok-modal", "n_clicks"),
+        "unused_ok_modal": Input("ok-modal", "n_clicks"),
     },
     state={
         "data_path": State("data-path-modal", "value"),
@@ -241,9 +270,23 @@ def on_case_change(case_val, data_path):
     prevent_initial_call=True,
 )
 def on_modal_close(
-    ok_modal, data_path, case_val, file_value, file_options, current_file
+    unused_ok_modal, data_path, case_val, file_value, file_options, current_file
 ):
+    """
+    Callback function to update the data path, test case, log file,
+        and current file when the modal is closed.
 
+    Parameters:
+    - unused_ok_modal (int): The number of times the OK button has been clicked.
+    - data_path (str): The path to the data directory.
+    - case_val (str): The name of the case.
+    - file_value (str): The value of the selected file.
+    - file_options (list): The list of file options.
+    - current_file (str): The current file.
+
+    Returns:
+    - dict: A dictionary containing the updated values.
+    """
     if not file_value:
         raise PreventUpdate
 
@@ -283,11 +326,20 @@ def on_modal_close(
         "modal_is_open": Output("modal-centered", "is_open", allow_duplicate=True),
     },
     inputs={
-        "select_modal": Input("select-button", "n_clicks"),
+        "unused_select_modal": Input("select-button", "n_clicks"),
     },
     prevent_initial_call=True,
 )
-def open_modal(select_modal):
+def open_modal(unused_select_modal):
+    """
+    Callback function to open the modal.
+
+    Parameters:
+    - unused_select_modal (int): The number of times the select button has been clicked.
+
+    Returns:
+    - dict: A dictionary containing the updated value for the modal's is_open property.
+    """
     return {"modal_is_open": True}
 
 
