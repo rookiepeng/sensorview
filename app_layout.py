@@ -156,6 +156,38 @@ view3d_card = dbc.Card(
                                     dbc.Col(
                                         dbc.InputGroup(
                                             [
+                                                dbc.Label(
+                                                    html.I(
+                                                        className="bi bi-brightness-high-fill"
+                                                    ),
+                                                    className="me-2",
+                                                ),
+                                                dbc.Checklist(
+                                                    options=[
+                                                        {
+                                                            "label": html.I(
+                                                                className="bi bi-moon-stars-fill"
+                                                            ),
+                                                            "value": True,
+                                                        }
+                                                    ],
+                                                    value=[True],
+                                                    id="darkmode-switch",
+                                                    switch=True,
+                                                ),
+                                                dbc.Tooltip(
+                                                    "Toggle between light and dark background",
+                                                    id="darkmode-switch-tooltip",
+                                                    target="darkmode-switch",
+                                                    placement="top",
+                                                ),
+                                            ],
+                                        ),
+                                        width="auto",
+                                    ),
+                                    dbc.Col(
+                                        dbc.InputGroup(
+                                            [
                                                 dbc.InputGroupText("Color"),
                                                 dbc.Select(id="c-picker-3d"),
                                                 dbc.Tooltip(
@@ -189,18 +221,6 @@ view3d_card = dbc.Card(
                                             size="sm",
                                         ),
                                         width=3,
-                                    ),
-                                    dbc.Col(
-                                        dbc.Checklist(
-                                            options=[
-                                                {"label": "Dark mode", "value": True}
-                                            ],
-                                            value=[True],
-                                            id="darkmode-switch",
-                                            switch=True,
-                                            style={"float": "right"},
-                                        ),
-                                        width=6,
                                     ),
                                     dbc.Col(
                                         dcc.Graph(
