@@ -26,4 +26,4 @@ See `requirements.txt`
 
 Save data as the `.pkl` or `.csv` files under `./data` directory. See `./data/Example`.
 
-Put the `config.json` in the same directory, and specify the `columns` of the data in `config.json`. Check `./data/Example/config.json`.
+Put the `info.json` in the same directory, and specify the `columns` of the data in `info.json`. Check `./data/Example/info.json`.

@@ -30,15 +30,12 @@
 import os
 import json
 
-# import pickle
 import base64
 
 import pandas as pd
 
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
-
-# from app_config import redis_instance
 
 
 def load_config(json_file):
