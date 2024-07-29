@@ -118,7 +118,7 @@ def process_single_frame(
     )
 
     file = json.loads(file)
-    img_path = os.path.join(file["path"], file["name"][0:-4], str(frame_idx) + ".jpg")
+    img_path = os.path.join(file["path"], file["name"][0:-4], str(frame_list[frame_idx]) + ".jpg")
 
     # encode image frame
     fig_kwargs["image"] = load_image(img_path)
@@ -825,7 +825,7 @@ def get_scatter_3d_view_callbacks(app):
         for slider_arg, frame_idx in enumerate(frame_list):
             file = json.loads(file_list[0])
             img_path = os.path.join(
-                file["path"], file["name"][0:-4], str(slider_arg) + ".jpg"
+                file["path"], file["name"][0:-4], str(frame_list[slider_arg]) + ".jpg"
             )
 
             # encode image frame
