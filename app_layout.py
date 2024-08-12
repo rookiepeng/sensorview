@@ -347,6 +347,16 @@ view3d_card = dbc.Card(
                                                             n_clicks=0,
                                                         ),
                                                         dbc.DropdownMenuItem(
+                                                            "Export current plot (html)",
+                                                            id="export-scatter3d-html",
+                                                            n_clicks=0,
+                                                        ),
+                                                        dbc.DropdownMenuItem(
+                                                            "Export current plot (png)",
+                                                            id="export-scatter3d-png",
+                                                            n_clicks=0,
+                                                        ),
+                                                        dbc.DropdownMenuItem(
                                                             "Filtered Data (Current Frame)",
                                                             id="export-data-current",
                                                             n_clicks=0,
