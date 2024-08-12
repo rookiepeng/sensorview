@@ -118,7 +118,9 @@ def process_single_frame(
     )
 
     file = json.loads(file)
-    img_path = os.path.join(file["path"], file["name"][0:-4], str(frame_list[frame_idx]) + ".jpg")
+    img_path = os.path.join(
+        file["path"], file["name"][0:-4], str(frame_list[frame_idx]) + ".jpg"
+    )
 
     # encode image frame
     fig_kwargs["image"] = load_image(img_path)
@@ -1083,6 +1085,82 @@ def get_scatter_3d_view_callbacks(app):
         )
 
         return {"dummy": 0}
+
+    @app.callback(
+        output={"download": Output("download", "data", allow_duplicate=True)},
+        inputs={"btn": Input("export-scatter3d-html", "n_clicks")},
+        state={
+            "fig": State("scatter3d", "figure"),
+        },
+        prevent_initial_call=True,
+    )
+    def export_3d_scatter_html(btn, fig):
+        """
+        Callback function to export the 3D scatter figure as an image.
+
+        Parameters:
+        - btn (int): The number of times the export button has been clicked.
+        - fig (dict): The 3D scatter figure.
+
+        Returns:
+        - dict: A dictionary containing a dummy value for the output property.
+
+        Output Properties:
+        - dummy (int): A dummy value to trigger the export.
+        """
+        if btn == 0:
+            raise PreventUpdate
+
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
+
+        file_name = "temp/" + timestamp + "_3dscatter.html"
+
+        temp_fig = go.Figure(fig)
+        temp_fig.write_html(file_name)
+
+        return {"download": dcc.send_file(file_name)}
+
+    @app.callback(
+        output={"download": Output("download", "data", allow_duplicate=True)},
+        inputs={"btn": Input("export-scatter3d-png", "n_clicks")},
+        state={
+            "fig": State("scatter3d", "figure"),
+        },
+        prevent_initial_call=True,
+    )
+    def export_3d_scatter_png(btn, fig):
+        """
+        Callback function to export the 3D scatter figure as an image.
+
+        Parameters:
+        - btn (int): The number of times the export button has been clicked.
+        - fig (dict): The 3D scatter figure.
+
+        Returns:
+        - dict: A dictionary containing a dummy value for the output property.
+
+        Output Properties:
+        - dummy (int): A dummy value to trigger the export.
+        """
+        if btn == 0:
+            raise PreventUpdate
+
+        now = datetime.datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
+
+        file_name = "temp/" + timestamp + "_3dscatter.png"
+
+        temp_fig = go.Figure(fig)
+        temp_fig.write_image(file_name, scale=2)
+
+        return {"download": dcc.send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
