@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -393,10 +393,14 @@ get_violin_view_callbacks(app)
 
 
 if __name__ == "__main__":
-    freeze_support()
-    # app.run_server(debug=True, threaded=True, processes=1, host="0.0.0.0")
-    # serve(app.server, listen="*:8000")
+    DEBUG = False
+    if DEBUG:
+        app.run(debug=True, threaded=True, processes=1, host="0.0.0.0")
 
-    FlaskUI(
-        app=app.server, server="flask", port=45678, profile_dir_prefix="sensorview"
-    ).run()
+    else:
+        # serve(app.server, listen="*:8000")
+        freeze_support()
+
+        FlaskUI(
+            app=app.server, server="flask", port=45678, profile_dir_prefix="sensorview"
+        ).run()

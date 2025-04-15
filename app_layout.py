@@ -371,7 +371,7 @@ view3d_card = dbc.Card(
                                                         className="bi bi-box-arrow-up"
                                                     ),
                                                     id="export-dropdown",
-                                                    right=True,
+                                                    # right=True,
                                                     style={"float": "right"},
                                                 ),
                                                 width=4,

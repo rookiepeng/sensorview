@@ -1048,9 +1048,8 @@ def get_scatter_3d_view_callbacks(app):
 
         for _, f_val in enumerate(frame_list):
             file = json.loads(file_list[0])
-            img_idx = np.where(frame_list == f_val)[0][0]
             img_list.append(
-                os.path.join(file["path"], file["name"][0:-4], str(img_idx) + ".jpg")
+                os.path.join(file["path"], file["name"][0:-4], str(f_val) + ".jpg")
             )
 
         fig_kwargs["title"] = file["name"][0:-4]
