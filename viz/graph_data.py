@@ -149,7 +149,7 @@ def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
     linewidth = 0
 
     if c_type == "numerical":
-        color = data_frame[c_key]
+        color = data_frame[c_key].tolist()
         c_range = kwargs.get("c_range", [np.min(color), np.max(color)])
         if c_range is None:
             c_range = [np.min(color), np.max(color)]
@@ -157,10 +157,10 @@ def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
         fig_data = [
             dict(
                 type="scatter3d",
-                ids=data_frame.index,
-                x=data_frame[x_key],
-                y=data_frame[y_key],
-                z=data_frame[z_key],
+                ids=data_frame.index.tolist(),
+                x=data_frame[x_key].tolist(),
+                y=data_frame[y_key].tolist(),
+                z=data_frame[z_key].tolist(),
                 #  text=hover_str,
                 #  hovertemplate=hovertemplate,
                 mode="markers",
@@ -187,10 +187,10 @@ def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
             fig_data.append(
                 dict(
                     type="scatter3d",
-                    ids=new_list.index,
-                    x=new_list[x_key],
-                    y=new_list[y_key],
-                    z=new_list[z_key],
+                    ids=new_list.index.tolist(),
+                    x=new_list[x_key].tolist(),
+                    y=new_list[y_key].tolist(),
+                    z=new_list[z_key].tolist(),
                     # text=hover_str,
                     # hovertemplate='%{text}',
                     mode="markers",
