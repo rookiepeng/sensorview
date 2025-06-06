@@ -105,48 +105,61 @@ app.clientside_callback(
 )
 
 # Store data in IndexedDB via worker
-# app.clientside_callback(
-#     """
-#     async function(n_clicks, data, is_initialized) {
-#         if (!n_clicks) return dash_clientside.no_update;
-#         if (!is_initialized) return "Worker not initialized. Click 'Initialize Worker' first.";
-#         if (!data || data.length === 0) return "No data to store. Generate data first.";
+app.clientside_callback(
+    """
+    async function(n_intervals, slider_arg, session, is_initialized) {
+        if (!n_intervals) return dash_clientside.no_update;
+        if (!is_initialized) return "Worker not initialized. Click 'Initialize Worker' first.";
 
-#         try {
-#             // Create a promise that resolves when the worker responds
-#             const response = await new Promise((resolve, reject) => {
-#                 // Set up a one-time message handler
-#                 const messageHandler = (e) => {
-#                     window.dbWorker.removeEventListener('message', messageHandler);
-#                     if (e.data.status === "success") {
-#                         resolve(e.data);
-#                     } else {
-#                         reject(new Error(e.data.message || "Unknown error"));
-#                     }
-#                 };
+        try {
+            // Fetch data from API with index based on slider_arg
+            const response = await fetch(`/api/data/${session}/${slider_arg}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            // Log fetched data
+            console.log(`Fetched data for batch ${slider_arg}:`, data);
 
-#                 window.dbWorker.addEventListener('message', messageHandler);
+            // Store the fetched data in IndexedDB using worker
+            const messagePromise = new Promise((resolve, reject) => {
+                const messageHandler = (e) => {
+                    window.dbWorker.removeEventListener('message', messageHandler);
+                    if (e.data.status === "success") {
+                        resolve(e.data);
+                    } else {
+                        reject(new Error(e.data.message));
+                    }
+                };
 
-#                 // Send the message to the worker
-#                 window.dbWorker.postMessage({
-#                     action: 'store',
-#                     payload: data
-#                 });
-#             });
+                window.dbWorker.addEventListener('message', messageHandler);
+                window.dbWorker.postMessage({
+                    action: 'store',
+                    payload: {
+                        id: `${session}_${slider_arg}`,
+                        data: data,
+                        timestamp: Date.now()
+                    }
+                });
+            });
 
-#             return `Successfully stored ${response.result.count} records in IndexedDB`;
-#         } catch (error) {
-#             console.error("Error storing data:", error);
-#             return `Error: ${error.message}`;
-#         }
-#     }
-#     """,
-#     Output("worker-status", "children", allow_duplicate=True),
-#     Input("store-data-btn", "n_clicks"),
-#     State("generated-data", "data"),
-#     State("worker-initialized", "data"),
-#     prevent_initial_call=True,
-# )
+            const result = await messagePromise;
+            return `Stored data batch ${slider_arg} successfully`;
+            
+        } catch (error) {
+            console.error("Error processing data:", error);
+            return `Error: ${error.message}`;
+        }
+    }
+    """,
+    Output("worker-status", "data", allow_duplicate=True),
+    Input("interval-buffer", "n_intervals"),
+    State("slider-frame", "value"),
+    State("session-id", "data"),
+    State("worker-initialized", "data"),
+    prevent_initial_call=True,
+)
 
 # # Retrieve data from IndexedDB
 # app.clientside_callback(
