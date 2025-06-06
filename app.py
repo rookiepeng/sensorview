@@ -36,6 +36,8 @@ from multiprocessing import freeze_support
 
 from flaskwebgui import FlaskUI
 
+from flask import jsonify
+
 import dash
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -70,12 +72,15 @@ app.layout = get_app_layout
 
 @app.server.route("/api/data/<session>/<int:index>", methods=["GET"])
 def get_data_by_index(session, index):
-    fig = cache_get(session, CACHE_KEYS["figure"], index)
-    return fig
+    fig = cache_get(session, CACHE_KEYS["figure"], str(index))
+    print(fig)
+    return jsonify(fig)
+
 
 @app.server.route("/api/data/test", methods=["GET"])
 def get_test_string():
     return "hello"
+
 
 # Initialize worker
 app.clientside_callback(
@@ -94,20 +99,19 @@ app.clientside_callback(
         }
     }
     """,
-    [Output("worker-initialized", "data"),
-     Output("worker-status", "data")],
+    [Output("worker-initialized", "data"), Output("worker-status", "data")],
     Input("refresh-button-modal", "n_clicks"),
     # prevent_initial_call=True
 )
 
-# # Store data in IndexedDB via worker
+# Store data in IndexedDB via worker
 # app.clientside_callback(
 #     """
 #     async function(n_clicks, data, is_initialized) {
 #         if (!n_clicks) return dash_clientside.no_update;
 #         if (!is_initialized) return "Worker not initialized. Click 'Initialize Worker' first.";
 #         if (!data || data.length === 0) return "No data to store. Generate data first.";
-        
+
 #         try {
 #             // Create a promise that resolves when the worker responds
 #             const response = await new Promise((resolve, reject) => {
@@ -120,16 +124,16 @@ app.clientside_callback(
 #                         reject(new Error(e.data.message || "Unknown error"));
 #                     }
 #                 };
-                
+
 #                 window.dbWorker.addEventListener('message', messageHandler);
-                
+
 #                 // Send the message to the worker
 #                 window.dbWorker.postMessage({
 #                     action: 'store',
 #                     payload: data
 #                 });
 #             });
-            
+
 #             return `Successfully stored ${response.result.count} records in IndexedDB`;
 #         } catch (error) {
 #             console.error("Error storing data:", error);
@@ -141,7 +145,7 @@ app.clientside_callback(
 #     Input("store-data-btn", "n_clicks"),
 #     State("generated-data", "data"),
 #     State("worker-initialized", "data"),
-#     prevent_initial_call=True
+#     prevent_initial_call=True,
 # )
 
 # # Retrieve data from IndexedDB
@@ -150,7 +154,7 @@ app.clientside_callback(
 #     async function(n_clicks, is_initialized) {
 #         if (!n_clicks) return [dash_clientside.no_update, dash_clientside.no_update];
 #         if (!is_initialized) return ["Worker not initialized", dash_clientside.no_update];
-        
+
 #         try {
 #             // Create a promise that resolves when the worker responds
 #             const response = await new Promise((resolve, reject) => {
@@ -163,21 +167,21 @@ app.clientside_callback(
 #                         reject(new Error(e.data.message || "Unknown error"));
 #                     }
 #                 };
-                
+
 #                 window.dbWorker.addEventListener('message', messageHandler);
-                
+
 #                 // Send the message to the worker
 #                 window.dbWorker.postMessage({
 #                     action: 'getAll',
 #                     payload: null
 #                 });
 #             });
-            
+
 #             // Format the data for display
 #             const data = response.result;
-#             const preview = JSON.stringify(data.slice(0, 5), null, 2) + 
+#             const preview = JSON.stringify(data.slice(0, 5), null, 2) +
 #                 (data.length > 5 ? "\\n\\n...and " + (data.length - 5) + " more records" : "");
-                
+
 #             return [`Retrieved ${data.length} records from IndexedDB`, preview];
 #         } catch (error) {
 #             console.error("Error retrieving data:", error);
@@ -196,55 +200,55 @@ app.clientside_callback(
 #     """
 #     async function(api_urls) {
 #         if (!api_urls) return "No API URLs available";
-        
+
 #         try {
 #             // Initialize IndexedDB
 #             const dbPromise = new Promise((resolve, reject) => {
 #                 const request = indexedDB.open("DashDataDB", 1);
-                
+
 #                 request.onupgradeneeded = function(event) {
 #                     const db = event.target.result;
 #                     if (!db.objectStoreNames.contains("records")) {
 #                         db.createObjectStore("records", { keyPath: "id" });
 #                     }
 #                 };
-                
+
 #                 request.onsuccess = function(event) {
 #                     resolve(event.target.result);
 #                 };
-                
+
 #                 request.onerror = function(event) {
 #                     reject("IndexedDB error: " + event.target.error);
 #                 };
 #             });
-            
+
 #             // Fetch data from API
 #             const response = await fetch(api_urls.all_data);
 #             const data = await response.json();
-            
+
 #             // Store in IndexedDB
 #             const db = await dbPromise;
 #             const tx = db.transaction("records", "readwrite");
 #             const store = tx.objectStore("records");
-            
+
 #             // Clear existing data
 #             await new Promise((resolve, reject) => {
 #                 const clearRequest = store.clear();
 #                 clearRequest.onsuccess = resolve;
 #                 clearRequest.onerror = reject;
 #             });
-            
+
 #             // Add new data
 #             let count = 0;
 #             for (const item of data) {
 #                 store.put(item);
 #                 count++;
 #             }
-            
+
 #             await new Promise((resolve) => {
 #                 tx.oncomplete = resolve;
 #             });
-            
+
 #             return `Successfully stored ${count} records in IndexedDB`;
 #         } catch (error) {
 #             console.error("Error:", error);
@@ -257,6 +261,7 @@ app.clientside_callback(
 #     State("session-id", "data"),
 #     prevent_initial_call=True
 # )
+
 
 @app.callback(
     output={
