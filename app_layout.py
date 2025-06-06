@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -1344,6 +1344,15 @@ def get_app_layout():
             dcc.Store(id="local-case-selection", storage_type="local"),
             dcc.Store(id="local-file-selection", storage_type="local"),
             dcc.Store(id="current-file"),
+            dcc.Interval(
+                id="interval-buffer",
+                interval=500,  # in milliseconds
+                disabled=False,
+                n_intervals=0,
+            ),
+            dcc.Store(id="buffer-index", data=0),
+            dcc.Store(id="worker-initialized", data=False),
+            dcc.Store(id="worker-status"),
             dcc.Download(id="download"),
             modal,
             dbc.Row(
