@@ -73,27 +73,14 @@ app.layout = get_app_layout
 @app.server.route("/api/data/<session>/<start_index>", methods=["GET"])
 def get_data_by_index(session, start_index):
     latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
-
-    print(start_index)
-    print(latest_server_buffer_index)
-
     start_index = int(start_index)
 
     if latest_server_buffer_index is None:
         latest_server_buffer_index = -1
 
     if start_index >= latest_server_buffer_index:
-        print("return 400")
-        return (
-            jsonify(
-                {
-                    "error": "Index out of range",
-                    "message": f"Requested index exceeds latest buffer index {latest_server_buffer_index}",
-                    "latest_index": latest_server_buffer_index,
-                }
-            ),
-            400,
-        )
+        print("return empty array")
+        return jsonify([])
 
     buffer = []
     # idx=latest_server_buffer_index
@@ -156,10 +143,12 @@ app.clientside_callback(
         try {
             // Fetch data from API with index based on local_index
             const response = await fetch(`/api/data/${session}/${local_index}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const dataArray = await response.json();
+            
+            if (!dataArray || dataArray.length === 0) {
+                console.log('No new data available');
+                return ['No new data available', local_index];
+            }
             
             console.log(`Fetched data array starting from index ${local_index}:`, dataArray);
 
@@ -199,7 +188,7 @@ app.clientside_callback(
             
         } catch (error) {
             console.error("Error processing data:", error);
-            return [`Error: ${error.message}`, dash_clientside.no_update];
+            return [`Error: ${error.message}`, local_index];
         }
     }
     """,
