@@ -1350,7 +1350,7 @@ def get_app_layout():
                 disabled=False,
                 n_intervals=0,
             ),
-            dcc.Store(id="buffer-index", data=0),
+            dcc.Store(id="local-buffer-index", data=-1),
             dcc.Store(id="worker-initialized", data=False),
             dcc.Store(id="worker-status"),
             dcc.Download(id="download"),

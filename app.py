@@ -70,23 +70,25 @@ app.title = APP_TITLE
 app.layout = get_app_layout
 
 
-@app.server.route("/api/data/<session>/<int:start_index>", methods=["GET"])
+@app.server.route("/api/data/<session>/<start_index>", methods=["GET"])
 def get_data_by_index(session, start_index):
     latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
 
     print(start_index)
     print(latest_server_buffer_index)
 
+    start_index = int(start_index)
+
     if latest_server_buffer_index is None:
         latest_server_buffer_index = -1
 
-    if start_index > latest_server_buffer_index:
+    if start_index >= latest_server_buffer_index:
         print("return 400")
         return (
             jsonify(
                 {
                     "error": "Index out of range",
-                    "message": f"Requested index {start_index} exceeds latest buffer index {latest_server_buffer_index}",
+                    "message": f"Requested index exceeds latest buffer index {latest_server_buffer_index}",
                     "latest_index": latest_server_buffer_index,
                 }
             ),
@@ -95,7 +97,7 @@ def get_data_by_index(session, start_index):
 
     buffer = []
     # idx=latest_server_buffer_index
-    for idx in range(start_index, latest_server_buffer_index + 1):
+    for idx in range(start_index+1, latest_server_buffer_index + 1):
         buffer.append(
             {
                 "index": idx,
@@ -148,8 +150,8 @@ app.clientside_callback(
 app.clientside_callback(
     """
     async function(n_intervals, local_index, session, is_initialized) {
-        if (!n_intervals) return dash_clientside.no_update;
-        if (!is_initialized) return "Worker not initialized. Click 'Initialize Worker' first.";
+        if (!n_intervals) return [dash_clientside.no_update, dash_clientside.no_update];
+        if (!is_initialized) return ["Worker not initialized", dash_clientside.no_update];
 
         try {
             // Fetch data from API with index based on local_index
@@ -157,43 +159,54 @@ app.clientside_callback(
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            const data = await response.json();
+            const dataArray = await response.json();
             
-            // Log fetched data
-            console.log(`Fetched data for batch ${local_index}:`, data);
+            console.log(`Fetched data array starting from index ${local_index}:`, dataArray);
 
-            // Store the fetched data in IndexedDB using worker
-            const messagePromise = new Promise((resolve, reject) => {
-                const messageHandler = (e) => {
-                    window.dbWorker.removeEventListener('message', messageHandler);
-                    if (e.data.status === "success") {
-                        resolve(e.data);
-                    } else {
-                        reject(new Error(e.data.message));
-                    }
-                };
+            // Store each item in the array with its index
+            const storePromises = dataArray.map(item => {
+                return new Promise((resolve, reject) => {
+                    const messageHandler = (e) => {
+                        window.dbWorker.removeEventListener('message', messageHandler);
+                        if (e.data.status === "success") {
+                            resolve(e.data);
+                        } else {
+                            reject(new Error(e.data.message));
+                        }
+                    };
 
-                window.dbWorker.addEventListener('message', messageHandler);
-                window.dbWorker.postMessage({
-                    action: 'store',
-                    payload: {
-                        id: `${session}_${local_index}`,
-                        data: data,
-                        timestamp: Date.now()
-                    }
+                    window.dbWorker.addEventListener('message', messageHandler);
+                    window.dbWorker.postMessage({
+                        action: 'store',
+                        payload: {
+                            // id: `${session}_${item.index}`,
+                            id: `${item.index}`,
+                            data: item,
+                            timestamp: Date.now()
+                        }
+                    });
                 });
             });
 
-            const result = await messagePromise;
-            return `Stored data batch ${local_index} successfully`;
+            await Promise.all(storePromises);
+
+            // Get the last index from the stored data array
+            const lastIdx = dataArray.length > 0 ? 
+                Math.max(...dataArray.map(item => item.index)) : 
+                local_index;
+
+            return [`Stored ${dataArray.length} items up to index ${lastIdx}`, lastIdx];
             
         } catch (error) {
             console.error("Error processing data:", error);
-            return `Error: ${error.message}`;
+            return [`Error: ${error.message}`, dash_clientside.no_update];
         }
     }
     """,
-    Output("worker-status", "data", allow_duplicate=True),
+    [
+        Output("worker-status", "data", allow_duplicate=True),
+        Output("local-buffer-index", "data")
+    ],
     Input("interval-buffer", "n_intervals"),
     State("local-buffer-index", "data"),
     State("session-id", "data"),
