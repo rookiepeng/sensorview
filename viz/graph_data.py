@@ -80,7 +80,7 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
                     + data_frame[key].apply(str)
                     + "<br>"
                 )
-        hover_str_list.append(hover_str)
+        hover_str_list.append(hover_str.to_list())
 
     elif c_type == "categorical":
         color_list = pd.unique(data_frame[c_key])
@@ -117,7 +117,7 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
                         + "<br>"
                     )
 
-            hover_str_list.append(hover_str)
+            hover_str_list.append(hover_str.to_list())
 
     return hover_str_list
 
