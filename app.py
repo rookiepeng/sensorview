@@ -204,52 +204,51 @@ app.clientside_callback(
 )
 
 # Retrieve data from IndexedDB
-# app.clientside_callback(
-#     """
-#     async function(n_clicks, is_initialized) {
-#         if (!n_clicks) return [dash_clientside.no_update, dash_clientside.no_update];
-#         if (!is_initialized) return ["Worker not initialized", dash_clientside.no_update];
+app.clientside_callback(
+    """
+    async function(slider_arg, session, is_initialized) {
+        if (!is_initialized) return dash_clientside.no_update;
 
-#         try {
-#             // Create a promise that resolves when the worker responds
-#             const response = await new Promise((resolve, reject) => {
-#                 // Set up a one-time message handler
-#                 const messageHandler = (e) => {
-#                     window.dbWorker.removeEventListener('message', messageHandler);
-#                     if (e.data.status === "success") {
-#                         resolve(e.data);
-#                     } else {
-#                         reject(new Error(e.data.message || "Unknown error"));
-#                     }
-#                 };
+        try {
+            const response = await new Promise((resolve, reject) => {
+                const messageHandler = (e) => {
+                    window.dbWorker.removeEventListener('message', messageHandler);
+                    if (e.data.status === "success") {
+                        resolve(e.data);
+                    } else {
+                        reject(new Error(e.data.message || "Unknown error"));
+                    }
+                };
 
-#                 window.dbWorker.addEventListener('message', messageHandler);
+                window.dbWorker.addEventListener('message', messageHandler);
+                window.dbWorker.postMessage({
+                    action: 'getById',
+                    payload: `${slider_arg}`  // Using just slider_arg as ID since we modified storage to use it
+                });
+            });
 
-#                 // Send the message to the worker
-#                 window.dbWorker.postMessage({
-#                     action: 'getAll',
-#                     payload: null
-#                 });
-#             });
+            const data = response.result;
+            if (!data) {
+                console.log(`No data found for index ${slider_arg}`);
+                return "";
+            }
 
-#             // Format the data for display
-#             const data = response.result;
-#             const preview = JSON.stringify(data.slice(0, 5), null, 2) +
-#                 (data.length > 5 ? "\\n\\n...and " + (data.length - 5) + " more records" : "");
+            console.log(`Retrieved data for index ${slider_arg}:`, data);
+            const preview = JSON.stringify(data, null, 2);
+            return preview;
 
-#             return [`Retrieved ${data.length} records from IndexedDB`, preview];
-#         } catch (error) {
-#             console.error("Error retrieving data:", error);
-#             return [`Error: ${error.message}`, dash_clientside.no_update];
-#         }
-#     }
-#     """,
-#     [Output("retrieval-status", "children"),
-#      Output("data-preview", "children")],
-#     Input("get-all-btn", "n_clicks"),
-#     State("worker-initialized", "data"),
-#     prevent_initial_call=True
-# )
+        } catch (error) {
+            console.error("Error retrieving data:", error);
+            return dash_clientside.no_update;
+        }
+    }
+    """,
+    Output("data-preview", "data"),
+    Input("slider-frame", "value"),
+    State("session-id", "data"),
+    State("worker-initialized", "data"),
+    prevent_initial_call=True
+)
 
 
 @app.callback(
