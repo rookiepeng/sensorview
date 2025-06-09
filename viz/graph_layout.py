@@ -77,7 +77,7 @@ def get_scatter3d_layout(x_range, y_range, z_range=[-20, 20], **kwargs):
 
     return dict(
         title=title,
-        template=pio.templates[template],
+        # template=pio.templates[template],
         # height=height,
         scene=dict(
             xaxis=dict(range=x_range, title=x_label, autorange=False),

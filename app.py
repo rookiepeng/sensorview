@@ -70,11 +70,51 @@ app.title = APP_TITLE
 app.layout = get_app_layout
 
 
-@app.server.route("/api/data/<session>/<int:index>", methods=["GET"])
-def get_data_by_index(session, index):
-    fig = cache_get(session, CACHE_KEYS["figure"], str(index))
-    print(fig)
-    return jsonify(fig)
+@app.server.route("/api/data/<session>/<int:start_index>", methods=["GET"])
+def get_data_by_index(session, start_index):
+    latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
+
+    print(start_index)
+    print(latest_server_buffer_index)
+
+    if latest_server_buffer_index is None:
+        latest_server_buffer_index = -1
+
+    if start_index > latest_server_buffer_index:
+        print("return 400")
+        return (
+            jsonify(
+                {
+                    "error": "Index out of range",
+                    "message": f"Requested index {start_index} exceeds latest buffer index {latest_server_buffer_index}",
+                    "latest_index": latest_server_buffer_index,
+                }
+            ),
+            400,
+        )
+
+    buffer = []
+    # idx=latest_server_buffer_index
+    for idx in range(start_index, latest_server_buffer_index + 1):
+        buffer.append(
+            {
+                "index": idx,
+                "fig": cache_get(session, CACHE_KEYS["figure"], str(idx)),
+                "hover_strings": cache_get(
+                    session, CACHE_KEYS["hover"], str(idx)
+                ),
+                "ref_fig": cache_get(
+                    session, CACHE_KEYS["figure_ref"], str(idx)
+                ),
+                "fig_layout": cache_get(
+                    session, CACHE_KEYS["figure_layout"], str(idx)
+                ),
+            }
+        )
+
+    temp_data=jsonify(buffer)
+    print("send back successfully")
+    return temp_data
 
 
 @app.server.route("/api/data/test", methods=["GET"])
@@ -107,20 +147,20 @@ app.clientside_callback(
 # Store data in IndexedDB via worker
 app.clientside_callback(
     """
-    async function(n_intervals, slider_arg, session, is_initialized) {
+    async function(n_intervals, local_index, session, is_initialized) {
         if (!n_intervals) return dash_clientside.no_update;
         if (!is_initialized) return "Worker not initialized. Click 'Initialize Worker' first.";
 
         try {
-            // Fetch data from API with index based on slider_arg
-            const response = await fetch(`/api/data/${session}/${slider_arg}`);
+            // Fetch data from API with index based on local_index
+            const response = await fetch(`/api/data/${session}/${local_index}`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const data = await response.json();
             
             // Log fetched data
-            console.log(`Fetched data for batch ${slider_arg}:`, data);
+            console.log(`Fetched data for batch ${local_index}:`, data);
 
             // Store the fetched data in IndexedDB using worker
             const messagePromise = new Promise((resolve, reject) => {
@@ -137,7 +177,7 @@ app.clientside_callback(
                 window.dbWorker.postMessage({
                     action: 'store',
                     payload: {
-                        id: `${session}_${slider_arg}`,
+                        id: `${session}_${local_index}`,
                         data: data,
                         timestamp: Date.now()
                     }
@@ -145,7 +185,7 @@ app.clientside_callback(
             });
 
             const result = await messagePromise;
-            return `Stored data batch ${slider_arg} successfully`;
+            return `Stored data batch ${local_index} successfully`;
             
         } catch (error) {
             console.error("Error processing data:", error);
@@ -155,13 +195,13 @@ app.clientside_callback(
     """,
     Output("worker-status", "data", allow_duplicate=True),
     Input("interval-buffer", "n_intervals"),
-    State("slider-frame", "value"),
+    State("local-buffer-index", "data"),
     State("session-id", "data"),
     State("worker-initialized", "data"),
     prevent_initial_call=True,
 )
 
-# # Retrieve data from IndexedDB
+# Retrieve data from IndexedDB
 # app.clientside_callback(
 #     """
 #     async function(n_clicks, is_initialized) {
@@ -206,72 +246,6 @@ app.clientside_callback(
 #      Output("data-preview", "children")],
 #     Input("get-all-btn", "n_clicks"),
 #     State("worker-initialized", "data"),
-#     prevent_initial_call=True
-# )
-
-# app.clientside_callback(
-#     """
-#     async function(api_urls) {
-#         if (!api_urls) return "No API URLs available";
-
-#         try {
-#             // Initialize IndexedDB
-#             const dbPromise = new Promise((resolve, reject) => {
-#                 const request = indexedDB.open("DashDataDB", 1);
-
-#                 request.onupgradeneeded = function(event) {
-#                     const db = event.target.result;
-#                     if (!db.objectStoreNames.contains("records")) {
-#                         db.createObjectStore("records", { keyPath: "id" });
-#                     }
-#                 };
-
-#                 request.onsuccess = function(event) {
-#                     resolve(event.target.result);
-#                 };
-
-#                 request.onerror = function(event) {
-#                     reject("IndexedDB error: " + event.target.error);
-#                 };
-#             });
-
-#             // Fetch data from API
-#             const response = await fetch(api_urls.all_data);
-#             const data = await response.json();
-
-#             // Store in IndexedDB
-#             const db = await dbPromise;
-#             const tx = db.transaction("records", "readwrite");
-#             const store = tx.objectStore("records");
-
-#             // Clear existing data
-#             await new Promise((resolve, reject) => {
-#                 const clearRequest = store.clear();
-#                 clearRequest.onsuccess = resolve;
-#                 clearRequest.onerror = reject;
-#             });
-
-#             // Add new data
-#             let count = 0;
-#             for (const item of data) {
-#                 store.put(item);
-#                 count++;
-#             }
-
-#             await new Promise((resolve) => {
-#                 tx.oncomplete = resolve;
-#             });
-
-#             return `Successfully stored ${count} records in IndexedDB`;
-#         } catch (error) {
-#             console.error("Error:", error);
-#             return `Error: ${error.message}`;
-#         }
-#     }
-#     """,
-#     Output("ibuffer-index", "data"),
-#     Input("interval-buffer", "n_intervals"),
-#     State("session-id", "data"),
 #     prevent_initial_call=True
 # )
 
