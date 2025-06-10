@@ -69,7 +69,6 @@ app.css.config.serve_locally = True
 app.title = APP_TITLE
 app.layout = get_app_layout
 
-
 @app.server.route("/api/data/<session>/<start_index>", methods=["GET"])
 def get_data_by_index(session, start_index):
     latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
@@ -214,7 +213,7 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     """
-    async function(slider_arg, stop_clicks, session, is_initialized, ispaused, colormap, c_picker, key_dict) {
+    async function(slider_arg, stop_clicks, session, is_initialized, ispaused, colormap, c_picker, darkmode, key_dict, dark_template, light_template) {
         if (!is_initialized) return dash_clientside.no_update;
 
         // Check if triggered by stop button
@@ -269,6 +268,12 @@ app.clientside_callback(
                 }
             }
 
+            if (darkmode) {
+                fig.layout.template = dark_template;
+            } else {
+                fig.layout.template = light_template;
+            }
+            
             return fig;
 
         } catch (error) {
@@ -285,7 +290,10 @@ app.clientside_callback(
     State("interval-component", "disabled"),
     State("colormap-3d", "value"),
     State("c-picker-3d", "value"),
+    State("darkmode-switch", "value"),
     State("key-dict", "data"),
+    State("dark-template", "data"),
+    State("light-template", "data"),
     prevent_initial_call=True,
 )
 
