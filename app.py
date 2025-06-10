@@ -214,8 +214,14 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     """
-    async function(slider_arg, session, is_initialized, ispaused) {
+    async function(slider_arg, stop_clicks, session, is_initialized, ispaused) {
         if (!is_initialized) return dash_clientside.no_update;
+
+        // Check if triggered by stop button
+        const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id);
+        if (triggered.length > 0 && triggered[0].includes('stop-button')) {
+            ispaused = true;
+        }
 
         try {
             const response = await new Promise((resolve, reject) => {
@@ -266,6 +272,7 @@ app.clientside_callback(
     """,
     Output("scatter3d", "figure", allow_duplicate=True),
     Input("slider-frame", "value"),
+    Input("stop-button", "n_clicks"),
     State("session-id", "data"),
     State("worker-initialized", "data"),
     State("interval-component", "disabled"),
