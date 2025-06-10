@@ -1360,6 +1360,7 @@ def get_app_layout():
             dcc.Store(id="local-case-selection", storage_type="local"),
             dcc.Store(id="local-file-selection", storage_type="local"),
             dcc.Store(id="current-file"),
+            dcc.Store(id="key-dict"),
             dcc.Interval(
                 id="interval-buffer",
                 interval=1000,  # in milliseconds

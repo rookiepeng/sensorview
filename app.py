@@ -214,7 +214,7 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     """
-    async function(slider_arg, stop_clicks, session, is_initialized, ispaused) {
+    async function(slider_arg, stop_clicks, session, is_initialized, ispaused, colormap, c_picker, key_dict) {
         if (!is_initialized) return dash_clientside.no_update;
 
         // Check if triggered by stop button
@@ -262,6 +262,13 @@ app.clientside_callback(
                 };
             };
 
+            const c_type = key_dict[c_picker]?.type || "numerical";
+            if (c_type === "numerical") {
+                if (fig.data[0]?.marker) {
+                    fig.data[0].marker.colorscale = colormap;
+                }
+            }
+
             return fig;
 
         } catch (error) {
@@ -276,6 +283,9 @@ app.clientside_callback(
     State("session-id", "data"),
     State("worker-initialized", "data"),
     State("interval-component", "disabled"),
+    State("colormap-3d", "value"),
+    State("c-picker-3d", "value"),
+    State("key-dict", "data"),
     prevent_initial_call=True,
 )
 

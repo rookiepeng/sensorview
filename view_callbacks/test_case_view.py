@@ -67,6 +67,7 @@ def get_test_case_view_callbacks(app):
     @app.callback(
         background=True,
         output={
+            "key_dict": Output("key-dict", "data"),
             "file_load_trigger": Output("file-loaded-trigger", "data"),
             "stored_file": Output("local-file-selection", "data"),
             "frame_min": Output("slider-frame", "min"),
@@ -324,6 +325,7 @@ def get_test_case_view_callbacks(app):
         )
 
         return {
+            "key_dict": keys_dict,
             "file_load_trigger": file_loaded + 1,
             "stored_file": file,
             "frame_min": 0,
