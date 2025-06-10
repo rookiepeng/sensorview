@@ -220,7 +220,7 @@ app.clientside_callback(
                 window.dbWorker.addEventListener('message', messageHandler);
                 window.dbWorker.postMessage({
                     action: 'getById',
-                    payload: `${slider_arg}`  // Using just slider_arg as ID since we modified storage to use it
+                    payload: `${slider_arg}`
                 });
             });
 
