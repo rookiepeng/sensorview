@@ -255,15 +255,15 @@ view3d_card = dbc.Card(
                                         dbc.Progress(
                                             id="buffer",
                                             value=0,
-                                            color="info",
+                                            color="warning",
                                             style={
-                                                "height": "4px",
+                                                "height": "2px",
                                                 "margin-top": 0,
-                                                "margin-bottom": 5,
+                                                "margin-bottom": 0,
                                                 "margin-left": 25,
                                                 "margin-right": 25,
                                             },
-                                            className="mb-3",
+                                            className="mb-0",
                                         ),
                                         width=12,
                                     ),
@@ -272,6 +272,22 @@ view3d_card = dbc.Card(
                                         id="buffer-tooltip",
                                         target="buffer",
                                         placement="top",
+                                    ),
+                                    dbc.Col(
+                                        dbc.Progress(
+                                            id="buffer-local",
+                                            value=0,
+                                            color="info",
+                                            style={
+                                                "height": "2px",
+                                                "margin-top": 0,
+                                                "margin-bottom": 5,
+                                                "margin-left": 25,
+                                                "margin-right": 25,
+                                            },
+                                            className="mb-3",
+                                        ),
+                                        width=12,
                                     ),
                                     dbc.Col(
                                         dcc.Slider(
