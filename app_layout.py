@@ -1346,7 +1346,7 @@ def get_app_layout():
             dcc.Store(id="current-file"),
             dcc.Interval(
                 id="interval-buffer",
-                interval=500,  # in milliseconds
+                interval=1000,  # in milliseconds
                 disabled=False,
                 n_intervals=0,
             ),
