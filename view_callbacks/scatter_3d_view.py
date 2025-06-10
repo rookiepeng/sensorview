@@ -320,7 +320,6 @@ def get_scatter_3d_view_callbacks(app):
         inputs={
             "overlay_enable": Input("overlay-switch", "value"),
             "decay": Input("decay-slider", "value"),
-            "unused_stop_click": Input("stop-button", "n_clicks"),
         },
         state={
             "slider_arg": State("slider-frame", "value"),
@@ -341,7 +340,6 @@ def get_scatter_3d_view_callbacks(app):
         slider_arg,
         cat_values,
         num_values,
-        unused_stop_click,
         ispaused,
         colormap,
         visible_list,
