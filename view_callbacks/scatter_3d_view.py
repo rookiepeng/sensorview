@@ -743,7 +743,6 @@ def get_scatter_3d_view_callbacks(app):
             "visible_list": State("visible-picker", "value"),
             "c_key": State("c-picker-3d", "value"),
             "session_id": State("session-id", "data"),
-            "case": State("test-case", "value"),
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
         },
@@ -763,7 +762,6 @@ def get_scatter_3d_view_callbacks(app):
         visible_list,
         c_key,
         session_id,
-        case,
         file,
         file_list,
     ):
@@ -778,7 +776,6 @@ def get_scatter_3d_view_callbacks(app):
         - visible_list (list): The list of visible items.
         - c_key (str): The selected color key.
         - session_id (str): The ID of the current session.
-        - case (str): The selected case.
         - file (str): The selected file.
         - file_list (list): The list of selected files.
 
