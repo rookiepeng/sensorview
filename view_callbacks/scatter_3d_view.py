@@ -376,12 +376,6 @@ def get_scatter_3d_view_callbacks(app):
         Output Properties:
         - scatter3d (dict): The updated 3D scatter plot figure.
         """
-        ctx = dash.callback_context
-        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-        if trigger_id == "stop-button":
-            ispaused = True
-
         config = cache_get(session_id, CACHE_KEYS["config"])
         keys_dict = config["keys"]
         c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
