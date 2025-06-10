@@ -130,9 +130,9 @@ app.clientside_callback(
 # Store data in IndexedDB via worker
 app.clientside_callback(
     """
-    async function(n_intervals, local_index, session, is_initialized) {
-        if (!n_intervals) return [dash_clientside.no_update, dash_clientside.no_update];
-        if (!is_initialized) return ["Worker not initialized", dash_clientside.no_update];
+    async function(n_intervals, local_index, session, is_initialized, max_val) {
+        if (!n_intervals) return [0, dash_clientside.no_update, dash_clientside.no_update];
+        if (!is_initialized) return [0, "Worker not initialized", dash_clientside.no_update];
 
         try {
             const response = await fetch(`/api/data/${session}/${local_index}`);
@@ -140,13 +140,13 @@ app.clientside_callback(
             
             if (!dataArray || dataArray.length === 0) {
                 console.log('No new data available');
-                return ['No new data available', local_index];
+                return [dash_clientside.no_update, 'No new data available', local_index];
             }
 
             // Check for reset signal
             if (dataArray[0].index === -1) {
                 console.log('Reset signal received');
-                return ['Reset signal received', -1];
+                return [0, 'Reset signal received', -1];
             }
             
             console.log(`Fetched data array starting from index ${local_index}:`, dataArray);
@@ -157,7 +157,8 @@ app.clientside_callback(
                 // Check if any required field is null or undefined
                 if (!item.fig || !item.hover_strings || !item.ref_fig || !item.fig_layout) {
                     console.log(`Invalid data at index ${item.index}, stopping storage`);
-                    return [`Stored items up to index ${lastValidIndex} (stopped due to invalid data)`, lastValidIndex];
+
+                    return [lastValidIndex/max_val*100, `Stored items up to index ${lastValidIndex} (stopped due to invalid data)`, lastValidIndex];
                 }
 
                 // Store valid item
@@ -185,19 +186,20 @@ app.clientside_callback(
                     lastValidIndex = item.index;
                 } catch (error) {
                     console.error(`Error storing item ${item.index}:`, error);
-                    return [`Error storing data: ${error.message}`, lastValidIndex];
+                    return [dash_clientside.no_update, `Error storing data: ${error.message}`, lastValidIndex];
                 }
             }
 
-            return [`Stored ${dataArray.length} items up to index ${lastValidIndex}`, lastValidIndex];
+            return [lastValidIndex/max_val*100, `Stored ${dataArray.length} items up to index ${lastValidIndex}`, lastValidIndex];
 
         } catch (error) {
             console.error("Error processing data:", error);
-            return [`Error: ${error.message}`, local_index];
+            return [dash_clientside.no_update, `Error: ${error.message}`, local_index];
         }
     }
     """,
     [
+        Output("buffer-local", "value"),
         Output("worker-status", "data", allow_duplicate=True),
         Output("local-buffer-index", "data", allow_duplicate=True),
     ],
@@ -205,6 +207,7 @@ app.clientside_callback(
     State("local-buffer-index", "data"),
     State("session-id", "data"),
     State("worker-initialized", "data"),
+    State("slider-frame", "max"),
     prevent_initial_call=True,
 )
 
