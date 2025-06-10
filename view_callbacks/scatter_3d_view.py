@@ -318,12 +318,12 @@ def get_scatter_3d_view_callbacks(app):
             "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
         },
         inputs={
-            "slider_arg": Input("slider-frame", "value"),
             "overlay_enable": Input("overlay-switch", "value"),
             "decay": Input("decay-slider", "value"),
             "unused_stop_click": Input("stop-button", "n_clicks"),
         },
         state={
+            "slider_arg": State("slider-frame", "value"),
             "ispaused": State("interval-component", "disabled"),
             "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
             "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
@@ -603,6 +603,7 @@ def get_scatter_3d_view_callbacks(app):
         output={
             "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
             "trigger": Output("background-trigger", "data"),
+            "local_buffer_idx": Output("local-buffer-index", "data", allow_duplicate=True),
         },
         inputs={
             "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
@@ -726,7 +727,7 @@ def get_scatter_3d_view_callbacks(app):
         else:
             fig["layout"]["template"] = pio.templates["plotly"]
 
-        return {"scatter3d": fig, "trigger": trigger_val + 1}
+        return {"scatter3d": fig, "trigger": trigger_val + 1, "local_buffer_idx": -1}
 
     @app.callback(
         background=True,
