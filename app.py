@@ -231,7 +231,10 @@ app.clientside_callback(
             }
 
             console.log(`Retrieved data for index ${slider_arg}:`, data);
-            const preview = {'data': data.data.fig, 'layout': data.data.fig_layout};
+            const preview = {
+                'data': [...data.data.fig, ...data.data.ref_fig], 
+                'layout': data.data.fig_layout
+            };
             return preview;
 
         } catch (error) {
