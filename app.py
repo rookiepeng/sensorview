@@ -84,26 +84,18 @@ def get_data_by_index(session, start_index):
 
     buffer = []
     # idx=latest_server_buffer_index
-    for idx in range(start_index+1, latest_server_buffer_index + 1):
+    for idx in range(start_index + 1, latest_server_buffer_index + 1):
         buffer.append(
             {
                 "index": idx,
                 "fig": cache_get(session, CACHE_KEYS["figure"], str(idx)),
-                "hover_strings": cache_get(
-                    session, CACHE_KEYS["hover"], str(idx)
-                ),
-                "ref_fig": cache_get(
-                    session, CACHE_KEYS["figure_ref"], str(idx)
-                ),
-                "fig_layout": cache_get(
-                    session, CACHE_KEYS["figure_layout"], str(idx)
-                ),
+                "hover_strings": cache_get(session, CACHE_KEYS["hover"], str(idx)),
+                "ref_fig": cache_get(session, CACHE_KEYS["figure_ref"], str(idx)),
+                "fig_layout": cache_get(session, CACHE_KEYS["figure_layout"], str(idx)),
             }
         )
 
-    temp_data=jsonify(buffer)
-    print("send back successfully")
-    return temp_data
+    return jsonify(buffer)
 
 
 @app.server.route("/api/data/test", methods=["GET"])
@@ -141,7 +133,6 @@ app.clientside_callback(
         if (!is_initialized) return ["Worker not initialized", dash_clientside.no_update];
 
         try {
-            // Fetch data from API with index based on local_index
             const response = await fetch(`/api/data/${session}/${local_index}`);
             const dataArray = await response.json();
             
@@ -152,40 +143,46 @@ app.clientside_callback(
             
             console.log(`Fetched data array starting from index ${local_index}:`, dataArray);
 
-            // Store each item in the array with its index
-            const storePromises = dataArray.map(item => {
-                return new Promise((resolve, reject) => {
-                    const messageHandler = (e) => {
-                        window.dbWorker.removeEventListener('message', messageHandler);
-                        if (e.data.status === "success") {
-                            resolve(e.data);
-                        } else {
-                            reject(new Error(e.data.message));
-                        }
-                    };
-
-                    window.dbWorker.addEventListener('message', messageHandler);
-                    window.dbWorker.postMessage({
-                        action: 'store',
-                        payload: {
-                            // id: `${session}_${item.index}`,
-                            id: `${item.index}`,
-                            data: item,
-                            timestamp: Date.now()
-                        }
-                    });
-                });
-            });
-
-            await Promise.all(storePromises);
-
-            // Get the last index from the stored data array
-            const lastIdx = dataArray.length > 0 ? 
-                Math.max(...dataArray.map(item => item.index)) : 
-                local_index;
-
-            return [`Stored ${dataArray.length} items up to index ${lastIdx}`, lastIdx];
+            let lastValidIndex = local_index;
             
+            for (const item of dataArray) {
+                // Check if any required field is null or undefined
+                if (!item.fig || !item.hover_strings || !item.ref_fig || !item.fig_layout) {
+                    console.log(`Invalid data at index ${item.index}, stopping storage`);
+                    return [`Stored items up to index ${lastValidIndex} (stopped due to invalid data)`, lastValidIndex];
+                }
+
+                // Store valid item
+                try {
+                    await new Promise((resolve, reject) => {
+                        const messageHandler = (e) => {
+                            window.dbWorker.removeEventListener('message', messageHandler);
+                            if (e.data.status === "success") {
+                                resolve(e.data);
+                            } else {
+                                reject(new Error(e.data.message));
+                            }
+                        };
+
+                        window.dbWorker.addEventListener('message', messageHandler);
+                        window.dbWorker.postMessage({
+                            action: 'store',
+                            payload: {
+                                id: `${item.index}`,
+                                data: item,
+                                timestamp: Date.now()
+                            }
+                        });
+                    });
+                    lastValidIndex = item.index;
+                } catch (error) {
+                    console.error(`Error storing item ${item.index}:`, error);
+                    return [`Error storing data: ${error.message}`, lastValidIndex];
+                }
+            }
+
+            return [`Stored ${dataArray.length} items up to index ${lastValidIndex}`, lastValidIndex];
+
         } catch (error) {
             console.error("Error processing data:", error);
             return [`Error: ${error.message}`, local_index];
@@ -194,7 +191,7 @@ app.clientside_callback(
     """,
     [
         Output("worker-status", "data", allow_duplicate=True),
-        Output("local-buffer-index", "data")
+        Output("local-buffer-index", "data"),
     ],
     Input("interval-buffer", "n_intervals"),
     State("local-buffer-index", "data"),
@@ -234,7 +231,7 @@ app.clientside_callback(
             }
 
             console.log(`Retrieved data for index ${slider_arg}:`, data);
-            const preview = JSON.stringify(data, null, 2);
+            const preview = {'data': data.data.fig, 'layout': data.data.fig_layout};
             return preview;
 
         } catch (error) {
@@ -243,11 +240,11 @@ app.clientside_callback(
         }
     }
     """,
-    Output("data-preview", "data"),
+    Output("scatter3d", "figure", allow_duplicate=True),
     Input("slider-frame", "value"),
     State("session-id", "data"),
     State("worker-initialized", "data"),
-    prevent_initial_call=True
+    prevent_initial_call=True,
 )
 
 
