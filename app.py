@@ -78,12 +78,14 @@ def get_data_by_index(session, start_index):
     if latest_server_buffer_index is None:
         latest_server_buffer_index = -1
 
-    if start_index >= latest_server_buffer_index:
+    if start_index > latest_server_buffer_index:
+        return jsonify([{"index": -1}])
+
+    if start_index == latest_server_buffer_index:
         print("return empty array")
         return jsonify([])
 
     buffer = []
-    # idx=latest_server_buffer_index
     for idx in range(start_index + 1, latest_server_buffer_index + 1):
         buffer.append(
             {
@@ -140,6 +142,12 @@ app.clientside_callback(
                 console.log('No new data available');
                 return ['No new data available', local_index];
             }
+
+            // Check for reset signal
+            if (dataArray[0].index === -1) {
+                console.log('Reset signal received');
+                return ['Reset signal received', -1];
+            }
             
             console.log(`Fetched data array starting from index ${local_index}:`, dataArray);
 
@@ -191,7 +199,7 @@ app.clientside_callback(
     """,
     [
         Output("worker-status", "data", allow_duplicate=True),
-        Output("local-buffer-index", "data"),
+        Output("local-buffer-index", "data", allow_duplicate=True),
     ],
     Input("interval-buffer", "n_intervals"),
     State("local-buffer-index", "data"),
