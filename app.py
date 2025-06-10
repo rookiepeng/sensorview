@@ -214,7 +214,7 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     """
-    async function(slider_arg, session, is_initialized) {
+    async function(slider_arg, session, is_initialized, ispaused) {
         if (!is_initialized) return dash_clientside.no_update;
 
         try {
@@ -242,11 +242,21 @@ app.clientside_callback(
             }
 
             console.log(`Retrieved data for index ${slider_arg}:`, data);
-            const preview = {
+            const fig = {
                 'data': [...data.data.fig, ...data.data.ref_fig], 
                 'layout': data.data.fig_layout
             };
-            return preview;
+
+            if (ispaused){
+                if (data.data.hover_strings){
+                    data.data.hover_strings.forEach((hover_str, idx) => {
+                        fig.data[idx].text = hover_str;
+                        fig.data[idx].hovertemplate = "%{text}";
+                    });
+                };
+            };
+
+            return fig;
 
         } catch (error) {
             console.error("Error retrieving data:", error);
@@ -258,6 +268,7 @@ app.clientside_callback(
     Input("slider-frame", "value"),
     State("session-id", "data"),
     State("worker-initialized", "data"),
+    State("interval-component", "disabled"),
     prevent_initial_call=True,
 )
 
