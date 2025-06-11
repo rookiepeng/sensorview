@@ -296,7 +296,7 @@ app.clientside_callback(
                 }
             }
 
-            if (darkmode) {
+            if (Array.isArray(darkmode) && darkmode.length > 0) {
                 fig.layout.template = dark_template;
             } else {
                 fig.layout.template = light_template;
