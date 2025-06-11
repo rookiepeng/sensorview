@@ -81,7 +81,6 @@ def get_data_by_index(session, start_index):
         return jsonify([{"index": -1}])
 
     if start_index == latest_server_buffer_index:
-        print("return empty array")
         return jsonify([])
 
     buffer = []
@@ -99,11 +98,6 @@ def get_data_by_index(session, start_index):
     return jsonify(buffer)
 
 
-@app.server.route("/api/data/test", methods=["GET"])
-def get_test_string():
-    return "hello"
-
-
 # Initialize worker
 app.clientside_callback(
     """
@@ -111,33 +105,31 @@ app.clientside_callback(
         try {
             if (!window.dbWorker) {
                 window.dbWorker = new Worker('/assets/worker.js');
-                console.log("IndexedDB worker initialized");
-                
+
                 // Clean up old data
                 window.dbWorker.postMessage({
                     action: 'cleanup',
                     payload: 2  // 2 days
                 });
+                console.log("IndexedDB worker initialized, and starts to clean old cached data.");
             }
             
-            return [true, "Worker initialized successfully"];
+            return "Worker initialized successfully";
         } catch (error) {
             console.error("Worker initialization error:", error);
-            return [false, "Error: " + error.message];
+            return "Error: " + error.message;
         }
     }
     """,
-    [Output("worker-initialized", "data"), Output("worker-status", "data")],
+    Output("worker-status", "data"),
     Input("refresh-button-modal", "n_clicks"),
-    # prevent_initial_call=True
 )
 
 # Store data in IndexedDB via worker
 app.clientside_callback(
     """
-    async function(n_intervals, local_index, session, is_initialized, max_val) {
+    async function(n_intervals, local_index, session, max_val) {
         if (!n_intervals) return [0, dash_clientside.no_update, dash_clientside.no_update];
-        if (!is_initialized) return [0, "Worker not initialized", dash_clientside.no_update];
 
         try {
             const response = await fetch(`/api/data/${session}/${local_index}`);
@@ -211,7 +203,6 @@ app.clientside_callback(
     Input("interval-buffer", "n_intervals"),
     State("local-buffer-index", "data"),
     State("session-id", "data"),
-    State("worker-initialized", "data"),
     State("slider-frame", "max"),
     prevent_initial_call=True,
 )
@@ -219,8 +210,7 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     """
-    async function(slider_arg, stop_clicks, decay, session, is_initialized, ispaused, colormap, c_picker, darkmode, key_dict, dark_template, light_template, local_index, remote_trigger) {
-        if (!is_initialized) return [dash_clientside.no_update, dash_clientside.no_update];
+    async function(slider_arg, stop_clicks, decay, session, ispaused, colormap, c_picker, darkmode, key_dict, dark_template, light_template, local_index, remote_trigger) {
 
         // Check if triggered by stop button
         const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id);
@@ -364,7 +354,6 @@ app.clientside_callback(
     Input("stop-button", "n_clicks"),
     Input("decay-slider", "value"),
     State("session-id", "data"),
-    State("worker-initialized", "data"),
     State("interval-component", "disabled"),
     State("colormap-3d", "value"),
     State("c-picker-3d", "value"),
