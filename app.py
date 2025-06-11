@@ -213,8 +213,8 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     """
-    async function(slider_arg, stop_clicks, session, is_initialized, ispaused, colormap, c_picker, darkmode, key_dict, dark_template, light_template, local_index, remote_trigger) {
-        if (!is_initialized) return dash_clientside.no_update;
+    async function(slider_arg, stop_clicks, decay, session, is_initialized, ispaused, colormap, c_picker, darkmode, key_dict, dark_template, light_template, local_index, remote_trigger) {
+        if (!is_initialized) return [dash_clientside.no_update, dash_clientside.no_update];
 
         // Check if triggered by stop button
         const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id);
@@ -274,26 +274,51 @@ app.clientside_callback(
                 return [dash_clientside.no_update, remote_trigger+1];
             }
 
-            console.log(`Retrieved data for index ${slider_arg}:`, data);
+            let allData = [data];
+            // Get previous figures if decay > 0
+            if (decay > 0) {
+                for (let i = 1; i <= decay; i++) {
+                    const prevIndex = slider_arg - i;
+                    if (prevIndex >= 0) {
+                        try {
+                            const prevData = await getDataWithRetry(prevIndex);
+                            if (prevData) {
+                                allData.push(prevData);
+                            }
+                        } catch (error) {
+                            console.warn(`Failed to get data for index ${prevIndex}`);
+                        }
+                    }
+                }
+            }
+
+            console.log(`Retrieved ${allData.length} figures`);
             const fig = {
-                'data': [...data.data.fig, ...data.data.ref_fig], 
+                'data': allData.flatMap(d => d.data.fig),
                 'layout': data.data.fig_layout
             };
 
             if (ispaused){
-                if (data.data.hover_strings){
-                    data.data.hover_strings.forEach((hover_str, idx) => {
-                        fig.data[idx].text = hover_str;
-                        fig.data[idx].hovertemplate = "%{text}";
-                    });
-                };
+                allData.forEach((d, dataIndex) => {
+                    if (d.data.hover_strings) {
+                        const startIdx = dataIndex * d.data.fig.length;
+                        d.data.hover_strings.forEach((hover_str, idx) => {
+                            if (fig.data[startIdx + idx]) {
+                                fig.data[startIdx + idx].text = hover_str;
+                                fig.data[startIdx + idx].hovertemplate = "%{text}";
+                            }
+                        });
+                    }
+                });
             };
 
             const c_type = key_dict[c_picker]?.type || "numerical";
             if (c_type === "numerical") {
-                if (fig.data[0]?.marker) {
-                    fig.data[0].marker.colorscale = colormap;
-                }
+                fig.data.forEach(trace => {
+                    if (trace?.marker) {
+                        trace.marker.colorscale = colormap;
+                    }
+                });
             }
 
             if (Array.isArray(darkmode) && darkmode.length > 0) {
@@ -314,6 +339,7 @@ app.clientside_callback(
     Output("trigger-remote-figure", "data")],
     Input("slider-frame", "value"),
     Input("stop-button", "n_clicks"),
+    Input("decay-slider", "value"),
     State("session-id", "data"),
     State("worker-initialized", "data"),
     State("interval-component", "disabled"),
