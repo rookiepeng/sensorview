@@ -33,7 +33,6 @@ import datetime
 
 import numpy as np
 
-import dash
 from dash import dcc
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
