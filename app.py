@@ -227,24 +227,48 @@ app.clientside_callback(
         }
 
         try {
-            const response = await new Promise((resolve, reject) => {
-                const messageHandler = (e) => {
-                    window.dbWorker.removeEventListener('message', messageHandler);
-                    if (e.data.status === "success") {
-                        resolve(e.data);
-                    } else {
-                        reject(new Error(e.data.message || "Unknown error"));
+            // Helper function for data retrieval with retries
+            const getDataWithRetry = async (sliderArg, maxRetries = 3, delayMs = 60) => {
+                for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                    try {
+                        const response = await new Promise((resolve, reject) => {
+                            const messageHandler = (e) => {
+                                window.dbWorker.removeEventListener('message', messageHandler);
+                                if (e.data.status === "success") {
+                                    resolve(e.data);
+                                } else {
+                                    reject(new Error(e.data.message || "Unknown error"));
+                                }
+                            };
+
+                            window.dbWorker.addEventListener('message', messageHandler);
+                            window.dbWorker.postMessage({
+                                action: 'getById',
+                                payload: `${sliderArg}`
+                            });
+                        });
+
+                        // Validate response structure
+                        if (!response || !response.result) {
+                            throw new Error('Invalid response structure');
+                        }
+
+                        // Validate required data fields
+                        const data = response.result;
+                        if (!data.data || !data.data.fig || !data.data.ref_fig || !data.data.fig_layout) {
+                            throw new Error('Missing required data fields');
+                        }
+
+                        return data;
+                    } catch (error) {
+                        console.warn(`Attempt ${attempt}/${maxRetries} failed:`, error);
+                        if (attempt === maxRetries) throw error;
+                        await new Promise(resolve => setTimeout(resolve, delayMs));
                     }
-                };
+                }
+            };
 
-                window.dbWorker.addEventListener('message', messageHandler);
-                window.dbWorker.postMessage({
-                    action: 'getById',
-                    payload: `${slider_arg}`
-                });
-            });
-
-            const data = response.result;
+            const data = await getDataWithRetry(slider_arg);
             if (!data) {
                 console.log(`No data found for index ${slider_arg}`);
                 return [dash_clientside.no_update, remote_trigger+1];
