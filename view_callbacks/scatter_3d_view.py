@@ -318,6 +318,7 @@ def get_scatter_3d_view_callbacks(app):
             "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
         },
         inputs={
+            "remote_trigger": Input("trigger-remote-figure", "data"),
             "overlay_enable": Input("overlay-switch", "value"),
             "decay": Input("decay-slider", "value"),
         },
@@ -337,6 +338,7 @@ def get_scatter_3d_view_callbacks(app):
         prevent_initial_call=True,
     )
     def slider_change_callback(
+        remote_trigger,
         slider_arg,
         cat_values,
         num_values,
