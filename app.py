@@ -213,13 +213,17 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     """
-    async function(slider_arg, stop_clicks, session, is_initialized, ispaused, colormap, c_picker, darkmode, key_dict, dark_template, light_template) {
+    async function(slider_arg, stop_clicks, session, is_initialized, ispaused, colormap, c_picker, darkmode, key_dict, dark_template, light_template, local_index, remote_trigger) {
         if (!is_initialized) return dash_clientside.no_update;
 
         // Check if triggered by stop button
         const triggered = dash_clientside.callback_context.triggered.map(t => t.prop_id);
         if (triggered.length > 0 && triggered[0].includes('stop-button')) {
             ispaused = true;
+        }
+
+        if (slider_arg>local_index){
+            return [dash_clientside.no_update, remote_trigger+1];
         }
 
         try {
@@ -243,7 +247,7 @@ app.clientside_callback(
             const data = response.result;
             if (!data) {
                 console.log(`No data found for index ${slider_arg}`);
-                return "";
+                return [dash_clientside.no_update, remote_trigger+1];
             }
 
             console.log(`Retrieved data for index ${slider_arg}:`, data);
@@ -274,15 +278,16 @@ app.clientside_callback(
                 fig.layout.template = light_template;
             }
             
-            return fig;
+            return [fig, dash_clientside.no_update];
 
         } catch (error) {
             console.error("Error retrieving data:", error);
-            return dash_clientside.no_update;
+            return [dash_clientside.no_update, remote_trigger+1];
         }
     }
     """,
-    Output("scatter3d", "figure", allow_duplicate=True),
+    [Output("scatter3d", "figure", allow_duplicate=True),
+    Output("trigger-remote-figure", "data")],
     Input("slider-frame", "value"),
     Input("stop-button", "n_clicks"),
     State("session-id", "data"),
@@ -294,6 +299,8 @@ app.clientside_callback(
     State("key-dict", "data"),
     State("dark-template", "data"),
     State("light-template", "data"),
+    State("local-buffer-index", "data"),
+    State("trigger-remote-figure", "data"),
     prevent_initial_call=True,
 )
 
