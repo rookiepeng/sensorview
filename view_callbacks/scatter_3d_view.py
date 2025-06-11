@@ -320,9 +320,9 @@ def get_scatter_3d_view_callbacks(app):
         inputs={
             "remote_trigger": Input("trigger-remote-figure", "data"),
             "overlay_enable": Input("overlay-switch", "value"),
-            "decay": Input("decay-slider", "value"),
         },
         state={
+            "decay": State("decay-slider", "value"),
             "slider_arg": State("slider-frame", "value"),
             "ispaused": State("interval-component", "disabled"),
             "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
