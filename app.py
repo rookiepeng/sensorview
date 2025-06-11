@@ -112,6 +112,12 @@ app.clientside_callback(
             if (!window.dbWorker) {
                 window.dbWorker = new Worker('/assets/worker.js');
                 console.log("IndexedDB worker initialized");
+                
+                // Clean up old data
+                window.dbWorker.postMessage({
+                    action: 'cleanup',
+                    payload: 2  // 2 days
+                });
             }
             
             return [true, "Worker initialized successfully"];
@@ -176,7 +182,7 @@ app.clientside_callback(
                         window.dbWorker.postMessage({
                             action: 'store',
                             payload: {
-                                id: `${item.index}`,
+                                id: `${session}_${item.index}`,
                                 data: item,
                                 timestamp: Date.now()
                             }
@@ -244,7 +250,7 @@ app.clientside_callback(
                             window.dbWorker.addEventListener('message', messageHandler);
                             window.dbWorker.postMessage({
                                 action: 'getById',
-                                payload: `${sliderArg}`
+                                payload: `${session}_${sliderArg}`
                             });
                         });
 
@@ -298,6 +304,21 @@ app.clientside_callback(
                 'layout': data.data.fig_layout
             };
 
+            // Create opacity array
+            const opacityValues = Array.from({length: allData.length}, (_, i) => 
+                1 - (0.8 * i / (allData.length - 1 || 1))
+            );
+
+            // Apply opacity to each trace group
+            allData.forEach((d, groupIndex) => {
+                const startIdx = groupIndex * d.data.fig.length;
+                d.data.fig.forEach((_, idx) => {
+                    if (fig.data[startIdx + idx]?.marker) {
+                        fig.data[startIdx + idx].marker.opacity = opacityValues[groupIndex];
+                    }
+                });
+            });
+
             if (ispaused){
                 allData.forEach((d, dataIndex) => {
                     if (d.data.hover_strings) {
@@ -324,7 +345,7 @@ app.clientside_callback(
             }
 
             if (Array.isArray(darkmode) && darkmode.length > 0) {
-                fig.layout.template = light_template;
+                fig.layout.template = dark_template;
             } else {
                 fig.layout.template = light_template;
             }

@@ -397,69 +397,6 @@ def get_scatter_3d_view_callbacks(app):
                 ispaused,
             )
         else:
-            fig_idx = cache_get(session_id, CACHE_KEYS["figure_idx"])
-
-            opacity = np.linspace(1, 0.2, decay + 1)
-
-            # if slider value changed
-            #   - if Redis `figure` buffer ready, return figure from Redis
-            if fig_idx is not None:
-                if slider_arg <= fig_idx:
-                    fig = cache_get(session_id, CACHE_KEYS["figure"], str(slider_arg))
-                    if ispaused:
-                        hover_list = cache_get(
-                            session_id, CACHE_KEYS["hover"], str(slider_arg)
-                        )
-
-                        if hover_list:
-                            for idx, hover_str in enumerate(hover_list):
-                                fig[idx]["text"] = hover_str
-                                fig[idx]["hovertemplate"] = "%{text}"
-
-                    if c_type == "numerical":
-                        if "marker" in fig[0]:
-                            fig[0]["marker"]["colorscale"] = colormap
-
-                    if decay > 0:
-                        for val in range(1, decay + 1):
-                            if (slider_arg - val) >= 0:
-                                new_fig = cache_get(
-                                    session_id,
-                                    CACHE_KEYS["figure"],
-                                    str(slider_arg - val),
-                                )
-                                new_fig[0]["marker"]["opacity"] = opacity[val]
-                                if ispaused:
-                                    hover_list = cache_get(
-                                        session_id,
-                                        CACHE_KEYS["hover"],
-                                        str(slider_arg - val),
-                                    )
-
-                                    if hover_list:
-                                        for idx, hover_str in enumerate(hover_list):
-                                            new_fig[idx]["text"] = hover_str
-                                            new_fig[idx]["hovertemplate"] = "%{text}"
-
-                                if c_type == "numerical":
-                                    if "marker" in new_fig[0]:
-                                        new_fig[0]["marker"]["colorscale"] = colormap
-
-                                fig = fig + new_fig
-
-                    fig_ref = cache_get(
-                        session_id, CACHE_KEYS["figure_ref"], str(slider_arg)
-                    )
-                    layout = cache_get(
-                        session_id, CACHE_KEYS["figure_layout"], str(slider_arg)
-                    )
-
-                    if darkmode:
-                        layout["template"] = pio.templates["plotly_dark"]
-                    else:
-                        layout["template"] = pio.templates["plotly"]
-
-                    return {"scatter3d": {"data": fig_ref + fig, "layout": layout}}
             fig = process_single_frame(
                 config,
                 cat_values,

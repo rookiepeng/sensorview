@@ -9,13 +9,13 @@ function openDatabase() {
       return;
     }
     
-    const request = indexedDB.open("DashDB", 1);
+    const request = indexedDB.open("SensorViewDB", 1);
     
     request.onupgradeneeded = function(event) {
       const db = event.target.result;
-      if (!db.objectStoreNames.contains("dataStore")) {
+      if (!db.objectStoreNames.contains("figureStore")) {
         // Use auto-incrementing key if id is not provided
-        const store = db.createObjectStore("dataStore", { 
+        const store = db.createObjectStore("figureStore", { 
           keyPath: "id", 
           autoIncrement: true 
         });
@@ -58,8 +58,8 @@ async function storeData(data) {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readwrite");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readwrite");
+    const store = tx.objectStore("figureStore");
     
     let results = [];
     
@@ -118,8 +118,8 @@ async function getDataById(id) {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readonly");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readonly");
+    const store = tx.objectStore("figureStore");
     const request = store.get(id);
     
     request.onsuccess = () => resolve(request.result);
@@ -132,8 +132,8 @@ async function getDataByIds(ids) {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readonly");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readonly");
+    const store = tx.objectStore("figureStore");
     
     const results = [];
     let completed = 0;
@@ -172,8 +172,8 @@ async function getAllData() {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readonly");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readonly");
+    const store = tx.objectStore("figureStore");
     const request = store.getAll();
     
     request.onsuccess = () => resolve(request.result);
@@ -186,8 +186,8 @@ async function getAllIds() {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readonly");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readonly");
+    const store = tx.objectStore("figureStore");
     const request = store.getAllKeys();
     
     request.onsuccess = () => resolve(request.result);
@@ -200,8 +200,8 @@ async function updateDataById(id, updates) {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readwrite");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readwrite");
+    const store = tx.objectStore("figureStore");
     
     // First get the existing item
     const getRequest = store.get(id);
@@ -246,8 +246,8 @@ async function deleteDataById(id) {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readwrite");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readwrite");
+    const store = tx.objectStore("figureStore");
     const request = store.delete(id);
     
     request.onsuccess = () => resolve({ 
@@ -264,8 +264,8 @@ async function deleteDataByIds(ids) {
   if (!db) await openDatabase();
   
   return new Promise((resolve, reject) => {
-    const tx = db.transaction("dataStore", "readwrite");
-    const store = tx.objectStore("dataStore");
+    const tx = db.transaction("figureStore", "readwrite");
+    const store = tx.objectStore("figureStore");
     
     const results = [];
     let completed = 0;
@@ -316,6 +316,40 @@ async function deleteDataByIds(ids) {
   });
 }
 
+// Delete old records based on timestamp
+async function cleanupOldData(maxAgeDays = 2) {
+  if (!db) await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("figureStore", "readwrite");
+    const store = tx.objectStore("figureStore");
+    const index = store.index("timestamp");
+    const cutoffTime = Date.now() - (maxAgeDays * 24 * 60 * 60 * 1000);
+    
+    const request = index.openCursor(IDBKeyRange.upperBound(cutoffTime));
+    let deletedCount = 0;
+
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        store.delete(cursor.primaryKey);
+        deletedCount++;
+        cursor.continue();
+      }
+    };
+
+    tx.oncomplete = () => {
+      resolve({
+        status: "complete",
+        deletedCount: deletedCount,
+        message: `Deleted ${deletedCount} old records`
+      });
+    };
+
+    tx.onerror = (event) => reject(event.target.error);
+  });
+}
+
 // Handle messages from the main thread
 self.onmessage = async function(e) {
   try {
@@ -346,6 +380,9 @@ self.onmessage = async function(e) {
         break;
       case "deleteMultiple":
         result = await deleteDataByIds(payload);
+        break;
+      case "cleanup":
+        result = await cleanupOldData(payload);
         break;
       default:
         throw new Error(`Unknown action: ${action}`);
