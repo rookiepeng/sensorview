@@ -312,6 +312,8 @@ app.clientside_callback(
                 });
             };
 
+            fig.data = [...fig.data, ...allData[0].data.ref_fig];
+
             const c_type = key_dict[c_picker]?.type || "numerical";
             if (c_type === "numerical") {
                 fig.data.forEach(trace => {
@@ -322,7 +324,7 @@ app.clientside_callback(
             }
 
             if (Array.isArray(darkmode) && darkmode.length > 0) {
-                fig.layout.template = dark_template;
+                fig.layout.template = light_template;
             } else {
                 fig.layout.template = light_template;
             }
