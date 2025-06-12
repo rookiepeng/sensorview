@@ -258,10 +258,10 @@ view3d_card = dbc.Card(
                                             color="warning",
                                             style={
                                                 "height": "2px",
-                                                "margin-top": 0,
-                                                "margin-bottom": 0,
-                                                "margin-left": 25,
-                                                "margin-right": 25,
+                                                "marginTop": 0,
+                                                "marginBottom": 0,
+                                                "marginLeft": 25,
+                                                "marginRight": 25,
                                             },
                                             className="mb-0",
                                         ),
@@ -280,10 +280,10 @@ view3d_card = dbc.Card(
                                             color="info",
                                             style={
                                                 "height": "2px",
-                                                "margin-top": 0,
-                                                "margin-bottom": 5,
-                                                "margin-left": 25,
-                                                "margin-right": 25,
+                                                "marginTop": 0,
+                                                "marginBottom": 5,
+                                                "marginLeft": 25,
+                                                "marginRight": 25,
                                             },
                                             className="mb-3",
                                         ),
@@ -506,7 +506,7 @@ view3d_card = dbc.Card(
                                     ),
                                 ]
                             ),
-                            style={"overflow-y": "scroll", "height": "100vh"},
+                            style={"overflowY": "scroll", "height": "100vh"},
                         ),
                     ]
                 )
@@ -692,7 +692,7 @@ left2d_card = dbc.Card(
                                                 placement="top",
                                             ),
                                         ],
-                                        style={"margin-top": 10},
+                                        style={"marginTop": 10},
                                     ),
                                 ]
                             ),
@@ -877,7 +877,7 @@ right2d_card = dbc.Card(
                                                 )
                                             ),
                                         ],
-                                        style={"margin-top": 10},
+                                        style={"marginTop": 10},
                                     ),
                                     dbc.Tooltip(
                                         "Export the current figure",
@@ -1526,7 +1526,7 @@ def get_app_layout():
                     "left": 0,
                     "width": "100%",
                     "height": "100%",
-                    "background-color": "rgba(0, 0, 0, 0.9)",
+                    "backgroundColor": "rgba(0, 0, 0, 0.9)",
                 },
             ),
             dcc.Markdown(
