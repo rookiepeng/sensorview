@@ -69,8 +69,32 @@ app.css.config.serve_locally = True
 app.title = APP_TITLE
 app.layout = get_app_layout
 
+
 @app.server.route("/api/data/<session>/<start_index>", methods=["GET"])
 def get_data_by_index(session, start_index):
+    """
+    Retrieve data from a specific session starting from a given index.
+
+    This endpoint returns a JSON array containing figure data, hover strings,
+    reference figures, and figure layouts for all indices between start_index
+    and the latest server buffer index.
+
+    Parameters:
+        session (str): The session identifier
+        start_index (str): The starting index from which to retrieve data
+
+    Returns:
+        flask.Response: A JSON response containing an array of dictionaries with the following structure:
+            - If start_index > latest_server_buffer_index: [{"index": -1}]
+            - If start_index == latest_server_buffer_index: []
+            - Otherwise: [{
+                "index": int,
+                "fig": figure data,
+                "hover_strings": hover data,
+                "ref_fig": reference figure data,
+                "fig_layout": figure layout data
+            }, ...]
+    """
     latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
     start_index = int(start_index)
 
@@ -101,8 +125,7 @@ def get_data_by_index(session, start_index):
 # Initialize worker
 app.clientside_callback(
     dash.ClientsideFunction(
-        namespace='clientside_callback',
-        function_name='initWorker'
+        namespace="clientside_callback", function_name="initWorker"
     ),
     Output("worker-status", "data"),
     Input("refresh-button-modal", "n_clicks"),
@@ -111,8 +134,7 @@ app.clientside_callback(
 # Store data in IndexedDB via worker
 app.clientside_callback(
     dash.ClientsideFunction(
-        namespace='clientside_callback',
-        function_name='storeBuffer'
+        namespace="clientside_callback", function_name="storeBuffer"
     ),
     [
         Output("buffer-local", "value"),
@@ -129,11 +151,12 @@ app.clientside_callback(
 # Retrieve data from IndexedDB
 app.clientside_callback(
     dash.ClientsideFunction(
-        namespace='clientside_callback',
-        function_name='retrieveBuffer'
+        namespace="clientside_callback", function_name="retrieveBuffer"
     ),
-    [Output("scatter3d", "figure", allow_duplicate=True),
-    Output("trigger-remote-figure", "data")],
+    [
+        Output("scatter3d", "figure", allow_duplicate=True),
+        Output("trigger-remote-figure", "data"),
+    ],
     Input("slider-frame", "value"),
     Input("stop-button", "n_clicks"),
     Input("decay-slider", "value"),
