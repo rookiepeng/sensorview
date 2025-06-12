@@ -226,9 +226,13 @@ def get_scatter3d_data_with_hover(
         }
 
     plot_config = {
-        "c_label": kwargs.get("c_label", c_key),
+        "c_label": hover[c_key]["description"] if hover and c_key in hover else c_key,
         "name": kwargs.get("name", None),
-        "c_type": kwargs.get("c_type", "numerical"),
+        "c_type": (
+            hover[c_key]["type"]
+            if hover and c_key in hover
+            else kwargs.get("c_type", "numerical")
+        ),
         "opacity": kwargs.get("opacity", 0.8),
         "showlegend": kwargs.get("showlegend", True),
         "marker_size": 3,
@@ -252,7 +256,7 @@ def get_scatter3d_data_with_hover(
             if key in df.columns:
                 formatted_values = format_hover(df[key], config)
                 hover_parts.append(
-                    config["description"] + ": " + formatted_values + "<br>"
+                    config.get("description", key) + ": " + formatted_values + "<br>"
                 )
         return np.sum(hover_parts, axis=0) if hover_parts else np.full(len(df), "")
 
