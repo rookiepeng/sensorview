@@ -44,82 +44,38 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
     Returns:
     - list: The list of hover strings.
     """
-    hover_str_list = []
-    if hover is None:
-        return hover_str_list
+    if hover is None or not hover:
+        return []
+
+    def format_series(series, hover_config):
+        if "format" in hover_config:
+            return series.map(hover_config["format"].format)
+        elif "decimal" in hover_config:
+            format_str = "{:,." + str(hover_config["decimal"]) + "f}"
+            return series.map(format_str.format)
+        return series.astype(str)
+
+    def process_dataframe(df, hover_dict):
+        hover_parts = []
+        for key, config in hover_dict.items():
+            if key in df.columns:
+                formatted_values = format_series(df[key], config)
+                hover_parts.append(
+                    config["description"] + ": " + formatted_values + "<br>"
+                )
+        return np.sum(hover_parts, axis=0) if hover_parts else np.full(len(df), "")
 
     if c_type == "numerical":
-        rows = len(data_frame.index)
-        hover_str = np.full(rows, "", dtype=object)
-        for _, key in enumerate(hover):
-            if key not in data_frame.columns:
-                continue
-
-            if "format" in hover[key]:
-                hover_str = (
-                    hover_str
-                    + hover[key]["description"]
-                    + ": "
-                    + data_frame[key].map(hover[key]["format"].format)
-                    + "<br>"
-                )
-            elif "decimal" in hover[key]:
-                format_str = "{:,."+str(hover[key]["decimal"])+"f}"
-                hover_str = (
-                    hover_str
-                    + hover[key]["description"]
-                    + ": "
-                    + data_frame[key].map(format_str.format)
-                    + "<br>"
-                )
-            else:
-                hover_str = (
-                    hover_str
-                    + hover[key]["description"]
-                    + ": "
-                    + data_frame[key].apply(str)
-                    + "<br>"
-                )
-        hover_str_list.append(hover_str.to_list())
-
+        return [process_dataframe(data_frame, hover).tolist()]
+    
     elif c_type == "categorical":
         color_list = pd.unique(data_frame[c_key])
-
-        for c_item in color_list:
-            new_list = data_frame[data_frame[c_key] == c_item]
-
-            rows = len(new_list.index)
-            hover_str = np.full(rows, "", dtype=object)
-            for _, key in enumerate(hover):
-                if "format" in hover[key]:
-                    hover_str = (
-                        hover_str
-                        + hover[key]["description"]
-                        + ": "
-                        + new_list[key].map(hover[key]["format"].format)
-                        + "<br>"
-                    )
-                elif "decimal" in hover[key]:
-                    format_str = "{:,."+str(hover[key]["decimal"])+"f}"
-                    hover_str = (
-                        hover_str
-                        + hover[key]["description"]
-                        + ": "
-                        + new_list[key].map(format_str.format)
-                        + "<br>"
-                    )
-                else:
-                    hover_str = (
-                        hover_str
-                        + hover[key]["description"]
-                        + ": "
-                        + new_list[key].apply(str)
-                        + "<br>"
-                    )
-
-            hover_str_list.append(hover_str.to_list())
-
-    return hover_str_list
+        return [
+            process_dataframe(data_frame[data_frame[c_key] == c_item], hover).tolist()
+            for c_item in color_list
+        ]
+    
+    return []
 
 
 def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
