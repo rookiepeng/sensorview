@@ -152,7 +152,7 @@ def get_test_case_view_callbacks(app):
                     "left": 0,
                     "width": "100%",
                     "height": "100%",
-                    "background-color": "rgba(0, 0, 0, 0.9)",
+                    "backgroundColor": "rgba(0, 0, 0, 0.9)",
                 },
             ]
         )
@@ -318,7 +318,7 @@ def get_test_case_view_callbacks(app):
                     "left": 0,
                     "width": "100%",
                     "height": "100%",
-                    "background-color": "rgba(0, 0, 0, 0.9)",
+                    "backgroundColor": "rgba(0, 0, 0, 0.9)",
                     "display": "none",
                 },
             ]
