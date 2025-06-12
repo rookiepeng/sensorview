@@ -136,7 +136,7 @@ app.clientside_callback(
             const dataArray = await response.json();
             
             if (!dataArray || dataArray.length === 0) {
-                console.log('No new data available');
+                // console.log('No new data available');
                 return [dash_clientside.no_update, 'No new data available', local_index];
             }
 
@@ -146,14 +146,14 @@ app.clientside_callback(
                 return [0, 'Reset signal received', -1];
             }
             
-            console.log(`Fetched data array starting from index ${local_index}:`, dataArray);
+            // console.log(`Fetched data array starting from index ${local_index}:`, dataArray);
 
             let lastValidIndex = local_index;
             
             for (const item of dataArray) {
                 // Check if any required field is null or undefined
                 if (!item.fig || !item.hover_strings || !item.ref_fig || !item.fig_layout) {
-                    console.log(`Invalid data at index ${item.index}, stopping storage`);
+                    // console.log(`Invalid data at index ${item.index}, stopping storage`);
 
                     return [lastValidIndex/max_val*100, `Stored items up to index ${lastValidIndex} (stopped due to invalid data)`, lastValidIndex];
                 }
@@ -266,7 +266,7 @@ app.clientside_callback(
 
             const data = await getDataWithRetry(slider_arg);
             if (!data) {
-                console.log(`No data found for index ${slider_arg}`);
+                // console.log(`No data found for index ${slider_arg}`);
                 return [dash_clientside.no_update, remote_trigger+1];
             }
 
@@ -288,7 +288,7 @@ app.clientside_callback(
                 }
             }
 
-            console.log(`Retrieved ${allData.length} figures`);
+            // console.log(`Retrieved ${allData.length} figures`);
             const fig = {
                 'data': allData.flatMap(d => d.data.fig),
                 'layout': data.data.fig_layout
