@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -50,7 +50,7 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
     def format_series(series, hover_config):
         if "format" in hover_config:
             return series.map(hover_config["format"].format)
-        elif "decimal" in hover_config:
+        if "decimal" in hover_config:
             format_str = "{:,." + str(hover_config["decimal"]) + "f}"
             return series.map(format_str.format)
         return series.astype(str)
@@ -67,14 +67,14 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
 
     if c_type == "numerical":
         return [process_dataframe(data_frame, hover).tolist()]
-    
-    elif c_type == "categorical":
+
+    if c_type == "categorical":
         color_list = pd.unique(data_frame[c_key])
         return [
             process_dataframe(data_frame[data_frame[c_key] == c_item], hover).tolist()
             for c_item in color_list
         ]
-    
+
     return []
 
 
