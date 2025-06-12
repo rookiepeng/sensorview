@@ -69,10 +69,10 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
         return [process_dataframe(data_frame, hover).tolist()]
 
     if c_type == "categorical":
-        color_list = pd.unique(data_frame[c_key])
+        # More efficient groupby implementation
         return [
-            process_dataframe(data_frame[data_frame[c_key] == c_item], hover).tolist()
-            for c_item in color_list
+            process_dataframe(group, hover).tolist()
+            for _, group in data_frame.groupby(c_key)
         ]
 
     return []
@@ -80,90 +80,66 @@ def get_hover_strings(data_frame, c_key, c_type, hover):
 
 def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
     """
-    Generate the 3D scatter plot data.
-
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data.
-    - x_key (str): The key for the x-axis data.
-    - y_key (str): The key for the y-axis data.
-    - z_key (str): The key for the z-axis data.
-    - c_key (str): The key for the color data.
-    - **kwargs: Additional keyword arguments for customization.
-
-    Returns:
-    - list: The 3D scatter plot data.
+    Generate the 3D scatter plot data with improved performance.
     """
-    if data_frame.shape[0] == 0:
+    if data_frame.empty:
         return [{"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}]
 
-    c_label = kwargs.get("c_label", c_key)
-    name = kwargs.get("name", None)
-    c_type = kwargs.get("c_type", "numerical")
-    opacity = kwargs.get("opacity", 0.8)
-    showlegend = kwargs.get("showlegend", True)
+    # Extract kwargs with defaults
+    plot_config = {
+        'c_label': kwargs.get('c_label', c_key),
+        'name': kwargs.get('name', None),
+        'c_type': kwargs.get('c_type', 'numerical'),
+        'opacity': kwargs.get('opacity', 0.8),
+        'showlegend': kwargs.get('showlegend', True),
+        'marker_size': 3,
+        'line_color': "#757575",
+        'line_width': 0
+    }
 
-    linewidth = 0
+    def create_base_scatter(df, name=None):
+        """Helper function to create base scatter dictionary"""
+        return {
+            'type': 'scatter3d',
+            'ids': df.index.tolist(),  # Using numpy arrays directly
+            'x': df[x_key].tolist(),
+            'y': df[y_key].tolist(),
+            'z': df[z_key].tolist(),
+            'mode': 'markers',
+            'name': name,
+            'showlegend': plot_config['showlegend']
+        }
 
-    if c_type == "numerical":
-        color = data_frame[c_key].tolist()
-        c_range = kwargs.get("c_range", [np.min(color), np.max(color)])
-        if c_range is None:
-            c_range = [np.min(color), np.max(color)]
+    if plot_config['c_type'] == "numerical":
+        color_values = data_frame[c_key].tolist()
+        c_range = kwargs.get('c_range', None) or [np.min(color_values), np.max(color_values)]
+        
+        scatter_data = create_base_scatter(data_frame, plot_config['name'])
+        scatter_data['marker'] = {
+            'size': plot_config['marker_size'],
+            'color': color_values,
+            'opacity': plot_config['opacity'],
+            'colorbar': {'title': plot_config['c_label']},
+            'cmin': c_range[0],
+            'cmax': c_range[1],
+            'line': {'color': plot_config['line_color'], 'width': plot_config['line_width']}
+        }
+        return [scatter_data]
 
-        fig_data = [
-            dict(
-                type="scatter3d",
-                ids=data_frame.index.tolist(),
-                x=data_frame[x_key].tolist(),
-                y=data_frame[y_key].tolist(),
-                z=data_frame[z_key].tolist(),
-                #  text=hover_str,
-                #  hovertemplate=hovertemplate,
-                mode="markers",
-                name=name,
-                showlegend=showlegend,
-                marker=dict(
-                    size=3,
-                    color=color,
-                    opacity=opacity,
-                    colorbar=dict(title=c_label),
-                    cmin=c_range[0],
-                    cmax=c_range[1],
-                    line=dict(color="#757575", width=linewidth),
-                ),
-            )
-        ]
-    elif c_type == "categorical":
-        fig_data = []
-        color_list = pd.unique(data_frame[c_key])
-
-        for c_item in color_list:
-            new_list = data_frame[data_frame[c_key] == c_item]
-
-            fig_data.append(
-                dict(
-                    type="scatter3d",
-                    ids=new_list.index.tolist(),
-                    x=new_list[x_key].tolist(),
-                    y=new_list[y_key].tolist(),
-                    z=new_list[z_key].tolist(),
-                    # text=hover_str,
-                    # hovertemplate='%{text}',
-                    mode="markers",
-                    name=str(c_item),
-                    showlegend=showlegend,
-                    marker=dict(
-                        size=3,
-                        opacity=opacity,
-                        line=dict(
-                            color="#757575",
-                            width=linewidth,
-                        ),
-                    ),
-                )
-            )
-
-    return fig_data
+    else:  # categorical
+        # Use pandas groupby for more efficient categorical processing
+        grouped = data_frame.groupby(c_key)
+        return [{
+            **create_base_scatter(group, str(name)),
+            'marker': {
+                'size': plot_config['marker_size'],
+                'opacity': plot_config['opacity'],
+                'line': {
+                    'color': plot_config['line_color'],
+                    'width': plot_config['line_width']
+                }
+            }
+        } for name, group in grouped]
 
 
 def get_ref_scatter3d_data(
