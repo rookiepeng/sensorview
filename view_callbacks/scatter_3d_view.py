@@ -50,8 +50,8 @@ from utils import prepare_figure_kwargs
 
 from viz.viz import get_scatter3d
 from viz.viz import get_animation_data
-from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
-from viz.graph_data import get_hover_strings
+from viz.graph_data import get_ref_scatter3d_data
+from viz.graph_data import get_hover_strings, get_scatter3d_data_with_hover
 from viz.graph_layout import get_scatter3d_layout
 
 
@@ -130,17 +130,19 @@ def process_single_frame(
     filterd_frame = filter_all(
         data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
-    fig = get_scatter3d_data(filterd_frame, **fig_kwargs)
-    c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
-    if load_hover:
-        hover_list = get_hover_strings(
-            filterd_frame, fig_kwargs["c_key"], c_type, keys_dict
-        )
 
-        if hover_list:
-            for idx, hover_str in enumerate(hover_list):
-                fig[idx]["text"] = hover_str
-                fig[idx]["hovertemplate"] = "%{text}"
+    c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
+    fig_kwargs['c_type'] = c_type
+    fig_kwargs['hover'] = keys_dict
+
+    result = get_scatter3d_data_with_hover(filterd_frame, **fig_kwargs)
+    fig = result['scatter_data']
+    hover_list = result['hover_strings']
+
+    if load_hover and hover_list:
+        for idx, hover_str in enumerate(hover_list):
+            fig[idx]["text"] = hover_str
+            fig[idx]["hovertemplate"] = "%{text}"
 
     if c_type == "numerical":
         if "marker" in fig[0]:
@@ -173,16 +175,15 @@ def process_single_frame(
                     + str(frame_list[frame_idx - val])
                     + ")"
                 )
-                new_fig = get_scatter3d_data(frame_temp, **fig_kwargs)
-                if load_hover:
-                    hover_list = get_hover_strings(
-                        frame_temp, fig_kwargs["c_key"], c_type, keys_dict
-                    )
 
-                    if hover_list:
-                        for idx, hover_str in enumerate(hover_list):
-                            new_fig[idx]["text"] = hover_str
-                            new_fig[idx]["hovertemplate"] = "%{text}"
+                result = get_scatter3d_data_with_hover(frame_temp, **fig_kwargs)
+                new_fig = result['scatter_data']
+                hover_list = result['hover_strings']
+
+                if load_hover and hover_list:
+                    for idx, hover_str in enumerate(hover_list):
+                        new_fig[idx]["text"] = hover_str
+                        new_fig[idx]["hovertemplate"] = "%{text}"
 
                 if c_type == "numerical":
                     if "marker" in new_fig[0]:
@@ -782,11 +783,15 @@ def get_scatter_3d_view_callbacks(app):
                 visible_list,
             )
 
-            fig = get_scatter3d_data(filterd_frame, **fig_kwargs)
+            fig_kwargs['hover'] = keys_dict
+            # fig = get_scatter3d_data(filterd_frame, **fig_kwargs)
+            result = get_scatter3d_data_with_hover(filterd_frame, **fig_kwargs)
+            fig = result['scatter_data']
+            hover_strings = result['hover_strings']
 
-            hover_strings = get_hover_strings(
-                filterd_frame, fig_kwargs["c_key"], fig_kwargs["c_type"], keys_dict
-            )
+            # hover_strings = get_hover_strings(
+            #     filterd_frame, fig_kwargs["c_key"], fig_kwargs["c_type"], keys_dict
+            # )
             if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
                 ref_fig = [
                     get_ref_scatter3d_data(
