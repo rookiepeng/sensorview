@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -131,20 +131,16 @@ def process_single_frame(
         data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
 
-    c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
-    fig_kwargs['c_type'] = c_type
-    fig_kwargs['hover'] = keys_dict
-
-    result = get_scatter3d_data_with_hover(filterd_frame, **fig_kwargs)
-    fig = result['scatter_data']
-    hover_list = result['hover_strings']
+    result = get_scatter3d_data_with_hover(filterd_frame, hover=keys_dict, **fig_kwargs)
+    fig = result["scatter_data"]
+    hover_list = result["hover_strings"]
 
     if load_hover and hover_list:
         for idx, hover_str in enumerate(hover_list):
             fig[idx]["text"] = hover_str
             fig[idx]["hovertemplate"] = "%{text}"
 
-    if c_type == "numerical":
+    if fig_kwargs["c_type"] == "numerical":
         if "marker" in fig[0]:
             fig[0]["marker"]["colorscale"] = colormap
 
@@ -176,16 +172,18 @@ def process_single_frame(
                     + ")"
                 )
 
-                result = get_scatter3d_data_with_hover(frame_temp, **fig_kwargs)
-                new_fig = result['scatter_data']
-                hover_list = result['hover_strings']
+                result = get_scatter3d_data_with_hover(
+                    frame_temp, hover=keys_dict, **fig_kwargs
+                )
+                new_fig = result["scatter_data"]
+                hover_list = result["hover_strings"]
 
                 if load_hover and hover_list:
                     for idx, hover_str in enumerate(hover_list):
                         new_fig[idx]["text"] = hover_str
                         new_fig[idx]["hovertemplate"] = "%{text}"
 
-                if c_type == "numerical":
+                if fig_kwargs["c_type"] == "numerical":
                     if "marker" in new_fig[0]:
                         new_fig[0]["marker"]["colorscale"] = colormap
 
@@ -534,7 +532,9 @@ def get_scatter_3d_view_callbacks(app):
         output={
             "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
             "trigger": Output("background-trigger", "data"),
-            "local_buffer_idx": Output("local-buffer-index", "data", allow_duplicate=True),
+            "local_buffer_idx": Output(
+                "local-buffer-index", "data", allow_duplicate=True
+            ),
         },
         inputs={
             "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
@@ -783,11 +783,10 @@ def get_scatter_3d_view_callbacks(app):
                 visible_list,
             )
 
-            fig_kwargs['hover'] = keys_dict
             # fig = get_scatter3d_data(filterd_frame, **fig_kwargs)
-            result = get_scatter3d_data_with_hover(filterd_frame, **fig_kwargs)
-            fig = result['scatter_data']
-            hover_strings = result['hover_strings']
+            result = get_scatter3d_data_with_hover(filterd_frame, hover=keys_dict, **fig_kwargs)
+            fig = result["scatter_data"]
+            hover_strings = result["hover_strings"]
 
             # hover_strings = get_hover_strings(
             #     filterd_frame, fig_kwargs["c_key"], fig_kwargs["c_type"], keys_dict
