@@ -487,6 +487,26 @@ app.clientside_callback(
     Input("stop-button", "n_clicks"),
 )
 
+app.clientside_callback(
+    """
+    function(current_file, add_file) {
+        
+        return {
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "rgba(0, 0, 0, 0.9)",
+                };
+    }
+    """,
+    Output("loading-view", "style", allow_duplicate=True),
+    Input("current-file", "data"),
+    Input("file-add", "value"),
+    prevent_initial_call=True,
+)
+
 get_test_case_view_callbacks(app)
 get_control_view_callbacks(app)
 get_scatter_3d_view_callbacks(app)
