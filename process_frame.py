@@ -27,9 +27,9 @@ Website: https://zpeng.me
 
 """
 
+from typing import Dict, List, Union, Any
 import json
 import os
-from typing import Dict, List, Union, Any, Optional
 
 import numpy as np
 
@@ -45,6 +45,7 @@ from viz.graph_data import get_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
 from app_config import CACHE_KEYS
+
 
 def process_single_frame(
     config: Dict[str, Any],
