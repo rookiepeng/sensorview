@@ -27,7 +27,7 @@ Website: https://zpeng.me
 
 """
 
-from typing import List, Dict, Union, Any, Optional
+from typing import List, Dict, Union, Any, Optional, Tuple
 import numpy as np
 import pandas as pd
 
@@ -38,21 +38,21 @@ def get_ref_scatter3d_data(
     y_key: str,
     z_key: Optional[str] = None,
     name: str = "Origin",
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Dict[str, Any]:
     """
-    Generate the reference scatter plot data with improved performance.
+    Generate reference data for a 3D scatter plot.
 
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data.
-    - x_key (str): The key for the x-axis data.
-    - y_key (str): The key for the y-axis data.
-    - z_key (str): The key for the z-axis data (optional).
-    - name (str): The name of the reference data.
-    - **kwargs: Additional keyword arguments for customization.
+    Args:
+        data_frame: DataFrame containing the source data.
+        x_key: Column name for x-axis coordinates.
+        y_key: Column name for y-axis coordinates.
+        z_key: Optional column name for z-axis coordinates.
+        name: Label for the reference point in the plot.
+        **kwargs: Additional plot configuration parameters.
 
     Returns:
-    - dict: The reference scatter plot data.
+        Dictionary containing plot data with coordinates, styling, and hover information.
     """
     if data_frame.empty:
         return {"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}
@@ -96,22 +96,30 @@ def get_scatter3d_data(
     z_key: str,
     c_key: str,
     hover: Optional[Dict[str, Dict[str, Any]]] = None,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Dict[str, Union[List[Dict[str, Any]], List[List[str]]]]:
     """
-    Generate both 3D scatter plot data and hover strings in one pass.
+    Generate data for a 3D scatter plot with hover information.
 
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data
-    - x_key (str): The key for x-axis data
-    - y_key (str): The key for y-axis data
-    - z_key (str): The key for z-axis data
-    - c_key (str): The key for color data
-    - hover (dict): Hover configuration dictionary
-    - **kwargs: Additional configuration parameters
+    Args:
+        data_frame: DataFrame containing the source data.
+        x_key: Column name for x-axis coordinates.
+        y_key: Column name for y-axis coordinates.
+        z_key: Column name for z-axis coordinates.
+        c_key: Column name for color mapping.
+        hover: Configuration for hover tooltips. Dictionary mapping column names
+              to display settings (description, format, decimal places).
+        **kwargs: Additional plot configuration parameters including:
+            - name: Plot name
+            - c_type: Color mapping type ('numerical' or 'categorical')
+            - opacity: Marker opacity (default: 0.8)
+            - showlegend: Show legend (default: True)
+            - c_range: Color range [min, max]
 
     Returns:
-    - dict: Dictionary containing scatter data and hover strings
+        Dictionary containing:
+            - scatter_data: List of scatter plot traces
+            - hover_strings: List of hover text arrays for each trace
     """
     if data_frame.empty:
         return {
@@ -137,6 +145,16 @@ def get_scatter3d_data(
     }
 
     def format_hover(series: pd.Series, config: Dict[str, Any]) -> pd.Series:
+        """
+        Format series values for hover display according to configuration.
+
+        Args:
+            series: Data series to format.
+            config: Formatting configuration containing either 'format' or 'decimal' key.
+
+        Returns:
+            Formatted series as strings.
+        """
         if "format" in config:
             return series.map(config["format"].format)
         if "decimal" in config:
@@ -145,6 +163,15 @@ def get_scatter3d_data(
         return series.astype(str)
 
     def process_hover(df: pd.DataFrame) -> np.ndarray:
+        """
+        Process DataFrame columns to generate hover text.
+
+        Args:
+            df: Source DataFrame.
+
+        Returns:
+            Array of formatted hover strings for each row.
+        """
         if not hover:
             return np.full(len(df), "")
         hover_parts = []
@@ -161,6 +188,17 @@ def get_scatter3d_data(
         name: Optional[str] = None,
         color: Optional[Union[List[float], np.ndarray]] = None,
     ) -> Dict[str, Any]:
+        """
+        Create a scatter plot trace configuration.
+
+        Args:
+            df: Source DataFrame.
+            name: Trace name.
+            color: Color values for markers.
+
+        Returns:
+            Scatter plot trace configuration dictionary.
+        """
         scatter = {
             "type": "scatter3d",
             "ids": df.index.tolist(),
