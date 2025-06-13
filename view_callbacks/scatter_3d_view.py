@@ -221,7 +221,6 @@ def process_overlay_frame(
     session_id,
     file,
     file_list,
-    load_hover=False,
 ):
     """
     Function to process an overlay frame of data and generate the 3D scatter plot figure.
@@ -238,7 +237,6 @@ def process_overlay_frame(
     - case (str): The selected case.
     - file (str): The selected file.
     - file_list (list): The list of selected files.
-    - load_hover (bool): Whether to load hover strings or not.
 
     Returns:
     - dict: A dictionary containing the 3D scatter plot figure.
@@ -278,10 +276,7 @@ def process_overlay_frame(
     # generate the graph
     fig = get_scatter3d(filterd_frame, hover=config["keys"], **fig_kwargs)
 
-    keys_dict = config["keys"]
-    c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
-
-    if c_type == "numerical":
+    if fig_kwargs["c_type"] == "numerical":
         if "marker" in fig["data"][0]:
             fig["data"][0]["marker"]["colorscale"] = colormap
 
@@ -365,8 +360,6 @@ def get_scatter_3d_view_callbacks(app):
         - scatter3d (dict): The updated 3D scatter plot figure.
         """
         config = cache_get(session_id, CACHE_KEYS["config"])
-        keys_dict = config["keys"]
-        c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
 
         if overlay_enable:
             fig = process_overlay_frame(
@@ -380,7 +373,6 @@ def get_scatter_3d_view_callbacks(app):
                 session_id,
                 file,
                 file_list,
-                ispaused,
             )
         else:
             fig = process_single_frame(
@@ -624,7 +616,6 @@ def get_scatter_3d_view_callbacks(app):
                 session_id,
                 file,
                 file_list,
-                ispaused,
             )
         else:
             fig = process_single_frame(

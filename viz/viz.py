@@ -43,11 +43,11 @@ def get_scatter3d(
     y_key,
     z_key,
     c_key,
+    hover=None,
     x_ref=None,
     y_ref=None,
     z_ref=None,
-    hover=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Generate the scatter 3D plot data and layout.
@@ -68,16 +68,14 @@ def get_scatter3d(
     """
     ref_name = kwargs.get("ref_name", None)
 
+    fig_dict = get_scatter3d_data(
+        data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
+    )
+
     if x_ref is None or y_ref is None:
-        results = get_scatter3d_data(
-            data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
-        )
-        data = results["scatter_data"]
+        data = fig_dict["scatter_data"]
     else:
-        results = get_scatter3d_data(
-            data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
-        )
-        data = results["scatter_data"] + [
+        data = fig_dict["scatter_data"] + [
             get_ref_scatter3d_data(
                 data_frame=data_frame,
                 x_key=x_ref,
@@ -87,8 +85,8 @@ def get_scatter3d(
             )
         ]
 
-    if results["hover_strings"]:
-        for idx, hover_str in enumerate(results["hover_strings"]):
+    if fig_dict["hover_strings"]:
+        for idx, hover_str in enumerate(fig_dict["hover_strings"]):
             data[idx]["text"] = hover_str
             data[idx]["hovertemplate"] = "%{text}"
 
@@ -144,7 +142,7 @@ def get_scatter2d(
     uirevision="no_change",
     colormap="Jet",
     margin={"l": 40, "r": 40, "b": 40, "t": 60},
-    **kwargs
+    **kwargs,
 ):
     """
     Generate the 2D scatter plot data and layout.
@@ -280,7 +278,7 @@ def get_animation_data(
     img_list: Optional[List[str]] = None,
     colormap: Optional[str] = None,
     decay: int = 0,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Dict[str, Any]:
     """Generate the animation data with improved performance."""
 
@@ -296,7 +294,7 @@ def get_animation_data(
     base_kwargs = {
         "keys_dict": kwargs.get("keys_dict", {}),
         "opacity": opacity_values[0],
-        **kwargs
+        **kwargs,
     }
 
     def create_frame_data(frame_idx: int, current_idx: int) -> Dict[str, Any]:
@@ -312,14 +310,17 @@ def get_animation_data(
             frame_kwargs["image"] = process_image(img_list[current_idx])
 
         # Get scatter data
-        results = get_scatter3d_data(
-            filtered_df, x_key, y_key, z_key,
+        fig_dict = get_scatter3d_data(
+            filtered_df,
+            x_key,
+            y_key,
+            z_key,
             hover=frame_kwargs["keys_dict"],
-            **frame_kwargs
+            **frame_kwargs,
         )
 
-        fig = results["scatter_data"]
-        hover_list = results["hover_strings"]
+        fig = fig_dict["scatter_data"]
+        hover_list = fig_dict["hover_strings"]
 
         # Apply hover strings and colormap
         if hover_list:
@@ -332,19 +333,21 @@ def get_animation_data(
 
         # Add reference data if needed
         if x_ref is not None and y_ref is not None:
-            ref_data = [get_ref_scatter3d_data(
-                data_frame=filtered_df,
-                x_key=x_ref,
-                y_key=y_ref,
-                z_key=None,
-                name="Host Vehicle"
-            )]
+            ref_data = [
+                get_ref_scatter3d_data(
+                    data_frame=filtered_df,
+                    x_key=x_ref,
+                    y_key=y_ref,
+                    z_key=None,
+                    name="Host Vehicle",
+                )
+            ]
             fig = ref_data + fig
 
         return {
             "data": fig,
             "layout": get_scatter3d_layout(**frame_kwargs),
-            "name": str(frame_idx)
+            "name": str(frame_idx),
         }
 
     # Generate frames with decay
@@ -358,16 +361,22 @@ def get_animation_data(
             for d_idx, opacity in enumerate(opacity_values[1:], 1):
                 if idx - d_idx >= 0:
                     decay_kwargs = base_kwargs.copy()
-                    decay_kwargs.update({
-                        "name": f"Frame: {frame_list[idx - d_idx]}",
-                        "opacity": opacity
-                    })
+                    decay_kwargs.update(
+                        {
+                            "name": f"Frame: {frame_list[idx - d_idx]}",
+                            "opacity": opacity,
+                        }
+                    )
 
                     decay_results = get_scatter3d_data(
-                        data_frame[data_frame[frame_key] == frame_list[idx - d_idx]].reset_index(),
-                        x_key, y_key, z_key,
+                        data_frame[
+                            data_frame[frame_key] == frame_list[idx - d_idx]
+                        ].reset_index(),
+                        x_key,
+                        y_key,
+                        z_key,
                         hover=decay_kwargs["keys_dict"],
-                        **decay_kwargs
+                        **decay_kwargs,
                     )
 
                     decay_fig = decay_results["scatter_data"]
@@ -379,17 +388,22 @@ def get_animation_data(
         ani_frames.append(current_frame)
 
     # Create slider configuration
-    sliders = [{
-        "pad": {"b": 10, "t": 10},
-        "len": 0.9,
-        "x": 0.1,
-        "y": 0,
-        "steps": [{
-            "args": [[f["name"]], frame_args(0)],
-            "label": str(k),
-            "method": "animate"
-        } for k, f in enumerate(ani_frames)]
-    }]
+    sliders = [
+        {
+            "pad": {"b": 10, "t": 10},
+            "len": 0.9,
+            "x": 0.1,
+            "y": 0,
+            "steps": [
+                {
+                    "args": [[f["name"]], frame_args(0)],
+                    "label": str(k),
+                    "method": "animate",
+                }
+                for k, f in enumerate(ani_frames)
+            ],
+        }
+    ]
 
     # Create final layout
     layout_kwargs = kwargs.copy()
@@ -397,27 +411,39 @@ def get_animation_data(
         layout_kwargs["image"] = process_image(img_list[0])
 
     figure_layout = get_scatter3d_layout(**layout_kwargs)
-    figure_layout.update({
-        "updatemenus": [{
-            "bgcolor": "#9E9E9E",
-            "font": {"size": 10, "color": "#455A64"},
-            "buttons": [
-                {"args": [None, frame_args(5)], "label": "Play", "method": "animate"},
-                {"args": [[None], frame_args(0)], "label": "Stop", "method": "animate"}
+    figure_layout.update(
+        {
+            "updatemenus": [
+                {
+                    "bgcolor": "#9E9E9E",
+                    "font": {"size": 10, "color": "#455A64"},
+                    "buttons": [
+                        {
+                            "args": [None, frame_args(5)],
+                            "label": "Play",
+                            "method": "animate",
+                        },
+                        {
+                            "args": [[None], frame_args(0)],
+                            "label": "Stop",
+                            "method": "animate",
+                        },
+                    ],
+                    "direction": "left",
+                    "pad": {"r": 10, "t": 30, "l": 20, "b": 10},
+                    "type": "buttons",
+                    "x": 0.1,
+                    "xanchor": "right",
+                    "y": 0,
+                    "yanchor": "top",
+                }
             ],
-            "direction": "left",
-            "pad": {"r": 10, "t": 30, "l": 20, "b": 10},
-            "type": "buttons",
-            "x": 0.1,
-            "xanchor": "right",
-            "y": 0,
-            "yanchor": "top"
-        }],
-        "sliders": sliders
-    })
+            "sliders": sliders,
+        }
+    )
 
     return {
         "data": ani_frames[0]["data"] if ani_frames else [],
         "frames": ani_frames,
-        "layout": figure_layout
+        "layout": figure_layout,
     }
