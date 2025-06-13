@@ -149,7 +149,7 @@ def get_scatter2d(
     y_label: Optional[str] = None,
     uirevision: str = "no_change",
     colormap: str = "Jet",
-    margin: Dict[str, int] = {"l": 40, "r": 40, "b": 40, "t": 60},
+    margin: Optional[Dict[str, int]] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """
@@ -174,6 +174,9 @@ def get_scatter2d(
         Dictionary containing scatter plot data and layout configuration.
     """
     linewidth = kwargs.get("linewidth", 0)
+
+    if margin is None:
+        margin = {"l": 40, "r": 40, "b": 40, "t": 60}
 
     if x_label is None:
         x_label = x_key
