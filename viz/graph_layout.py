@@ -1,97 +1,109 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
-import numpy as np
-
-import plotly.io as pio
+from typing import Dict, Optional, Any, Tuple
 
 
-def get_scatter3d_layout(x_range, y_range, z_range=[-20, 20], **kwargs):
+def get_scatter3d_layout(
+    x_range: Tuple[float, float],
+    y_range: Tuple[float, float],
+    z_range: Tuple[float, float] = (-20, 20),
+    **kwargs: Any
+) -> Dict[str, Any]:
     """
-    Generate the layout for the 3D scatter plot.
+    Generate an optimized layout configuration for a 3D scatter plot.
 
-    Parameters:
-    - x_range (list): The range of the x-axis.
-    - y_range (list): The range of the y-axis.
-    - z_range (list): The range of the z-axis.
-    - **kwargs: Additional keyword arguments for customization.
+    Args:
+        x_range: Tuple of (min, max) values for x-axis range.
+        y_range: Tuple of (min, max) values for y-axis range.
+        z_range: Tuple of (min, max) values for z-axis range. Defaults to (-20, 20).
+        **kwargs: Additional layout parameters:
+            - image: Optional image source for plot overlay
+            - title: Optional plot title
+            - x_label: Optional x-axis label
+            - y_label: Optional y-axis label
+            - z_label: Optional z-axis label
 
     Returns:
-    - dict: The layout for the 3D scatter plot.
+        Dictionary containing the complete layout configuration for a 3D scatter plot.
     """
-    scale = np.min(
-        [x_range[1] - x_range[0], y_range[1] - y_range[0], z_range[1] - z_range[0]]
-    )
+    # Calculate ranges once
+    x_size = x_range[1] - x_range[0]
+    y_size = y_range[1] - y_range[0]
+    z_size = z_range[1] - z_range[0]
+    scale = min(x_size, y_size, z_size)
 
-    # height = kwargs.get('height', 650)
-    image = kwargs.get("image", None)
-    title = kwargs.get("title", None)
-    template = kwargs.get("template", "plotly")
+    # Create axis configuration template
+    def create_axis_config(
+        range_vals: Tuple[float, float], title: Optional[str]
+    ) -> Dict[str, Any]:
+        return {"range": list(range_vals), "title": title, "autorange": False}
 
-    x_label = kwargs.get("x_label", None)
-    y_label = kwargs.get("y_label", None)
-    z_label = kwargs.get("z_label", None)
+    # Build scene configuration
+    scene_config = {
+        "xaxis": create_axis_config(x_range, kwargs.get("x_label")),
+        "yaxis": create_axis_config(y_range, kwargs.get("y_label")),
+        "zaxis": create_axis_config(z_range, kwargs.get("z_label")),
+        "aspectmode": "manual",
+        "aspectratio": {
+            "x": x_size / scale,
+            "y": y_size / scale,
+            "z": z_size / scale,
+        },
+    }
 
-    if image is not None:
-        img_dict = [
-            dict(
-                source=image,
-                xref="x domain",
-                yref="y domain",
-                x=0,
-                y=1,
-                xanchor="left",
-                yanchor="top",
-                sizex=0.3,
-                sizey=0.3,
-            )
+    # Efficiently create image configuration
+    image = kwargs.get("image")
+    img_dict = (
+        [
+            {
+                "source": image,
+                "xref": "x domain",
+                "yref": "y domain",
+                "x": 0,
+                "y": 1,
+                "xanchor": "left",
+                "yanchor": "top",
+                "sizex": 0.3,
+                "sizey": 0.3,
+            }
         ]
-    else:
-        img_dict = None
-
-    return dict(
-        title=title,
-        # template=pio.templates[template],
-        # height=height,
-        scene=dict(
-            xaxis=dict(range=x_range, title=x_label, autorange=False),
-            yaxis=dict(range=y_range, title=y_label, autorange=False),
-            zaxis=dict(range=z_range, title=z_label, autorange=False),
-            aspectmode="manual",
-            aspectratio=dict(
-                x=(x_range[1] - x_range[0]) / scale,
-                y=(y_range[1] - y_range[0]) / scale,
-                z=(z_range[1] - z_range[0]) / scale,
-            ),
-        ),
-        margin=dict(l=0, r=0, b=0, t=40),
-        legend=dict(x=0, y=0),
-        images=img_dict,
-        uirevision="no_change",
+        if image is not None
+        else None
     )
+
+    # Return optimized layout configuration
+    return {
+        "title": kwargs.get("title"),
+        "scene": scene_config,
+        "margin": {"l": 0, "r": 0, "b": 0, "t": 40},
+        "legend": {"x": 0, "y": 0},
+        "images": img_dict,
+        "uirevision": "no_change",
+    }
