@@ -174,12 +174,12 @@ def get_ref_scatter3d_data(
     if z_key is None:
         z_data = [0]
     else:
-        z_data = [data_frame[z_key].iloc[0]]
+        z_data = [data_frame[z_key].iloc[0].tolist()]
 
     fig_data = dict(
         type="scatter3d",
-        x=[data_frame[x_key].iloc[0]],
-        y=[data_frame[y_key].iloc[0]],
+        x=[data_frame[x_key].iloc[0].tolist()],
+        y=[data_frame[y_key].iloc[0].tolist()],
         z=z_data,
         hovertemplate="Lateral: %{x:.2f} m<br>" + "Longitudinal: %{y:.2f} m<br>",
         mode="markers",
