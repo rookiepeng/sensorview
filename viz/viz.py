@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -32,14 +32,21 @@ import base64
 import numpy as np
 import pandas as pd
 
-from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from .graph_data import get_scatter3d_data_with_hover, get_ref_scatter3d_data
 from .graph_layout import get_scatter3d_layout
-
-from .graph_data import get_hover_strings
 
 
 def get_scatter3d(
-    data_frame, x_key, y_key, z_key, c_key, x_ref=None, y_ref=None, z_ref=None, **kwargs
+    data_frame,
+    x_key,
+    y_key,
+    z_key,
+    c_key,
+    x_ref=None,
+    y_ref=None,
+    z_ref=None,
+    hover=None,
+    **kwargs
 ):
     """
     Generate the scatter 3D plot data and layout.
@@ -61,9 +68,15 @@ def get_scatter3d(
     ref_name = kwargs.get("ref_name", None)
 
     if x_ref is None or y_ref is None:
-        data = get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs)
+        results = get_scatter3d_data_with_hover(
+            data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
+        )
+        data = results["scatter_data"]
     else:
-        data = get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs) + [
+        results = get_scatter3d_data_with_hover(
+            data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
+        )
+        data = results["scatter_data"] + [
             get_ref_scatter3d_data(
                 data_frame=data_frame,
                 x_key=x_ref,
@@ -72,8 +85,16 @@ def get_scatter3d(
                 name=ref_name,
             )
         ]
+    
+    if results["hover_strings"]:
+        for idx, hover_str in enumerate(results["hover_strings"]):
+            data[idx]["text"] = hover_str
+            data[idx]["hovertemplate"] = "%{text}"
 
-    return {"data": data, "layout": get_scatter3d_layout(**kwargs)}
+    return {
+        "data": data,
+        "layout": get_scatter3d_layout(**kwargs),
+    }
 
 
 def get_heatmap(data_frame, x_key, y_key, x_label=None, y_label=None):
@@ -293,19 +314,19 @@ def get_animation_data(
             kwargs["image"] = None
 
         kwargs["name"] = "Frame: " + str(frame_idx)
-        fig = get_scatter3d_data(
+        results = get_scatter3d_data_with_hover(
             filtered_list,
             x_key,
             y_key,
             z_key,
+            hover=kwargs["keys_dict"],
             x_ref=x_ref,
             y_ref=y_ref,
             opacity=opacity[0],
             **kwargs
         )
-        hover_list = get_hover_strings(
-            filtered_list, kwargs["c_key"], kwargs["c_type"], kwargs["keys_dict"]
-        )
+        fig = results["scatter_data"]
+        hover_list = results["hover_strings"]
 
         if hover_list:
             for hover_idx, hover_str in enumerate(hover_list):
@@ -325,22 +346,19 @@ def get_animation_data(
                     frame_temp = frame_temp.reset_index()
 
                     kwargs["name"] = "Frame: " + str(frame_list[idx - val])
-                    new_fig = get_scatter3d_data(
+                    results = get_scatter3d_data_with_hover(
                         frame_temp,
                         x_key,
                         y_key,
                         z_key,
+                        hover=kwargs["keys_dict"],
                         x_ref=x_ref,
                         y_ref=y_ref,
                         opacity=opacity[val],
                         **kwargs
                     )
-                    hover_list = get_hover_strings(
-                        frame_temp,
-                        kwargs["c_key"],
-                        kwargs["c_type"],
-                        kwargs["keys_dict"],
-                    )
+                    new_fig = results["scatter_data"]
+                    hover_list = results["hover_strings"]
 
                     if hover_list:
                         for hover_idx, hover_str in enumerate(hover_list):
