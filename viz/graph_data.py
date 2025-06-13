@@ -152,49 +152,58 @@ def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
 
 
 def get_ref_scatter3d_data(
-    data_frame, x_key, y_key, z_key=None, name="Origin", **kwargs
-):
+    data_frame: pd.DataFrame,
+    x_key: str,
+    y_key: str,
+    z_key: str = None,
+    name: str = "Origin",
+    **kwargs
+) -> dict:
     """
-    Generate the reference scatter plot data.
+    Generate the reference scatter plot data with improved performance.
 
     Parameters:
     - data_frame (pd.DataFrame): The data frame containing the data.
     - x_key (str): The key for the x-axis data.
     - y_key (str): The key for the y-axis data.
-    - z_key (str): The key for the z-axis data.
+    - z_key (str): The key for the z-axis data (optional).
     - name (str): The name of the reference data.
     - **kwargs: Additional keyword arguments for customization.
 
     Returns:
     - dict: The reference scatter plot data.
     """
-    if data_frame.shape[0] == 0:
+    if data_frame.empty:
         return {"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}
 
-    if z_key is None:
-        z_data = [0]
-    else:
-        z_data = [data_frame[z_key].iloc[0].tolist()]
+    # Direct value access for first row
+    x_val = float(data_frame[x_key].iloc[0])
+    y_val = float(data_frame[y_key].iloc[0])
+    z_val = 0 if z_key is None else float(data_frame[z_key].iloc[0])
 
-    fig_data = dict(
-        type="scatter3d",
-        x=[data_frame[x_key].iloc[0].tolist()],
-        y=[data_frame[y_key].iloc[0].tolist()],
-        z=z_data,
-        hovertemplate="Lateral: %{x:.2f} m<br>" + "Longitudinal: %{y:.2f} m<br>",
-        mode="markers",
-        name=name,
-        marker=dict(
-            color="rgb(255, 255, 255)",
-            size=6,
-            opacity=1,
-            symbol="circle",
-            line=dict(
-                color="#000000",
-                width=2,
-            ),
-        ),
-    )
+    # Create marker configuration once
+    marker_config = {
+        "color": "rgb(255, 255, 255)",
+        "size": 6,
+        "opacity": 1,
+        "symbol": "circle",
+        "line": {
+            "color": "#000000",
+            "width": 2,
+        },
+    }
+
+    # Construct the figure data directly
+    fig_data = {
+        "type": "scatter3d",
+        "x": [x_val],
+        "y": [y_val],
+        "z": [z_val],
+        "hovertemplate": "Lateral: %{x:.2f} m<br>Longitudinal: %{y:.2f} m<br>",
+        "mode": "markers",
+        "name": name,
+        "marker": marker_config,
+    }
 
     return fig_data
 
