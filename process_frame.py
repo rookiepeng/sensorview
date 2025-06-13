@@ -29,6 +29,7 @@ Website: https://zpeng.me
 
 import json
 import os
+from typing import Dict, List, Union, Any, Optional
 
 import numpy as np
 
@@ -46,40 +47,36 @@ from viz.graph_layout import get_scatter3d_layout
 from app_config import CACHE_KEYS
 
 def process_single_frame(
-    config,
-    cat_values,
-    num_values,
-    colormap,
-    visible_list,
-    c_key,
-    decay,
-    session_id,
-    file,
-    frame_idx=0,
-    load_hover=False,
-):
+    config: Dict[str, Any],
+    cat_values: Dict[str, List[str]],
+    num_values: List[Union[float, int]],
+    colormap: str,
+    visible_list: List[str],
+    c_key: str,
+    decay: int,
+    session_id: str,
+    file: str,
+    frame_idx: int = 0,
+    load_hover: bool = False,
+) -> Dict[str, Any]:
     """
-    Function to process a single frame of data and generate the 3D scatter plot figure.
+    Process a single frame of data and generate a 3D scatter plot figure with optional decay effect.
 
-    Parameters:
-    - config (dict): The configuration dictionary.
-    - cat_values (dict): The selected categorical values for filtering.
-    - num_values (dict): The selected numerical values for filtering.
-    - colormap (str): The selected colormap.
-    - visible_list (list): The list of visible items.
-    - c_key (str): The selected color key.
-    - decay (int): The number of past frames to include in the figure.
-    - session_id (str): The ID of the current session.
-    - case (str): The selected case.
-    - file (str): The selected file.
-    - frame_idx (int): The index of the frame to process.
-    - load_hover (bool): Whether to load hover strings or not.
+    Args:
+        config: Configuration dictionary containing plot settings and key definitions.
+        cat_values: Dictionary mapping categorical column names to lists of selected values for filtering.
+        num_values: List of numerical values for filtering (min/max ranges).
+        colormap: Name of the colormap to apply to the scatter plot.
+        visible_list: List of visibility filter values.
+        c_key: Column name for color mapping.
+        decay: Number of previous frames to include with decreasing opacity.
+        session_id: Unique session identifier for cache access.
+        file: JSON string containing file path and name information.
+        frame_idx: Index of the current frame to process.
+        load_hover: Whether to include hover text in the plot data.
 
     Returns:
-    - dict: A dictionary containing the 3D scatter plot figure.
-
-    Output Properties:
-    - figure (dict): The 3D scatter plot figure.
+        Dictionary containing the complete 3D scatter plot figure with data and layout.
     """
     keys_dict = config["keys"]
 
@@ -201,38 +198,34 @@ def process_single_frame(
 
 
 def process_overlay_frame(
-    frame_idx,
-    config,
-    cat_values,
-    num_values,
-    colormap,
-    visible_list,
-    c_key,
-    session_id,
-    file,
-    file_list,
-):
+    frame_idx: int,
+    config: Dict[str, Any],
+    cat_values: Dict[str, List[str]],
+    num_values: List[Union[float, int]],
+    colormap: str,
+    visible_list: List[str],
+    c_key: str,
+    session_id: str,
+    file: str,
+    file_list: List[str],
+) -> Dict[str, Any]:
     """
-    Function to process an overlay frame of data and generate the 3D scatter plot figure.
+    Process an overlay frame combining data from multiple files into a single 3D scatter plot.
 
-    Parameters:
-    - frame_idx (int): The index of the frame to process.
-    - config (dict): The configuration dictionary.
-    - cat_values (dict): The selected categorical values for filtering.
-    - num_values (dict): The selected numerical values for filtering.
-    - colormap (str): The selected colormap.
-    - visible_list (list): The list of visible items.
-    - c_key (str): The selected color key.
-    - session_id (str): The ID of the current session.
-    - case (str): The selected case.
-    - file (str): The selected file.
-    - file_list (list): The list of selected files.
+    Args:
+        frame_idx: Index of the frame to process.
+        config: Configuration dictionary containing plot settings and key definitions.
+        cat_values: Dictionary mapping categorical column names to lists of selected values for filtering.
+        num_values: List of numerical values for filtering (min/max ranges).
+        colormap: Name of the colormap to apply to the scatter plot.
+        visible_list: List of visibility filter values.
+        c_key: Column name for color mapping.
+        session_id: Unique session identifier for cache access.
+        file: JSON string containing primary file path and name information.
+        file_list: List of JSON strings representing additional files to overlay.
 
     Returns:
-    - dict: A dictionary containing the 3D scatter plot figure.
-
-    Output Properties:
-    - figure (dict): The 3D scatter plot figure.
+        Dictionary containing the complete 3D scatter plot figure with overlaid data and layout.
     """
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
