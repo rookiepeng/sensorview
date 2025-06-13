@@ -51,7 +51,7 @@ from utils import prepare_figure_kwargs
 from viz.viz import get_scatter3d
 from viz.viz import get_animation_data
 from viz.graph_data import get_ref_scatter3d_data
-from viz.graph_data import get_scatter3d_data_with_hover
+from viz.graph_data import get_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
 
@@ -131,7 +131,7 @@ def process_single_frame(
         data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
 
-    result = get_scatter3d_data_with_hover(filterd_frame, hover=keys_dict, **fig_kwargs)
+    result = get_scatter3d_data(filterd_frame, hover=keys_dict, **fig_kwargs)
     fig = result["scatter_data"]
     hover_list = result["hover_strings"]
 
@@ -172,9 +172,7 @@ def process_single_frame(
                     + ")"
                 )
 
-                result = get_scatter3d_data_with_hover(
-                    frame_temp, hover=keys_dict, **fig_kwargs
-                )
+                result = get_scatter3d_data(frame_temp, hover=keys_dict, **fig_kwargs)
                 new_fig = result["scatter_data"]
                 hover_list = result["hover_strings"]
 
@@ -774,9 +772,7 @@ def get_scatter_3d_view_callbacks(app):
             )
 
             # fig = get_scatter3d_data(filterd_frame, **fig_kwargs)
-            result = get_scatter3d_data_with_hover(
-                filterd_frame, hover=keys_dict, **fig_kwargs
-            )
+            result = get_scatter3d_data(filterd_frame, hover=keys_dict, **fig_kwargs)
             fig = result["scatter_data"]
             hover_strings = result["hover_strings"]
 
