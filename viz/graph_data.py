@@ -27,138 +27,19 @@ Website: https://zpeng.me
 
 """
 
+from typing import List, Dict, Union, Any, Optional
 import numpy as np
 import pandas as pd
-
-
-def get_hover_strings(data_frame, c_key, c_type, hover):
-    """
-    Generate the hover strings for the data frame.
-
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data.
-    - c_key (str): The key for the color data.
-    - c_type (str): The type of the color data.
-    - hover (dict): The dictionary specifying the hover descriptions and formats.
-
-    Returns:
-    - list: The list of hover strings.
-    """
-    if hover is None or not hover:
-        return []
-
-    def format_series(series, hover_config):
-        if "format" in hover_config:
-            return series.map(hover_config["format"].format)
-        if "decimal" in hover_config:
-            format_str = "{:,." + str(hover_config["decimal"]) + "f}"
-            return series.map(format_str.format)
-        return series.astype(str)
-
-    def process_dataframe(df, hover_dict):
-        hover_parts = []
-        for key, config in hover_dict.items():
-            if key in df.columns:
-                formatted_values = format_series(df[key], config)
-                hover_parts.append(
-                    config["description"] + ": " + formatted_values + "<br>"
-                )
-        return np.sum(hover_parts, axis=0) if hover_parts else np.full(len(df), "")
-
-    if c_type == "numerical":
-        return [process_dataframe(data_frame, hover).tolist()]
-
-    if c_type == "categorical":
-        # More efficient groupby implementation
-        return [
-            process_dataframe(group, hover).tolist()
-            for _, group in data_frame.groupby(c_key)
-        ]
-
-    return []
-
-
-def get_scatter3d_data(data_frame, x_key, y_key, z_key, c_key, **kwargs):
-    """
-    Generate the 3D scatter plot data with improved performance.
-    """
-    if data_frame.empty:
-        return [{"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}]
-
-    # Extract kwargs with defaults
-    plot_config = {
-        "c_label": kwargs.get("c_label", c_key),
-        "name": kwargs.get("name", None),
-        "c_type": kwargs.get("c_type", "numerical"),
-        "opacity": kwargs.get("opacity", 0.8),
-        "showlegend": kwargs.get("showlegend", True),
-        "marker_size": 3,
-        "line_color": "#757575",
-        "line_width": 0,
-    }
-
-    def create_base_scatter(df, name=None):
-        """Helper function to create base scatter dictionary"""
-        return {
-            "type": "scatter3d",
-            "ids": df.index.tolist(),  # Using numpy arrays directly
-            "x": df[x_key].tolist(),
-            "y": df[y_key].tolist(),
-            "z": df[z_key].tolist(),
-            "mode": "markers",
-            "name": name,
-            "showlegend": plot_config["showlegend"],
-        }
-
-    if plot_config["c_type"] == "numerical":
-        color_values = data_frame[c_key].tolist()
-        c_range = kwargs.get("c_range", None) or [
-            np.min(color_values),
-            np.max(color_values),
-        ]
-
-        scatter_data = create_base_scatter(data_frame, plot_config["name"])
-        scatter_data["marker"] = {
-            "size": plot_config["marker_size"],
-            "color": color_values,
-            "opacity": plot_config["opacity"],
-            "colorbar": {"title": plot_config["c_label"]},
-            "cmin": c_range[0],
-            "cmax": c_range[1],
-            "line": {
-                "color": plot_config["line_color"],
-                "width": plot_config["line_width"],
-            },
-        }
-        return [scatter_data]
-
-    else:  # categorical
-        # Use pandas groupby for more efficient categorical processing
-        grouped = data_frame.groupby(c_key)
-        return [
-            {
-                **create_base_scatter(group, str(name)),
-                "marker": {
-                    "size": plot_config["marker_size"],
-                    "opacity": plot_config["opacity"],
-                    "line": {
-                        "color": plot_config["line_color"],
-                        "width": plot_config["line_width"],
-                    },
-                },
-            }
-            for name, group in grouped
-        ]
 
 
 def get_ref_scatter3d_data(
     data_frame: pd.DataFrame,
     x_key: str,
     y_key: str,
-    z_key: str = None,
+    z_key: Optional[str] = None,
     name: str = "Origin",
-    **kwargs
-) -> dict:
+    **kwargs: Any
+) -> Dict[str, Any]:
     """
     Generate the reference scatter plot data with improved performance.
 
@@ -209,8 +90,14 @@ def get_ref_scatter3d_data(
 
 
 def get_scatter3d_data_with_hover(
-    data_frame, x_key, y_key, z_key, c_key, hover=None, **kwargs
-):
+    data_frame: pd.DataFrame,
+    x_key: str,
+    y_key: str,
+    z_key: str,
+    c_key: str,
+    hover: Optional[Dict[str, Dict[str, Any]]] = None,
+    **kwargs: Any
+) -> Dict[str, Union[List[Dict[str, Any]], List[List[str]]]]:
     """
     Generate both 3D scatter plot data and hover strings in one pass.
 
@@ -249,7 +136,7 @@ def get_scatter3d_data_with_hover(
         "line_width": 0,
     }
 
-    def format_hover(series, config):
+    def format_hover(series: pd.Series, config: Dict[str, Any]) -> pd.Series:
         if "format" in config:
             return series.map(config["format"].format)
         if "decimal" in config:
@@ -257,7 +144,7 @@ def get_scatter3d_data_with_hover(
             return series.map(format_str.format)
         return series.astype(str)
 
-    def process_hover(df):
+    def process_hover(df: pd.DataFrame) -> np.ndarray:
         if not hover:
             return np.full(len(df), "")
         hover_parts = []
@@ -269,7 +156,11 @@ def get_scatter3d_data_with_hover(
                 )
         return np.sum(hover_parts, axis=0) if hover_parts else np.full(len(df), "")
 
-    def create_scatter(df, name=None, color=None):
+    def create_scatter(
+        df: pd.DataFrame,
+        name: Optional[str] = None,
+        color: Optional[Union[List[float], np.ndarray]] = None,
+    ) -> Dict[str, Any]:
         scatter = {
             "type": "scatter3d",
             "ids": df.index.tolist(),

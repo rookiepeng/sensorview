@@ -51,7 +51,7 @@ from utils import prepare_figure_kwargs
 from viz.viz import get_scatter3d
 from viz.viz import get_animation_data
 from viz.graph_data import get_ref_scatter3d_data
-from viz.graph_data import get_hover_strings, get_scatter3d_data_with_hover
+from viz.graph_data import get_scatter3d_data_with_hover
 from viz.graph_layout import get_scatter3d_layout
 
 
@@ -278,20 +278,10 @@ def process_overlay_frame(
     fig_kwargs["image"] = None
 
     # generate the graph
-    fig = get_scatter3d(filterd_frame, **fig_kwargs)
+    fig = get_scatter3d(filterd_frame, hover=config["keys"], **fig_kwargs)
 
     keys_dict = config["keys"]
     c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
-
-    if load_hover:
-        hover_list = get_hover_strings(
-            filterd_frame, fig_kwargs["c_key"], c_type, keys_dict
-        )
-
-        if hover_list:
-            for idx, hover_str in enumerate(hover_list):
-                fig["data"][idx]["text"] = hover_str
-                fig["data"][idx]["hovertemplate"] = "%{text}"
 
     if c_type == "numerical":
         if "marker" in fig["data"][0]:
@@ -784,13 +774,12 @@ def get_scatter_3d_view_callbacks(app):
             )
 
             # fig = get_scatter3d_data(filterd_frame, **fig_kwargs)
-            result = get_scatter3d_data_with_hover(filterd_frame, hover=keys_dict, **fig_kwargs)
+            result = get_scatter3d_data_with_hover(
+                filterd_frame, hover=keys_dict, **fig_kwargs
+            )
             fig = result["scatter_data"]
             hover_strings = result["hover_strings"]
 
-            # hover_strings = get_hover_strings(
-            #     filterd_frame, fig_kwargs["c_key"], fig_kwargs["c_type"], keys_dict
-            # )
             if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
                 ref_fig = [
                     get_ref_scatter3d_data(
