@@ -27,6 +27,7 @@ Website: https://zpeng.me
 
 """
 
+from typing import List, Dict, Union, Any, Optional
 import base64
 
 import numpy as np
@@ -258,186 +259,151 @@ def frame_args(duration):
     }
 
 
+def process_image(img_path: str) -> Optional[str]:
+    """Helper function to process single image"""
+    try:
+        with open(img_path, "rb") as img_file:
+            encoded = base64.b64encode(img_file.read()).decode()
+            return f"data:image/jpeg;base64,{encoded}"
+    except (FileNotFoundError, NotADirectoryError, IOError):
+        return None
+
+
 def get_animation_data(
-    data_frame,
-    x_key,
-    y_key,
-    z_key,
-    x_ref=None,
-    y_ref=None,
-    frame_key="Frame",
-    img_list=None,
-    colormap=None,
-    decay=0,
-    **kwargs
-):
-    """
-    Generate the animation data, frames, and layout.
+    data_frame: pd.DataFrame,
+    x_key: str,
+    y_key: str,
+    z_key: str,
+    x_ref: Optional[str] = None,
+    y_ref: Optional[str] = None,
+    frame_key: str = "Frame",
+    img_list: Optional[List[str]] = None,
+    colormap: Optional[str] = None,
+    decay: int = 0,
+    **kwargs: Any
+) -> Dict[str, Any]:
+    """Generate the animation data with improved performance."""
 
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data.
-    - x_key (str): The key for the x-axis data.
-    - y_key (str): The key for the y-axis data.
-    - z_key (str): The key for the z-axis data.
-    - x_ref (str): The key for the x-axis reference data.
-    - y_ref (str): The key for the y-axis reference data.
-    - frame_key (str): The key for the frame data.
-    - img_list (list): The list of image file paths for each frame.
-    - colormap (str): The name of the colormap for the color data.
-    - decay (int): The number of frames to decay the opacity.
-    - **kwargs: Additional keyword arguments for customization.
-
-    Returns:
-    - dict: The animation data, frames, and layout.
-    """
-    ani_frames = []
+    # Pre-calculate frame data
     frame_list = data_frame[frame_key].unique()
-    opacity = np.linspace(1, 0.2, decay + 1)
+    if len(frame_list) == 0:
+        return {"data": [], "frames": [], "layout": get_scatter3d_layout(**kwargs)}
 
-    for idx, frame_idx in enumerate(frame_list):
-        if idx < decay:
-            continue
+    # Pre-calculate opacity values
+    opacity_values = np.linspace(1, 0.2, decay + 1)
 
-        filtered_list = data_frame[data_frame[frame_key] == frame_idx]
-        filtered_list = filtered_list.reset_index()
+    # Cache base configuration
+    base_kwargs = {
+        "keys_dict": kwargs.get("keys_dict", {}),
+        "opacity": opacity_values[0],
+        **kwargs
+    }
 
-        if img_list is not None:
-            try:
-                with open(img_list[idx], "rb") as img_file:
-                    encoded_image = base64.b64encode(img_file.read())
-                kwargs["image"] = "data:image/jpeg;base64," + encoded_image.decode()
-            except FileNotFoundError:
-                kwargs["image"] = None
-            except NotADirectoryError:
-                kwargs["image"] = None
-        else:
-            kwargs["image"] = None
+    def create_frame_data(frame_idx: int, current_idx: int) -> Dict[str, Any]:
+        """Helper function to create single frame data"""
+        filtered_df = data_frame[data_frame[frame_key] == frame_idx].reset_index()
 
-        kwargs["name"] = "Frame: " + str(frame_idx)
+        # Update frame-specific kwargs
+        frame_kwargs = base_kwargs.copy()
+        frame_kwargs["name"] = f"Frame: {frame_idx}"
+
+        # Process image if available
+        if img_list and current_idx < len(img_list):
+            frame_kwargs["image"] = process_image(img_list[current_idx])
+
+        # Get scatter data
         results = get_scatter3d_data(
-            filtered_list,
-            x_key,
-            y_key,
-            z_key,
-            hover=kwargs["keys_dict"],
-            x_ref=x_ref,
-            y_ref=y_ref,
-            opacity=opacity[0],
-            **kwargs
+            filtered_df, x_key, y_key, z_key,
+            hover=frame_kwargs["keys_dict"],
+            **frame_kwargs
         )
+
         fig = results["scatter_data"]
         hover_list = results["hover_strings"]
 
+        # Apply hover strings and colormap
         if hover_list:
-            for hover_idx, hover_str in enumerate(hover_list):
-                fig[hover_idx]["text"] = hover_str
-                fig[hover_idx]["hovertemplate"] = "%{text}"
+            for scatter, hover_str in zip(fig, hover_list):
+                scatter["text"] = hover_str
+                scatter["hovertemplate"] = "%{text}"
 
-        if colormap is not None and "marker" in fig[0]:
+        if colormap and fig and "marker" in fig[0]:
             fig[0]["marker"]["colorscale"] = colormap
 
-        if decay > 0:
-            for val in range(1, decay + 1):
-                if (idx - val) >= 0:
-                    # filter the data
-                    frame_temp = data_frame[
-                        data_frame[frame_key] == frame_list[idx - val]
-                    ]
-                    frame_temp = frame_temp.reset_index()
-
-                    kwargs["name"] = "Frame: " + str(frame_list[idx - val])
-                    results = get_scatter3d_data(
-                        frame_temp,
-                        x_key,
-                        y_key,
-                        z_key,
-                        hover=kwargs["keys_dict"],
-                        x_ref=x_ref,
-                        y_ref=y_ref,
-                        opacity=opacity[val],
-                        **kwargs
-                    )
-                    new_fig = results["scatter_data"]
-                    hover_list = results["hover_strings"]
-
-                    if hover_list:
-                        for hover_idx, hover_str in enumerate(hover_list):
-                            new_fig[hover_idx]["text"] = hover_str
-                            new_fig[hover_idx]["hovertemplate"] = "%{text}"
-
-                    if colormap is not None and "marker" in new_fig[0]:
-                        new_fig[0]["marker"]["colorscale"] = colormap
-
-                    fig = fig + new_fig
-
-                else:
-                    break
-
+        # Add reference data if needed
         if x_ref is not None and y_ref is not None:
-            fig_ref = [
-                get_ref_scatter3d_data(
-                    data_frame=filtered_list,
-                    x_key=x_ref,
-                    y_key=y_ref,
-                    z_key=None,
-                    name="Host Vehicle",
-                )
-            ]
-        else:
-            fig_ref = []
-        layout = get_scatter3d_layout(**kwargs)
+            ref_data = [get_ref_scatter3d_data(
+                data_frame=filtered_df,
+                x_key=x_ref,
+                y_key=y_ref,
+                z_key=None,
+                name="Host Vehicle"
+            )]
+            fig = ref_data + fig
 
-        new_frame = {"data": fig_ref + fig, "layout": layout}
-
-        # need 'name' to make sure animation works properly
-        new_frame["name"] = str(frame_idx)
-        ani_frames.append(new_frame)
-
-    sliders = [
-        {
-            "pad": {"b": 10, "t": 10},
-            "len": 0.9,
-            "x": 0.1,
-            "y": 0,
-            "steps": [
-                {
-                    "args": [[f["name"]], frame_args(0)],
-                    "label": str(k),
-                    "method": "animate",
-                }
-                for k, f in enumerate(ani_frames)
-            ],
+        return {
+            "data": fig,
+            "layout": get_scatter3d_layout(**frame_kwargs),
+            "name": str(frame_idx)
         }
-    ]
 
-    if img_list is not None:
-        try:
-            encoded_image = base64.b64encode(open(img_list[0], "rb").read())
-            kwargs["image"] = "data:image/jpeg;base64," + encoded_image.decode()
-        except FileNotFoundError:
-            kwargs["image"] = None
-        except NotADirectoryError:
-            kwargs["image"] = None
-    else:
-        kwargs["image"] = None
+    # Generate frames with decay
+    ani_frames = []
+    for idx, frame_idx in enumerate(frame_list[decay:], decay):
+        current_frame = create_frame_data(frame_idx, idx)
 
-    # Layout
-    figure_layout = get_scatter3d_layout(**kwargs)
-    figure_layout["updatemenus"] = [
-        {
+        # Handle decay frames
+        if decay > 0:
+            decay_data = []
+            for d_idx, opacity in enumerate(opacity_values[1:], 1):
+                if idx - d_idx >= 0:
+                    decay_kwargs = base_kwargs.copy()
+                    decay_kwargs.update({
+                        "name": f"Frame: {frame_list[idx - d_idx]}",
+                        "opacity": opacity
+                    })
+
+                    decay_results = get_scatter3d_data(
+                        data_frame[data_frame[frame_key] == frame_list[idx - d_idx]].reset_index(),
+                        x_key, y_key, z_key,
+                        hover=decay_kwargs["keys_dict"],
+                        **decay_kwargs
+                    )
+
+                    decay_fig = decay_results["scatter_data"]
+                    if colormap and decay_fig and "marker" in decay_fig[0]:
+                        decay_fig[0]["marker"]["colorscale"] = colormap
+
+                    decay_data.extend(decay_fig)
+
+        ani_frames.append(current_frame)
+
+    # Create slider configuration
+    sliders = [{
+        "pad": {"b": 10, "t": 10},
+        "len": 0.9,
+        "x": 0.1,
+        "y": 0,
+        "steps": [{
+            "args": [[f["name"]], frame_args(0)],
+            "label": str(k),
+            "method": "animate"
+        } for k, f in enumerate(ani_frames)]
+    }]
+
+    # Create final layout
+    layout_kwargs = kwargs.copy()
+    if img_list:
+        layout_kwargs["image"] = process_image(img_list[0])
+
+    figure_layout = get_scatter3d_layout(**layout_kwargs)
+    figure_layout.update({
+        "updatemenus": [{
             "bgcolor": "#9E9E9E",
             "font": {"size": 10, "color": "#455A64"},
             "buttons": [
-                {
-                    "args": [None, frame_args(5)],
-                    "label": "Play",  # play symbol
-                    "method": "animate",
-                },
-                {
-                    "args": [[None], frame_args(0)],
-                    "label": "Stop",  # pause symbol
-                    "method": "animate",
-                },
+                {"args": [None, frame_args(5)], "label": "Play", "method": "animate"},
+                {"args": [[None], frame_args(0)], "label": "Stop", "method": "animate"}
             ],
             "direction": "left",
             "pad": {"r": 10, "t": 30, "l": 20, "b": 10},
@@ -445,13 +411,13 @@ def get_animation_data(
             "x": 0.1,
             "xanchor": "right",
             "y": 0,
-            "yanchor": "top",
-        }
-    ]
-    figure_layout["sliders"] = sliders
+            "yanchor": "top"
+        }],
+        "sliders": sliders
+    })
 
     return {
-        "data": ani_frames[0]["data"],
+        "data": ani_frames[0]["data"] if ani_frames else [],
         "frames": ani_frames,
-        "layout": figure_layout,
+        "layout": figure_layout
     }
