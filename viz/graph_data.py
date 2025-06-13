@@ -89,7 +89,7 @@ def get_ref_scatter3d_data(
     return fig_data
 
 
-def get_scatter3d_data_with_hover(
+def get_scatter3d_data(
     data_frame: pd.DataFrame,
     x_key: str,
     y_key: str,
