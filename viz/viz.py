@@ -27,9 +27,8 @@ Website: https://zpeng.me
 
 """
 
-from typing import List, Dict, Union, Any, Optional
+from typing import List, Dict, Any, Optional
 import base64
-
 import numpy as np
 import pandas as pd
 
@@ -38,33 +37,36 @@ from .graph_layout import get_scatter3d_layout
 
 
 def get_scatter3d(
-    data_frame,
-    x_key,
-    y_key,
-    z_key,
-    c_key,
-    hover=None,
-    x_ref=None,
-    y_ref=None,
-    z_ref=None,
-    **kwargs,
-):
+    data_frame: pd.DataFrame,
+    x_key: str,
+    y_key: str,
+    z_key: str,
+    c_key: str,
+    hover: Optional[Dict[str, Dict[str, Any]]] = None,
+    x_ref: Optional[str] = None,
+    y_ref: Optional[str] = None,
+    z_ref: Optional[str] = None,
+    **kwargs: Any,
+) -> Dict[str, Any]:
     """
-    Generate the scatter 3D plot data and layout.
+    Generate a 3D scatter plot with optional reference points.
 
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data.
-    - x_key (str): The key for the x-axis data.
-    - y_key (str): The key for the y-axis data.
-    - z_key (str): The key for the z-axis data.
-    - c_key (str): The key for the color data.
-    - x_ref (str): The key for the x-axis reference data.
-    - y_ref (str): The key for the y-axis reference data.
-    - z_ref (str): The key for the z-axis reference data.
-    - **kwargs: Additional keyword arguments for customization.
+    Args:
+        data_frame: DataFrame containing the plot data.
+        x_key: Column name for x-axis coordinates.
+        y_key: Column name for y-axis coordinates.
+        z_key: Column name for z-axis coordinates.
+        c_key: Column name for color mapping.
+        hover: Configuration for hover tooltips.
+        x_ref: Optional column name for reference x coordinates.
+        y_ref: Optional column name for reference y coordinates.
+        z_ref: Optional column name for reference z coordinates.
+        **kwargs: Additional parameters:
+            - ref_name: Name for reference points
+            - Other parameters passed to get_scatter3d_data
 
     Returns:
-    - dict: The scatter 3D plot data and layout.
+        Dictionary containing plot data and layout configuration.
     """
     ref_name = kwargs.get("ref_name", None)
 
@@ -96,19 +98,25 @@ def get_scatter3d(
     }
 
 
-def get_heatmap(data_frame, x_key, y_key, x_label=None, y_label=None):
+def get_heatmap(
+    data_frame: pd.DataFrame,
+    x_key: str,
+    y_key: str,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Generate the heatmap plot data and layout.
+    Generate a 2D heatmap visualization.
 
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data.
-    - x_key (str): The key for the x-axis data.
-    - y_key (str): The key for the y-axis data.
-    - x_label (str): The label for the x-axis.
-    - y_label (str): The label for the y-axis.
+    Args:
+        data_frame: DataFrame containing the plot data.
+        x_key: Column name for x-axis values.
+        y_key: Column name for y-axis values.
+        x_label: Optional custom label for x-axis. Defaults to x_key.
+        y_label: Optional custom label for y-axis. Defaults to y_key.
 
     Returns:
-    - dict: The heatmap plot data and layout.
+        Dictionary containing heatmap data and layout configuration.
     """
     if x_label is None:
         x_label = x_key
@@ -133,34 +141,37 @@ def get_heatmap(data_frame, x_key, y_key, x_label=None, y_label=None):
 
 
 def get_scatter2d(
-    data_frame,
-    x_key,
-    y_key,
-    c_key,
-    x_label=None,
-    y_label=None,
-    uirevision="no_change",
-    colormap="Jet",
-    margin={"l": 40, "r": 40, "b": 40, "t": 60},
-    **kwargs,
-):
+    data_frame: pd.DataFrame,
+    x_key: str,
+    y_key: str,
+    c_key: str,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    uirevision: str = "no_change",
+    colormap: str = "Jet",
+    margin: Dict[str, int] = {"l": 40, "r": 40, "b": 40, "t": 60},
+    **kwargs: Any,
+) -> Dict[str, Any]:
     """
-    Generate the 2D scatter plot data and layout.
+    Generate a 2D scatter plot with color mapping.
 
-    Parameters:
-    - data_frame (pd.DataFrame): The data frame containing the data.
-    - x_key (str): The key for the x-axis data.
-    - y_key (str): The key for the y-axis data.
-    - c_key (str): The key for the color data.
-    - x_label (str): The label for the x-axis.
-    - y_label (str): The label for the y-axis.
-    - uirevision (str): The revision id for updating the plot.
-    - colormap (str): The name of the colormap for the color data.
-    - margin (dict): The margin settings for the plot.
-    - **kwargs: Additional keyword arguments for customization.
+    Args:
+        data_frame: DataFrame containing the plot data.
+        x_key: Column name for x-axis coordinates.
+        y_key: Column name for y-axis coordinates.
+        c_key: Column name for color mapping.
+        x_label: Optional custom label for x-axis. Defaults to x_key.
+        y_label: Optional custom label for y-axis. Defaults to y_key.
+        uirevision: Plotly UI revision identifier.
+        colormap: Name of the colormap to use.
+        margin: Plot margins in pixels.
+        **kwargs: Additional parameters:
+            - linewidth: Width of marker borders (default: 0)
+            - c_label: Custom label for color scale
+            - c_type: Color mapping type ('numerical' or 'categorical')
 
     Returns:
-    - dict: The 2D scatter plot data and layout.
+        Dictionary containing scatter plot data and layout configuration.
     """
     linewidth = kwargs.get("linewidth", 0)
 
@@ -239,15 +250,15 @@ def get_scatter2d(
         }
 
 
-def frame_args(duration):
+def frame_args(duration: int) -> Dict[str, Any]:
     """
-    Generate the frame arguments for animation.
+    Generate animation frame configuration.
 
-    Parameters:
-    - duration (int): The duration of each frame in milliseconds.
+    Args:
+        duration: Frame duration in milliseconds.
 
     Returns:
-    - dict: The frame arguments for animation.
+        Dictionary containing animation timing and transition settings.
     """
     return {
         "frame": {"duration": duration},
@@ -258,7 +269,15 @@ def frame_args(duration):
 
 
 def process_image(img_path: str) -> Optional[str]:
-    """Helper function to process single image"""
+    """
+    Process and encode an image file to base64 format.
+
+    Args:
+        img_path: Path to the image file.
+
+    Returns:
+        Base64 encoded image string with data URI scheme prefix, or None if processing fails.
+    """
     try:
         with open(img_path, "rb") as img_file:
             encoded = base64.b64encode(img_file.read()).decode()
@@ -280,8 +299,30 @@ def get_animation_data(
     decay: int = 0,
     **kwargs: Any,
 ) -> Dict[str, Any]:
-    """Generate the animation data with improved performance."""
+    """
+    Generate animated 3D scatter plot configuration.
 
+    Args:
+        data_frame: DataFrame containing animation data.
+        x_key: Column name for x-axis coordinates.
+        y_key: Column name for y-axis coordinates.
+        z_key: Column name for z-axis coordinates.
+        x_ref: Optional column name for reference x coordinates.
+        y_ref: Optional column name for reference y coordinates.
+        frame_key: Column name containing frame indices.
+        img_list: Optional list of image paths for each frame.
+        colormap: Optional custom colormap name.
+        decay: Number of trailing frames to show with decreasing opacity.
+        **kwargs: Additional parameters:
+            - keys_dict: Dictionary of column descriptions
+            - Other parameters passed to get_scatter3d_layout
+
+    Returns:
+        Dictionary containing:
+            - data: Initial frame plot data
+            - frames: List of animation frames
+            - layout: Plot layout configuration
+    """
     # Pre-calculate frame data
     frame_list = data_frame[frame_key].unique()
     if len(frame_list) == 0:

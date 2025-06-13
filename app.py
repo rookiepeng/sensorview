@@ -519,7 +519,7 @@ get_violin_view_callbacks(app)
 
 
 if __name__ == "__main__":
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         app.run(debug=True, threaded=True, processes=1, host="0.0.0.0")
 
