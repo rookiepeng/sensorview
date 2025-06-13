@@ -32,7 +32,7 @@ import base64
 import numpy as np
 import pandas as pd
 
-from .graph_data import get_scatter3d_data_with_hover, get_ref_scatter3d_data
+from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from .graph_layout import get_scatter3d_layout
 
 
@@ -68,12 +68,12 @@ def get_scatter3d(
     ref_name = kwargs.get("ref_name", None)
 
     if x_ref is None or y_ref is None:
-        results = get_scatter3d_data_with_hover(
+        results = get_scatter3d_data(
             data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
         )
         data = results["scatter_data"]
     else:
-        results = get_scatter3d_data_with_hover(
+        results = get_scatter3d_data(
             data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
         )
         data = results["scatter_data"] + [
@@ -85,7 +85,7 @@ def get_scatter3d(
                 name=ref_name,
             )
         ]
-    
+
     if results["hover_strings"]:
         for idx, hover_str in enumerate(results["hover_strings"]):
             data[idx]["text"] = hover_str
@@ -314,7 +314,7 @@ def get_animation_data(
             kwargs["image"] = None
 
         kwargs["name"] = "Frame: " + str(frame_idx)
-        results = get_scatter3d_data_with_hover(
+        results = get_scatter3d_data(
             filtered_list,
             x_key,
             y_key,
@@ -346,7 +346,7 @@ def get_animation_data(
                     frame_temp = frame_temp.reset_index()
 
                     kwargs["name"] = "Frame: " + str(frame_list[idx - val])
-                    results = get_scatter3d_data_with_hover(
+                    results = get_scatter3d_data(
                         frame_temp,
                         x_key,
                         y_key,
