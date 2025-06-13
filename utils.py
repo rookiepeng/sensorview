@@ -28,52 +28,52 @@ Website: https://zpeng.me
 """
 
 import os
+from typing import Dict, List, Optional, Any, Tuple
+
 import json
-
 import base64
-
 import pandas as pd
 
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
 
 
-def load_config(json_file):
+def load_config(json_file: str) -> Dict[str, Any]:
     """
-    Load a configuration file.
+    Load a configuration file from JSON format.
 
-    Parameters:
-    - json_file (str): The path to the JSON configuration file.
+    Args:
+        json_file: Path to the JSON configuration file.
 
     Returns:
-    - dict: The loaded configuration as a dictionary.
+        Dictionary containing the configuration data.
     """
     with open(json_file, "r", encoding="utf-8") as read_file:
         return json.load(read_file)
 
 
-def save_config(json_dict, json_file):
+def save_config(json_dict: Dict[str, Any], json_file: str) -> None:
     """
-    Save configuration file.
+    Save configuration data to a JSON file.
 
-    Parameters:
-    - json_dict (dict): Python dict
-    - json_file (str): The path to the JSON configuration file.
+    Args:
+        json_dict: Dictionary containing configuration data to save.
+        json_file: Path where the JSON file will be saved.
     """
     with open(json_file, "w+", encoding="utf-8") as write_file:
         json.dump(json_dict, write_file, indent=4)
 
 
-def load_data(file_list, file=None):
+def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
     """
-    Load data from file(s).
+    Load data from multiple files into a pandas DataFrame.
 
-    Parameters:
-    - file (str): The selected file.
-    - file_list (list): The list of selected files.
+    Args:
+        file_list: List of file specifications in JSON string format.
+        file: Optional single file to add to the file list.
 
     Returns:
-    - pd.DataFrame: The loaded data.
+        Combined DataFrame containing data from all specified files.
     """
     if file is not None and file not in file_list:
         file_list.append(file)
@@ -97,15 +97,15 @@ def load_data(file_list, file=None):
     return data.reset_index(drop=True)
 
 
-def load_image(img_path):
+def load_image(img_path: str) -> Optional[str]:
     """
-    Load an image from a file.
+    Load and encode an image file to base64 format.
 
-    Parameters:
-    - img_path (str): The path to the image file.
+    Args:
+        img_path: Path to the image file.
 
     Returns:
-    - str: The base64-encoded image data.
+        Base64 encoded image string with data URI scheme prefix, or None if file not found.
     """
     try:
         with open(img_path, "rb") as img_file:
@@ -120,26 +120,26 @@ def load_image(img_path):
 
 
 def prepare_figure_kwargs(
-    config,
-    frame_list,
-    c_key,
-    num_keys,
-    num_values,
-    slider_arg=0,
-):
+    config: Dict[str, Any],
+    frame_list: List[float],
+    c_key: str,
+    num_keys: List[str],
+    num_values: List[Tuple[float, float]],
+    slider_arg: int = 0,
+) -> Dict[str, Any]:
     """
     Prepare keyword arguments for creating a 3D scatter plot figure.
 
-    Parameters:
-    - config (dict): The configuration dictionary.
-    - frame_list (np.ndarray): The list of frame values.
-    - c_key (str): The selected color key.
-    - num_keys (list): The list of numerical keys.
-    - num_values (list): The list of numerical values.
-    - slider_arg (int, optional): The index of the slider argument. Defaults to 0.
+    Args:
+        config: Configuration dictionary containing plot settings.
+        frame_list: List of frame values for animation.
+        c_key: Key for color mapping.
+        num_keys: List of numerical column names.
+        num_values: List of (min, max) tuples for numerical values.
+        slider_arg: Current slider position index.
 
     Returns:
-    - dict: The figure keyword arguments.
+        Dictionary containing all necessary arguments for plotting.
     """
     keys_dict = config["keys"]
     # prepare figure key word arguments
@@ -234,15 +234,17 @@ def prepare_figure_kwargs(
     return fig_kwargs
 
 
-def cache_set(data, id_str, key_major, key_minor=None):
+def cache_set(
+    data: Any, id_str: str, key_major: str, key_minor: Optional[str] = None
+) -> None:
     """
-    Set data in the cache.
+    Store data in the cache with expiration time.
 
-    Parameters:
-    - data (any): The data to be cached.
-    - id_str (str): A unique identifier string.
-    - key_major (str): The major cache key.
-    - key_minor (str, optional): The minor cache key. Defaults to None.
+    Args:
+        data: Data to be cached.
+        id_str: Unique identifier string.
+        key_major: Primary key for cache entry.
+        key_minor: Optional secondary key for cache entry.
     """
     if key_minor is None:
         key_str = key_major + id_str
@@ -252,9 +254,9 @@ def cache_set(data, id_str, key_major, key_minor=None):
     frame_cache.set(key_str, data, expire=EXPIRATION)
 
 
-def cache_expire():
+def cache_expire() -> None:
     """
-    Expire all items in the cache.
+    Expire all items in the cache immediately.
     """
     frame_cache.expire()
 
@@ -277,17 +279,19 @@ def cache_expire():
 #     redis_instance.set(key_str, pickle.dumps(data), ex=EXPIRATION)
 
 
-def cache_get(id_str, key_major, key_minor=None):
+def cache_get(
+    id_str: str, key_major: str, key_minor: Optional[str] = None
+) -> Optional[Any]:
     """
-    Get data from the cache.
+    Retrieve data from the cache.
 
-    Parameters:
-    - id_str (str): A unique identifier string.
-    - key_major (str): The major cache key.
-    - key_minor (str, optional): The minor cache key. Defaults to None.
+    Args:
+        id_str: Unique identifier string.
+        key_major: Primary key for cache entry.
+        key_minor: Optional secondary key for cache entry.
 
     Returns:
-    - any: The cached data, or None if not found.
+        Cached data if found, None otherwise.
     """
     if key_minor is None:
         key_str = key_major + id_str
@@ -324,28 +328,28 @@ def cache_get(id_str, key_major, key_minor=None):
 
 
 def filter_all(
-    data,
-    num_list,
-    num_values,
-    cat_list,
-    cat_values,
-    visible_table=None,
-    visible_list=None,
-):
+    data: pd.DataFrame,
+    num_list: List[str],
+    num_values: List[Tuple[float, float]],
+    cat_list: List[str],
+    cat_values: List[List[str]],
+    visible_table: Optional[pd.DataFrame] = None,
+    visible_list: Optional[List[str]] = None,
+) -> pd.DataFrame:
     """
-    Filter data based on numerical and categorical conditions.
+    Filter DataFrame based on numerical and categorical conditions.
 
-    Parameters:
-    - data (pd.DataFrame): The data to be filtered.
-    - num_list (list): The list of numerical columns to filter on.
-    - num_values (list): The list of numerical filter values.
-    - cat_list (list): The list of categorical columns to filter on.
-    - cat_values (list): The list of categorical filter values.
-    - visible_table (pd.DataFrame, optional): The visible table. Defaults to None.
-    - visible_list (list, optional): The list of visible values. Defaults to None.
+    Args:
+        data: Input DataFrame to filter.
+        num_list: List of numerical column names.
+        num_values: List of (min, max) ranges for numerical filters.
+        cat_list: List of categorical column names.
+        cat_values: List of lists containing allowed values for each categorical column.
+        visible_table: Optional DataFrame containing visibility information.
+        visible_list: Optional list of visibility values to filter by.
 
     Returns:
-    - pd.DataFrame: The filtered data.
+        Filtered DataFrame meeting all specified conditions.
     """
     for f_idx, f_name in enumerate(num_list):
         if f_name not in data.columns:
