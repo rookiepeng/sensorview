@@ -27,6 +27,8 @@ Website: https://zpeng.me
 
 """
 
+from typing import Dict, List, Any, Optional, Union
+
 import json
 import os
 import shutil
@@ -36,7 +38,7 @@ from multiprocessing import freeze_support
 
 from flaskwebgui import FlaskUI
 
-from flask import jsonify
+from flask import jsonify, Response
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -71,29 +73,20 @@ app.layout = get_app_layout
 
 
 @app.server.route("/api/data/<session>/<start_index>", methods=["GET"])
-def get_data_by_index(session, start_index):
+def get_data_by_index(session: str, start_index: str) -> Response:
     """
-    Retrieve data from a specific session starting from a given index.
+    Retrieve buffered figure data from cache for a specific session.
 
-    This endpoint returns a JSON array containing figure data, hover strings,
-    reference figures, and figure layouts for all indices between start_index
-    and the latest server buffer index.
-
-    Parameters:
-        session (str): The session identifier
-        start_index (str): The starting index from which to retrieve data
+    Args:
+        session: Unique session identifier for data isolation.
+        start_index: Starting index from which to retrieve data (converted to int).
 
     Returns:
-        flask.Response: A JSON response containing an array of dictionaries with the following structure:
+        JSON response containing:
             - If start_index > latest_server_buffer_index: [{"index": -1}]
             - If start_index == latest_server_buffer_index: []
-            - Otherwise: [{
-                "index": int,
-                "fig": figure data,
-                "hover_strings": hover data,
-                "ref_fig": reference figure data,
-                "fig_layout": figure layout data
-            }, ...]
+            - Otherwise: List of dictionaries with figure data, hover strings,
+              reference figures, and layouts for each index.
     """
     latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
     start_index = int(start_index)
@@ -180,15 +173,18 @@ app.clientside_callback(
     },
     inputs={"is_modal_open": Input("modal-centered", "is_open")},
 )
-def on_modal_open(is_modal_open):
+def on_modal_open(is_modal_open: bool) -> Dict[str, str]:
     """
-    Callback function to update the data path when the modal is opened.
+    Initialize data path when configuration modal is opened.
 
-    Parameters:
-    - is_modal_open (bool): Whether the modal is open.
+    Args:
+        is_modal_open: Boolean indicating if the modal is currently open.
 
     Returns:
-    - dict: A dictionary containing the data path.
+        Dictionary containing the data path configuration.
+
+    Raises:
+        PreventUpdate: If modal is not open to prevent unnecessary updates.
     """
     if not is_modal_open:
         raise PreventUpdate
@@ -219,16 +215,20 @@ def on_modal_open(is_modal_open):
         "unused_refresh": Input("refresh-button-modal", "n_clicks"),
     },
 )
-def on_path_change(data_path, unused_refresh):
+def on_path_change(
+    data_path: str, unused_refresh: Optional[int]
+) -> Dict[str, Union[str, List[Dict[str, str]]]]:
     """
-    Callback function to update the case options and value when the data path changes.
+    Update available test cases when data path changes.
 
-    Parameters:
-    - data_path (str): The path to the data directory.
-    - unused_refresh (int): The number of times the refresh button has been clicked.
+    Args:
+        data_path: Path to the data directory containing test cases.
+        unused_refresh: Number of refresh button clicks (unused but required for callback).
 
     Returns:
-    - dict: A dictionary containing the case options and value.
+        Dictionary containing:
+            - case_options: List of available test case options
+            - case_value: Currently selected test case value
     """
     config = load_config("./config.json")
 
@@ -276,16 +276,20 @@ def on_path_change(data_path, unused_refresh):
         "data_path": State("data-path-modal", "value"),
     },
 )
-def on_case_change(case_val, data_path):
+def on_case_change(
+    case_val: str, data_path: str
+) -> Dict[str, Union[str, List[Dict[str, str]]]]:
     """
-    Callback function to update the file options and value when the case changes.
+    Update available data files when test case selection changes.
 
-    Parameters:
-    - case_val (str): The name of the case.
-    - data_path (str): The path to the data directory.
+    Args:
+        case_val: Selected test case name.
+        data_path: Path to the data directory.
 
     Returns:
-    - dict: A dictionary containing the file options and value.
+        Dictionary containing:
+            - file_value: Currently selected file value (JSON string)
+            - file_options: List of available data file options
     """
     config = load_config("./config.json")
 
@@ -376,22 +380,30 @@ def on_case_change(case_val, data_path):
     prevent_initial_call=True,
 )
 def on_modal_close(
-    unused_ok_modal, data_path, case_val, file_value, file_options, current_file
-):
+    unused_ok_modal: Optional[int],
+    data_path: str,
+    case_val: str,
+    file_value: str,
+    file_options: List[Dict[str, str]],
+    current_file: Optional[str],
+) -> Dict[str, Any]:
     """
-    Callback function to update the data path, test case, log file,
-        and current file when the modal is closed.
+    Apply configuration changes when modal is closed via OK button.
 
-    Parameters:
-    - unused_ok_modal (int): The number of times the OK button has been clicked.
-    - data_path (str): The path to the data directory.
-    - case_val (str): The name of the case.
-    - file_value (str): The value of the selected file.
-    - file_options (list): The list of file options.
-    - current_file (str): The current file.
+    Args:
+        unused_ok_modal: Number of OK button clicks (unused but required for callback).
+        data_path: Selected data directory path.
+        case_val: Selected test case name.
+        file_value: Selected file value (JSON string).
+        file_options: List of available file options.
+        current_file: Currently loaded file value.
 
     Returns:
-    - dict: A dictionary containing the updated values.
+        Dictionary containing updated UI state values including modal visibility,
+        display strings, and file configurations.
+
+    Raises:
+        PreventUpdate: If no file is selected.
     """
     if not file_value:
         raise PreventUpdate
@@ -436,15 +448,15 @@ def on_modal_close(
     },
     prevent_initial_call=True,
 )
-def open_modal(unused_select_modal):
+def open_modal(unused_select_modal: Optional[int]) -> Dict[str, bool]:
     """
-    Callback function to open the modal.
+    Open the configuration modal when select button is clicked.
 
-    Parameters:
-    - unused_select_modal (int): The number of times the select button has been clicked.
+    Args:
+        unused_select_modal: Number of select button clicks (unused but required for callback).
 
     Returns:
-    - dict: A dictionary containing the updated value for the modal's is_open property.
+        Dictionary containing modal open state.
     """
     return {"modal_is_open": True}
 
