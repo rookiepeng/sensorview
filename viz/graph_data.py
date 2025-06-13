@@ -185,7 +185,9 @@ def get_scatter3d_data(
             marker.update(
                 {
                     "color": color,
-                    "colorbar": {"title": plot_config["c_label"]},
+                    "colorbar": {
+                        "title": {"text": plot_config["c_label"], "side": "right"}
+                    },
                     "cmin": kwargs.get("c_range", [np.min(color), np.max(color)])[0],
                     "cmax": kwargs.get("c_range", [np.min(color), np.max(color)])[1],
                 }
