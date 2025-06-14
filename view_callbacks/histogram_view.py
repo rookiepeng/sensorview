@@ -150,6 +150,11 @@ def get_histogram_view_callbacks(app: dash.Dash) -> None:
             y_label = "Probability"
         elif y_key == "density":
             y_label = "Density"
+        else:
+            return {
+                "histogram": dash.no_update,
+            }
+
         if c_histogram == "None":
             if x_key == config["slider"]:
                 nbins = pd.unique(filtered_table[x_key]).size
