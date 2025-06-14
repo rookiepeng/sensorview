@@ -1,30 +1,46 @@
-"""
+"""SensorView Right 2D Scatter View Callbacks
 
-Copyright (C) 2019 - PRESENT  Zhengyu Peng
-E-mail: zpeng.me@gmail.com
+This module provides callback functions for managing the right 2D scatter plot
+visualization in the SensorView application.
+
+Core Features:
+-------------
+1. View Management:
+   - Real-time plot updates
+   - Frame-based visualization
+   - View state persistence
+   - Dynamic colormap updates
+
+2. Interaction Handling:
+   - Selection management
+   - Visibility toggling
+   - Export capabilities
+   - Frame navigation
+
+3. Data Processing:
+   - Data filtering
+   - Cache integration
+   - Frame-specific updates
+   - All-frame mode support
+
+Dependencies:
+------------
+- dash & plotly
+- pandas
+- app_config settings
+- viz.viz components
+- utils functions
+
+Usage:
+------
+Register callbacks with app instance:
+    from view_callbacks.scatter_2d_right_view import get_scatter_2d_right_view_callbacks
+    get_scatter_2d_right_view_callbacks(app)
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
 Website: https://zpeng.me
-
-`                      `
--:.                  -#:
--//:.              -###:
--////:.          -#####:
--/:.://:.      -###++##:
-..   `://:-  -###+. :##:
-       `:/+####+.   :##:
-.::::::::/+###.     :##:
-.////-----+##:    `:###:
- `-//:.   :##:  `:###/.
-   `-//:. :##:`:###/.
-     `-//:+######/.
-       `-/+####/.
-         `+##+.
-          :##:
-          :##:
-          :##:
-          :##:
-          :##:
-           .+:
-
+License: GPL-3.0
 """
 
 import os
