@@ -115,6 +115,8 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
             new_data = pd.read_csv(
                 os.path.join(file["path"], file["name"]), engine="pyarrow"
             )
+        else:
+            raise ValueError(f"Unsupported file type: {file['name']}")
 
         data_list.append(new_data)
 
