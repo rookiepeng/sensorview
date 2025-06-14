@@ -1,39 +1,37 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
 import os
-
 import datetime
-
 import plotly.express as px
 import plotly.graph_objs as go
-
+import dash
 from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -46,15 +44,15 @@ from utils import cache_get
 from utils import load_data
 
 
-def get_violin_view_callbacks(app):
+def get_violin_view_callbacks(app: dash.Dash) -> None:
     """
     Register the callback functions for the violin view.
 
-    Parameters:
-    - app (Dash app): The Dash app.
+    Args:
+        app (dash.Dash): The Dash application instance
 
     Returns:
-    - None
+        None
     """
 
     @app.callback(
@@ -80,35 +78,40 @@ def get_violin_view_callbacks(app):
         manager=background_callback_manager,
     )
     def regenerate_violin_callback(
-        unused_filter_trigger,
-        unused_left_hide_trigger,
-        unused_right_hide_trigger,
-        violin_sw,
-        x_violin,
-        y_violin,
-        c_violin,
-        session_id,
-        visible_list,
-        file,
-        file_list,
-    ):
+        unused_filter_trigger: int,
+        unused_left_hide_trigger: int,
+        unused_right_hide_trigger: int,
+        violin_sw: list,
+        x_violin: str,
+        y_violin: str,
+        c_violin: str,
+        session_id: str,
+        visible_list: list,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
         Regenerate the violin plot based on user inputs.
 
-        Parameters:
-        - unused_filter_trigger (any): Unused filter trigger input.
-        - unused_left_hide_trigger (any): Unused left hide trigger input.
-        - violin_sw (bool): The violin switch value.
-        - x_violin (str): The selected x-axis violin key.
-        - y_violin (str): The selected y-axis violin key.
-        - c_violin (str): The selected color key for the violin plot.
-        - session_id (str): The session ID.
-        - visible_list (list): The list of visible values.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
+        Args:
+            unused_filter_trigger (int): Filter trigger count
+            unused_left_hide_trigger (int): Left hide trigger count
+            unused_right_hide_trigger (int): Right hide trigger count
+            violin_sw (list): Violin plot switch state
+            x_violin (str): Selected x-axis key
+            y_violin (str): Selected y-axis key
+            c_violin (str): Selected color key
+            session_id (str): Session identifier
+            visible_list (list): List of visible elements
+            file (str): Current file path
+            file_list (list): List of all file paths
 
         Returns:
-        - dict: The output figure dictionary.
+            dict: Contains:
+                - violin (dict): Updated violin plot figure data
+
+        Raises:
+            PreventUpdate: If violin switch is off or x_violin is None
         """
         if not violin_sw:
             violin_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
@@ -173,17 +176,16 @@ def get_violin_view_callbacks(app):
             "violin_sw": Input("violin-switch", "value"),
         },
     )
-    def enable_violin_callback(
-        violin_sw,
-    ):
+    def enable_violin_callback(violin_sw: list) -> dict:
         """
-        Enable or disable the violin plot collapse based on the violin switch value.
+        Toggle the violin plot collapse element.
 
-        Parameters:
-        - violin_sw (bool): The violin switch value.
+        Args:
+            violin_sw (list): Violin plot switch state
 
         Returns:
-        - dict: The output collapse value.
+            dict: Contains:
+                - collapse (bool): New state of collapse element
         """
         collapse = False
         if violin_sw:
@@ -197,16 +199,20 @@ def get_violin_view_callbacks(app):
         state={"fig": State("violin", "figure")},
         prevent_initial_call=True,
     )
-    def export_violin(btn, fig):
+    def export_violin(btn: int, fig: dict) -> dict:
         """
-        Export the violin plot as an image.
+        Export violin plot as PNG image.
 
-        Parameters:
-        - btn (int): The number of clicks on the export button.
-        - fig (dict): The figure dictionary of the violin plot.
+        Args:
+            btn (int): Button click count
+            fig (dict): Current violin plot figure
 
         Returns:
-        - dict: The output dummy data.
+            dict: Contains:
+                - download (dcc.send_file): File download data
+
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate

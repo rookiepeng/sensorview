@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -32,6 +32,7 @@ import datetime
 
 import plotly.graph_objs as go
 
+import dash
 from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -46,15 +47,15 @@ from utils import cache_get
 from utils import load_data
 
 
-def get_heatmap_view_callbacks(app):
+def get_heatmap_view_callbacks(app: dash.Dash) -> None:
     """
-    Register the callback functions for the heatmap view.
+    Register callback functions for heatmap view.
 
-    Parameters:
-    - app (Dash app): The Dash app.
+    Args:
+        app (dash.Dash): The Dash application instance
 
     Returns:
-    - None
+        None
     """
 
     @app.callback(
@@ -79,36 +80,35 @@ def get_heatmap_view_callbacks(app):
         manager=background_callback_manager,
     )
     def regenerate_heatmap_callback(
-        unused_filter_trigger,
-        unused_left_hide_trigger,
-        unused_right_hide_trigger,
-        heat_sw,
-        x_heat,
-        y_heat,
-        session_id,
-        visible_list,
-        file,
-        file_list,
-    ):
+        unused_filter_trigger: int,
+        unused_left_hide_trigger: int,
+        unused_right_hide_trigger: int,
+        heat_sw: list,
+        x_heat: str,
+        y_heat: str,
+        session_id: str,
+        visible_list: list,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
-        Background callback function to regenerate the heatmap figure based on the input values.
+        Regenerate heatmap based on user inputs.
 
-        Parameters:
-        - unused_filter_trigger (any): Unused input trigger for filtering data.
-        - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
-        - heat_sw (bool): The value of the heat switch.
-        - x_heat (str): The selected x-axis key for the heatmap.
-        - y_heat (str): The selected y-axis key for the heatmap.
-        - session_id (str): The ID of the current session.
-        - visible_list (list): The list of visible items.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
+        Args:
+            unused_filter_trigger (int): Filter trigger count
+            unused_left_hide_trigger (int): Left hide trigger count
+            unused_right_hide_trigger (int): Right hide trigger count
+            heat_sw (list): Heatmap switch state
+            x_heat (str): Selected x-axis key
+            y_heat (str): Selected y-axis key
+            session_id (str): Session identifier
+            visible_list (list): List of visible elements
+            file (str): Current file path
+            file_list (list): List of all file paths
 
         Returns:
-        - dict: A dictionary containing the updated heatmap figure.
-
-        Output Properties:
-        - heatmap (dict): The updated heatmap figure.
+            dict: Contains:
+                - heatmap (dict): Updated heatmap figure
         """
         if not heat_sw:
             heat_fig = {"data": [{"type": "histogram2dcontour", "x": []}], "layout": {}}
@@ -164,19 +164,17 @@ def get_heatmap_view_callbacks(app):
         },
     )
     def enable_heatmap_callback(
-        heat_sw,
-    ):
+        heat_sw: list,
+    ) -> dict:
         """
-        Callback function to enable or disable the heatmap collapse.
+        Toggle heatmap collapse element.
 
-        Parameters:
-        - heat_sw (bool): The value of the heat switch.
+        Args:
+            heat_sw (list): Heatmap switch state
 
         Returns:
-        - dict: A dictionary containing the updated value for the collapse property.
-
-        Output Properties:
-        - collapse (bool): Whether the heatmap should be collapsed or not.
+            dict: Contains:
+                - collapse (bool): New state of collapse element
         """
         collapse = False
         if heat_sw:
@@ -192,19 +190,20 @@ def get_heatmap_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def export_heatmap(btn, fig):
+    def export_heatmap(btn: int, fig: dict) -> dict:
         """
-        Callback function to export the heatmap figure as an image.
+        Export heatmap as PNG image.
 
-        Parameters:
-        - btn (int): The number of times the export button has been clicked.
-        - fig (dict): The heatmap figure.
+        Args:
+            btn (int): Button click count
+            fig (dict): Current heatmap figure
 
         Returns:
-        - dict: A dictionary containing a dummy value for the output property.
+            dict: Contains:
+                - download (dcc.send_file): File download data
 
-        Output Properties:
-        - dummy (int): A dummy value to trigger the export.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate

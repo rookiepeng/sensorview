@@ -1,44 +1,45 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
+import dash
 from dash.dependencies import Input, Output
 
 
-def get_control_view_callbacks(app):
+def get_control_view_callbacks(app: dash.Dash) -> None:
     """
-    Register the callback function to handle changes in the overlay switch.
+    Register callback functions for control view.
 
-    Parameters:
-    - app (Dash app): The Dash app.
+    Args:
+        app (dash.Dash): The Dash application instance
 
     Returns:
-    - None
+        None
     """
 
     @app.callback(
@@ -51,22 +52,20 @@ def get_control_view_callbacks(app):
         },
         inputs={"overlay": Input("overlay-switch", "value")},
     )
-    def overlay_switch_changed(overlay):
+    def overlay_switch_changed(overlay: list) -> dict:
         """
-        Callback function to handle changes in the overlay switch.
+        Toggle control elements based on overlay switch state.
 
-        Parameters:
-        - overlay (bool): The value of the overlay switch.
+        Args:
+            overlay (list): Overlay switch state
 
         Returns:
-        - dict: A dictionary containing the updated values for the output properties.
-
-        Output Properties:
-        - frame_slider_disabled (bool): Whether the frame slider should be disabled.
-        - previous_button_disabled (bool): Whether the previous button should be disabled.
-        - next_button_disabled (bool): Whether the next button should be disabled.
-        - play_button_disabled (bool): Whether the play button should be disabled.
-        - stop_button_disabled (bool): Whether the stop button should be disabled.
+            dict: Contains:
+                - frame_slider_disabled (bool): Frame slider disabled state
+                - previous_button_disabled (bool): Previous button disabled state
+                - next_button_disabled (bool): Next button disabled state
+                - play_button_disabled (bool): Play button disabled state
+                - stop_button_disabled (bool): Stop button disabled state
         """
         if overlay:
             return {

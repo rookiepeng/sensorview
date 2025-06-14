@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -50,15 +50,15 @@ from utils import cache_set, cache_get
 from utils import load_data
 
 
-def get_scatter_2d_left_view_callbacks(app):
+def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
     """
     Register the callback functions for the left 2D view.
 
-    Parameters:
-    - app (Dash app): The Dash app.
+    Args:
+        app (dash.Dash): The Dash application instance
 
     Returns:
-    - None
+        None
     """
 
     @app.callback(
@@ -75,30 +75,30 @@ def get_scatter_2d_left_view_callbacks(app):
         },
     )
     def invoke_scatter2d_left_frame_trigger(
-        unused_slider_arg,
-        unused_stop_click,
-        all_frame_sw,
-        ispaused,
-        left_sw,
-        current_regenerate_trigger,
-    ):
+        unused_slider_arg: int,
+        unused_stop_click: int,
+        all_frame_sw: str,
+        ispaused: bool,
+        left_sw: list,
+        current_regenerate_trigger: int,
+    ) -> dict:
         """
-        Callback function to invoke the trigger to regenerate per-frame plot of
-        left scatter2d figure.
+        Invoke trigger to regenerate per-frame plot of left scatter2d figure.
 
-        Parameters:
-        - unused_slider_arg (int): The unused slider value.
-        - unused_stop_click (int): The unused stop click value.
-        - all_frame_sw (str): The selection between current frame of all frames.
-        - ispaused (bool): If the video is paused.
-        - left_sw (bool): If the figure is enabled.
-        - current_regenerate_trigger (int): The current value of the trigger.
+        Args:
+            unused_slider_arg (int): Current slider position
+            unused_stop_click (int): Stop button click count
+            all_frame_sw (str): Frame selection mode ('current' or 'all')
+            ispaused (bool): Animation pause state
+            left_sw (list): Left panel switch state
+            current_regenerate_trigger (int): Current trigger value
 
         Returns:
-        - dict: A dictionary containing the updated filter trigger value.
+            dict: Contains:
+                - regenerate_trigger (int): Updated trigger value
 
-        Output Properties:
-        - regenerate_trigger (int): The updated filter trigger value.
+        Raises:
+            PreventUpdate: If conditions for regeneration are not met
         """
 
         ctx = dash.callback_context
@@ -142,46 +142,45 @@ def get_scatter_2d_left_view_callbacks(app):
         prevent_initial_call=True,
     )
     def regenerate_scatter2d_left_callback(
-        unused_filter_trigger,
-        unused_left_hide_trigger,
-        unused_right_hide_trigger,
-        unused_regenerate_trigger,
-        left_sw,
-        x_left,
-        y_left,
-        color_left,
-        slider_arg,
-        all_frame_sw,
-        colormap,
-        session_id,
-        visible_list,
-        file,
-        file_list,
-    ):
+        unused_filter_trigger: int,
+        unused_left_hide_trigger: int,
+        unused_right_hide_trigger: int,
+        unused_regenerate_trigger: int,
+        left_sw: list,
+        x_left: str,
+        y_left: str,
+        color_left: str,
+        slider_arg: int,
+        all_frame_sw: str,
+        colormap: str,
+        session_id: str,
+        visible_list: list,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
-        Background callback function to regenerate the left 2D scatter plot
-        based on the input values.
+        Regenerate the left 2D scatter plot.
 
-        Parameters:
-        - unused_filter_trigger (any): Unused input trigger for filtering data.
-        - unused_left_hide_trigger (any): Unused input trigger for hiding left
-        panel.
-        - unused_regenerate_trigger (any): Input trigger to update the per-frame plot.
-        - left_sw (bool): The value of the left switch.
-        - x_left (str): The selected x-axis key for the left scatter plot.
-        - y_left (str): The selected y-axis key for the left scatter plot.
-        - color_left (str): The selected color key for the left scatter plot.
-        - colormap (str): The selected colormap for the left scatter plot.
-        - session_id (str): The ID of the current session.
-        - visible_list (list): The list of visible items.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
+        Args:
+            unused_filter_trigger (int): Filter trigger count
+            unused_left_hide_trigger (int): Left hide trigger count
+            unused_right_hide_trigger (int): Right hide trigger count
+            unused_regenerate_trigger (int): Regenerate trigger count
+            left_sw (list): Left panel switch state
+            x_left (str): Selected x-axis key
+            y_left (str): Selected y-axis key
+            color_left (str): Selected color key
+            slider_arg (int): Current slider position
+            all_frame_sw (str): Frame selection mode
+            colormap (str): Selected colormap name
+            session_id (str): Session identifier
+            visible_list (list): List of visible elements
+            file (str): Current file path
+            file_list (list): List of all file paths
 
         Returns:
-        - dict: A dictionary containing the updated left 2D scatter plot figure.
-
-        Output Properties:
-        - figure (dict): The updated left 2D scatter plot figure.
+            dict: Contains:
+                - figure (dict): Updated scatter plot figure
         """
         if not left_sw:
             left_fig = {
@@ -254,23 +253,21 @@ def get_scatter_2d_left_view_callbacks(app):
         prevent_initial_call=True,
     )
     def scatter2d_left_colormap_change_callback(
-        colormap,
-        fig_in,
-        left_sw,
-    ):
+        colormap: str,
+        fig_in: dict,
+        left_sw: list,
+    ) -> dict:
         """
-        Callback function to update the colormap of the left 2D scatter plot.
+        Update the colormap of the left 2D scatter plot.
 
-        Parameters:
-        - colormap (str): The selected colormap.
-        - fig_in (dict): The current figure of the left 2D scatter plot.
-        - left_sw (bool): The value of the left switch.
+        Args:
+            colormap (str): Selected colormap name
+            fig_in (dict): Current figure configuration
+            left_sw (list): Left panel switch state
 
         Returns:
-        - dict: A dictionary containing the updated figure of the left 2D scatter plot.
-
-        Output Properties:
-        - figure (dict): The updated figure of the left 2D scatter plot.
+            dict: Contains:
+                - figure (dict): Updated figure with new colormap
         """
         if not left_sw:
             left_fig = {
@@ -297,20 +294,16 @@ def get_scatter_2d_left_view_callbacks(app):
             "left_sw": Input("left-switch", "value"),
         },
     )
-    def enable_scatter2d_left_callback(
-        left_sw,
-    ):
+    def enable_scatter2d_left_callback(left_sw: list) -> dict:
         """
-        Callback function to enable or disable the left 2D scatter plot collapse.
+        Toggle the left 2D scatter plot collapse element.
 
-        Parameters:
-        - left_sw (bool): The value of the left switch.
+        Args:
+            left_sw (list): Left panel switch state
 
         Returns:
-        - dict: A dictionary containing the updated value for the collapse property.
-
-        Output Properties:
-        - collapse (bool): Whether the left 2D scatter plot should be collapsed or not.
+            dict: Contains:
+                - collapse (bool): New state of collapse element
         """
         collapse = False
         if left_sw:
@@ -326,19 +319,20 @@ def get_scatter_2d_left_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def export_left_2d_scatter(btn, fig):
+    def export_left_2d_scatter(btn: int, fig: dict) -> dict:
         """
-        Callback function to export the left 2D scatter plot as an image.
+        Export left 2D scatter plot as PNG image.
 
-        Parameters:
-        - btn (int): The number of times the export button has been clicked.
-        - fig (dict): The left 2D scatter plot figure.
+        Args:
+            btn (int): Button click count
+            fig (dict): Current figure configuration
 
         Returns:
-        - dict: A dictionary containing a dummy value for the output property.
+            dict: Contains:
+                - download (dcc.send_file): File download data
 
-        Output Properties:
-        - dummy (int): A dummy value to trigger the export.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate
@@ -361,19 +355,17 @@ def get_scatter_2d_left_view_callbacks(app):
         inputs={"selected_data": Input("scatter2d-left", "selectedData")},
         state={"session_id": State("session-id", "data")},
     )
-    def select_left_figure(selected_data, session_id):
+    def select_left_figure(selected_data: dict, session_id: str) -> dict:
         """
-        Callback function to store the selected data from the left 2D scatter plot.
+        Store selected data from left 2D scatter plot.
 
-        Parameters:
-        - selectedData (dict): The selected data from the left 2D scatter plot.
-        - session_id (str): The ID of the current session.
+        Args:
+            selected_data (dict): Selected points data
+            session_id (str): Session identifier
 
         Returns:
-        - dict: A dictionary containing a dummy value for the output property.
-
-        Output Properties:
-        - dummy (int): A dummy value to trigger the update.
+            dict: Contains:
+                - dummy (int): Update trigger value
         """
         cache_set(selected_data, session_id, CACHE_KEYS["selected_data_left"])
         return {"dummy": 0}
@@ -386,20 +378,21 @@ def get_scatter_2d_left_view_callbacks(app):
             "session_id": State("session-id", "data"),
         },
     )
-    def left_hide_button(btn, trigger_idx, session_id):
+    def left_hide_button(btn: int, trigger_idx: int, session_id: str) -> dict:
         """
-        Callback function to handle the hide left button click event.
+        Toggle visibility of selected points in left plot.
 
-        Parameters:
-        - btn (int): The number of times the hide left button has been clicked.
-        - trigger_idx (int): The current value of the left hide trigger.
-        - session_id (str): The ID of the current session.
+        Args:
+            btn (int): Button click count
+            trigger_idx (int): Current trigger value
+            session_id (str): Session identifier
 
         Returns:
-        - dict: A dictionary containing the updated value for the output trigger.
+            dict: Contains:
+                - output_trigger (int): Updated trigger value
 
-        Output Properties:
-        - output_trigger (int): The updated value for the left hide trigger.
+        Raises:
+            PreventUpdate: If button not clicked or no selection
         """
         if btn == 0:
             raise PreventUpdate

@@ -1,29 +1,29 @@
 """
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+Copyright (C) 2019 - PRESENT  Zhengyu Peng
+E-mail: zpeng.me@gmail.com
+Website: https://zpeng.me
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+`                      `
+-:.                  -#:
+-//:.              -###:
+-////:.          -#####:
+-/:.://:.      -###++##:
+..   `://:-  -###+. :##:
+       `:/+####+.   :##:
+.::::::::/+###.     :##:
+.////-----+##:    `:###:
+ `-//:.   :##:  `:###/.
+   `-//:. :##:`:###/.
+     `-//:+######/.
+       `-/+####/.
+         `+##+.
+          :##:
+          :##:
+          :##:
+          :##:
+          :##:
+           .+:
 
 """
 
@@ -35,6 +35,7 @@ import numpy as np
 
 import plotly.graph_objs as go
 
+import dash
 from dash import dcc
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -47,15 +48,15 @@ from utils import cache_get
 from utils import load_data
 
 
-def get_parcats_view_callbacks(app):
+def get_parcats_view_callbacks(app: dash.Dash) -> None:
     """
-    Register the callback functions for the parallel coordinates view.
+    Register callback functions for parallel coordinates view.
 
-    Parameters:
-    - app (Dash app): The Dash app.
+    Args:
+        app (dash.Dash): The Dash application instance
 
     Returns:
-    - None
+        None
     """
 
     @app.callback(
@@ -80,37 +81,35 @@ def get_parcats_view_callbacks(app):
         manager=background_callback_manager,
     )
     def regenerate_parallel_callback(
-        unused_filter_trigger,
-        unused_left_hide_trigger,
-        unused_right_hide_trigger,
-        parallel_sw,
-        dim_parallel,
-        c_key,
-        session_id,
-        visible_list,
-        file,
-        file_list,
-    ):
+        unused_filter_trigger: int,
+        unused_left_hide_trigger: int,
+        unused_right_hide_trigger: int,
+        parallel_sw: list,
+        dim_parallel: list,
+        c_key: str,
+        session_id: str,
+        visible_list: list,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
-        Background callback function to regenerate the parallel coordinates figure
-        based on the input values.
+        Regenerate parallel coordinates plot based on user inputs.
 
-        Parameters:
-        - unused_filter_trigger (any): Unused input trigger for filtering data.
-        - unused_left_hide_trigger (any): Unused input trigger for hiding left panel.
-        - parallel_sw (bool): The value of the parallel coordinates switch.
-        - dim_parallel (list): The selected dimensions for the parallel coordinates.
-        - c_key (str): The selected color key for the parallel coordinates.
-        - session_id (str): The ID of the current session.
-        - visible_list (list): The list of visible items.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
+        Args:
+            unused_filter_trigger (int): Filter trigger count
+            unused_left_hide_trigger (int): Left hide trigger count
+            unused_right_hide_trigger (int): Right hide trigger count
+            parallel_sw (list): Parallel coordinates switch state
+            dim_parallel (list): Selected dimensions
+            c_key (str): Selected color key
+            session_id (str): Session identifier
+            visible_list (list): List of visible elements
+            file (str): Current file path
+            file_list (list): List of all file paths
 
         Returns:
-        - dict: A dictionary containing the updated parallel coordinates figure.
-
-        Output Properties:
-        - parallel (dict): The updated parallel coordinates figure.
+            dict: Contains:
+                - parallel (dict): Updated parallel coordinates figure
         """
         if not parallel_sw:
             parallel_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
@@ -199,19 +198,17 @@ def get_parcats_view_callbacks(app):
         },
     )
     def enable_parallel_callback(
-        parallel_sw,
-    ):
+        parallel_sw: list,
+    ) -> dict:
         """
-        Callback function to enable or disable the parallel coordinates collapse.
+        Toggle parallel coordinates collapse element.
 
-        Parameters:
-        - parallel_sw (bool): The value of the parallel coordinates switch.
+        Args:
+            parallel_sw (list): Parallel coordinates switch state
 
         Returns:
-        - dict: A dictionary containing the updated value for the collapse property.
-
-        Output Properties:
-        - collapse (bool): Whether the parallel coordinates should be collapsed or not.
+            dict: Contains:
+                - collapse (bool): New state of collapse element
         """
         collapse = False
         if parallel_sw:
@@ -227,19 +224,20 @@ def get_parcats_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def export_parallel(btn, fig):
+    def export_parallel(btn: int, fig: dict) -> dict:
         """
-        Callback function to export the parallel coordinates figure as an image.
+        Export parallel coordinates plot as PNG image.
 
-        Parameters:
-        - btn (int): The number of times the export button has been clicked.
-        - fig (dict): The parallel coordinates figure.
+        Args:
+            btn (int): Button click count
+            fig (dict): Current parallel coordinates figure
 
         Returns:
-        - dict: A dictionary containing a dummy value for the output property.
+            dict: Contains:
+                - download (dcc.send_file): File download data
 
-        Output Properties:
-        - dummy (int): A dummy value to trigger the export.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate
