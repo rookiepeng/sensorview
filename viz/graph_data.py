@@ -60,7 +60,6 @@ def get_ref_scatter3d_data(
     y_key: str,
     z_key: Optional[str] = None,
     name: str = "Origin",
-    **kwargs: Any,
 ) -> Dict[str, Any]:
     """
     Generate reference data for a 3D scatter plot.
@@ -71,7 +70,6 @@ def get_ref_scatter3d_data(
         y_key: Column name for y-axis coordinates.
         z_key: Optional column name for z-axis coordinates.
         name: Label for the reference point in the plot.
-        **kwargs: Additional plot configuration parameters.
 
     Returns:
         Dictionary containing plot data with coordinates, styling, and hover information.

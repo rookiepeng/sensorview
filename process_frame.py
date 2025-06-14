@@ -85,7 +85,8 @@ def process_single_frame(
 
     Args:
         config: Configuration dictionary containing plot settings and key definitions.
-        cat_values: Dictionary mapping categorical column names to lists of selected values for filtering.
+        cat_values: Dictionary mapping categorical column names to lists of
+                    selected values for filtering.
         num_values: List of numerical values for filtering (min/max ranges).
         colormap: Name of the colormap to apply to the scatter plot.
         visible_list: List of visibility filter values.
@@ -236,7 +237,8 @@ def process_overlay_frame(
     Args:
         frame_idx: Index of the frame to process.
         config: Configuration dictionary containing plot settings and key definitions.
-        cat_values: Dictionary mapping categorical column names to lists of selected values for filtering.
+        cat_values: Dictionary mapping categorical column names to lists of
+                    selected values for filtering.
         num_values: List of numerical values for filtering (min/max ranges).
         colormap: Name of the colormap to apply to the scatter plot.
         visible_list: List of visibility filter values.
