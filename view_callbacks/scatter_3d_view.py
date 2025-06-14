@@ -1,30 +1,47 @@
-"""
+"""SensorView 3D Scatter View Callbacks
 
-Copyright (C) 2019 - PRESENT  Zhengyu Peng
-E-mail: zpeng.me@gmail.com
+This module provides callback functions for managing the 3D scatter plot view in the
+SensorView application. It handles real-time visualization updates, user interactions,
+and data export functionality.
+
+Core Features:
+-------------
+1. View Management:
+   - Real-time plot updates
+   - Frame-by-frame navigation
+   - Overlay mode support
+   - Dark/light theme switching
+
+2. Data Processing:
+   - Frame buffering and caching
+   - Background processing
+   - Data filtering
+   - Decay effect handling
+
+3. User Interactions:
+   - Click handling
+   - Selection management
+   - Export capabilities
+   - Animation controls
+
+Dependencies:
+------------
+- dash & plotly
+- numpy & pandas
+- app_config settings
+- utils functions
+- viz modules
+
+Usage:
+------
+Register callbacks with app instance:
+    from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
+    get_scatter_3d_view_callbacks(app)
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
 Website: https://zpeng.me
-
-`                      `
--:.                  -#:
--//:.              -###:
--////:.          -#####:
--/:.://:.      -###++##:
-..   `://:-  -###+. :##:
-       `:/+####+.   :##:
-.::::::::/+###.     :##:
-.////-----+##:    `:###:
- `-//:.   :##:  `:###/.
-   `-//:. :##:`:###/.
-     `-//:+######/.
-       `-/+####/.
-         `+##+.
-          :##:
-          :##:
-          :##:
-          :##:
-          :##:
-           .+:
-
+License: GPL-3.0
 """
 
 import json

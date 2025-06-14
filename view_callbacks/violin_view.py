@@ -1,30 +1,47 @@
 """
 
-Copyright (C) 2019 - PRESENT  Zhengyu Peng
-E-mail: zpeng.me@gmail.com
+SensorView Violin Plot View Callbacks
+
+This module provides callback functions for managing violin plot visualizations in the
+SensorView application, supporting distribution analysis and statistical comparisons.
+
+Core Features:
+-------------
+1. Violin Plot Generation:
+   - Distribution visualization
+   - Statistical comparison
+   - Category-based grouping
+   - Dynamic updates
+
+2. View Controls:
+   - Axis selection
+   - Category filtering
+   - Plot customization
+   - Export capabilities
+
+3. Data Processing:
+   - Distribution calculation
+   - Outlier handling
+   - Cache integration
+   - Background processing
+
+Dependencies:
+------------
+- dash & plotly
+- pandas & numpy
+- app_config settings
+- utils functions
+
+Usage:
+------
+Register callbacks with app instance:
+    from view_callbacks.violin_view import get_violin_view_callbacks
+    get_violin_view_callbacks(app)
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
 Website: https://zpeng.me
-
-`                      `
--:.                  -#:
--//:.              -###:
--////:.          -#####:
--/:.://:.      -###++##:
-..   `://:-  -###+. :##:
-       `:/+####+.   :##:
-.::::::::/+###.     :##:
-.////-----+##:    `:###:
- `-//:.   :##:  `:###/.
-   `-//:. :##:`:###/.
-     `-//:+######/.
-       `-/+####/.
-         `+##+.
-          :##:
-          :##:
-          :##:
-          :##:
-          :##:
-           .+:
-
+License: GPL-3.0
 """
 
 import os

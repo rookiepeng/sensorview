@@ -1,30 +1,45 @@
-"""
+"""SensorView Histogram View Callbacks
 
-Copyright (C) 2019 - PRESENT  Zhengyu Peng
-E-mail: zpeng.me@gmail.com
+This module provides callback functions for managing the histogram visualization in
+the SensorView application, supporting data distribution analysis and filtering.
+
+Core Features:
+-------------
+1. Histogram Generation:
+   - Dynamic data binning
+   - Multiple normalization options
+   - Color-based grouping
+   - Automatic range adjustment
+
+2. View Controls:
+   - Axis selection
+   - Distribution mode switching
+   - Category filtering
+   - Export capabilities
+
+3. Data Processing:
+   - Filter application
+   - Cache integration
+   - Background processing
+   - Results caching
+
+Dependencies:
+------------
+- dash & plotly
+- pandas
+- app_config settings
+- utils functions
+
+Usage:
+------
+Register callbacks with app instance:
+    from view_callbacks.histogram_view import get_histogram_view_callbacks
+    get_histogram_view_callbacks(app)
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
 Website: https://zpeng.me
-
-`                      `
--:.                  -#:
--//:.              -###:
--////:.          -#####:
--/:.://:.      -###++##:
-..   `://:-  -###+. :##:
-       `:/+####+.   :##:
-.::::::::/+###.     :##:
-.////-----+##:    `:###:
- `-//:.   :##:  `:###/.
-   `-//:. :##:`:###/.
-     `-//:+######/.
-       `-/+####/.
-         `+##+.
-          :##:
-          :##:
-          :##:
-          :##:
-          :##:
-           .+:
-
+License: GPL-3.0
 """
 
 import os
