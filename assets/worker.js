@@ -1,7 +1,57 @@
+/**
+ * @fileoverview Web Worker implementation for IndexedDB storage and retrieval operations
+ * This worker handles all database operations for the SensorView application, providing
+ * an asynchronous interface for storing, retrieving, updating, and deleting sensor data.
+ * 
+ * @description
+ * The worker implements the following main features:
+ * - Automatic database connection management
+ * - CRUD operations for sensor data with UUID-based identification
+ * - Batch operations for multiple items
+ * - Automatic timestamp management
+ * - Data cleanup for old records
+ * 
+ * Communication is handled through postMessage with the following actions:
+ * - store: Store single or multiple items
+ * - getById: Retrieve a single item by ID
+ * - getByIds: Retrieve multiple items by IDs
+ * - getAll: Retrieve all stored items
+ * - getAllIds: Retrieve all stored IDs
+ * - update: Update an existing item
+ * - delete: Delete a single item
+ * - deleteMultiple: Delete multiple items
+ * - cleanup: Remove old records
+ * 
+ * Database Schema:
+ * - Store Name: figureStore
+ * - Indices: timestamp, category, name
+ * - Key Path: id (auto-generated UUID if not provided)
+ * 
+ * @example
+ * // Usage from main thread:
+ * const worker = new Worker('worker.js');
+ * worker.postMessage({
+ *   action: 'store',
+ *   payload: { name: 'sensor1', data: [...] }
+ * });
+ * 
+ * worker.onmessage = (e) => {
+ *   if (e.data.status === 'success') {
+ *     console.log('Operation successful:', e.data.result);
+ *   }
+ * };
+ * 
+ * @version 1.0
+ * @license GPL-3.0
+ */
+
 // worker.js with ID-based storage and retrieval
 let db = null;
 
-// Open connection once when worker starts
+/**
+ * Opens and initializes the IndexedDB database connection
+ * @returns {Promise<IDBDatabase>} A promise that resolves with the database instance
+ */
 function openDatabase() {
   return new Promise((resolve, reject) => {
     if (db) {
@@ -53,7 +103,11 @@ function generateUUID() {
   });
 }
 
-// Store data with automatic ID assignment if not provided
+/**
+ * Stores data in the IndexedDB store
+ * @param {Object|Array} data - Single item or array of items to store
+ * @returns {Promise<Object>} Object containing status, count, and results of the operation
+ */
 async function storeData(data) {
   if (!db) await openDatabase();
   
@@ -113,7 +167,11 @@ async function storeData(data) {
   });
 }
 
-// Retrieve data by ID
+/**
+ * Retrieves a single item by its ID
+ * @param {string|number} id - The ID of the item to retrieve
+ * @returns {Promise<Object|undefined>} The retrieved item or undefined if not found
+ */
 async function getDataById(id) {
   if (!db) await openDatabase();
   
@@ -127,7 +185,11 @@ async function getDataById(id) {
   });
 }
 
-// Retrieve multiple items by array of IDs
+/**
+ * Retrieves multiple items by their IDs
+ * @param {Array<string|number>} ids - Array of IDs to retrieve
+ * @returns {Promise<Array>} Array of retrieved items
+ */
 async function getDataByIds(ids) {
   if (!db) await openDatabase();
   
@@ -167,7 +229,10 @@ async function getDataByIds(ids) {
   });
 }
 
-// Retrieve all data
+/**
+ * Retrieves all items from the store
+ * @returns {Promise<Array>} Array of all items in the store
+ */
 async function getAllData() {
   if (!db) await openDatabase();
   
@@ -181,7 +246,10 @@ async function getAllData() {
   });
 }
 
-// Get all IDs in the database
+/**
+ * Retrieves all IDs from the store
+ * @returns {Promise<Array>} Array of all IDs in the store
+ */
 async function getAllIds() {
   if (!db) await openDatabase();
   
@@ -195,7 +263,12 @@ async function getAllIds() {
   });
 }
 
-// Update specific fields of an existing item by ID
+/**
+ * Updates specific fields of an item by its ID
+ * @param {string|number} id - ID of the item to update
+ * @param {Object} updates - Object containing the fields to update
+ * @returns {Promise<Object>} Status object containing result of the update operation
+ */
 async function updateDataById(id, updates) {
   if (!db) await openDatabase();
   
@@ -241,7 +314,11 @@ async function updateDataById(id, updates) {
   });
 }
 
-// Delete data by ID
+/**
+ * Deletes a single item by its ID
+ * @param {string|number} id - ID of the item to delete
+ * @returns {Promise<Object>} Status object containing result of the delete operation
+ */
 async function deleteDataById(id) {
   if (!db) await openDatabase();
   
@@ -259,7 +336,11 @@ async function deleteDataById(id) {
   });
 }
 
-// Delete multiple items by array of IDs
+/**
+ * Deletes multiple items by their IDs
+ * @param {Array<string|number>} ids - Array of IDs to delete
+ * @returns {Promise<Object>} Status object containing results of the delete operations
+ */
 async function deleteDataByIds(ids) {
   if (!db) await openDatabase();
   
@@ -316,7 +397,11 @@ async function deleteDataByIds(ids) {
   });
 }
 
-// Delete old records based on timestamp
+/**
+ * Removes records older than the specified age
+ * @param {number} [maxAgeDays=2] - Maximum age in days for records to keep
+ * @returns {Promise<Object>} Status object containing count of deleted records
+ */
 async function cleanupOldData(maxAgeDays = 2) {
   if (!db) await openDatabase();
   
