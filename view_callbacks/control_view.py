@@ -1,30 +1,43 @@
-"""
+"""SensorView Control View Callbacks
 
-Copyright (C) 2019 - PRESENT  Zhengyu Peng
-E-mail: zpeng.me@gmail.com
+This module provides callback functions for managing control panel interactions
+in the SensorView application.
+
+Core Features:
+-------------
+1. Control Management:
+   - Frame slider control
+   - Navigation buttons
+   - Animation controls
+   - Overlay mode switching
+
+2. UI Controls:
+   - Element state management
+   - Control visibility
+   - Interactive mode switching
+   - Button state handling
+
+3. State Management:
+   - Control state synchronization
+   - Mode state tracking
+   - Element accessibility
+
+Dependencies:
+------------
+- dash
+- app_config settings
+- Standard Python libraries
+
+Usage:
+------
+Register callbacks with app instance:
+    from view_callbacks.control_view import get_control_view_callbacks
+    get_control_view_callbacks(app)
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
 Website: https://zpeng.me
-
-`                      `
--:.                  -#:
--//:.              -###:
--////:.          -#####:
--/:.://:.      -###++##:
-..   `://:-  -###+. :##:
-       `:/+####+.   :##:
-.::::::::/+###.     :##:
-.////-----+##:    `:###:
- `-//:.   :##:  `:###/.
-   `-//:. :##:`:###/.
-     `-//:+######/.
-       `-/+####/.
-         `+##+.
-          :##:
-          :##:
-          :##:
-          :##:
-          :##:
-           .+:
-
+License: GPL-3.0
 """
 
 import dash
