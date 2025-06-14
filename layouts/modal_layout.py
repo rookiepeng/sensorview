@@ -1,5 +1,46 @@
-from dash import html
+"""SensorView Modal Layout Module
 
+This module defines the data selection modal dialog components used in the
+SensorView application.
+
+Core Components:
+---------------
+1. Input Controls:
+   - Data path input
+   - Test case selection
+   - Log file selection
+   - Refresh button
+
+2. Modal Features:
+   - Centered positioning
+   - Static backdrop
+   - Large size format
+   - Keyboard interaction control
+
+3. User Interface:
+   - Tooltips for guidance
+   - Input grouping
+   - Responsive layout
+   - Confirmation button
+
+Dependencies:
+------------
+- dash & dash-bootstrap-components
+- Standard Python libraries
+
+Usage:
+------
+Import the modal component:
+    from layouts.modal_layout import modal
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
+Website: https://zpeng.me
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
+"""
+
+from dash import html
 import dash_bootstrap_components as dbc
 
 
