@@ -1,30 +1,48 @@
-"""
+"""SensorView Configuration Module
 
-    Copyright (C) 2019 - PRESENT  Zhengyu Peng
-    E-mail: zpeng.me@gmail.com
-    Website: https://zpeng.me
+This module defines the core configuration settings, constants, and shared resources
+used throughout the SensorView application.
 
-    `                      `
-    -:.                  -#:
-    -//:.              -###:
-    -////:.          -#####:
-    -/:.://:.      -###++##:
-    ..   `://:-  -###+. :##:
-           `:/+####+.   :##:
-    .::::::::/+###.     :##:
-    .////-----+##:    `:###:
-     `-//:.   :##:  `:###/.
-       `-//:. :##:`:###/.
-         `-//:+######/.
-           `-/+####/.
-             `+##+.
-              :##:
-              :##:
-              :##:
-              :##:
-              :##:
-               .+:
+Core Components:
+---------------
+1. Application Settings:
+   - App title and version
+   - Data paths and cache locations
+   - Theme configuration
 
+2. Cache Configuration:
+   - Cache expiration settings
+   - Cache key definitions
+   - Cache managers (disk-based)
+
+3. UI Component Mappings:
+   - Dropdown configurations
+   - Input/Output mappings
+   - State definitions
+
+Key Features:
+------------
+- Centralized configuration management
+- Cache system configuration
+- UI component organization
+- Data path management
+- Special folder handling
+
+Dependencies:
+------------
+- dash
+- diskcache
+
+Usage:
+------
+Import this module to access application-wide settings:
+    from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
+Website: https://zpeng.me
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
 """
 
 import os
