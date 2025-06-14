@@ -31,6 +31,7 @@ import json
 import os
 import datetime
 
+import dash
 from dash import dcc
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
@@ -55,15 +56,15 @@ from process_frame import process_overlay_frame
 from process_frame import process_single_frame
 
 
-def get_scatter_3d_view_callbacks(app):
+def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     """
-    Register the callback functions for the 3D view.
+    Register the callback functions for the 3D scatter plot view.
 
-    Parameters:
-    - app (Dash app): The Dash app.
+    Args:
+        app (dash.Dash): The Dash application instance
 
     Returns:
-    - None
+        None
     """
 
     @app.callback(
@@ -91,45 +92,42 @@ def get_scatter_3d_view_callbacks(app):
         prevent_initial_call=True,
     )
     def slider_change_callback(
-        unused_remote_trigger,
-        slider_arg,
-        cat_values,
-        num_values,
-        ispaused,
-        colormap,
-        visible_list,
-        c_key,
-        overlay_enable,
-        decay,
-        darkmode,
-        session_id,
-        file,
-        file_list,
-    ):
+        unused_remote_trigger: int,
+        slider_arg: int,
+        cat_values: list,
+        num_values: list,
+        ispaused: bool,
+        colormap: str,
+        visible_list: list,
+        c_key: str,
+        overlay_enable: list,
+        decay: int,
+        darkmode: list,
+        session_id: str,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
-        Callback function for the slider change event.
+        Update the 3D scatter plot when slider position changes.
 
-        Parameters:
-        - slider_arg (int): The value of the slider.
-        - cat_values (dict): The selected categorical values for filtering.
-        - num_values (dict): The selected numerical values for filtering.
-        - unused_stop_click (int): The number of times the stop button has been clicked.
-        - ispaused (bool): Whether the animation is paused or not.
-        - colormap (str): The selected colormap.
-        - visible_list (list): The list of visible items.
-        - c_key (str): The selected color key.
-        - overlay_enable (bool): Whether overlay mode is enabled or not.
-        - decay (int): The number of past frames to include in the figure.
-        - darkmode (bool): Whether dark mode is enabled or not.
-        - session_id (str): The ID of the current session.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
+        Args:
+            unused_remote_trigger (int): Remote figure trigger count
+            slider_arg (int): Current slider position
+            cat_values (list): Selected categorical filter values
+            num_values (list): Selected numerical filter values
+            ispaused (bool): Animation pause state
+            colormap (str): Selected colormap name
+            visible_list (list): List of visible elements
+            c_key (str): Selected color key
+            overlay_enable (list): Overlay mode enable state
+            decay (int): Number of past frames to show
+            darkmode (list): Dark mode enable state
+            session_id (str): Session identifier
+            file (str): Current file path
+            file_list (list): List of all file paths
 
         Returns:
-        - dict: A dictionary containing the updated 3D scatter plot figure.
-
-        Output Properties:
-        - scatter3d (dict): The updated 3D scatter plot figure.
+            dict: Updated scatter plot figure data
         """
         config = cache_get(session_id, CACHE_KEYS["config"])
 
@@ -180,19 +178,16 @@ def get_scatter_3d_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def colormap_change_callback(colormap, fig):
+    def colormap_change_callback(colormap: str, fig: dict) -> dict:
         """
-        Callback function for the colormap change event.
+        Update the colormap of the 3D scatter plot.
 
-        Parameters:
-        - colormap (str): The selected colormap.
-        - fig (dict): The current 3D scatter plot figure.
+        Args:
+            colormap (str): Name of the selected colormap
+            fig (dict): Current figure dictionary
 
         Returns:
-        - dict: A dictionary containing the updated 3D scatter plot figure.
-
-        Output Properties:
-        - scatter3d (dict): The updated 3D scatter plot figure.
+            dict: Updated figure with new colormap
         """
         for idx in range(0, len(fig["data"])):
             fig["data"][idx]["marker"]["colorscale"] = colormap
@@ -211,19 +206,16 @@ def get_scatter_3d_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def darkmode_change_callback(darkmode, fig):
+    def darkmode_change_callback(darkmode: list, fig: dict) -> dict:
         """
-        Callback function for the dark mode change event.
+        Toggle dark mode for the 3D scatter plot.
 
-        Parameters:
-        - darkmode (bool): Whether dark mode is enabled or not.
-        - fig (dict): The current 3D scatter plot figure.
+        Args:
+            darkmode (list): Dark mode enable state
+            fig (dict): Current figure dictionary
 
         Returns:
-        - dict: A dictionary containing the updated 3D scatter plot figure.
-
-        Output Properties:
-        - scatter3d (dict): The updated 3D scatter plot figure.
+            dict: Updated figure with new theme
         """
         if darkmode:
             fig["layout"]["template"] = pio.templates["plotly_dark"]
@@ -247,25 +239,25 @@ def get_scatter_3d_view_callbacks(app):
         prevent_initial_call=True,
     )
     def visible_table_change_callback(
-        click_data,
-        trigger_input,
-        click_hide,
-        session_id,
-    ):
+        click_data: dict,
+        trigger_input: int,
+        click_hide: list,
+        session_id: str,
+    ) -> dict:
         """
-        Callback function for the visible table change event.
+        Handle visibility changes from click interactions.
 
-        Parameters:
-        - click_data (dict): The click data from the 3D scatter plot.
-        - trigger_input (int): The input trigger value.
-        - click_hide (bool): Whether click hide mode is enabled or not.
-        - session_id (str): The ID of the current session.
+        Args:
+            click_data (dict): Data from click event
+            trigger_input (int): Current trigger state
+            click_hide (list): Click-to-hide feature state
+            session_id (str): Session identifier
 
         Returns:
-        - dict: A dictionary containing the updated trigger value.
+            dict: Updated trigger value
 
-        Output Properties:
-        - trigger (int): The updated trigger value.
+        Raises:
+            PreventUpdate: If click-to-hide is not enabled
         """
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
         if click_hide:
@@ -313,52 +305,50 @@ def get_scatter_3d_view_callbacks(app):
         prevent_initial_call=True,
     )
     def regenerate_figure_callback(
-        cat_values,
-        num_values,
-        visible_list,
-        unused_vistable_trigger,
-        ispaused,
-        slider_arg,
-        c_key,
-        overlay_enable,
-        unused_left_hide_trigger,
-        unused_right_hide_trigger,
-        unused_file_loaded,
-        decay,
-        colormap,
-        darkmode,
-        session_id,
-        file,
-        file_list,
-        trigger_val,
-    ):
+        cat_values: list,
+        num_values: list,
+        visible_list: list,
+        unused_vistable_trigger: int,
+        ispaused: bool,
+        slider_arg: int,
+        c_key: str,
+        overlay_enable: list,
+        unused_left_hide_trigger: int,
+        unused_right_hide_trigger: int,
+        unused_file_loaded: int,
+        decay: int,
+        colormap: str,
+        darkmode: list,
+        session_id: str,
+        file: str,
+        file_list: list,
+        trigger_val: int,
+    ) -> dict:
         """
-        Callback function for regenerating the figure.
+        Regenerate the 3D scatter plot figure.
 
-        Parameters:
-        - cat_values (dict): The selected categorical values for filtering.
-        - num_values (dict): The selected numerical values for filtering.
-        - visible_list (list): The list of visible items.
-        - unused_vistable_trigger (int): The trigger value for visible table change event.
-        - ispaused (bool): Whether the animation is paused or not.
-        - slider_arg (int): The value of the slider.
-        - c_key (str): The selected color key.
-        - overlay_enable (bool): Whether overlay mode is enabled or not.
-        - unused_left_hide_trigger (int): The trigger value for left hide event.
-        - unused_file_loaded (int): The trigger value for file loaded event.
-        - decay (int): The number of past frames to include in the figure.
-        - colormap (str): The selected colormap.
-        - darkmode (bool): Whether dark mode is enabled or not.
-        - session_id (str): The ID of the current session.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
-        - trigger_val (int): The trigger value.
+        Args:
+            cat_values (list): Selected categorical filter values
+            num_values (list): Selected numerical filter values
+            visible_list (list): List of visible elements
+            unused_vistable_trigger (int): Visibility table trigger
+            ispaused (bool): Animation pause state
+            slider_arg (int): Current slider position
+            c_key (str): Selected color key
+            overlay_enable (list): Overlay mode enable state
+            unused_left_hide_trigger (int): Left hide trigger
+            unused_right_hide_trigger (int): Right hide trigger
+            unused_file_loaded (int): File loaded trigger
+            decay (int): Number of past frames to show
+            colormap (str): Selected colormap name
+            darkmode (list): Dark mode enable state
+            session_id (str): Session identifier
+            file (str): Current file path
+            file_list (list): List of all file paths
+            trigger_val (int): Current trigger value
 
         Returns:
-        - dict: A dictionary containing the updated 3D scatter plot figure and trigger value.
-
-        Output Properties:
-        - scatter3d (dict): The updated 3D scatter plot figure.
+            dict: Updated figure data and trigger values
         """
         # invoke task
         cache_set(-1, session_id, CACHE_KEYS["task_id"])
@@ -437,35 +427,32 @@ def get_scatter_3d_view_callbacks(app):
         prevent_initial_call=True,
     )
     def regenerate_figure_background_callback(
-        set_progress,
-        trigger_idx,
-        cat_values,
-        num_values,
-        visible_list,
-        c_key,
-        session_id,
-        file,
-        file_list,
-    ):
+        set_progress: callable,
+        trigger_idx: int,
+        cat_values: list,
+        num_values: list,
+        visible_list: list,
+        c_key: str,
+        session_id: str,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
-        Background callback function for regenerating the figure.
+        Background task for regenerating the 3D scatter plot.
 
-        Parameters:
-        - set_progress (function): The function to set the progress of the background task.
-        - trigger_idx (int): The trigger value for the background task.
-        - cat_values (dict): The selected categorical values for filtering.
-        - num_values (dict): The selected numerical values for filtering.
-        - visible_list (list): The list of visible items.
-        - c_key (str): The selected color key.
-        - session_id (str): The ID of the current session.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
+        Args:
+            set_progress (callable): Progress update function
+            trigger_idx (int): Task trigger index
+            cat_values (list): Selected categorical filter values
+            num_values (list): Selected numerical filter values
+            visible_list (list): List of visible elements
+            c_key (str): Selected color key
+            session_id (str): Session identifier
+            file (str): Current file path
+            file_list (list): List of all file paths
 
         Returns:
-        - dict: A dictionary containing a dummy output.
-
-        Output Properties:
-        - dummy (any): A dummy output value.
+            dict: Dummy output for completion
         """
         cache_set(trigger_idx, session_id, CACHE_KEYS["task_id"])
         print("start new task (" + str(trigger_idx) + ")")
@@ -599,29 +586,26 @@ def get_scatter_3d_view_callbacks(app):
         },
     )
     def invoke_filter_trigger(
-        unused_cat_values,
-        unused_num_values,
-        unused_visible_list,
-        unused_vistable_trigger,
-        unused_file_loaded,
-        trigger_idx,
-    ):
+        unused_cat_values: list,
+        unused_num_values: list,
+        unused_visible_list: list,
+        unused_vistable_trigger: int,
+        unused_file_loaded: int,
+        trigger_idx: int,
+    ) -> dict:
         """
-        Callback function to invoke the filter trigger.
+        Increment the filter trigger counter.
 
-        Parameters:
-        - unused_cat_values (dict): The unused selected categorical values for filtering.
-        - unused_num_values (dict): The unused selected numerical values for filtering.
-        - unused_visible_list (list): The unused list of visible items.
-        - unused_vistable_trigger (int): The unused trigger value for visible table change event.
-        - unused_file_loaded (int): The unused trigger value for file loaded event.
-        - trigger_idx (int): The current value of the filter trigger.
+        Args:
+            unused_cat_values (list): Categorical filter values
+            unused_num_values (list): Numerical filter values
+            unused_visible_list (list): Visible elements list
+            unused_vistable_trigger (int): Visibility table trigger
+            unused_file_loaded (int): File loaded trigger
+            trigger_idx (int): Current trigger value
 
         Returns:
-        - dict: A dictionary containing the updated filter trigger value.
-
-        Output Properties:
-        - filter_trigger (int): The updated filter trigger value.
+            dict: Incremented trigger value
         """
         filter_trig = trigger_idx + 1
 
@@ -645,37 +629,37 @@ def get_scatter_3d_view_callbacks(app):
         manager=background_callback_manager,
     )
     def export_3d_scatter_animation(
-        btn,
-        case,
-        session_id,
-        c_key,
-        colormap,
-        visible_list,
-        file,
-        file_list,
-        decay,
-        darkmode,
-    ):
+        btn: int,
+        case: str,
+        session_id: str,
+        c_key: str,
+        colormap: str,
+        visible_list: list,
+        file: str,
+        file_list: list,
+        decay: int,
+        darkmode: list,
+    ) -> dict:
         """
-        Background callback function for exporting 3D scatter animation.
+        Export 3D scatter plot animation to HTML file.
 
-        Parameters:
-        - btn (int): The number of clicks on the export button.
-        - case (str): The selected case.
-        - session_id (str): The ID of the current session.
-        - c_key (str): The selected color key.
-        - colormap (str): The selected colormap.
-        - visible_list (list): The list of visible items.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
-        - decay (int): The number of past frames to include in the animation.
-        - darkmode (bool): Whether dark mode is enabled or not.
+        Args:
+            btn (int): Button click count
+            case (str): Test case name
+            session_id (str): Session identifier
+            c_key (str): Selected color key
+            colormap (str): Selected colormap name
+            visible_list (list): List of visible elements
+            file (str): Current file path
+            file_list (list): List of all file paths
+            decay (int): Number of past frames to show
+            darkmode (list): Dark mode enable state
 
         Returns:
-        - dict: A dictionary containing a dummy output.
+            dict: Dummy output for completion
 
-        Output Properties:
-        - dummy (any): A dummy output value.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate
@@ -773,19 +757,19 @@ def get_scatter_3d_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def export_3d_scatter_html(btn, fig):
+    def export_3d_scatter_html(btn: int, fig: dict) -> dict:
         """
-        Callback function to export the 3D scatter figure as an image.
+        Export current 3D scatter plot to HTML file.
 
-        Parameters:
-        - btn (int): The number of times the export button has been clicked.
-        - fig (dict): The 3D scatter figure.
+        Args:
+            btn (int): Button click count
+            fig (dict): Current figure dictionary
 
         Returns:
-        - dict: A dictionary containing a dummy value for the output property.
+            dict: Download data for file
 
-        Output Properties:
-        - dummy (int): A dummy value to trigger the export.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate
@@ -811,19 +795,19 @@ def get_scatter_3d_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def export_3d_scatter_png(btn, fig):
+    def export_3d_scatter_png(btn: int, fig: dict) -> dict:
         """
-        Callback function to export the 3D scatter figure as an image.
+        Export current 3D scatter plot to PNG image.
 
-        Parameters:
-        - btn (int): The number of times the export button has been clicked.
-        - fig (dict): The 3D scatter figure.
+        Args:
+            btn (int): Button click count
+            fig (dict): Current figure dictionary
 
         Returns:
-        - dict: A dictionary containing a dummy value for the output property.
+            dict: Download data for file
 
-        Output Properties:
-        - dummy (int): A dummy value to trigger the export.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate
@@ -852,22 +836,24 @@ def get_scatter_3d_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def export_all_frame_data(btn, session_id, visible_list, file, file_list):
+    def export_all_frame_data(
+        btn: int, session_id: str, visible_list: list, file: str, file_list: list
+    ) -> dict:
         """
-        Callback function for exporting filtered data.
+        Export data from all frames to CSV file.
 
-        Parameters:
-        - btn (int): The number of clicks on the export button.
-        - session_id (str): The ID of the current session.
-        - visible_list (list): The list of visible items.
-        - file (str): The selected file.
-        - file_list (list): The list of selected files.
+        Args:
+            btn (int): Button click count
+            session_id (str): Session identifier
+            visible_list (list): List of visible elements
+            file (str): Current file path
+            file_list (list): List of all file paths
 
         Returns:
-        - dict: A dictionary containing a dummy output.
+            dict: Download data for file
 
-        Output Properties:
-        - dummy (any): A dummy output value.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate
@@ -916,21 +902,24 @@ def get_scatter_3d_view_callbacks(app):
         },
         prevent_initial_call=True,
     )
-    def export_current_frame_data(btn, slider_arg, session_id, visible_list, file):
+    def export_current_frame_data(
+        btn: int, slider_arg: int, session_id: str, visible_list: list, file: str
+    ) -> dict:
         """
-        Callback function for exporting filtered data.
+        Export data from current frame to CSV file.
 
-        Parameters:
-        - btn (int): The number of clicks on the export button.
-        - session_id (str): The ID of the current session.
-        - visible_list (list): The list of visible items.
-        - file (str): The selected file.
+        Args:
+            btn (int): Button click count
+            slider_arg (int): Current slider position
+            session_id (str): Session identifier
+            visible_list (list): List of visible elements
+            file (str): Current file path
 
         Returns:
-        - dict: A dictionary containing a dummy output.
+            dict: Download data for file
 
-        Output Properties:
-        - dummy (any): A dummy output value.
+        Raises:
+            PreventUpdate: If button not clicked
         """
         if btn == 0:
             raise PreventUpdate
