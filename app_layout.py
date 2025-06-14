@@ -1,30 +1,55 @@
-"""
+"""SensorView Layout Module
 
-Copyright (C) 2019 - PRESENT  Zhengyu Peng
-E-mail: zpeng.me@gmail.com
+This module defines the complete UI layout and visual components of the
+SensorView application using Dash and Bootstrap components.
+
+Core Components:
+---------------
+1. Modal Dialogs:
+   - Configuration modal
+   - File selection interface
+   - Settings management
+
+2. Visualization Cards:
+   - 3D scatter plot view
+   - 2D scatter plot views
+   - Histogram, Violin plots
+   - Heatmap visualization
+   - Parallel categories view
+
+3. Control Elements:
+   - Playback controls
+   - Data filtering
+   - View customization
+   - Export options
+
+Layout Structure:
+---------------
+- Main container
+  |- Header section
+  |- Configuration modal
+  |- 3D view card
+  |- 2D view cards
+  |- Analysis view cards
+  |- Loading overlay
+  |- Footer
+
+Dependencies:
+------------
+- dash & dash-bootstrap-components
+- plotly
+- app_config settings
+
+Usage:
+------
+Import the layout generator:
+    from app_layout import get_app_layout
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
 Website: https://zpeng.me
-
-`                      `
--:.                  -#:
--//:.              -###:
--////:.          -#####:
--/:.://:.      -###++##:
-..   `://:-  -###+. :##:
-       `:/+####+.   :##:
-.::::::::/+###.     :##:
-.////-----+##:    `:###:
- `-//:.   :##:  `:###/.
-   `-//:. :##:`:###/.
-     `-//:+######/.
-       `-/+####/.
-         `+##+.
-          :##:
-          :##:
-          :##:
-          :##:
-          :##:
-           .+:
-
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
 """
 
 import uuid

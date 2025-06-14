@@ -1,30 +1,52 @@
 """
 
-Copyright (C) 2019 - PRESENT  Zhengyu Peng
-E-mail: zpeng.me@gmail.com
+SensorView Graph Data Generation Module
+
+Module handling the generation and processing of plot data for various visualization
+types in the SensorView application.
+
+Core Components:
+--------------
+1. Data Processing:
+   - Reference point generation
+   - Scatter plot data creation
+   - Hover text formatting
+   - Color mapping
+
+2. Plot Configuration:
+   - Marker styling
+   - Color scale management
+   - Legend configuration
+   - Hover template generation
+
+3. Optimization Features:
+   - Efficient data structure creation
+   - Vectorized operations
+   - Memory management
+   - Cached calculations
+
+Key Functions:
+------------
+- Reference scatter plot data generation
+- Main scatter plot data creation
+- Hover information formatting
+- Color mapping configuration
+
+Dependencies:
+------------
+- numpy for efficient array operations
+- pandas for data manipulation
+- Standard Python typing
+
+Usage:
+------
+from viz.graph_data import get_scatter3d_data, get_ref_scatter3d_data
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
 Website: https://zpeng.me
-
-`                      `
--:.                  -#:
--//:.              -###:
--////:.          -#####:
--/:.://:.      -###++##:
-..   `://:-  -###+. :##:
-       `:/+####+.   :##:
-.::::::::/+###.     :##:
-.////-----+##:    `:###:
- `-//:.   :##:  `:###/.
-   `-//:. :##:`:###/.
-     `-//:+######/.
-       `-/+####/.
-         `+##+.
-          :##:
-          :##:
-          :##:
-          :##:
-          :##:
-           .+:
-
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
 """
 
 from typing import List, Dict, Union, Any, Optional
