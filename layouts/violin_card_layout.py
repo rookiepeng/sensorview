@@ -1,3 +1,31 @@
+"""Violin Card Layout Module
+
+Defines the layout for the violin plot visualization card in the SensorView application,
+using Dash and Bootstrap components.
+
+Core Components:
+---------------
+- Enable switch
+- Axis selectors and options
+- Violin plot area with loading overlay
+- Export button
+
+Dependencies:
+------------
+- dash & dash-bootstrap-components
+
+Usage:
+------
+Import the violin card layout:
+    from layouts.violin_card_layout import violin_card
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
+Website: https://zpeng.me
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
+"""
+
 from dash import dcc
 from dash import html
 

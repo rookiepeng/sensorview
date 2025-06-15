@@ -1,3 +1,33 @@
+"""Left 2D Card Layout Module
+
+Defines the layout for the left 2D scatter plot card in the SensorView application,
+using Dash and Bootstrap components.
+
+Core Components:
+---------------
+- Enable switch
+- Axis selectors (x, y, color)
+- Colormap selector
+- Frame selection radio
+- 2D scatter plot area with loading overlay
+- Hide and export buttons
+
+Dependencies:
+------------
+- dash & dash-bootstrap-components
+
+Usage:
+------
+Import the left 2D card layout:
+    from layouts.left2d_card_layout import left2d_card
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
+Website: https://zpeng.me
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
+"""
+
 from dash import dcc
 from dash import html
 
