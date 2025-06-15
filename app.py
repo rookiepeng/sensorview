@@ -83,7 +83,7 @@ from view_callbacks.violin_view import get_violin_view_callbacks
 from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
 from app_config import SPECIAL_FOLDERS
 
-from app_layout import get_app_layout
+from layouts.app_layout import get_app_layout
 
 
 app = dash.Dash(
