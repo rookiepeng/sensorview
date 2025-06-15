@@ -33,7 +33,12 @@ import dash_bootstrap_components as dbc
 
 
 def get_path_input_group() -> dbc.InputGroup:
-    """Get the data path input group component."""
+    """
+    Create the input group for specifying the data path.
+
+    Returns:
+        dbc.InputGroup: Input group component for the data path.
+    """
     return dbc.InputGroup(
         [
             dbc.InputGroupText("Data Path"),
@@ -52,7 +57,12 @@ def get_path_input_group() -> dbc.InputGroup:
 
 
 def get_tooltips() -> List[dbc.Tooltip]:
-    """Get the tooltip components for the modal."""
+    """
+    Create tooltip components for modal input elements.
+
+    Returns:
+        List[dbc.Tooltip]: List of tooltip components for guidance.
+    """
     return [
         dbc.Tooltip(
             "Directory of the data files",
@@ -78,7 +88,12 @@ def get_tooltips() -> List[dbc.Tooltip]:
 
 
 def get_case_picker() -> dbc.InputGroup:
-    """Get the test case picker component."""
+    """
+    Create the input group for selecting a test case.
+
+    Returns:
+        dbc.InputGroup: Input group component for test case selection.
+    """
     return dbc.InputGroup(
         [
             dbc.InputGroupText("Test Case"),
@@ -88,7 +103,12 @@ def get_case_picker() -> dbc.InputGroup:
 
 
 def get_file_picker() -> dbc.InputGroup:
-    """Get the log file picker component."""
+    """
+    Create the input group for selecting a log file.
+
+    Returns:
+        dbc.InputGroup: Input group component for log file selection.
+    """
     return dbc.InputGroup(
         [
             dbc.InputGroupText("Log File"),
@@ -98,7 +118,12 @@ def get_file_picker() -> dbc.InputGroup:
 
 
 def get_modal_body() -> dbc.Row:
-    """Get the modal body component with all input groups."""
+    """
+    Assemble the modal body with all input groups and tooltips.
+
+    Returns:
+        dbc.Row: Modal body layout containing all input elements.
+    """
     return dbc.Row(
         [
             dbc.Col(get_path_input_group(), width=12),
