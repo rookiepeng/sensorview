@@ -1,3 +1,31 @@
+"""Histogram Card Layout Module
+
+Defines the layout for the histogram visualization card in the SensorView application,
+using Dash and Bootstrap components.
+
+Core Components:
+---------------
+- Histogram enable switch
+- Axis selectors (x, y, color)
+- Histogram plot area with loading overlay
+- Export button
+
+Dependencies:
+------------
+- dash & dash-bootstrap-components
+
+Usage:
+------
+Import the histogram card layout:
+    from layouts.hist_card_layout import hist_card
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
+Website: https://zpeng.me
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
+"""
+
 from dash import dcc
 from dash import html
 

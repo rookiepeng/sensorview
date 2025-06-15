@@ -1,34 +1,22 @@
-"""SensorView Layout Components
+"""SensorView Layout Components Package
 
-This package defines reusable layout components for the SensorView application.
+This package defines reusable layout components for the SensorView application,
+including modal dialogs, visualization cards, and layout structure elements,
+using Dash and Bootstrap components.
 
 Core Components:
 ---------------
-1. Data Selection:
-   - Modal dialogs
-   - File pickers
-   - Data path selection
-
-2. Visualization Cards:
-   - 3D scatter view
-   - 2D scatter views
-   - Analysis views
-   - Control panels
-
-3. Layout Structure:
-   - Header components
-   - Main content areas
-   - Footer elements
+- Data selection modals and file pickers
+- Visualization cards (3D, 2D, analysis, controls)
+- Layout structure (header, main content, footer)
 
 Dependencies:
 ------------
 - dash & dash-bootstrap-components
-- app_config settings
-- Standard Python libraries
 
 Usage:
 ------
-Import components:
+Import layout components as needed:
     from layouts import get_modal_layout, get_3d_view, get_2d_view
 
 Author: Zhengyu Peng

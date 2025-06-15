@@ -1,3 +1,32 @@
+"""3D View Card Layout Module
+
+Defines the layout for the 3D scatter plot visualization card in the SensorView application,
+using Dash and Bootstrap components.
+
+Core Components:
+---------------
+- Enable switch
+- Axis selectors (x, y, z, color)
+- Colormap selector
+- 3D scatter plot area with loading overlay
+- Export button
+
+Dependencies:
+------------
+- dash & dash-bootstrap-components
+
+Usage:
+------
+Import the 3D view card layout:
+    from layouts.view3d_card_layout import view3d_card
+
+Author: Zhengyu Peng
+Email: zpeng.me@gmail.com
+Website: https://zpeng.me
+License: GPL-3.0
+Copyright (C) 2019 - PRESENT
+"""
+
 from dash import dcc
 from dash import html
 
