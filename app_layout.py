@@ -67,25 +67,7 @@ from app_config import APP_TITLE, APP_VERSION, THEME
 from layouts.modal_layout import modal
 from layouts.view3d_card_layout import view3d_card
 
-colorscales = [
-    "Blackbody",
-    "Bluered",
-    "Blues",
-    "Earth",
-    "Electric",
-    "Greens",
-    "Greys",
-    "Hot",
-    "Jet",
-    "Picnic",
-    "Portland",
-    "Rainbow",
-    "RdBu",
-    "Reds",
-    "Viridis",
-    "YlGnBu",
-    "YlOrRd",
-]
+from layouts.layout_constants import colorscales
 
 
 left2d_card = dbc.Card(
