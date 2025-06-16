@@ -33,6 +33,21 @@ import dash_bootstrap_components as dbc
 
 
 def get_heatmap_card():
+    """
+    Creates a Dash Bootstrap Card layout for a heatmap visualization with controls.
+
+    The card includes:
+        - A header with a label and an enable switch.
+        - Dropdown selectors for x and y axes with tooltips.
+        - A collapsible section containing a loading spinner, a heatmap graph, 
+          an export button, and corresponding tooltips.
+
+    Args:
+        None
+
+    Returns:
+        dbc.Card: A Dash Bootstrap Card component containing the heatmap controls and visualization.
+    """
     return dbc.Card(
         [
             dbc.CardBody(
