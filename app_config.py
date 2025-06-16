@@ -56,7 +56,7 @@ from diskcache import Cache
 
 
 APP_TITLE = "SensorView"
-APP_VERSION = "v11.0"
+APP_VERSION = "v11.1"
 
 DATA_PATH = "./data"
 FRAME_CACHE_PATH = "./cache/frame"
