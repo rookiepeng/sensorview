@@ -37,6 +37,25 @@ from layouts.layout_constants import colorscales
 
 
 def get_right2d_card_layout():
+    """
+    Creates and returns a Dash Bootstrap Card layout for the 2D scatter plot controls and display on the right panel.
+
+    The layout includes:
+        - A switch to enable/disable the 2D view.
+        - Dropdown selectors for x, y, c (color), and colormap axes.
+        - Tooltips for each selector.
+        - Radio items to toggle between "Current frame" and "All frames".
+        - A loading spinner wrapping a collapsible section containing:
+            - The 2D scatter plot graph.
+            - Buttons to hide/show selected dots and to export the figure.
+            - Tooltips for the buttons.
+
+    Args:
+        None
+
+    Returns:
+        dbc.Card: A Dash Bootstrap Card component containing the 2D scatter plot controls and display layout.
+    """
     return dbc.Card(
         [
             dbc.CardBody(
