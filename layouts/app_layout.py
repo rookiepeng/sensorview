@@ -54,7 +54,6 @@ Copyright (C) 2019 - PRESENT
 
 import uuid
 
-import dash
 from dash import dcc
 from dash import html
 
@@ -62,9 +61,10 @@ import dash_bootstrap_components as dbc
 
 import plotly.io as pio
 
-from app_config import APP_TITLE, APP_VERSION, THEME
+from app_config import APP_VERSION
 
 from layouts.modal_layout import modal
+from layouts.header_layout import header
 from layouts.view3d_card_layout import view3d_card
 from layouts.left2d_card_layout import left2d_card
 from layouts.right2d_card_layout import right2d_card
@@ -112,126 +112,7 @@ def get_app_layout():
             dcc.Store(id="worker-status"),
             dcc.Download(id="download"),
             modal,
-            dbc.Row(
-                [
-                    dbc.Col(
-                        dbc.Row(
-                            [
-                                html.Div(
-                                    html.Img(
-                                        src=dash.get_asset_url("sensorview_logo.svg"),
-                                        id="sensorview-image",
-                                        style={
-                                            "height": "110px",
-                                            "width": "auto",
-                                        },
-                                    ),
-                                    className="text-center",
-                                ),
-                                html.H4(APP_TITLE, className="text-center"),
-                                html.P(
-                                    "Sensor Data Visualization",
-                                    className="text-center",
-                                ),
-                            ]
-                        ),
-                        width=3,
-                    ),
-                    dbc.Col(
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    dbc.Row(
-                                        [
-                                            dbc.InputGroup(
-                                                [
-                                                    dbc.InputGroupText("Data Path"),
-                                                    dbc.Input(
-                                                        id="data-path",
-                                                        type="text",
-                                                        readonly=True,
-                                                    ),
-                                                ],
-                                                size="sm",
-                                            ),
-                                            dbc.InputGroup(
-                                                [
-                                                    dbc.InputGroupText("Test Case"),
-                                                    dbc.Input(
-                                                        id="test-case",
-                                                        type="text",
-                                                        readonly=True,
-                                                    ),
-                                                ],
-                                                size="sm",
-                                                className="mt-1",
-                                            ),
-                                            dbc.InputGroup(
-                                                [
-                                                    dbc.InputGroupText("Log File"),
-                                                    dbc.Input(
-                                                        id="log-file",
-                                                        type="text",
-                                                        readonly=True,
-                                                    ),
-                                                ],
-                                                size="sm",
-                                                className="mt-1",
-                                            ),
-                                        ]
-                                    ),
-                                    width=11,
-                                ),
-                                dbc.Col(
-                                    dbc.Button(
-                                        html.I(className="bi bi-pencil-square"),
-                                        id="select-button",
-                                        n_clicks=0,
-                                        className="h-100 w-100",
-                                    ),
-                                    width=1,
-                                ),
-                                dbc.Col(
-                                    dbc.Button(
-                                        html.I(className="bi bi-link-45deg"),
-                                        id="button-add",
-                                        n_clicks=0,
-                                        color="secondary",
-                                        size="sm",
-                                        className="w-100",
-                                    ),
-                                    width=12,
-                                    className="my-2",
-                                ),
-                                dbc.Tooltip(
-                                    "Combine other log files",
-                                    target="button-add",
-                                    placement="top",
-                                ),
-                                dbc.Col(
-                                    dbc.Collapse(
-                                        html.Div(
-                                            dcc.Dropdown(id="file-add", multi=True),
-                                            className=THEME,
-                                        ),
-                                        id="collapse-add",
-                                        is_open=False,
-                                    ),
-                                    width=12,
-                                ),
-                                dbc.Tooltip(
-                                    "Select additional log files",
-                                    target="file-add",
-                                    placement="top",
-                                ),
-                            ],
-                        ),
-                        width=9,
-                    ),
-                ],
-                align="center",
-                className="my-3",
-            ),
+            header,
             view3d_card,
             dbc.CardGroup([left2d_card, right2d_card], className="mb-3"),
             dbc.CardGroup([hist_card, violin_card], className="mb-3"),
