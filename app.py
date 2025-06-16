@@ -80,20 +80,17 @@ from view_callbacks.histogram_view import get_histogram_view_callbacks
 from view_callbacks.parcats_view import get_parcats_view_callbacks
 from view_callbacks.violin_view import get_violin_view_callbacks
 
+from app_config import app
 from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
 from app_config import SPECIAL_FOLDERS
 
 from layouts.app_layout import get_app_layout
 
 
-app = dash.Dash(
-    __name__,
-    meta_tags=[{"name": "viewport", "content": "width=device-width,initial-scale=1"}],
-)
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = APP_TITLE
-app.layout = get_app_layout(app)
+app.layout = get_app_layout
 
 
 @app.server.route("/api/data/<session>/<start_index>", methods=["GET"])

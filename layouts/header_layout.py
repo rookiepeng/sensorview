@@ -37,10 +37,11 @@ from dash import html
 
 import dash_bootstrap_components as dbc
 
+from app_config import app
 from app_config import APP_TITLE, THEME
 
 
-def get_header_layout(app):
+def get_header_layout():
     """
     Creates the header layout for the SensorView dashboard using Dash Bootstrap Components.
 
@@ -51,7 +52,7 @@ def get_header_layout(app):
       - Dropdown for adding additional log files with tooltips.
 
     Args:
-        app: The Dash app instance, used to resolve asset URLs.
+        None
 
     Returns:
         A dbc.Row object representing the header layout.
