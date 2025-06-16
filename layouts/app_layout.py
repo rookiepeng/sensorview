@@ -71,7 +71,7 @@ from layouts.right2d_card_layout import right2d_card
 from layouts.hist_card_layout import hist_card
 from layouts.violin_card_layout import violin_card
 from layouts.parallel_card_layout import parallel_card
-from layouts.heatmap_card_layout import heatmap_card
+from layouts.heatmap_card_layout import get_heatmap_card
 
 
 def get_app_layout(app):
@@ -116,7 +116,7 @@ def get_app_layout(app):
             view3d_card,
             dbc.CardGroup([left2d_card, right2d_card], className="mb-3"),
             dbc.CardGroup([hist_card, violin_card], className="mb-3"),
-            dbc.CardGroup([parallel_card, heatmap_card], className="mb-3"),
+            dbc.CardGroup([parallel_card, get_heatmap_card()], className="mb-3"),
             html.Hr(),
             dbc.Row(
                 [
