@@ -63,18 +63,18 @@ import plotly.io as pio
 
 from app_config import APP_VERSION
 
-from layouts.modal_layout import modal
+from layouts.modal_layout import get_modal_layout
 from layouts.header_layout import get_header_layout
-from layouts.view3d_card_layout import view3d_card
-from layouts.left2d_card_layout import left2d_card
-from layouts.right2d_card_layout import right2d_card
+from layouts.view3d_card_layout import get_view3d_card_layout
+from layouts.left2d_card_layout import get_left2d_card_layout
+from layouts.right2d_card_layout import get_right2d_card_layout
 from layouts.hist_card_layout import hist_card
 from layouts.violin_card_layout import violin_card
 from layouts.parallel_card_layout import parallel_card
 from layouts.heatmap_card_layout import get_heatmap_card
 
 
-def get_app_layout(app):
+def get_app_layout():
     """
     Get the layout for the Dash app.
 
@@ -111,10 +111,12 @@ def get_app_layout(app):
             dcc.Store(id="local-buffer-index", data=-1),
             dcc.Store(id="worker-status"),
             dcc.Download(id="download"),
-            modal,
-            get_header_layout(app),
-            view3d_card,
-            dbc.CardGroup([left2d_card, right2d_card], className="mb-3"),
+            get_modal_layout(),
+            get_header_layout(),
+            get_view3d_card_layout(),
+            dbc.CardGroup(
+                [get_left2d_card_layout(), get_right2d_card_layout()], className="mb-3"
+            ),
             dbc.CardGroup([hist_card, violin_card], className="mb-3"),
             dbc.CardGroup([parallel_card, get_heatmap_card()], className="mb-3"),
             html.Hr(),
