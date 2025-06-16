@@ -64,7 +64,7 @@ import plotly.io as pio
 from app_config import APP_VERSION
 
 from layouts.modal_layout import modal
-from layouts.header_layout import header
+from layouts.header_layout import get_header_layout
 from layouts.view3d_card_layout import view3d_card
 from layouts.left2d_card_layout import left2d_card
 from layouts.right2d_card_layout import right2d_card
@@ -74,7 +74,7 @@ from layouts.parallel_card_layout import parallel_card
 from layouts.heatmap_card_layout import heatmap_card
 
 
-def get_app_layout():
+def get_app_layout(app):
     """
     Get the layout for the Dash app.
 
@@ -112,7 +112,7 @@ def get_app_layout():
             dcc.Store(id="worker-status"),
             dcc.Download(id="download"),
             modal,
-            header,
+            get_header_layout(app),
             view3d_card,
             dbc.CardGroup([left2d_card, right2d_card], className="mb-3"),
             dbc.CardGroup([hist_card, violin_card], className="mb-3"),

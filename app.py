@@ -93,7 +93,7 @@ app = dash.Dash(
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = APP_TITLE
-app.layout = get_app_layout
+app.layout = get_app_layout(app)
 
 
 @app.server.route("/api/data/<session>/<start_index>", methods=["GET"])
