@@ -83,7 +83,7 @@ def get_scatter3d_layout(
     def create_axis_config(
         range_vals: Tuple[float, float], title: Optional[str]
     ) -> Dict[str, Any]:
-        return {"range": list(range_vals), "title": title, "autorange": False}
+        return {"range": list(range_vals), "title": {"text": title}, "autorange": False}
 
     # Build scene configuration
     scene_config = {
