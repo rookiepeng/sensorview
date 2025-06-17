@@ -1,29 +1,211 @@
 # SensorView
 
-![screenshot](./assets/sensorview.png)
+<img src="./assets/sensorview_logo.svg" alt="logo" width="200"/>
+
+A Flask/Dash-based web application for sensor data visualization and analysis with advanced caching and interactive features.
+
+## Screenshots
 
 ## Features
 
-### 3D Visualization and Filtering
+### Core Visualization Modes
 
-![3d](./assets/3d.gif)
+#### 3D Visualization and Filtering
 
-### 2D Visualization and Filtering
+- Interactive 3D scatter plots for data visualization
+- Advanced filtering and color mapping options
+- Decay effects for temporal data analysis
 
-![2d](./assets/2d.gif)
+<img src="./assets/3d.gif" alt="3d" width="600"/>
 
-### Statistical Visualization
+#### 2D Visualization and Filtering
 
-![stat](./assets/stat.gif)
+- Dual-panel 2D scatter plots (left and right views)
+- Synchronized data filtering across multiple views
+- Interactive data exploration tools
 
-## Dependence
+<img src="./assets/2d.gif" alt="2d" width="600"/>
 
-### Python modules
+#### Statistical Visualization
 
-See `requirements.txt`
+- Heatmap visualization for correlation analysis
+- Histogram analysis with customizable binning
+- Parallel categories (parcats) for categorical data
+- Violin plots for distribution analysis
+
+<img src="./assets/stat.gif" alt="stat" width="600"/>
+
+### Advanced Features
+
+- **Efficient Data Processing**: WebWorker-based caching system for smooth performance
+- **Multiple File Support**: Load and compare multiple datasets simultaneously
+- **Session Management**: Isolated data sessions for concurrent users
+- **Interactive Controls**: Frame navigation, playback controls, and data updates
+- **Dark/Light Mode**: Theme switching for different viewing preferences
+- **Data Buffering**: IndexedDB-based client-side caching for large datasets
+- **Configuration Persistence**: JSON-based configuration management
+- **Test Case Management**: Organized data file and test case selection
+
+## Architecture
+
+### Server Components
+
+- **Flask/Dash Server**: Main application server with REST API endpoints
+- **WebWorker Integration**: Client-side data management and processing
+- **Cache Management**: Multi-level caching (server + client-side IndexedDB)
+- **Session Isolation**: Independent data sessions for multiple users
+
+### Client Components
+
+- **Interactive UI**: Modal dialogs for configuration and file selection
+- **Dynamic Updates**: Automatic data refresh and visualization updates
+- **IndexedDB Storage**: Browser-based data persistence and buffering
+
+## Dependencies
+
+### Python Modules
+
+See `requirements.txt` for complete list:
+
+- **Flask & Dash**: Web framework and interactive components
+- **plotly**: Advanced visualization library
+- **pandas & numpy**: Data manipulation and analysis
+- **flaskwebgui**: Desktop application wrapper
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone <repository-url>
+cd sensorview
+```
+
+2. Install Python dependencies:
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Usage
 
-Save data as the `.pkl` or `.csv` files under `./data` directory. See `./data/Example`.
+### Data Preparation
 
-Put the `info.json` in the same directory, and specify the `columns` of the data in `info.json`. Check `./data/Example/info.json`.
+1. **Data Format**: Save data as `.pkl` (pickle) or `.csv` files
+2. **Directory Structure**: Organize data under `./data` directory
+3. **Configuration**: Create `info.json` in each test case directory
+
+### Directory Structure Example
+
+```
+./data/
+├── Example/
+│   ├── info.json          # Required: Column specifications
+│   ├── sensor_data.csv    # Data files
+│   ├── test_results.pkl   # Alternative format
+│   └── subfolder/         # Nested data organization
+│       └── more_data.csv
+└── Another_Test/
+    ├── info.json
+    └── dataset.pkl
+```
+
+### Configuration File (info.json)
+
+Specify data columns and metadata:
+
+```json
+{
+  "columns": ["timestamp", "sensor1", "sensor2", "sensor3"],
+  "description": "Test case description",
+  "sampling_rate": 1000,
+  "units": {
+    "sensor1": "V",
+    "sensor2": "A",
+    "sensor3": "°C"
+  }
+}
+```
+
+### Running the Application
+
+#### Development Mode
+
+```bash
+python app.py
+```
+
+Set `DEBUG = True` in app.py for development with hot reload.
+
+#### Production Mode (Desktop App)
+
+```bash
+python app.py
+```
+
+The application will launch as a desktop application using FlaskWebGUI.
+
+#### Server Mode
+
+Uncomment the Waitress server lines in app.py for production deployment:
+
+```python
+from waitress import serve
+serve(app.server, listen="*:8000")
+```
+
+### Application Features
+
+#### Configuration Modal
+
+- **Data Path Selection**: Choose root directory for data files
+- **Test Case Selection**: Pick from available test cases
+- **File Selection**: Select specific data files to analyze
+- **Settings Persistence**: Automatic configuration saving
+
+#### Visualization Controls
+
+- **Frame Navigation**: Manual frame selection or automatic playback
+- **View Customization**: Toggle between different visualization modes
+- **Color Mapping**: Customizable color schemes and mappings
+- **Filtering**: Interactive data filtering and selection
+- **Multi-file Comparison**: Load multiple files for comparative analysis
+
+#### Data Management
+
+- **Automatic Caching**: Server and client-side data buffering
+- **Session Management**: Isolated data sessions
+- **Dynamic Updates**: Automatic data refresh and synchronization
+- **Performance Optimization**: IndexedDB storage for large datasets
+
+## Development
+
+### Callback Architecture
+
+The application uses a modular callback system with separate modules for different views:
+
+- `test_case_view`: Test case management
+- `control_view`: Playback and navigation controls
+- `scatter_3d_view`: 3D visualization callbacks
+- `scatter_2d_left_view` & `scatter_2d_right_view`: 2D visualization panels
+- `heatmap_view`: Statistical heatmap visualization
+- `histogram_view`: Distribution analysis
+- `parcats_view`: Parallel categories visualization
+- `violin_view`: Violin plot analysis
+
+### Client-side Functions
+
+The application includes several client-side callback functions for:
+
+- WebWorker initialization and management
+- IndexedDB data storage and retrieval
+- Dynamic figure updates and buffering
+- Performance optimization
+
+## License
+
+GPL-3.0 License - see LICENSE file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
