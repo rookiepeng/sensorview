@@ -59,34 +59,6 @@ def get_3d_view_config_layout():
         dbc.Col(
             dbc.InputGroup(
                 [
-                    dbc.Label(
-                        html.I(className="bi bi-brightness-high-fill"),
-                        className="me-2",
-                    ),
-                    dbc.Checklist(
-                        options=[
-                            {
-                                "label": html.I(className="bi bi-moon-stars-fill"),
-                                "value": True,
-                            }
-                        ],
-                        value=[True],
-                        id="darkmode-switch",
-                        switch=True,
-                    ),
-                    dbc.Tooltip(
-                        "Toggle between light and dark background",
-                        id="darkmode-switch-tooltip",
-                        target="darkmode-switch",
-                        placement="top",
-                    ),
-                ],
-            ),
-            width="auto",
-        ),
-        dbc.Col(
-            dbc.InputGroup(
-                [
                     dbc.InputGroupText("Color"),
                     dbc.Select(id="c-picker-3d"),
                     dbc.Tooltip(
@@ -117,6 +89,60 @@ def get_3d_view_config_layout():
                 size="sm",
             ),
             width=3,
+        ),
+        dbc.Col(
+            dbc.InputGroup(
+                [
+                    dbc.Label(
+                        html.I(className="bi bi-brightness-high-fill"),
+                        className="me-2",
+                    ),
+                    dbc.Checklist(
+                        options=[
+                            {
+                                "label": html.I(className="bi bi-moon-stars-fill"),
+                                "value": True,
+                            }
+                        ],
+                        value=[True],
+                        id="darkmode-switch",
+                        switch=True,
+                    ),
+                    dbc.Tooltip(
+                        "Toggle between light and dark background",
+                        id="darkmode-switch-tooltip",
+                        target="darkmode-switch",
+                        placement="top",
+                    ),
+                ],
+            ),
+            className="ms-auto",
+            width="auto",
+        ),
+        dbc.Col(
+            dbc.Button(
+                html.I(className="bi bi-three-dots-vertical"),
+                id="3d-config-more-button",
+                className="mb-3",
+                color="secondary",
+                n_clicks=0,
+                size="sm",
+                style={"float": "right"},
+            ),
+            width="auto",
+        ),
+        dbc.Tooltip(
+            "More configuration options",
+            target="3d-config-more-button",
+            placement="top",
+        ),
+        dbc.Col(
+            dbc.Collapse(
+                dbc.Card(dbc.CardBody("This content is hidden in the collapse")),
+                id="3d-config-collapse",
+                is_open=False,
+            ),
+            width=12,
         ),
     ]
 
