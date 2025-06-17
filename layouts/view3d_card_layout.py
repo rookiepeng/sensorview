@@ -253,7 +253,7 @@ def get_3d_view_config_layout():
                     )
                 ),
                 id="3d-config-collapse",
-                is_open=True,
+                is_open=False,
             ),
             width=12,
         ),
