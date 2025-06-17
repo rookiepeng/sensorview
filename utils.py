@@ -193,7 +193,7 @@ def prepare_figure_kwargs(
     fig_kwargs["y_ref"] = config.get("y_ref", None)
 
     # set graph's range the same for all the frames
-    if (fig_kwargs["x_ref"] is not None) and (fig_kwargs["y_ref"] is not None):
+    if (fig_kwargs["x_ref"] is not None) and (fig_kwargs["y_ref"] is not None) and fig_kwargs["x_ref"] != "None" and fig_kwargs["y_ref"] != "None":
         fig_kwargs["x_range"] = [
             min(
                 [

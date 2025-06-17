@@ -148,7 +148,8 @@ def get_3d_view_config_layout():
                                             dbc.InputGroupText("slider"),
                                             dbc.Select(id="slider-picker-3d"),
                                             dbc.Tooltip(
-                                                "Select slider",
+                                                "Select temporal column. This data needs to "
+                                                "be integer and will be used as the slider value.",
                                                 target="slider-picker-3d",
                                                 placement="top",
                                             ),
@@ -164,7 +165,7 @@ def get_3d_view_config_layout():
                                             dbc.InputGroupText("x"),
                                             dbc.Select(id="x-picker-3d"),
                                             dbc.Tooltip(
-                                                "Select x axis",
+                                                "Select data for x axis",
                                                 target="x-picker-3d",
                                                 placement="top",
                                             ),
@@ -179,7 +180,7 @@ def get_3d_view_config_layout():
                                             dbc.InputGroupText("y"),
                                             dbc.Select(id="y-picker-3d"),
                                             dbc.Tooltip(
-                                                "Select y axis",
+                                                "Select data for y axis",
                                                 target="y-picker-3d",
                                                 placement="top",
                                             ),
@@ -194,7 +195,7 @@ def get_3d_view_config_layout():
                                             dbc.InputGroupText("z"),
                                             dbc.Select(id="z-picker-3d"),
                                             dbc.Tooltip(
-                                                "Select z axis",
+                                                "Select data for z axis",
                                                 target="z-picker-3d",
                                                 placement="top",
                                             ),
@@ -209,7 +210,7 @@ def get_3d_view_config_layout():
                                             dbc.InputGroupText("x ref"),
                                             dbc.Select(id="x-ref-picker-3d"),
                                             dbc.Tooltip(
-                                                "Select x reference axis",
+                                                "Select data for reference in x axis",
                                                 target="x-ref-picker-3d",
                                                 placement="top",
                                             ),
@@ -224,7 +225,7 @@ def get_3d_view_config_layout():
                                             dbc.InputGroupText("y ref"),
                                             dbc.Select(id="y-ref-picker-3d"),
                                             dbc.Tooltip(
-                                                "Select y reference axis",
+                                                "Select data for reference in y axis",
                                                 target="y-ref-picker-3d",
                                                 placement="top",
                                             ),
@@ -239,7 +240,7 @@ def get_3d_view_config_layout():
                                             dbc.InputGroupText("z ref"),
                                             dbc.Select(id="z-ref-picker-3d"),
                                             dbc.Tooltip(
-                                                "Select z reference axis",
+                                                "Select data for reference in z axis",
                                                 target="z-ref-picker-3d",
                                                 placement="top",
                                             ),
