@@ -39,71 +39,111 @@ from app_config import THEME
 from layouts.layout_constants import colorscales
 
 
+def get_3d_view_config_layout():
+    """
+    Creates and returns the configuration row layout for 3D visualization controls.
+
+    The layout includes:
+        - Dark/light mode toggle switch with sun/moon icons
+        - Color axis selector dropdown
+        - Colormap selector dropdown with predefined colorscales
+
+    Args:
+        None
+
+    Returns:
+        List[dbc.Col]: A list of Dash Bootstrap Column components containing dark mode toggle,
+        color picker, and colormap selector with tooltips.
+    """
+    return [
+        dbc.Col(
+            dbc.InputGroup(
+                [
+                    dbc.Label(
+                        html.I(className="bi bi-brightness-high-fill"),
+                        className="me-2",
+                    ),
+                    dbc.Checklist(
+                        options=[
+                            {
+                                "label": html.I(className="bi bi-moon-stars-fill"),
+                                "value": True,
+                            }
+                        ],
+                        value=[True],
+                        id="darkmode-switch",
+                        switch=True,
+                    ),
+                    dbc.Tooltip(
+                        "Toggle between light and dark background",
+                        id="darkmode-switch-tooltip",
+                        target="darkmode-switch",
+                        placement="top",
+                    ),
+                ],
+            ),
+            width="auto",
+        ),
+        dbc.Col(
+            dbc.InputGroup(
+                [
+                    dbc.InputGroupText("Color"),
+                    dbc.Select(id="c-picker-3d"),
+                    dbc.Tooltip(
+                        "Select color axis",
+                        target="c-picker-3d",
+                        placement="top",
+                    ),
+                ],
+                size="sm",
+            ),
+            width=3,
+        ),
+        dbc.Col(
+            dbc.InputGroup(
+                [
+                    dbc.InputGroupText("Colormap"),
+                    dbc.Select(
+                        id="colormap-3d",
+                        options=[{"value": x, "label": x} for x in colorscales],
+                        value="Portland",
+                    ),
+                    dbc.Tooltip(
+                        "Select colormap",
+                        target="colormap-3d",
+                        placement="top",
+                    ),
+                ],
+                size="sm",
+            ),
+            width=3,
+        ),
+    ]
+
+
 def get_3d_play_view_layout():
+    """
+    Creates and returns the main 3D visualization layout with playback controls.
+
+    The layout includes:
+        - Configuration controls (dark mode, color, colormap)
+        - 3D scatter plot with custom toolbar configuration
+        - Server and local buffering progress bars
+        - Frame navigation slider
+        - Playback control buttons (previous, play, stop, next)
+        - Export dropdown with multiple export options
+        - Hidden div for additional functionality
+
+    Args:
+        None
+
+    Returns:
+        dbc.Row: A Dash Bootstrap Row component containing the complete 3D visualization
+        interface with interactive controls, progress indicators, and export options.
+    """
     return dbc.Row(
-        [
-            dbc.Col(
-                dbc.InputGroup(
-                    [
-                        dbc.Label(
-                            html.I(className="bi bi-brightness-high-fill"),
-                            className="me-2",
-                        ),
-                        dbc.Checklist(
-                            options=[
-                                {
-                                    "label": html.I(className="bi bi-moon-stars-fill"),
-                                    "value": True,
-                                }
-                            ],
-                            value=[True],
-                            id="darkmode-switch",
-                            switch=True,
-                        ),
-                        dbc.Tooltip(
-                            "Toggle between light and dark background",
-                            id="darkmode-switch-tooltip",
-                            target="darkmode-switch",
-                            placement="top",
-                        ),
-                    ],
-                ),
-                width="auto",
-            ),
-            dbc.Col(
-                dbc.InputGroup(
-                    [
-                        dbc.InputGroupText("Color"),
-                        dbc.Select(id="c-picker-3d"),
-                        dbc.Tooltip(
-                            "Select color axis",
-                            target="c-picker-3d",
-                            placement="top",
-                        ),
-                    ],
-                    size="sm",
-                ),
-                width=3,
-            ),
-            dbc.Col(
-                dbc.InputGroup(
-                    [
-                        dbc.InputGroupText("Colormap"),
-                        dbc.Select(
-                            id="colormap-3d",
-                            options=[{"value": x, "label": x} for x in colorscales],
-                            value="Portland",
-                        ),
-                        dbc.Tooltip(
-                            "Select colormap",
-                            target="colormap-3d",
-                            placement="top",
-                        ),
-                    ],
-                    size="sm",
-                ),
-                width=3,
-            ),
+        get_3d_view_config_layout()
+        + [
             dbc.Col(
                 dcc.Graph(
                     id="scatter3d",
@@ -300,6 +340,23 @@ def get_3d_play_view_layout():
 
 
 def get_filter_sidebar():
+    """
+    Creates and returns the filter sidebar layout for 3D visualization options.
+
+    The layout includes:
+        - Overlay all frames toggle switch
+        - Click to change visibility toggle switch
+        - Decay slider for temporal effects
+        - Filter card with visibility options dropdown
+        - Dynamic dropdown and slider containers for filtering
+
+    Args:
+        None
+
+    Returns:
+        dbc.Row: A Dash Bootstrap Row component containing overlay controls, decay slider,
+        and filtering options with tooltips and expandable filter containers.
+    """
     return dbc.Row(
         [
             dbc.Checklist(
