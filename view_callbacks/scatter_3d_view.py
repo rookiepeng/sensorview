@@ -434,9 +434,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         config["x_3d"] = x_picker_3d
         config["y_3d"] = y_picker_3d
         config["z_3d"] = z_picker_3d
-        config["x_ref"] = x_ref_picker_3d
-        config["y_ref"] = y_ref_picker_3d
-        config["z_ref"] = z_ref_picker_3d
+        config["x_ref"] = None if x_ref_picker_3d == "None" else x_ref_picker_3d
+        config["y_ref"] = None if y_ref_picker_3d == "None" else y_ref_picker_3d
+        config["z_ref"] = None if z_ref_picker_3d == "None" else z_ref_picker_3d
         cache_set(config, session_id, CACHE_KEYS["config"])
         # save the config to os.path.join(data_path, case, "info.json"
         with open(os.path.join(data_path, case, "info.json"), "w") as f:
