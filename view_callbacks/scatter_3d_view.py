@@ -336,6 +336,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
             "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "unused_file_loaded": Input("file-loaded-trigger", "data"),
+            "slider_picker_3d": Input("slider-picker-3d", "value"),
+            "x_picker_3d": Input("x-picker-3d", "value"),
+            "y_picker_3d": Input("y-picker-3d", "value"),
+            "z_picker_3d": Input("z-picker-3d", "value"),
+            "x_ref_picker_3d": Input("x-ref-picker-3d", "value"),
+            "y_ref_picker_3d": Input("y-ref-picker-3d", "value"),
+            "z_ref_picker_3d": Input("z-ref-picker-3d", "value"),
         },
         state={
             "ispaused": State("interval-component", "disabled"),
@@ -348,6 +355,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
             "trigger_val": State("background-trigger", "data"),
+            "data_path": State("data-path", "value"),
+            "case": State("test-case", "value"),
         },
         prevent_initial_call=True,
     )
@@ -363,6 +372,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         unused_left_hide_trigger: int,
         unused_right_hide_trigger: int,
         unused_file_loaded: int,
+        slider_picker_3d: str,
+        x_picker_3d: str,
+        y_picker_3d: str,
+        z_picker_3d: str,
+        x_ref_picker_3d: str,
+        y_ref_picker_3d: str,
+        z_ref_picker_3d: str,
         decay: int,
         colormap: str,
         darkmode: list,
@@ -370,6 +386,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         file: str,
         file_list: list,
         trigger_val: int,
+        data_path: str,
+        case: str,
     ) -> dict:
         """
         Regenerate the 3D scatter plot figure.
@@ -412,6 +430,17 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         # get config from Redis
         config = cache_get(session_id, CACHE_KEYS["config"])
+        config["slider"] = slider_picker_3d
+        config["x_3d"] = x_picker_3d
+        config["y_3d"] = y_picker_3d
+        config["z_3d"] = z_picker_3d
+        config["x_ref"] = x_ref_picker_3d
+        config["y_ref"] = y_ref_picker_3d
+        config["z_ref"] = z_ref_picker_3d
+        cache_set(config, session_id, CACHE_KEYS["config"])
+        # save the config to os.path.join(data_path, case, "info.json"
+        with open(os.path.join(data_path, case, "info.json"), "w") as f:
+            json.dump(config, f, indent=4)
 
         if overlay_enable:
             fig = process_overlay_frame(
