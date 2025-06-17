@@ -199,7 +199,12 @@ def process_single_frame(
             else:
                 break
 
-    if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None and fig_kwargs["x_ref"] != "None" and fig_kwargs["y_ref"] != "None":
+    if (
+        fig_kwargs["x_ref"] is not None
+        and fig_kwargs["y_ref"] is not None
+        and fig_kwargs["x_ref"] != "None"
+        and fig_kwargs["y_ref"] != "None"
+    ):
         fig_ref = [
             get_ref_scatter3d_data(
                 data_frame=filterd_frame,
