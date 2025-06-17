@@ -55,6 +55,8 @@ from dash.exceptions import PreventUpdate
 import plotly.io as pio
 import plotly.graph_objs as go
 
+import numpy as np
+
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES
 
@@ -434,12 +436,14 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         config["x_3d"] = x_picker_3d
         config["y_3d"] = y_picker_3d
         config["z_3d"] = z_picker_3d
-        config["x_ref"] = None if x_ref_picker_3d == "None" else x_ref_picker_3d
-        config["y_ref"] = None if y_ref_picker_3d == "None" else y_ref_picker_3d
-        config["z_ref"] = None if z_ref_picker_3d == "None" else z_ref_picker_3d
+        config["x_ref"] = x_ref_picker_3d
+        config["y_ref"] = y_ref_picker_3d
+        config["z_ref"] = z_ref_picker_3d
         cache_set(config, session_id, CACHE_KEYS["config"])
         # save the config to os.path.join(data_path, case, "info.json"
-        with open(os.path.join(data_path, case, "info.json"), "w") as f:
+        with open(
+            os.path.join(data_path, case, "info.json"), "w", encoding="utf-8"
+        ) as f:
             json.dump(config, f, indent=4)
 
         if overlay_enable:
@@ -553,9 +557,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         num_keys = filter_kwargs["num_keys"]
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-        frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        # frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
 
         dataset = load_data(file_list)
+        dataset[config["slider"]] = dataset[config["slider"]].astype(int)
+        frame_list = np.sort(dataset[config["slider"]].unique())
+        cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
+
         frame_group = dataset.groupby(config["slider"])
 
         # prepare figure key word arguments
@@ -602,7 +610,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             fig = result["scatter_data"]
             hover_strings = result["hover_strings"]
 
-            if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
+            if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None and fig_kwargs["x_ref"] != "None" and fig_kwargs["y_ref"] != "None":
                 ref_fig = [
                     get_ref_scatter3d_data(
                         data_frame=filterd_frame,

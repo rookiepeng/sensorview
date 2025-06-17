@@ -94,7 +94,7 @@ def get_scatter3d(
         data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
     )
 
-    if x_ref is None or y_ref is None:
+    if x_ref is None or y_ref is None or x_ref == "None" or y_ref == "None":
         data = fig_dict["scatter_data"]
     else:
         data = fig_dict["scatter_data"] + [
@@ -396,7 +396,7 @@ def get_animation_data(
             fig[0]["marker"]["colorscale"] = colormap
 
         # Add reference data if needed
-        if x_ref is not None and y_ref is not None:
+        if x_ref is not None and y_ref is not None or x_ref == "None" or y_ref == "None":
             ref_data = [
                 get_ref_scatter3d_data(
                     data_frame=filtered_df,
