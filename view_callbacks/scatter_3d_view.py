@@ -86,6 +86,36 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         output={
+            "is_open": Output("3d-config-collapse", "is_open"),
+        },
+        inputs={
+            "n_clicks": Input("3d-config-more-button", "n_clicks"),
+        },
+        state={
+            "is_open": State("3d-config-collapse", "is_open"),
+        },
+    )
+    def toggle_3d_config_collapse(n_clicks: int, is_open: bool) -> dict:
+        """
+        Toggle the visibility of the 3D configuration collapse panel.
+
+        Args:
+            n_clicks (int): Number of times the more button has been clicked
+            is_open (bool): Current state of the collapse panel
+
+        Returns:
+            dict: Updated collapse panel state
+
+        Raises:
+            PreventUpdate: If button has not been clicked
+        """
+        if n_clicks == 0:
+            raise PreventUpdate
+
+        return {"is_open": not is_open}
+
+    @app.callback(
+        output={
             "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
         },
         inputs={

@@ -112,6 +112,19 @@ DROPDOWN_OPTIONS_ALL = [
     Output("y-picker-violin", "options"),
 ]
 
+DROPDOWN_OPTIONS_3D_XYZ = [
+    Output("slider-picker-3d", "options"),
+    Output("x-picker-3d", "options"),
+    Output("y-picker-3d", "options"),
+    Output("z-picker-3d", "options"),
+]
+
+DROPDOWN_OPTIONS_3D_XYZ_REF = [
+    Output("x-ref-picker-3d", "options"),
+    Output("y-ref-picker-3d", "options"),
+    Output("z-ref-picker-3d", "options"),
+]
+
 # values for dropdown components with all the keys
 DROPDOWN_VALUES_ALL = [
     Output("c-picker-3d", "value"),
@@ -127,6 +140,19 @@ DROPDOWN_VALUES_ALL = [
     Output("y-picker-violin", "value"),
 ]
 
+DROPDOWN_VALUES_3D_XYZ = [
+    Output("slider-picker-3d", "value"),
+    Output("x-picker-3d", "value"),
+    Output("y-picker-3d", "value"),
+    Output("z-picker-3d", "value"),
+]
+
+DROPDOWN_VALUES_3D_XYZ_REF = [
+    Output("x-ref-picker-3d", "value"),
+    Output("y-ref-picker-3d", "value"),
+    Output("z-ref-picker-3d", "value"),
+]
+
 DROPDOWN_VALUES_ALL_STATE = [
     State("c-picker-3d", "value"),
     State("x-picker-2d-left", "value"),
@@ -139,6 +165,19 @@ DROPDOWN_VALUES_ALL_STATE = [
     State("x-picker-heatmap", "value"),
     State("y-picker-heatmap", "value"),
     State("y-picker-violin", "value"),
+]
+
+DROPDOWN_STATE_3D_XYZ = [
+    State("slider-picker-3d", "value"),
+    State("x-picker-3d", "value"),
+    State("y-picker-3d", "value"),
+    State("z-picker-3d", "value"),
+]
+
+DROPDOWN_STATE_3D_XYZ_REF = [
+    State("x-ref-picker-3d", "value"),
+    State("y-ref-picker-3d", "value"),
+    State("z-ref-picker-3d", "value"),
 ]
 
 # options for dropdown components with categorical keys
