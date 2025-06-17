@@ -138,9 +138,122 @@ def get_3d_view_config_layout():
         ),
         dbc.Col(
             dbc.Collapse(
-                dbc.Card(dbc.CardBody("This content is hidden in the collapse")),
+                dbc.Card(
+                    dbc.CardBody(
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("slider"),
+                                            dbc.Select(id="slider-picker-3d"),
+                                            dbc.Tooltip(
+                                                "Select slider",
+                                                target="slider-picker-3d",
+                                                placement="top",
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width=3,
+                                    className="mb-3",
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("x"),
+                                            dbc.Select(id="x-picker-3d"),
+                                            dbc.Tooltip(
+                                                "Select x axis",
+                                                target="x-picker-3d",
+                                                placement="top",
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width=3,
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("y"),
+                                            dbc.Select(id="y-picker-3d"),
+                                            dbc.Tooltip(
+                                                "Select y axis",
+                                                target="y-picker-3d",
+                                                placement="top",
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width=3,
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("z"),
+                                            dbc.Select(id="z-picker-3d"),
+                                            dbc.Tooltip(
+                                                "Select z axis",
+                                                target="z-picker-3d",
+                                                placement="top",
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width=3,
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("x ref"),
+                                            dbc.Select(id="x-ref-picker-3d"),
+                                            dbc.Tooltip(
+                                                "Select x reference axis",
+                                                target="x-ref-picker-3d",
+                                                placement="top",
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width={"size": 3, "offset": 3},
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("y ref"),
+                                            dbc.Select(id="y-ref-picker-3d"),
+                                            dbc.Tooltip(
+                                                "Select y reference axis",
+                                                target="y-ref-picker-3d",
+                                                placement="top",
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width=3,
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("z ref"),
+                                            dbc.Select(id="z-ref-picker-3d"),
+                                            dbc.Tooltip(
+                                                "Select z reference axis",
+                                                target="z-ref-picker-3d",
+                                                placement="top",
+                                            ),
+                                        ],
+                                        size="sm",
+                                    ),
+                                    width=3,
+                                ),
+                            ]
+                        )
+                    )
+                ),
                 id="3d-config-collapse",
-                is_open=False,
+                is_open=True,
             ),
             width=12,
         ),
