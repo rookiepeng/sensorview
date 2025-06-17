@@ -112,20 +112,70 @@ pip install -r requirements.txt
 
 ### Configuration File (info.json)
 
-Specify data columns and metadata:
+Specify data column mappings, visualization settings, and metadata:
 
 ```json
 {
-  "columns": ["timestamp", "sensor1", "sensor2", "sensor3"],
-  "description": "Test case description",
-  "sampling_rate": 1000,
-  "units": {
-    "sensor1": "V",
-    "sensor2": "A",
-    "sensor3": "°C"
+  "slider": "Frame",
+  "x_3d": "Latitude",
+  "y_3d": "Longitude",
+  "z_3d": "Height",
+  "x_ref": "Host_Latitude",
+  "y_ref": "Host_Longitude",
+  "z_ref": "Height",
+  "keys": {
+    "Height": {
+      "description": "Height (m)",
+      "decimal": 2,
+      "type": "numerical"
+    },
+    "Longitude": {
+      "description": "Longitude (m)",
+      "decimal": 2,
+      "type": "numerical"
+    },
+    "Latitude": {
+      "description": "Latitude (m)",
+      "decimal": 2,
+      "type": "numerical"
+    },
+    "Time": {
+      "description": "Time (s)",
+      "decimal": 2,
+      "type": "numerical"
+    },
+    "Sensor": {
+      "description": "Sensor",
+      "type": "categorical"
+    },
+    "Frame": {
+      "description": "Frame",
+      "decimal": 0,
+      "type": "numerical"
+    },
+    "Host_Latitude": {
+      "description": "Ref Latitude (m)",
+      "decimal": 2,
+      "type": "numerical"
+    },
+    "Host_Longitude": {
+      "description": "Ref Longitude (m)",
+      "decimal": 2,
+      "type": "numerical"
+    }
   }
 }
 ```
+
+**Configuration Parameters:**
+
+- **slider**: Column to use for frame navigation/time slider
+- **x_3d, y_3d, z_3d**: Default columns for 3D visualization axes
+- **x_ref, y_ref, z_ref**: Reference point columns for 3D visualization
+- **keys**: Column definitions with metadata:
+  - **description**: Human-readable column description
+  - **decimal**: Number of decimal places for numerical display
+  - **type**: Data type ("numerical" or "categorical")
 
 ### Running the Application
 
