@@ -167,19 +167,6 @@ DROPDOWN_VALUES_ALL_STATE = [
     State("y-picker-violin", "value"),
 ]
 
-DROPDOWN_STATE_3D_XYZ = [
-    State("slider-picker-3d", "value"),
-    State("x-picker-3d", "value"),
-    State("y-picker-3d", "value"),
-    State("z-picker-3d", "value"),
-]
-
-DROPDOWN_STATE_3D_XYZ_REF = [
-    State("x-ref-picker-3d", "value"),
-    State("y-ref-picker-3d", "value"),
-    State("z-ref-picker-3d", "value"),
-]
-
 # options for dropdown components with categorical keys
 DROPDOWN_OPTIONS_CAT = [
     Output("x-picker-violin", "options"),
