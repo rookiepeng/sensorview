@@ -7,7 +7,7 @@ Core Features:
 -------------
 1. Test Case Management:
    - Test case loading and validation
-   - Configuration persistence 
+   - Configuration persistence
    - Path management
    - File selection
 
@@ -60,6 +60,8 @@ from app_config import (
 )
 from app_config import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
 from app_config import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
+from app_config import DROPDOWN_OPTIONS_3D_XYZ, DROPDOWN_OPTIONS_3D_XYZ_REF
+from app_config import DROPDOWN_VALUES_3D_XYZ, DROPDOWN_VALUES_3D_XYZ_REF
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES, THEME
 
@@ -96,6 +98,10 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "dp_vals_cat_color": DROPDOWN_VALUES_CAT_COLOR,
             "dp_opts_cat": DROPDOWN_OPTIONS_CAT,
             "dp_vals_cat": DROPDOWN_VALUES_CAT,
+            "dp_opts_num": DROPDOWN_OPTIONS_3D_XYZ,
+            "dp_vals_num": DROPDOWN_VALUES_3D_XYZ,
+            "dp_opts_num_with_none": DROPDOWN_OPTIONS_3D_XYZ_REF,
+            "dp_vals_num_with_none": DROPDOWN_VALUES_3D_XYZ_REF,
         },
         inputs={
             "file": Input("current-file", "data"),
@@ -233,6 +239,46 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             ]
         ] * len(DROPDOWN_OPTIONS_CAT)
 
+        options_num = [
+            [
+                {"label": config["keys"][item].get("description", item), "value": item}
+                for _, item in enumerate(num_keys)
+            ]
+        ] * len(DROPDOWN_OPTIONS_3D_XYZ)
+
+        options_num_with_none = [
+            [{"label": "None", "value": "None"}]
+            + [
+                {"label": config["keys"][item].get("description", item), "value": item}
+                for _, item in enumerate(num_keys)
+            ]
+        ] * len(DROPDOWN_OPTIONS_3D_XYZ_REF)
+
+        if len(num_keys) == 0:
+            xyz_all = [None] * len(DROPDOWN_VALUES_3D_XYZ)
+        else:
+            xyz_all = [
+                num_keys[x % len(num_keys)]
+                for x in range(0, len(DROPDOWN_VALUES_3D_XYZ))
+            ]
+
+        xyz_all[0] = config.get("slider", xyz_all[0])
+        xyz_all[1] = config.get("x_3d", xyz_all[1])
+        xyz_all[2] = config.get("y_3d", xyz_all[2])
+        xyz_all[3] = config.get("z_3d", xyz_all[3])
+
+        if len(num_keys) == 0:
+            xyz_ref_all = [None] * len(DROPDOWN_VALUES_3D_XYZ_REF)
+        else:
+            xyz_ref_all = [
+                num_keys[x % len(num_keys)]
+                for x in range(0, len(DROPDOWN_VALUES_3D_XYZ_REF))
+            ]
+
+        xyz_ref_all[0] = config.get("x_ref", "None")
+        xyz_ref_all[1] = config.get("y_ref", "None")
+        xyz_ref_all[2] = config.get("z_ref", "None")
+
         # values for `DROPDOWN_VALUES_CAT`
         if len(cat_keys) == 0:
             values_cat = [None] * len(DROPDOWN_VALUES_CAT)
@@ -356,6 +402,10 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "dp_vals_cat_color": values_cat_color,
             "dp_opts_cat": options_cat,
             "dp_vals_cat": values_cat,
+            "dp_opts_num": options_num,
+            "dp_vals_num": xyz_all,
+            "dp_opts_num_with_none": options_num_with_none,
+            "dp_vals_num_with_none": xyz_ref_all,
         }
 
     @app.callback(
