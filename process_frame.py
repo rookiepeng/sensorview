@@ -210,7 +210,7 @@ def process_single_frame(
                 data_frame=filterd_frame,
                 x_key=fig_kwargs["x_ref"],
                 y_key=fig_kwargs["y_ref"],
-                z_key=None,
+                z_key=fig_kwargs["z_ref"],
                 name=fig_kwargs.get("ref_name", None),
             )
         ]
