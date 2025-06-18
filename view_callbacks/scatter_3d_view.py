@@ -697,7 +697,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         background=True,
-        output={"dummy": Output("hidden-scatter3d", "children")},
+        output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-scatter3d", "n_clicks")},
         state={
             "case": State("test-case", "value"),
@@ -711,6 +711,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "darkmode": State("darkmode-switch", "value"),
         },
         manager=background_callback_manager,
+        prevent_initial_call=True,
     )
     def export_3d_scatter_animation(
         btn: int,
@@ -821,17 +822,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        fig.write_html(
-            "data/"
-            + case
-            + "/images/"
-            + timestamp
-            + "_"
-            + file["name"][0:-4]
-            + "_3dview.html"
-        )
+        file_name = "temp/" + timestamp + "_" + file["name"][0:-4] + "_3dview.html"
 
-        return {"dummy": 0}
+        fig.write_html(file_name)
+
+        return {"download": dcc.send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
