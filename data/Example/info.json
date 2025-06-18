@@ -5,6 +5,7 @@
     "z_3d": "Height",
     "x_ref": "Host_Latitude",
     "y_ref": "Host_Longitude",
+    "z_ref": "None",
     "keys": {
         "Height": {
             "description": "Height (m)",
