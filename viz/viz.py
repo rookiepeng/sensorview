@@ -399,12 +399,7 @@ def get_animation_data(
             fig[0]["marker"]["colorscale"] = colormap
 
         # Add reference data if needed
-        if (
-            x_ref is not None
-            and y_ref is not None
-            or x_ref == "None"
-            or y_ref == "None"
-        ):
+        if x_ref is not None and y_ref is not None:
             ref_data = [
                 get_ref_scatter3d_data(
                     data_frame=filtered_df,
@@ -491,7 +486,7 @@ def get_animation_data(
                     "font": {"size": 10, "color": "#455A64"},
                     "buttons": [
                         {
-                            "args": [None, frame_args(5)],
+                            "args": [None, frame_args(50)],
                             "label": "Play",
                             "method": "animate",
                         },
