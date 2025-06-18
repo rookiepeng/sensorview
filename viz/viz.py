@@ -97,6 +97,8 @@ def get_scatter3d(
     if x_ref is None or y_ref is None or x_ref == "None" or y_ref == "None":
         data = fig_dict["scatter_data"]
     else:
+        if z_ref == "None":
+            z_ref = None
         data = fig_dict["scatter_data"] + [
             get_ref_scatter3d_data(
                 data_frame=data_frame,
@@ -316,6 +318,7 @@ def get_animation_data(
     z_key: str,
     x_ref: Optional[str] = None,
     y_ref: Optional[str] = None,
+    z_ref: Optional[str] = None,
     frame_key: str = "Frame",
     img_list: Optional[List[str]] = None,
     colormap: Optional[str] = None,
@@ -407,7 +410,7 @@ def get_animation_data(
                     data_frame=filtered_df,
                     x_key=x_ref,
                     y_key=y_ref,
-                    z_key=None,
+                    z_key=z_ref,
                     name="Host Vehicle",
                 )
             ]

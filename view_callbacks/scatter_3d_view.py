@@ -610,13 +610,18 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             fig = result["scatter_data"]
             hover_strings = result["hover_strings"]
 
-            if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None and fig_kwargs["x_ref"] != "None" and fig_kwargs["y_ref"] != "None":
+            if (
+                fig_kwargs["x_ref"] is not None
+                and fig_kwargs["y_ref"] is not None
+                and fig_kwargs["x_ref"] != "None"
+                and fig_kwargs["y_ref"] != "None"
+            ):
                 ref_fig = [
                     get_ref_scatter3d_data(
                         data_frame=filterd_frame,
                         x_key=fig_kwargs["x_ref"],
                         y_key=fig_kwargs["y_ref"],
-                        z_key=None,
+                        z_key=fig_kwargs["z_ref"],
                         name=fig_kwargs.get("ref_name", None),
                     )
                 ]

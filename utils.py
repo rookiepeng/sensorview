@@ -191,6 +191,9 @@ def prepare_figure_kwargs(
     )
     fig_kwargs["x_ref"] = config.get("x_ref", None)
     fig_kwargs["y_ref"] = config.get("y_ref", None)
+    fig_kwargs["z_ref"] = config.get("z_ref", None)
+    if fig_kwargs["z_ref"] == "None":
+        fig_kwargs["z_ref"] = None
 
     # set graph's range the same for all the frames
     if (
