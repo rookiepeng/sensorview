@@ -408,39 +408,44 @@ def get_3d_play_view_layout():
                         width=4,
                     ),
                     dbc.Col(
-                        dbc.Spinner(dbc.DropdownMenu(
-                            [
-                                dbc.DropdownMenuItem(
-                                    "Export all frames as an HTML video",
-                                    id="export-scatter3d",
-                                    n_clicks=0,
-                                ),
-                                dbc.DropdownMenuItem(
-                                    "Export current plot (html)",
-                                    id="export-scatter3d-html",
-                                    n_clicks=0,
-                                ),
-                                dbc.DropdownMenuItem(
-                                    "Export current plot (png)",
-                                    id="export-scatter3d-png",
-                                    n_clicks=0,
-                                ),
-                                dbc.DropdownMenuItem(
-                                    "Filtered Data (Current Frame)",
-                                    id="export-data-current",
-                                    n_clicks=0,
-                                ),
-                                dbc.DropdownMenuItem(
-                                    "Filtered Data (All Frames)",
-                                    id="export-data-all",
-                                    n_clicks=0,
-                                ),
-                            ],
-                            label=html.I(className="bi bi-box-arrow-up"),
-                            id="export-dropdown",
-                            # right=True,
-                            style={"float": "right"},
-                        ), id="export-spinner", size="sm",display="hide"),
+                        dbc.Spinner(
+                            dbc.DropdownMenu(
+                                [
+                                    dbc.DropdownMenuItem(
+                                        "Export all frames as an HTML video",
+                                        id="export-scatter3d",
+                                        n_clicks=0,
+                                    ),
+                                    dbc.DropdownMenuItem(
+                                        "Export current plot (html)",
+                                        id="export-scatter3d-html",
+                                        n_clicks=0,
+                                    ),
+                                    dbc.DropdownMenuItem(
+                                        "Export current plot (png)",
+                                        id="export-scatter3d-png",
+                                        n_clicks=0,
+                                    ),
+                                    dbc.DropdownMenuItem(
+                                        "Filtered Data (Current Frame)",
+                                        id="export-data-current",
+                                        n_clicks=0,
+                                    ),
+                                    dbc.DropdownMenuItem(
+                                        "Filtered Data (All Frames)",
+                                        id="export-data-all",
+                                        n_clicks=0,
+                                    ),
+                                ],
+                                label=html.I(className="bi bi-box-arrow-up"),
+                                id="export-dropdown",
+                                # right=True,
+                                style={"float": "right"},
+                            ),
+                            id="export-spinner",
+                            size="sm",
+                            display="hide",
+                        ),
                         width=4,
                     ),
                     dbc.Tooltip(
