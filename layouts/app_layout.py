@@ -155,9 +155,7 @@ def get_app_layout():
                 },
             ),
             dcc.Markdown(
-                APP_VERSION
-                + " | Designed and developed by **Zhengyu Peng** \
-                | Powered by [Dash](https://plotly.com/dash/)"
+                APP_VERSION + " | Powered by [Dash](https://plotly.com/dash/)"
             ),
         ],
         fluid=True,
