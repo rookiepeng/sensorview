@@ -476,10 +476,6 @@ def get_3d_play_view_layout():
                         target="export-dropdown",
                         placement="top",
                     ),
-                    html.Div(
-                        id="hidden-scatter3d",
-                        style={"display": "none"},
-                    ),
                 ],
             ),
         ]
