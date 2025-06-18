@@ -710,10 +710,15 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "decay": State("decay-slider", "value"),
             "darkmode": State("darkmode-switch", "value"),
         },
+        cancel=[Input("background-trigger", "data")],
+        progress=[
+            Output("export-spinner", "display"),
+        ],
         manager=background_callback_manager,
         prevent_initial_call=True,
     )
     def export_3d_scatter_animation(
+        set_progress: callable,
         btn: int,
         case: str,
         session_id: str,
@@ -748,6 +753,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         """
         if btn == 0:
             raise PreventUpdate
+    
+        set_progress(["show"])
 
         if not os.path.exists("data/" + case + "/images"):
             os.makedirs("data/" + case + "/images")
@@ -825,6 +832,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         file_name = "temp/" + timestamp + "_" + file["name"][0:-4] + "_3dview.html"
 
         fig.write_html(file_name)
+
+        set_progress(["hide"])
 
         return {"download": dcc.send_file(file_name)}
 

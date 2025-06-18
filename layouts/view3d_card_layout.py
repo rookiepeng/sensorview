@@ -408,7 +408,7 @@ def get_3d_play_view_layout():
                         width=4,
                     ),
                     dbc.Col(
-                        dbc.DropdownMenu(
+                        dbc.Spinner(dbc.DropdownMenu(
                             [
                                 dbc.DropdownMenuItem(
                                     "Export all frames as an HTML video",
@@ -440,7 +440,7 @@ def get_3d_play_view_layout():
                             id="export-dropdown",
                             # right=True,
                             style={"float": "right"},
-                        ),
+                        ), id="export-spinner", size="sm",display="hide"),
                         width=4,
                     ),
                     dbc.Tooltip(
