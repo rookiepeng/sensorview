@@ -190,18 +190,17 @@ def prepare_figure_kwargs(
         "description", fig_kwargs["c_key"]
     )
     fig_kwargs["x_ref"] = config.get("x_ref", None)
+    if fig_kwargs["x_ref"] == "None":
+        fig_kwargs["x_ref"] = None
     fig_kwargs["y_ref"] = config.get("y_ref", None)
+    if fig_kwargs["y_ref"] == "None":
+        fig_kwargs["y_ref"] = None
     fig_kwargs["z_ref"] = config.get("z_ref", None)
     if fig_kwargs["z_ref"] == "None":
         fig_kwargs["z_ref"] = None
 
     # set graph's range the same for all the frames
-    if (
-        (fig_kwargs["x_ref"] is not None)
-        and (fig_kwargs["y_ref"] is not None)
-        and fig_kwargs["x_ref"] != "None"
-        and fig_kwargs["y_ref"] != "None"
-    ):
+    if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
         fig_kwargs["x_range"] = [
             min(
                 [
@@ -239,10 +238,27 @@ def prepare_figure_kwargs(
             num_values[num_keys.index(fig_kwargs["y_key"])][0],
             num_values[num_keys.index(fig_kwargs["y_key"])][1],
         ]
-    fig_kwargs["z_range"] = [
-        num_values[num_keys.index(fig_kwargs["z_key"])][0],
-        num_values[num_keys.index(fig_kwargs["z_key"])][1],
-    ]
+
+    if fig_kwargs["z_ref"] is not None:
+        fig_kwargs["z_range"] = [
+            min(
+                [
+                    num_values[num_keys.index(fig_kwargs["z_key"])][0],
+                    num_values[num_keys.index(fig_kwargs["z_ref"])][0],
+                ]
+            ),
+            max(
+                [
+                    num_values[num_keys.index(fig_kwargs["z_key"])][1],
+                    num_values[num_keys.index(fig_kwargs["z_ref"])][1],
+                ]
+            ),
+        ]
+    else:
+        fig_kwargs["z_range"] = [
+            num_values[num_keys.index(fig_kwargs["z_key"])][0],
+            num_values[num_keys.index(fig_kwargs["z_key"])][1],
+        ]
 
     if keys_dict[c_key].get("type", KEY_TYPES["NUM"]) == KEY_TYPES["NUM"]:
         fig_kwargs["c_range"] = [
