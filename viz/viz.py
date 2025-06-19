@@ -52,6 +52,8 @@ import base64
 import numpy as np
 import pandas as pd
 
+import plotly.io as pio
+
 from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
 from .graph_layout import get_scatter3d_layout
 
@@ -323,6 +325,7 @@ def get_animation_data(
     img_list: Optional[List[str]] = None,
     colormap: Optional[str] = None,
     decay: int = 0,
+    dark_mode: bool = True,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """
@@ -478,6 +481,12 @@ def get_animation_data(
         layout_kwargs["image"] = process_image(img_list[0])
 
     figure_layout = get_scatter3d_layout(**layout_kwargs)
+
+    if dark_mode:
+        figure_layout["template"] = pio.templates["plotly_dark"]
+    else:
+        figure_layout["template"] = pio.templates["plotly"]
+
     figure_layout.update(
         {
             "updatemenus": [

@@ -753,7 +753,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         """
         if btn == 0:
             raise PreventUpdate
-    
+
         set_progress(["show"])
 
         if not os.path.exists("data/" + case + "/images"):
@@ -822,6 +822,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 frame_key=config["slider"],
                 img_list=img_list,
                 colormap=colormap,
+                dark_mode=darkmode,
                 **fig_kwargs
             )
         )
