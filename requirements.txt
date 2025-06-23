@@ -5,7 +5,7 @@ dash-bootstrap-components
 pyarrow
 numpy
 pandas
-kaleido==v0.1.0.post1
+kaleido
 diskcache
 waitress
 flaskwebgui
