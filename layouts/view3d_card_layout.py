@@ -530,8 +530,8 @@ def get_filter_sidebar():
                 switch=True,
             ),
             dbc.Tooltip(
-                "When this is enabled, you can click a scatter \
-                                            on the graph to toggle its hidden/visible state",
+                "When this is enabled, you can click a scatter "
+                "on the graph to toggle its hidden/visible state",
                 target="click-hide-switch",
                 placement="top",
             ),
@@ -562,8 +562,8 @@ def get_filter_sidebar():
                         className=THEME,
                     ),
                     dbc.Tooltip(
-                        "By default, all the data is initially labeled as 'visible.' \
-                                                    You can change the label of the data to 'hidden' using this tool.",
+                        "By default, all the data is initially labeled as 'visible.' "
+                        "You can change the label of the data to 'hidden' using this tool.",
                         target="visible-picker",
                         placement="top",
                     ),
@@ -577,7 +577,8 @@ def get_filter_sidebar():
 
 def get_view3d_card_layout():
     """
-    Creates and returns a Dash Bootstrap Card layout for a 3D scatter plot view with interactive controls.
+    Creates and returns a Dash Bootstrap Card layout for a 3D scatter plot
+    view with interactive controls.
 
     The layout includes:
         - Dark mode toggle
@@ -594,7 +595,8 @@ def get_view3d_card_layout():
         None
 
     Returns:
-        dbc.Card: A Dash Bootstrap Card component containing the full 3D scatter plot layout with all controls and tooltips.
+        dbc.Card: A Dash Bootstrap Card component containing the
+        full 3D scatter plot layout with all controls and tooltips.
     """
     return dbc.Card(
         [
