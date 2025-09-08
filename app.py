@@ -561,5 +561,5 @@ if __name__ == "__main__":
         freeze_support()
 
         FlaskUI(
-            app=app.server, server="flask", port=45678, profile_dir_prefix="sensorview"
+            app=app.server, server="flask", port=8521, profile_dir_prefix="sensorview"
         ).run()

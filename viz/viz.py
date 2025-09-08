@@ -158,8 +158,8 @@ def get_heatmap(
             }
         ],
         "layout": {
-            "xaxis": {"title": x_label},
-            "yaxis": {"title": y_label},
+            "xaxis": {"title": {"text": x_label}},
+            "yaxis": {"title": {"text": y_label}},
         },
     }
 
@@ -200,7 +200,7 @@ def get_scatter2d(
     linewidth = kwargs.get("linewidth", 0)
 
     if margin is None:
-        margin = {"l": 40, "r": 40, "b": 40, "t": 60}
+        margin = {"l": 80, "r": 40, "b": 40, "t": 60}
 
     if x_label is None:
         x_label = x_key
@@ -236,8 +236,8 @@ def get_scatter2d(
                 }
             ],
             "layout": {
-                "xaxis": {"title": x_label},
-                "yaxis": {"title": y_label},
+                "xaxis": {"title": {"text": x_label}},
+                "yaxis": {"title": {"text": y_label}},
                 "margin": margin,
                 "uirevision": uirevision,
             },
@@ -269,8 +269,8 @@ def get_scatter2d(
         return {
             "data": data,
             "layout": {
-                "xaxis": {"title": x_label},
-                "yaxis": {"title": y_label},
+                "xaxis": {"title": {"text": x_label}},
+                "yaxis": {"title": {"text": y_label}},
                 "margin": margin,
                 "uirevision": uirevision,
             },
