@@ -171,6 +171,7 @@ def get_scatter2d(
     c_key: str,
     x_label: Optional[str] = None,
     y_label: Optional[str] = None,
+    c_label: Optional[str] = None,
     uirevision: str = "no_change",
     colormap: str = "Jet",
     margin: Optional[Dict[str, int]] = None,
@@ -200,7 +201,7 @@ def get_scatter2d(
     linewidth = kwargs.get("linewidth", 0)
 
     if margin is None:
-        margin = {"l": 80, "r": 40, "b": 40, "t": 60}
+        margin = {"l": 70, "r": 60, "b": 60, "t": 60}
 
     if x_label is None:
         x_label = x_key
@@ -208,7 +209,8 @@ def get_scatter2d(
     if y_label is None:
         y_label = y_key
 
-    c_label = kwargs.get("c_label", c_key)
+    if c_label is None:
+        c_label = c_key
     c_type = kwargs.get("c_type", "numerical")
 
     if c_type == "numerical":
@@ -226,7 +228,7 @@ def get_scatter2d(
                         "colorscale": colormap,
                         "opacity": 0.8,
                         "colorbar": {
-                            "title": c_label,
+                            "title": {"text": c_label, "side": "right"},
                         },
                         "line": {
                             "color": "#FFFFFF",
