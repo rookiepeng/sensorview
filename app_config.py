@@ -56,7 +56,7 @@ from diskcache import Cache
 
 
 APP_TITLE = "RadarViz"
-APP_VERSION = "v3.2"
+APP_VERSION = "v3.3"
 
 DATA_PATH = "./data"
 FRAME_CACHE_PATH = "./cache/frame"
