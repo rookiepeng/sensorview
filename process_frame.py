@@ -214,7 +214,7 @@ def process_single_frame(
 
     layout = get_scatter3d_layout(**fig_kwargs)
 
-    fig = {"data": fig_ref + fig, "layout": layout}
+    fig = {"data": fig + fig_ref, "layout": layout}
 
     return fig
 
