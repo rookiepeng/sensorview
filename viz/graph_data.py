@@ -207,6 +207,7 @@ def get_scatter3d_data(
         df: pd.DataFrame,
         name: Optional[str] = None,
         color: Optional[Union[List[float], np.ndarray]] = None,
+        size_offset: int = 0,
     ) -> Dict[str, Any]:
         """
         Create a scatter plot trace configuration.
@@ -231,7 +232,7 @@ def get_scatter3d_data(
         }
 
         marker = {
-            "size": plot_config["marker_size"],
+            "size": plot_config["marker_size"] + size_offset,
             "opacity": plot_config["opacity"],
             "line": {
                 "color": plot_config["line_color"],
@@ -265,9 +266,11 @@ def get_scatter3d_data(
         result["hover_strings"] = [hover_text.tolist()]
     else:
         grouped = data_frame.groupby(c_key)
-        for name, group in grouped:
+        num_groups = len(grouped)
+        for i, (name, group) in enumerate(sorted(grouped)):
             hover_text = process_hover(group)
-            result["scatter_data"].append(create_scatter(group, str(name)))
+            size_offset = num_groups - 1 - i
+            result["scatter_data"].append(create_scatter(group, str(name), size_offset=size_offset))
             result["hover_strings"].append(hover_text.tolist())
 
     return result
