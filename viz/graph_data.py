@@ -164,6 +164,8 @@ def get_scatter3d_data(
         "line_width": 0,
     }
 
+    enable_size_vary = kwargs.get("size_vary", False)
+
     def format_hover(series: pd.Series, config: Dict[str, Any]) -> pd.Series:
         """
         Format series values for hover display according to configuration.
@@ -269,8 +271,13 @@ def get_scatter3d_data(
         num_groups = len(grouped)
         for i, (name, group) in enumerate(sorted(grouped)):
             hover_text = process_hover(group)
-            size_offset = num_groups - 1 - i
-            result["scatter_data"].append(create_scatter(group, str(name), size_offset=size_offset))
+            if enable_size_vary:
+                size_offset = num_groups - 1 - i
+            else:
+                size_offset = 0
+            result["scatter_data"].append(
+                create_scatter(group, str(name), size_offset=size_offset)
+            )
             result["hover_strings"].append(hover_text.tolist())
 
     return result

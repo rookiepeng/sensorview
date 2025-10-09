@@ -535,6 +535,22 @@ def get_filter_sidebar():
                 target="click-hide-switch",
                 placement="top",
             ),
+            dbc.Checklist(
+                options=[
+                    {
+                        "label": "Dot size varies with categories",
+                        "value": True,
+                    }
+                ],
+                value=[],
+                id="size-vary-switch",
+                switch=True,
+            ),
+            dbc.Tooltip(
+                "When this is enabled, the dot size varies with categories",
+                target="size-vary-switch",
+                placement="top",
+            ),
             dbc.Label("Decay"),
             dcc.Slider(
                 id="decay-slider",

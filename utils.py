@@ -150,6 +150,7 @@ def prepare_figure_kwargs(
     config: Dict[str, Any],
     frame_list: List[float],
     c_key: str,
+    size_vary: bool,
     num_keys: List[str],
     num_values: List[Tuple[float, float]],
     slider_arg: int = 0,
@@ -280,6 +281,7 @@ def prepare_figure_kwargs(
     )
 
     fig_kwargs["c_type"] = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
+    fig_kwargs["size_vary"] = size_vary
     fig_kwargs["ref_name"] = "Host Vehicle"
 
     return fig_kwargs
