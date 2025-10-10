@@ -339,7 +339,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "visible_list": Input("visible-picker", "value"),
             "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
             "c_key": Input("c-picker-3d", "value"),
-            "size_vary": Input("size-vary-switch", "value"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
             "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
             "unused_file_loaded": Input("file-loaded-trigger", "data"),
@@ -353,6 +352,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         state={
             "ispaused": State("interval-component", "disabled"),
+            "size_vary": State("size-vary-switch", "value"),
             "slider_arg": State("slider-frame", "value"),
             "overlay_enable": State("overlay-switch", "value"),
             "decay": State("decay-slider", "value"),

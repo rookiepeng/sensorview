@@ -118,6 +118,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       slider_arg,
       stop_clicks,
       decay,
+      enable_size_vary,
       session,
       ispaused,
       colormap,
@@ -201,6 +202,23 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           return [dash_clientside.no_update, remote_trigger + 1];
         }
 
+        // Add size offset to data.fig: offset = length - 1 - i
+        if (data.data && data.data.fig && enable_size_vary) {
+          data.data.fig.forEach((trace, idx) => {
+            if (trace?.marker?.size) {
+              const figLength = data.data.fig.length;
+              const offset = figLength - 1 - idx;
+              if (Array.isArray(trace.marker.size)) {
+                trace.marker.size = trace.marker.size.map(
+                  (size) => size + offset
+                );
+              } else {
+                trace.marker.size += offset;
+              }
+            }
+          });
+        }
+
         let allData = [data];
         // Get previous figures if decay > 0
         if (decay > 0) {
@@ -210,6 +228,21 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
               try {
                 const prevData = await getDataWithRetry(prevIndex);
                 if (prevData) {
+                  if (prevData.data && prevData.data.fig && enable_size_vary) {
+                    prevData.data.fig.forEach((trace, idx) => {
+                      if (trace?.marker?.size) {
+                        const figLength = prevData.data.fig.length;
+                        const offset = figLength - 1 - idx;
+                        if (Array.isArray(trace.marker.size)) {
+                          trace.marker.size = trace.marker.size.map(
+                            (size) => size + offset
+                          );
+                        } else {
+                          trace.marker.size += offset;
+                        }
+                      }
+                    });
+                  }
                   allData.push(prevData);
                 }
               } catch (error) {

@@ -174,6 +174,7 @@ app.clientside_callback(
     Input("slider-frame", "value"),
     Input("stop-button", "n_clicks"),
     Input("decay-slider", "value"),
+    Input("size-vary-switch", "value"),
     State("session-id", "data"),
     State("interval-component", "disabled"),
     State("colormap-3d", "value"),
