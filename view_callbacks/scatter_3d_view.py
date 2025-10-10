@@ -308,6 +308,10 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         ctype = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
 
+        if (
+            config.get("x_ref", None) is not None
+            and config.get("y_ref", None) is not None
+        ):
             data_length = len(fig["data"]) - 1
         else:
             data_length = len(fig["data"])
