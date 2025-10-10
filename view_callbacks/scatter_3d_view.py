@@ -279,6 +279,52 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         output={
+            "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
+        },
+        inputs={
+            "size_vary": Input("size-vary-switch", "value"),
+        },
+        state={
+            "fig": State("scatter3d", "figure"),
+            "session_id": State("session-id", "data"),
+            "c_key": State("c-picker-3d", "value"),
+        },
+        prevent_initial_call=True,
+    )
+    def size_vary_callback(size_vary: list, fig: dict, session_id: str, c_key: str) -> dict:
+        """
+        Toggle size variation for the 3D scatter plot.
+
+        Args:
+            size_vary (list): Size variation enable state
+            fig (dict): Current figure dictionary
+
+        Returns:
+            dict: Updated figure with new theme
+        """
+
+        config = cache_get(session_id, CACHE_KEYS["config"])
+        keys_dict = config["keys"]
+
+        ctype = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
+
+        if config.get("x_ref", None) is not None and config.get("y_ref", None) is not None:
+            data_length = len(fig["data"]) - 1
+        else:
+            data_length = len(fig["data"])
+
+        if size_vary and ctype == KEY_TYPES["CAT"]:
+            for i in range(0, data_length):
+                size_offset = data_length - 1 - i
+                fig["data"][i]["marker"]["size"] = 3 + size_offset
+        else:
+            for i in range(0, data_length):
+                fig["data"][i]["marker"]["size"] = 3
+
+        return {"scatter3d": fig}
+
+    @app.callback(
+        output={
             "trigger": Output("visible-table-change-trigger", "data"),
         },
         inputs={
@@ -502,7 +548,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
             "visible_list": State("visible-picker", "value"),
             "c_key": State("c-picker-3d", "value"),
-            "size_vary": State("size-vary-switch", "value"),
             "session_id": State("session-id", "data"),
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
@@ -522,7 +567,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         num_values: list,
         visible_list: list,
         c_key: str,
-        size_vary: str,
         session_id: str,
         file: str,
         file_list: list,
@@ -581,7 +625,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             config,
             frame_list,
             c_key,
-            bool(size_vary),
+            False,
             num_keys,
             num_values,
         )

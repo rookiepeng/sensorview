@@ -203,17 +203,17 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         }
 
         // Add size offset to data.fig: offset = length - 1 - i
-        if (data.data && data.data.fig && enable_size_vary) {
+        if (data.data && data.data.fig && enable_size_vary && enable_size_vary.length > 0) {
           data.data.fig.forEach((trace, idx) => {
             if (trace?.marker?.size) {
               const figLength = data.data.fig.length;
               const offset = figLength - 1 - idx;
               if (Array.isArray(trace.marker.size)) {
                 trace.marker.size = trace.marker.size.map(
-                  (size) => size + offset
+                  (size) => 3 + offset
                 );
               } else {
-                trace.marker.size += offset;
+                trace.marker.size = 3 + offset;
               }
             }
           });
@@ -228,17 +228,17 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
               try {
                 const prevData = await getDataWithRetry(prevIndex);
                 if (prevData) {
-                  if (prevData.data && prevData.data.fig && enable_size_vary) {
+                  if (prevData.data && prevData.data.fig && enable_size_vary && enable_size_vary.length > 0) {
                     prevData.data.fig.forEach((trace, idx) => {
                       if (trace?.marker?.size) {
                         const figLength = prevData.data.fig.length;
                         const offset = figLength - 1 - idx;
                         if (Array.isArray(trace.marker.size)) {
                           trace.marker.size = trace.marker.size.map(
-                            (size) => size + offset
+                            (size) => 3 + offset
                           );
                         } else {
-                          trace.marker.size += offset;
+                          trace.marker.size = 3 + offset;
                         }
                       }
                     });
