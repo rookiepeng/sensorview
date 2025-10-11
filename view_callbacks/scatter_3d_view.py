@@ -1008,6 +1008,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
