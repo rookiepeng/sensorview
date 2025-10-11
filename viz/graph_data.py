@@ -157,7 +157,7 @@ def get_scatter3d_data(
             if hover and c_key in hover
             else kwargs.get("c_type", "numerical")
         ),
-        "opacity": kwargs.get("opacity", 0.8),
+        "opacity": kwargs.get("opacity", 1.0),
         "showlegend": kwargs.get("showlegend", True),
         "marker_size": 3,
         "line_color": "#757575",
