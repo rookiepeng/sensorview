@@ -106,18 +106,20 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
 
     data_list = []
     for _, f_dict in enumerate(file_list):
-        file = json.loads(f_dict)
+        file_dict = json.loads(f_dict)
 
-        if file["name"].endswith(".pkl"):
-            new_data = pd.read_pickle(os.path.join(file["path"], file["name"]))
+        if file_dict["name"].endswith(".pkl"):
+            new_data = pd.read_pickle(
+                os.path.join(file_dict["path"], file_dict["name"])
+            )
             # new_data = new_data.reset_index(drop=True)
 
-        elif file["name"].endswith(".csv"):
+        elif file_dict["name"].endswith(".csv"):
             new_data = pd.read_csv(
-                os.path.join(file["path"], file["name"]), engine="pyarrow"
+                os.path.join(file_dict["path"], file_dict["name"]), engine="pyarrow"
             )
         else:
-            raise ValueError(f"Unsupported file type: {file['name']}")
+            raise ValueError(f"Unsupported file type: {file_dict['name']}")
 
         data_list.append(new_data)
 

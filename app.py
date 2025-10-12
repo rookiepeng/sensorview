@@ -93,8 +93,8 @@ app.title = APP_TITLE
 app.layout = get_app_layout
 
 
-@app.server.route("/api/data/<session>/<start_index>", methods=["GET"])
-def get_data_by_index(session: str, start_index: str) -> Response:
+@app.server.route("/api/data/<session>/<start_index_str>", methods=["GET"])
+def get_data_by_index(session: str, start_index_str: str) -> Response:
     """
     Retrieve buffered figure data from cache for a specific session.
 
@@ -110,7 +110,7 @@ def get_data_by_index(session: str, start_index: str) -> Response:
               reference figures, and layouts for each index.
     """
     latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
-    start_index = int(start_index)
+    start_index = int(start_index_str)
 
     if latest_server_buffer_index is None:
         latest_server_buffer_index = -1
