@@ -80,6 +80,135 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         None
     """
 
+    def _extract_keys_by_type(config: dict) -> tuple[list, list]:
+        """Extract numerical and categorical keys from config."""
+        num_keys = []
+        cat_keys = []
+
+        for item in config["keys"]:
+            key_type = config["keys"][item].get("type", KEY_TYPES["NUM"])
+            if key_type == KEY_TYPES["NUM"]:
+                num_keys.append(item)
+            else:
+                cat_keys.append(item)
+
+        return num_keys, cat_keys
+
+    def _create_dropdown_options(
+        config: dict, keys: list, target_length: int, include_none: bool = False
+    ) -> list:
+        """Create dropdown options from config keys with correct length."""
+        base_options = [
+            {"label": config["keys"][item].get("description", item), "value": item}
+            for item in keys
+        ]
+
+        if include_none:
+            base_options.insert(0, {"label": "None", "value": "None"})
+
+        return [base_options] * target_length
+
+    def _get_default_values(
+        keys: list, length: int, config: dict = None, config_keys: list = None
+    ) -> list:
+        """Get default values for dropdowns based on available keys."""
+        if not keys:
+            return [None] * length
+
+        # Use round-robin assignment for default values
+        default_values = [keys[x % len(keys)] for x in range(length)]
+
+        # Override with config values if provided
+        if config and config_keys:
+            for i, config_key in enumerate(config_keys):
+                if i < len(default_values) and config_key in config:
+                    default_values[i] = config.get(config_key, default_values[i])
+
+        return default_values
+
+    def _create_filter_components(
+        data: pd.DataFrame, cat_keys: list, num_keys: list, keys_dict: dict
+    ) -> tuple[list, list, list, list]:
+        """Create dropdown and slider components for filtering."""
+        cat_values = []
+        num_values = []
+        new_dropdown = []
+        new_slider = []
+
+        # Create categorical dropdowns
+        for idx, d_item in enumerate(cat_keys):
+            if d_item in data.columns:
+                var_list = data[d_item].unique().tolist()
+                value_list = var_list
+            else:
+                var_list = []
+                value_list = []
+
+            new_dropdown.extend(
+                [
+                    dbc.Label(keys_dict[d_item]["description"]),
+                    html.Div(
+                        dcc.Dropdown(
+                            id={"type": "filter-dropdown", "index": idx},
+                            options=[{"label": i, "value": i} for i in var_list],
+                            value=value_list,
+                            multi=True,
+                        ),
+                        className=THEME,
+                    ),
+                ]
+            )
+            cat_values.append(value_list)
+
+        # Create numerical sliders
+        for idx, item in enumerate(num_keys):
+            if item in data.columns:
+                var_min = np.floor(np.min(data[item])).tolist()
+                var_max = np.ceil(np.max(data[item])).tolist()
+            else:
+                var_min = var_max = 0
+
+            new_slider.extend(
+                [
+                    dbc.Label(keys_dict[item]["description"]),
+                    dcc.RangeSlider(
+                        id={"type": "filter-slider", "index": idx},
+                        min=var_min,
+                        max=var_max,
+                        marks=None,
+                        step=(
+                            round((var_max - var_min) / 100, 3)
+                            if var_max != var_min
+                            else 1
+                        ),
+                        value=[var_min, var_max],
+                        tooltip={"always_visible": False},
+                    ),
+                ]
+            )
+            num_values.append([var_min, var_max])
+
+        return new_dropdown, new_slider, cat_values, num_values
+
+    def _setup_data_cache(
+        data: pd.DataFrame, config: dict, session_id: str
+    ) -> np.ndarray:
+        """Setup data caching for frames and visibility."""
+        # Cache frame list
+        frame_list = np.sort(data[config["slider"]].unique())
+        cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
+
+        # Create and cache visibility table
+        visible_table = pd.DataFrame({"_IDS_": data.index, "_VIS_": "visible"})
+        cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
+
+        # Cache grouped frame data
+        frame_group = data.groupby(config["slider"])
+        for frame_idx, frame_data in frame_group:
+            cache_set(frame_data, session_id, CACHE_KEYS["frame_data"], str(frame_idx))
+
+        return frame_list
+
     @app.callback(
         background=True,
         output={
@@ -120,7 +249,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         manager=background_callback_manager,
     )
     def file_select_changed(
-        set_progress: callable,
+        set_progress,
         file: str,
         add_file_value: list,
         data_path: str,
@@ -133,7 +262,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         Callback when a file selection is changed.
 
         Args:
-            set_progress (callable): Function to set the progress visual indicators
+            set_progress: Function to set the progress visual indicators
             file (str): Selected file value
             add_file_value (list): List containing additional file values
             data_path (str): Path to data directory
@@ -143,235 +272,95 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             all_state (list): State of all dropdown components
 
         Returns:
-            dict: Configuration data containing:
-                - key_dict (dict): Dictionary of keys and their configurations
-                - file_load_trigger (int): File load trigger count
-                - stored_file (str): Stored file value
-                - frame_min (int): Minimum frame index
-                - frame_max (int): Maximum frame index
-                - dropdown_container (list): Dropdown components for categorical values
-                - slider_container (list): Slider components for numerical values
-                - dim_picker_opt (list): Dimension picker options
-                - dim_picker_val (list): Dimension picker values
-                - dp_opts_all (list): Dropdown options for all keys
-                - dp_vals_all (list): Dropdown values for all keys
-                - dp_opts_cat_color (list): Dropdown options for categorical color keys
-                - dp_vals_cat_color (list): Dropdown values for categorical color keys
-                - dp_opts_cat (list): Dropdown options for categorical keys
-                - dp_vals_cat (list): Dropdown values for categorical keys
+            dict: Configuration data for all UI components
 
         Raises:
-            PreventUpdate: If no file is selected
+            PreventUpdate: If no file is selected or config doesn't exist
         """
         if not file:
             raise PreventUpdate
 
-        # set_progress(
-        #     [
-        #         {
-        #             "position": "fixed",
-        #             "top": 0,
-        #             "left": 0,
-        #             "width": "100%",
-        #             "height": "100%",
-        #             "backgroundColor": "rgba(0, 0, 0, 0.9)",
-        #         },
-        #     ]
-        # )
+        # Initialize task and figure indices
         cache_set(-1, session_id, CACHE_KEYS["task_id"])
         cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
-        if os.path.exists(os.path.join(data_path, case, "info.json")):
-            config = load_config(os.path.join(data_path, case, "info.json"))
-            cache_set(config, session_id, CACHE_KEYS["config"])
-        else:
+        # Load and validate configuration
+        config_path = os.path.join(data_path, case, "info.json")
+        if not os.path.exists(config_path):
             raise PreventUpdate
 
-        # extract keys and save to Cache
-        num_keys = []
-        cat_keys = []
-        for _, item in enumerate(config["keys"]):
-            if config["keys"][item].get("type", KEY_TYPES["NUM"]) == KEY_TYPES["NUM"]:
-                num_keys.append(item)
-            else:
-                cat_keys.append(item)
-        filter_kwargs = {"num_keys": num_keys, "cat_keys": cat_keys}
-        cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
+        config = load_config(config_path)
+        cache_set(config, session_id, CACHE_KEYS["config"])
 
-        # options for `DROPDOWN_OPTIONS_ALL`
-        options_all = [
-            [
-                {"label": config["keys"][item].get("description", item), "value": item}
-                for _, item in enumerate(config["keys"])
-            ]
-        ] * len(DROPDOWN_OPTIONS_ALL)
-
-        # values for `DROPDOWN_VALUES_ALL`
+        # Extract keys by type
+        num_keys, cat_keys = _extract_keys_by_type(config)
         all_keys = num_keys + cat_keys
-        if len(all_keys) == 0:
-            values_all = [None] * len(DROPDOWN_VALUES_ALL)
-        else:
-            values_all = [
-                all_keys[x % len(all_keys)] for x in range(0, len(DROPDOWN_VALUES_ALL))
-            ]
-
-        for idx, item in enumerate(all_state):
-            if item in all_keys:
-                values_all[idx] = item
-
-        # options for `DROPDOWN_OPTIONS_CAT_COLOR`
-        options_cat_color = [
-            [{"label": "None", "value": "None"}]
-            + [
-                {"label": config["keys"][item].get("description", item), "value": item}
-                for _, item in enumerate(cat_keys)
-            ]
-        ] * len(DROPDOWN_OPTIONS_CAT_COLOR)
-
-        # values for `DROPDOWN_VALUES_CAT_COLOR`
-        values_cat_color = ["None"] * len(DROPDOWN_VALUES_CAT_COLOR)
-
-        # options for `DROPDOWN_OPTIONS_CAT`
-        options_cat = [
-            [
-                {"label": config["keys"][item].get("description", item), "value": item}
-                for _, item in enumerate(cat_keys)
-            ]
-        ] * len(DROPDOWN_OPTIONS_CAT)
-
-        options_num = [
-            [
-                {"label": config["keys"][item].get("description", item), "value": item}
-                for _, item in enumerate(num_keys)
-            ]
-        ] * len(DROPDOWN_OPTIONS_3D_XYZ)
-
-        options_num_with_none = [
-            [{"label": "None", "value": "None"}]
-            + [
-                {"label": config["keys"][item].get("description", item), "value": item}
-                for _, item in enumerate(num_keys)
-            ]
-        ] * len(DROPDOWN_OPTIONS_3D_XYZ_REF)
-
-        if len(num_keys) == 0:
-            xyz_all = [None] * len(DROPDOWN_VALUES_3D_XYZ)
-        else:
-            xyz_all = [
-                num_keys[x % len(num_keys)]
-                for x in range(0, len(DROPDOWN_VALUES_3D_XYZ))
-            ]
-
-        xyz_all[0] = config.get("slider", xyz_all[0])
-        xyz_all[1] = config.get("x_3d", xyz_all[1])
-        xyz_all[2] = config.get("y_3d", xyz_all[2])
-        xyz_all[3] = config.get("z_3d", xyz_all[3])
-
-        if len(num_keys) == 0:
-            xyz_ref_all = [None] * len(DROPDOWN_VALUES_3D_XYZ_REF)
-        else:
-            xyz_ref_all = [
-                num_keys[x % len(num_keys)]
-                for x in range(0, len(DROPDOWN_VALUES_3D_XYZ_REF))
-            ]
-
-        xyz_ref_all[0] = config.get("x_ref", "None")
-        xyz_ref_all[1] = config.get("y_ref", "None")
-        xyz_ref_all[2] = config.get("z_ref", "None")
-
-        # values for `DROPDOWN_VALUES_CAT`
-        if len(cat_keys) == 0:
-            values_cat = [None] * len(DROPDOWN_VALUES_CAT)
-        else:
-            values_cat = [cat_keys[0]] * len(DROPDOWN_VALUES_CAT)
-
         keys_dict = config["keys"]
 
+        # Load and process data
         new_data = load_data(add_file_value, file)
-        # get the list of frames and save to Cache
-        frame_list = np.sort(new_data[config["slider"]].unique())
-        cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
+        frame_list = _setup_data_cache(new_data, config, session_id)
 
-        # create the visibility table and save to Cache
-        #   the visibility table is used to indicate if the data point is
-        #   `visible` or `hidden`
-        visible_table = pd.DataFrame()
-        visible_table["_IDS_"] = new_data.index
-        visible_table["_VIS_"] = "visible"
-        cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
+        # Create filter components
+        new_dropdown, new_slider, cat_values, num_values = _create_filter_components(
+            new_data, cat_keys, num_keys, keys_dict
+        )
 
-        # group the DataFrame by frame and save the grouped data one by one
-        # into Cache
-        frame_group = new_data.groupby(config["slider"])
-        for frame_idx, frame_data in frame_group:
-            cache_set(frame_data, session_id, CACHE_KEYS["frame_data"], str(frame_idx))
-
-        # create dropdown layouts
-        # obtain categorical values
-        cat_values = []
-        new_dropdown = []
-        for idx, d_item in enumerate(cat_keys):
-            if d_item in new_data.columns:
-                var_list = new_data[d_item].unique().tolist()
-                value_list = var_list
-            else:
-                var_list = []
-                value_list = []
-
-            new_dropdown.append(dbc.Label(keys_dict[d_item]["description"]))
-            new_dropdown.append(
-                html.Div(
-                    dcc.Dropdown(
-                        id={"type": "filter-dropdown", "index": idx},
-                        options=[{"label": i, "value": i} for i in var_list],
-                        value=value_list,
-                        multi=True,
-                    ),
-                    className=THEME,
-                )
-            )
-
-            cat_values.append(value_list)
-
-        # create slider layouts
-        # obtain numerical values
-        num_values = []
-        new_slider = []
-        for idx, item in enumerate(num_keys):
-            if item in new_data.columns:
-                # use `.tolist()` to convert numpy type ot python type
-                var_min = np.floor(np.min(new_data[item])).tolist()
-                var_max = np.ceil(np.max(new_data[item])).tolist()
-            else:
-                var_min = 0
-                var_max = 0
-
-            new_slider.append(dbc.Label(keys_dict[item]["description"]))
-            new_slider.append(
-                dcc.RangeSlider(
-                    id={"type": "filter-slider", "index": idx},
-                    min=var_min,
-                    max=var_max,
-                    marks=None,
-                    step=round((var_max - var_min) / 100, 3),
-                    value=[var_min, var_max],
-                    tooltip={"always_visible": False},
-                )
-            )
-
-            num_values.append([var_min, var_max])
-
-        # save categorical values and numerical values to Cache
-        filter_kwargs["num_values"] = num_values
-        filter_kwargs["cat_values"] = cat_values
+        # Save filter configuration to cache
+        filter_kwargs = {
+            "num_keys": num_keys,
+            "cat_keys": cat_keys,
+            "num_values": num_values,
+            "cat_values": cat_values,
+        }
         cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
 
-        # dimensions picker default value
-        if len(cat_keys) == 0:
-            t_values_cat = None
-        else:
-            t_values_cat = cat_keys[0]
+        # Generate dropdown options and values
+        options_all = _create_dropdown_options(
+            config, all_keys, len(DROPDOWN_OPTIONS_ALL)
+        )
+        options_cat_color = _create_dropdown_options(
+            config, cat_keys, len(DROPDOWN_OPTIONS_CAT_COLOR), include_none=True
+        )
+        options_cat = _create_dropdown_options(
+            config, cat_keys, len(DROPDOWN_OPTIONS_CAT)
+        )
+        options_num = _create_dropdown_options(
+            config, num_keys, len(DROPDOWN_OPTIONS_3D_XYZ)
+        )
+        options_num_with_none = _create_dropdown_options(
+            config, num_keys, len(DROPDOWN_OPTIONS_3D_XYZ_REF), include_none=True
+        )
 
+        # Generate default values with state preservation
+        values_all = _get_default_values(all_keys, len(DROPDOWN_VALUES_ALL))
+        for idx, item in enumerate(all_state):
+            if idx < len(values_all) and item in all_keys:
+                values_all[idx] = item
+
+        values_cat_color = ["None"] * len(DROPDOWN_VALUES_CAT_COLOR)
+        values_cat = (
+            [cat_keys[0]] * len(DROPDOWN_VALUES_CAT)
+            if cat_keys
+            else [None] * len(DROPDOWN_VALUES_CAT)
+        )
+
+        # 3D picker values with config defaults
+        xyz_config_keys = ["slider", "x_3d", "y_3d", "z_3d"]
+        xyz_all = _get_default_values(
+            num_keys, len(DROPDOWN_VALUES_3D_XYZ), config, xyz_config_keys
+        )
+
+        xyz_ref_config_keys = ["x_ref", "y_ref", "z_ref"]
+        xyz_ref_all = _get_default_values(num_keys, len(DROPDOWN_VALUES_3D_XYZ_REF))
+        for i, config_key in enumerate(xyz_ref_config_keys):
+            if i < len(xyz_ref_all):
+                xyz_ref_all[i] = config.get(config_key, "None")
+
+        # Dimension picker settings
+        dim_picker_val = [cat_keys[0]] if cat_keys else [None]
+
+        # Hide loading indicator
         set_progress(
             [
                 {
@@ -382,7 +371,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
                     "height": "100%",
                     "backgroundColor": "rgba(0, 0, 0, 0.9)",
                     "display": "none",
-                },
+                }
             ]
         )
 
@@ -395,7 +384,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "dropdown_container": new_dropdown,
             "slider_container": new_slider,
             "dim_picker_opt": [{"label": ck, "value": ck} for ck in cat_keys],
-            "dim_picker_val": [t_values_cat],
+            "dim_picker_val": dim_picker_val,
             "dp_opts_all": options_all,
             "dp_vals_all": values_all,
             "dp_opts_cat_color": options_cat_color,
@@ -488,6 +477,9 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
                 return {"slider_value": (slider_state + 1) % (slider_max + 1)}
 
             return {"slider_value": dash.no_update}
+
+        # Default fallback - should not reach here normally
+        raise PreventUpdate
 
     @app.callback(
         output={"state": Output("collapse-add", "is_open")},
