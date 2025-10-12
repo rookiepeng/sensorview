@@ -50,7 +50,7 @@ import os
 import datetime
 
 import dash
-from dash import dcc
+from dash.dcc import send_file  # pyright: ignore[reportPrivateImportUsage]
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import plotly.io as pio
@@ -986,9 +986,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         set_progress(["hide"])
 
-        return {
-            "download": dcc.send_file(file_name)
-        }  # pyright: ignore[reportPrivateImportUsage]
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1026,9 +1024,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         temp_fig = go.Figure(fig)
         temp_fig.write_html(file_name)
 
-        return {
-            "download": dcc.send_file(file_name)
-        }  # pyright: ignore[reportPrivateImportUsage]
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1066,9 +1062,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         temp_fig = go.Figure(fig)
         temp_fig.write_image(file_name, scale=2)
 
-        return {
-            "download": dcc.send_file(file_name)
-        }  # pyright: ignore[reportPrivateImportUsage]
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1136,9 +1130,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             index=False,
         )
 
-        return {
-            "download": dcc.send_file(file_name)
-        }  # pyright: ignore[reportPrivateImportUsage]
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1213,6 +1205,4 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             index=False,
         )
 
-        return {
-            "download": dcc.send_file(file_name)
-        }  # pyright: ignore[reportPrivateImportUsage]
+        return {"download": send_file(file_name)}
