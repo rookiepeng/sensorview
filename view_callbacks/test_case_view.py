@@ -109,7 +109,10 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         return [base_options] * target_length
 
     def _get_default_values(
-        keys: list, length: int, config: dict = None, config_keys: list = None
+        keys: list,
+        length: int,
+        config: dict | None = None,
+        config_keys: list | None = None,
     ) -> list:
         """Get default values for dropdowns based on available keys."""
         if not keys:

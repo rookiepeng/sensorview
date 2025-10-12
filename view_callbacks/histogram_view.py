@@ -138,8 +138,16 @@ def get_histogram_view_callbacks(app: dash.Dash) -> None:
             }
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            return {
+                "histogram": {"data": [{"type": "histogram", "x": []}], "layout": {}},
+            }
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            return {
+                "histogram": {"data": [{"type": "histogram", "x": []}], "layout": {}},
+            }
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
@@ -172,7 +180,7 @@ def get_histogram_view_callbacks(app: dash.Dash) -> None:
 
         if c_histogram == "None":
             if x_key == config["slider"]:
-                nbins = pd.unique(filtered_table[x_key]).size
+                nbins = len(pd.unique(filtered_table[x_key]))
                 histogram_fig = px.histogram(
                     filtered_table,
                     x=x_key,
@@ -193,7 +201,7 @@ def get_histogram_view_callbacks(app: dash.Dash) -> None:
                 )
         else:
             if x_key == config["slider"]:
-                nbins = pd.unique(filtered_table[x_key]).size
+                nbins = len(pd.unique(filtered_table[x_key]))
                 histogram_fig = px.histogram(
                     filtered_table,
                     x=x_key,
