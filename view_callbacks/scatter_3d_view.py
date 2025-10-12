@@ -695,7 +695,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         num_keys = filter_kwargs["num_keys"]
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-        # frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
 
         dataset = load_data(file_list)
         dataset[config["slider"]] = dataset[config["slider"]].astype(int)
@@ -715,9 +714,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         )
 
         for slider_arg, frame_idx in enumerate(frame_list):
-            file = json.loads(file_list[0])
+            file_dict = json.loads(file_list[0])
             img_path = os.path.join(
-                file["path"], file["name"][0:-4], str(frame_list[slider_arg]) + ".jpg"
+                file_dict["path"],
+                file_dict["name"][0:-4],
+                str(frame_list[slider_arg]) + ".jpg",
             )
 
             # encode image frame
@@ -943,13 +944,15 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         img_list = []
 
+        file_dict = json.loads(file_list[0])
         for _, f_val in enumerate(frame_list):
-            file = json.loads(file_list[0])
             img_list.append(
-                os.path.join(file["path"], file["name"][0:-4], str(f_val) + ".jpg")
+                os.path.join(
+                    file_dict["path"], file_dict["name"][0:-4], str(f_val) + ".jpg"
+                )
             )
 
-        fig_kwargs["title"] = file["name"][0:-4]
+        fig_kwargs["title"] = file_dict["name"][0:-4]
 
         fig_kwargs["height"] = 750
 
@@ -971,7 +974,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + timestamp + "_" + file["name"][0:-4] + "_3dview.html"
+        file_name = "temp/" + timestamp + "_" + fig_kwargs["title"] + "_3dview.html"
 
         fig.write_html(file_name)
 
@@ -1184,12 +1187,12 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             visible_table,
             visible_list,
         )
-        file = json.loads(file)
+        file_dict = json.loads(file)
 
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + file["name"][0:-4] + "_" + timestamp + ".csv"
+        file_name = "temp/" + file_dict["name"][0:-4] + "_" + timestamp + ".csv"
 
         filtered_table.to_csv(
             file_name,

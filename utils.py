@@ -58,6 +58,7 @@ from typing import Dict, List, Optional, Any, Tuple, Union
 import json
 import base64
 import pandas as pd
+import numpy as np
 
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
@@ -155,7 +156,7 @@ def prepare_figure_kwargs(
     c_key: str,
     size_vary: bool,
     # Animation parameters
-    frame_list: List[float],
+    frame_list: Union[List[float], "np.ndarray"],
     slider_arg: int = 0,
 ) -> Dict[str, Any]:
     """
