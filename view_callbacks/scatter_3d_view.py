@@ -901,16 +901,22 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             os.makedirs("data/" + case + "/images")
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None or "keys" not in config:
+            raise PreventUpdate
         keys_dict = config["keys"]
         c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         num_values = filter_kwargs["num_values"]
         cat_values = filter_kwargs["cat_values"]
 
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        if frame_list is None:
+            raise PreventUpdate
 
         fig_kwargs = prepare_figure_kwargs(
             config,
@@ -966,7 +972,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 frame_key=config["slider"],
                 img_list=img_list,
                 colormap=colormap,
-                dark_mode=darkmode,
+                dark_mode=bool(darkmode),
                 **fig_kwargs
             )
         )
@@ -980,7 +986,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         set_progress(["hide"])
 
-        return {"download": dcc.send_file(file_name)}
+        return {
+            "download": dcc.send_file(file_name)
+        }  # pyright: ignore[reportPrivateImportUsage]
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1018,7 +1026,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         temp_fig = go.Figure(fig)
         temp_fig.write_html(file_name)
 
-        return {"download": dcc.send_file(file_name)}
+        return {
+            "download": dcc.send_file(file_name)
+        }  # pyright: ignore[reportPrivateImportUsage]
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1056,7 +1066,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         temp_fig = go.Figure(fig)
         temp_fig.write_image(file_name, scale=2)
 
-        return {"download": dcc.send_file(file_name)}
+        return {
+            "download": dcc.send_file(file_name)
+        }  # pyright: ignore[reportPrivateImportUsage]
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1112,19 +1124,21 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             visible_table,
             visible_list,
         )
-        file = json.loads(file)
+        file_dict = json.loads(file)
 
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + file["name"][0:-4] + "_" + timestamp + ".csv"
+        file_name = "temp/" + file_dict["name"][0:-4] + "_" + timestamp + ".csv"
 
         filtered_table.to_csv(
             file_name,
             index=False,
         )
 
-        return {"download": dcc.send_file(file_name)}
+        return {
+            "download": dcc.send_file(file_name)
+        }  # pyright: ignore[reportPrivateImportUsage]
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1199,4 +1213,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             index=False,
         )
 
-        return {"download": dcc.send_file(file_name)}
+        return {
+            "download": dcc.send_file(file_name)
+        }  # pyright: ignore[reportPrivateImportUsage]
