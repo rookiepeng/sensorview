@@ -119,11 +119,11 @@ def process_single_frame(
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
         config,
-        frame_list,
-        c_key,
-        bool(size_vary),
         num_keys,
         num_values,
+        c_key,
+        bool(size_vary),
+        frame_list,
         frame_idx,
     )
 
@@ -267,11 +267,11 @@ def process_overlay_frame(
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
         config,
-        frame_list,
-        c_key,
-        bool(size_vary),
         num_keys,
         num_values,
+        c_key,
+        bool(size_vary),
+        frame_list,
         frame_idx,
     )
 
