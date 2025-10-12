@@ -793,7 +793,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def export_3d_scatter_animation(
-        set_progress: callable,
+        set_progress: Callable,
         btn: int,
         case: str,
         session_id: str,
