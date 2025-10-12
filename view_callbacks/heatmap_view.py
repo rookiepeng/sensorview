@@ -132,8 +132,16 @@ def get_heatmap_view_callbacks(app: dash.Dash) -> None:
             }
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            # Return empty heatmap if config is not available
+            heat_fig = {"data": [{"type": "histogram2dcontour", "x": []}], "layout": {}}
+            return {"heatmap": heat_fig}
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            # Return empty heatmap if config is not available
+            heat_fig = {"data": [{"type": "histogram2dcontour", "x": []}], "layout": {}}
+            return {"heatmap": heat_fig}
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]

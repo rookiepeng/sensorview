@@ -44,12 +44,13 @@ Website: https://zpeng.me
 License: GPL-3.0
 """
 
+from typing import Dict, List, Union, Callable
 import json
 import os
 import datetime
 
 import dash
-from dash import dcc
+from dash.dcc import send_file  # pyright: ignore[reportPrivateImportUsage]
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import plotly.io as pio
@@ -73,6 +74,67 @@ from viz.graph_layout import get_scatter3d_layout
 
 from process_frame import process_overlay_frame
 from process_frame import process_single_frame
+
+# Common state definitions to reduce repetition
+COMMON_STATE = {
+    "session_id": State("session-id", "data"),
+    "file": State("current-file", "data"),
+    "file_list": State("file-add", "value"),
+    "c_key": State("c-picker-3d", "value"),
+    "size_vary": State("size-vary-switch", "value"),
+    "darkmode": State("darkmode-switch", "value"),
+}
+
+FILTER_STATE = {
+    "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
+    "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
+    "visible_list": State("visible-picker", "value"),
+}
+
+ANIMATION_STATE = {
+    "slider_arg": State("slider-frame", "value"),
+    "ispaused": State("interval-component", "disabled"),
+    "decay": State("decay-slider", "value"),
+}
+
+VISUAL_STATE = {
+    "colormap": State("colormap-3d", "value"),
+    "overlay_enable": State("overlay-switch", "value"),
+}
+
+PICKER_3D_STATE = {
+    "slider_picker_3d": State("slider-picker-3d", "value"),
+    "x_picker_3d": State("x-picker-3d", "value"),
+    "y_picker_3d": State("y-picker-3d", "value"),
+    "z_picker_3d": State("z-picker-3d", "value"),
+    "x_ref_picker_3d": State("x-ref-picker-3d", "value"),
+    "y_ref_picker_3d": State("y-ref-picker-3d", "value"),
+    "z_ref_picker_3d": State("z-ref-picker-3d", "value"),
+}
+
+# Common input definitions
+FILTER_INPUTS = {
+    "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
+    "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
+    "visible_list": Input("visible-picker", "value"),
+}
+
+PICKER_3D_INPUTS = {
+    "slider_picker_3d": Input("slider-picker-3d", "value"),
+    "x_picker_3d": Input("x-picker-3d", "value"),
+    "y_picker_3d": Input("y-picker-3d", "value"),
+    "z_picker_3d": Input("z-picker-3d", "value"),
+    "x_ref_picker_3d": Input("x-ref-picker-3d", "value"),
+    "y_ref_picker_3d": Input("y-ref-picker-3d", "value"),
+    "z_ref_picker_3d": Input("z-ref-picker-3d", "value"),
+}
+
+TRIGGER_INPUTS = {
+    "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
+    "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+    "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
+    "unused_file_loaded": Input("file-loaded-trigger", "data"),
+}
 
 
 def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
@@ -125,62 +187,61 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "overlay_enable": Input("overlay-switch", "value"),
         },
         state={
-            "decay": State("decay-slider", "value"),
-            "slider_arg": State("slider-frame", "value"),
-            "ispaused": State("interval-component", "disabled"),
-            "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
-            "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
-            "colormap": State("colormap-3d", "value"),
-            "visible_list": State("visible-picker", "value"),
-            "c_key": State("c-picker-3d", "value"),
-            "size_vary": State("size-vary-switch", "value"),
-            "darkmode": State("darkmode-switch", "value"),
-            "session_id": State("session-id", "data"),
-            "file": State("current-file", "data"),
-            "file_list": State("file-add", "value"),
+            **ANIMATION_STATE,
+            **FILTER_STATE,
+            **VISUAL_STATE,
+            **COMMON_STATE,
         },
         prevent_initial_call=True,
     )
     def slider_change_callback(
+        # Input parameters (ordered by input definition)
         unused_remote_trigger: int,
-        slider_arg: int,
-        cat_values: list,
-        num_values: list,
-        ispaused: bool,
-        colormap: str,
-        visible_list: list,
-        c_key: str,
-        size_vary: str,
         overlay_enable: list,
+        # Animation state parameters
+        slider_arg: int,
+        ispaused: bool,
         decay: int,
-        darkmode: list,
+        # Filter state parameters
+        cat_values: Dict[str, List[str]],
+        num_values: List[Union[float, int]],
+        visible_list: list,
+        # Visual state parameters
+        colormap: str,
+        # Common state parameters
         session_id: str,
         file: str,
         file_list: list,
+        c_key: str,
+        size_vary: str,
+        darkmode: list,
     ) -> dict:
         """
         Update the 3D scatter plot when slider position changes.
 
         Args:
             unused_remote_trigger (int): Remote figure trigger count
+            overlay_enable (list): Overlay mode enable state
             slider_arg (int): Current slider position
+            ispaused (bool): Animation pause state
+            decay (int): Number of past frames to show
             cat_values (list): Selected categorical filter values
             num_values (list): Selected numerical filter values
-            ispaused (bool): Animation pause state
-            colormap (str): Selected colormap name
             visible_list (list): List of visible elements
-            c_key (str): Selected color key
-            overlay_enable (list): Overlay mode enable state
-            decay (int): Number of past frames to show
-            darkmode (list): Dark mode enable state
+            colormap (str): Selected colormap name
             session_id (str): Session identifier
             file (str): Current file path
             file_list (list): List of all file paths
+            c_key (str): Selected color key
+            size_vary (str): Size variation enable state
+            darkmode (list): Dark mode enable state
 
         Returns:
             dict: Updated scatter plot figure data
         """
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            raise PreventUpdate
 
         if overlay_enable:
             fig = process_overlay_frame(
@@ -191,7 +252,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 session_id,
                 file,
                 file_list,
@@ -204,7 +265,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 decay,
                 session_id,
                 file,
@@ -291,7 +352,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         prevent_initial_call=True,
     )
-    def size_vary_callback(size_vary: list, fig: dict, session_id: str, c_key: str) -> dict:
+    def size_vary_callback(
+        size_vary: list, fig: dict, session_id: str, c_key: str
+    ) -> dict:
         """
         Toggle size variation for the 3D scatter plot.
 
@@ -304,6 +367,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         """
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None or "keys" not in config:
+            raise PreventUpdate
         keys_dict = config["keys"]
 
         ctype = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
@@ -362,15 +427,25 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             PreventUpdate: If click-to-hide is not enabled
         """
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-        if click_hide:
-            if visible_table["_VIS_"][click_data["points"][0]["id"]] == "visible":
-                visible_table.at[click_data["points"][0]["id"], "_VIS_"] = "hidden"
-            else:
-                visible_table.at[click_data["points"][0]["id"], "_VIS_"] = "visible"
+        if click_hide and visible_table is not None and click_data is not None:
+            point_id = (
+                click_data.get("points", [{}])[0].get("id")
+                if click_data.get("points")
+                else None
+            )
+            if (
+                point_id is not None
+                and "_VIS_" in visible_table
+                and point_id in visible_table["_VIS_"]
+            ):
+                if visible_table["_VIS_"][point_id] == "visible":
+                    visible_table.at[point_id, "_VIS_"] = "hidden"
+                else:
+                    visible_table.at[point_id, "_VIS_"] = "visible"
 
-            cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
+                cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
-            return {"trigger": trigger_input + 1}
+                return {"trigger": trigger_input + 1}
 
         raise PreventUpdate
 
@@ -383,33 +458,15 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             ),
         },
         inputs={
-            "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
-            "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
-            "visible_list": Input("visible-picker", "value"),
-            "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
+            **FILTER_INPUTS,  # cat_values, num_values, visible_list
+            **PICKER_3D_INPUTS,  # slider_picker_3d, x_picker_3d, etc.
+            **TRIGGER_INPUTS,  # unused triggers
             "c_key": Input("c-picker-3d", "value"),
-            "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
-            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
-            "unused_file_loaded": Input("file-loaded-trigger", "data"),
-            "slider_picker_3d": Input("slider-picker-3d", "value"),
-            "x_picker_3d": Input("x-picker-3d", "value"),
-            "y_picker_3d": Input("y-picker-3d", "value"),
-            "z_picker_3d": Input("z-picker-3d", "value"),
-            "x_ref_picker_3d": Input("x-ref-picker-3d", "value"),
-            "y_ref_picker_3d": Input("y-ref-picker-3d", "value"),
-            "z_ref_picker_3d": Input("z-ref-picker-3d", "value"),
         },
         state={
-            "ispaused": State("interval-component", "disabled"),
-            "size_vary": State("size-vary-switch", "value"),
-            "slider_arg": State("slider-frame", "value"),
-            "overlay_enable": State("overlay-switch", "value"),
-            "decay": State("decay-slider", "value"),
-            "colormap": State("colormap-3d", "value"),
-            "darkmode": State("darkmode-switch", "value"),
-            "session_id": State("session-id", "data"),
-            "file": State("current-file", "data"),
-            "file_list": State("file-add", "value"),
+            **ANIMATION_STATE,  # ispaused, slider_arg, decay
+            **VISUAL_STATE,  # overlay_enable, colormap
+            **COMMON_STATE,  # size_vary, darkmode, session_id, file, file_list
             "trigger_val": State("background-trigger", "data"),
             "data_path": State("data-path", "value"),
             "case": State("test-case", "value"),
@@ -417,18 +474,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def regenerate_figure_callback(
-        cat_values: list,
-        num_values: list,
+        # Filter inputs
+        cat_values: Dict[str, List[str]],
+        num_values: List[Union[float, int]],
         visible_list: list,
-        unused_vistable_trigger: int,
-        ispaused: bool,
-        slider_arg: int,
-        c_key: str,
-        size_vary: str,
-        overlay_enable: list,
-        unused_left_hide_trigger: int,
-        unused_right_hide_trigger: int,
-        unused_file_loaded: int,
+        # Picker 3D inputs
         slider_picker_3d: str,
         x_picker_3d: str,
         y_picker_3d: str,
@@ -436,12 +486,27 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         x_ref_picker_3d: str,
         y_ref_picker_3d: str,
         z_ref_picker_3d: str,
+        # Trigger inputs
+        unused_vistable_trigger: int,
+        unused_left_hide_trigger: int,
+        unused_right_hide_trigger: int,
+        unused_file_loaded: int,
+        # Other inputs
+        c_key: str,
+        # Animation state
+        ispaused: bool,
+        slider_arg: int,
         decay: int,
+        # Visual state
+        overlay_enable: list,
         colormap: str,
+        # Common state
+        size_vary: str,
         darkmode: list,
         session_id: str,
         file: str,
         file_list: list,
+        # Additional state
         trigger_val: int,
         data_path: str,
         case: str,
@@ -453,21 +518,31 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             cat_values (list): Selected categorical filter values
             num_values (list): Selected numerical filter values
             visible_list (list): List of visible elements
+            slider_picker_3d (str): Selected slider for 3D plot
+            x_picker_3d (str): Selected x-axis for 3D plot
+            y_picker_3d (str): Selected y-axis for 3D plot
+            z_picker_3d (str): Selected z-axis for 3D plot
+            x_ref_picker_3d (str): Selected x-reference for 3D plot
+            y_ref_picker_3d (str): Selected y-reference for 3D plot
+            z_ref_picker_3d (str): Selected z-reference for 3D plot
             unused_vistable_trigger (int): Visibility table trigger
-            ispaused (bool): Animation pause state
-            slider_arg (int): Current slider position
-            c_key (str): Selected color key
-            overlay_enable (list): Overlay mode enable state
             unused_left_hide_trigger (int): Left hide trigger
             unused_right_hide_trigger (int): Right hide trigger
             unused_file_loaded (int): File loaded trigger
+            c_key (str): Selected color key
+            ispaused (bool): Animation pause state
+            slider_arg (int): Current slider position
             decay (int): Number of past frames to show
+            overlay_enable (list): Overlay mode enable state
             colormap (str): Selected colormap name
+            size_vary (str): Size variation enable state
             darkmode (list): Dark mode enable state
             session_id (str): Session identifier
             file (str): Current file path
             file_list (list): List of all file paths
             trigger_val (int): Current trigger value
+            data_path (str): Data path for configuration
+            case (str): Test case name
 
         Returns:
             dict: Updated figure data and trigger values
@@ -478,6 +553,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         # save filter key word arguments to Redis
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            filter_kwargs = {}
         filter_kwargs["num_values"] = num_values
         filter_kwargs["cat_values"] = cat_values
         cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
@@ -487,6 +564,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         # get config from Redis
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            raise PreventUpdate
         config["slider"] = slider_picker_3d
         config["x_3d"] = x_picker_3d
         config["y_3d"] = y_picker_3d
@@ -510,7 +589,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 session_id,
                 file,
                 file_list,
@@ -523,7 +602,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 decay,
                 session_id,
                 file,
@@ -547,9 +626,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "trigger_idx": Input("background-trigger", "data"),
         },
         state={
-            "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
-            "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
-            "visible_list": State("visible-picker", "value"),
+            **FILTER_STATE,  # cat_values, num_values, visible_list
             "c_key": State("c-picker-3d", "value"),
             "session_id": State("session-id", "data"),
             "file": State("current-file", "data"),
@@ -564,7 +641,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def regenerate_figure_background_callback(
-        set_progress: callable,
+        set_progress: Callable,
         trigger_idx: int,
         cat_values: list,
         num_values: list,
@@ -605,16 +682,19 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None or "keys" not in config:
+            raise PreventUpdate
         keys_dict = config["keys"]
 
         slider_label = keys_dict[config["slider"]]["description"]
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-        # frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
 
         dataset = load_data(file_list)
         dataset[config["slider"]] = dataset[config["slider"]].astype(int)
@@ -626,17 +706,19 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         # prepare figure key word arguments
         fig_kwargs = prepare_figure_kwargs(
             config,
-            frame_list,
-            c_key,
-            False,
             num_keys,
             num_values,
+            c_key,
+            False,
+            frame_list,
         )
 
         for slider_arg, frame_idx in enumerate(frame_list):
-            file = json.loads(file_list[0])
+            file_dict = json.loads(file_list[0])
             img_path = os.path.join(
-                file["path"], file["name"][0:-4], str(frame_list[slider_arg]) + ".jpg"
+                file_dict["path"],
+                file_dict["name"][0:-4],
+                str(frame_list[slider_arg]) + ".jpg",
             )
 
             # encode image frame
@@ -776,7 +858,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def export_3d_scatter_animation(
-        set_progress: callable,
+        set_progress: Callable,
         btn: int,
         case: str,
         session_id: str,
@@ -819,24 +901,30 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             os.makedirs("data/" + case + "/images")
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None or "keys" not in config:
+            raise PreventUpdate
         keys_dict = config["keys"]
         c_type = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         num_values = filter_kwargs["num_values"]
         cat_values = filter_kwargs["cat_values"]
 
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        if frame_list is None:
+            raise PreventUpdate
 
         fig_kwargs = prepare_figure_kwargs(
             config,
-            frame_list,
-            c_key,
-            bool(size_vary),
             num_keys,
             num_values,
+            c_key,
+            bool(size_vary),
+            frame_list,
         )
 
         if darkmode:
@@ -862,13 +950,15 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         img_list = []
 
+        file_dict = json.loads(file_list[0])
         for _, f_val in enumerate(frame_list):
-            file = json.loads(file_list[0])
             img_list.append(
-                os.path.join(file["path"], file["name"][0:-4], str(f_val) + ".jpg")
+                os.path.join(
+                    file_dict["path"], file_dict["name"][0:-4], str(f_val) + ".jpg"
+                )
             )
 
-        fig_kwargs["title"] = file["name"][0:-4]
+        fig_kwargs["title"] = file_dict["name"][0:-4]
 
         fig_kwargs["height"] = 750
 
@@ -882,7 +972,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 frame_key=config["slider"],
                 img_list=img_list,
                 colormap=colormap,
-                dark_mode=darkmode,
+                dark_mode=bool(darkmode),
                 **fig_kwargs
             )
         )
@@ -890,13 +980,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + timestamp + "_" + file["name"][0:-4] + "_3dview.html"
+        file_name = "temp/" + timestamp + "_" + fig_kwargs["title"] + "_3dview.html"
 
         fig.write_html(file_name)
 
         set_progress(["hide"])
 
-        return {"download": dcc.send_file(file_name)}
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -934,7 +1024,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         temp_fig = go.Figure(fig)
         temp_fig.write_html(file_name)
 
-        return {"download": dcc.send_file(file_name)}
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -972,7 +1062,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         temp_fig = go.Figure(fig)
         temp_fig.write_image(file_name, scale=2)
 
-        return {"download": dcc.send_file(file_name)}
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1008,6 +1098,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
@@ -1026,19 +1118,19 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             visible_table,
             visible_list,
         )
-        file = json.loads(file)
+        file_dict = json.loads(file)
 
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + file["name"][0:-4] + "_" + timestamp + ".csv"
+        file_name = "temp/" + file_dict["name"][0:-4] + "_" + timestamp + ".csv"
 
         filtered_table.to_csv(
             file_name,
             index=False,
         )
 
-        return {"download": dcc.send_file(file_name)}
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
@@ -1074,6 +1166,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
@@ -1081,9 +1175,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         # file = json.loads(file)
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        if frame_list is None:
+            raise PreventUpdate
         data = cache_get(
             session_id, CACHE_KEYS["frame_data"], str(frame_list[slider_arg])
         )
+        if data is None:
+            raise PreventUpdate
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
         filtered_table = filter_all(
@@ -1095,20 +1193,16 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             visible_table,
             visible_list,
         )
-        file = json.loads(file)
+        file_dict = json.loads(file)
 
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + file["name"][0:-4] + "_" + timestamp + ".csv"
+        file_name = "temp/" + file_dict["name"][0:-4] + "_" + timestamp + ".csv"
 
         filtered_table.to_csv(
             file_name,
             index=False,
         )
 
-        return {"download": dcc.send_file(file_name)}
-
-    @app.callback(Output("relayout-data", "data"), Input("scatter3d", "relayoutData"))
-    def display_relayout_data(relayout_data):
-        return relayout_data
+        return {"download": send_file(file_name)}

@@ -136,8 +136,12 @@ def get_violin_view_callbacks(app: dash.Dash) -> None:
             return {"violin": violin_fig}
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            raise PreventUpdate
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]

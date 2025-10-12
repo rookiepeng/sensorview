@@ -59,7 +59,7 @@ def get_ref_scatter3d_data(
     x_key: str,
     y_key: str,
     z_key: Optional[str] = None,
-    name: str = "Origin",
+    name: Optional[str] = "Origin",
 ) -> Dict[str, Any]:
     """
     Generate reference data for a 3D scatter plot.
@@ -69,7 +69,7 @@ def get_ref_scatter3d_data(
         x_key: Column name for x-axis coordinates.
         y_key: Column name for y-axis coordinates.
         z_key: Optional column name for z-axis coordinates.
-        name: Label for the reference point in the plot.
+        name: Optional label for the reference point in the plot.
 
     Returns:
         Dictionary containing plot data with coordinates, styling, and hover information.
@@ -157,7 +157,7 @@ def get_scatter3d_data(
             if hover and c_key in hover
             else kwargs.get("c_type", "numerical")
         ),
-        "opacity": kwargs.get("opacity", 0.8),
+        "opacity": kwargs.get("opacity", 1.0),
         "showlegend": kwargs.get("showlegend", True),
         "marker_size": 3,
         "line_color": "#757575",
@@ -268,13 +268,13 @@ def get_scatter3d_data(
         result["hover_strings"] = [hover_text.tolist()]
     else:
         grouped = data_frame.groupby(c_key)
-        num_groups = len(grouped)
-        for i, (name, group) in enumerate(sorted(grouped)):
+        sorted_groups = sorted(grouped)
+        num_groups = len(sorted_groups) if enable_size_vary else 0
+
+        for i, (name, group) in enumerate(sorted_groups):
             hover_text = process_hover(group)
-            if enable_size_vary:
-                size_offset = num_groups - 1 - i
-            else:
-                size_offset = 0
+            size_offset = (num_groups - 1 - i) if enable_size_vary else 0
+
             result["scatter_data"].append(
                 create_scatter(group, str(name), size_offset=size_offset)
             )

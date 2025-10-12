@@ -53,11 +53,12 @@ Copyright (C) 2019 - PRESENT
 """
 
 import os
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, Union
 
 import json
 import base64
 import pandas as pd
+import numpy as np
 
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
@@ -105,18 +106,20 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
 
     data_list = []
     for _, f_dict in enumerate(file_list):
-        file = json.loads(f_dict)
+        file_dict = json.loads(f_dict)
 
-        if file["name"].endswith(".pkl"):
-            new_data = pd.read_pickle(os.path.join(file["path"], file["name"]))
+        if file_dict["name"].endswith(".pkl"):
+            new_data = pd.read_pickle(
+                os.path.join(file_dict["path"], file_dict["name"])
+            )
             # new_data = new_data.reset_index(drop=True)
 
-        elif file["name"].endswith(".csv"):
+        elif file_dict["name"].endswith(".csv"):
             new_data = pd.read_csv(
-                os.path.join(file["path"], file["name"]), engine="pyarrow"
+                os.path.join(file_dict["path"], file_dict["name"]), engine="pyarrow"
             )
         else:
-            raise ValueError(f"Unsupported file type: {file['name']}")
+            raise ValueError(f"Unsupported file type: {file_dict['name']}")
 
         data_list.append(new_data)
 
@@ -148,11 +151,14 @@ def load_image(img_path: str) -> Optional[str]:
 
 def prepare_figure_kwargs(
     config: Dict[str, Any],
-    frame_list: List[float],
-    c_key: str,
-    size_vary: bool,
+    # Data parameters
     num_keys: List[str],
     num_values: List[Tuple[float, float]],
+    # Color and visualization parameters
+    c_key: str,
+    size_vary: bool,
+    # Animation parameters
+    frame_list: Union[List[float], "np.ndarray"],
     slider_arg: int = 0,
 ) -> Dict[str, Any]:
     """
@@ -160,129 +166,99 @@ def prepare_figure_kwargs(
 
     Args:
         config: Configuration dictionary containing plot settings.
-        frame_list: List of frame values for animation.
-        c_key: Key for color mapping.
         num_keys: List of numerical column names.
         num_values: List of (min, max) tuples for numerical values.
+        c_key: Key for color mapping.
+        size_vary: Whether to vary marker sizes based on groups.
+        frame_list: List of frame values for animation.
         slider_arg: Current slider position index.
 
     Returns:
         Dictionary containing all necessary arguments for plotting.
     """
     keys_dict = config["keys"]
-    # prepare figure key word arguments
-    fig_kwargs = {}
-    fig_kwargs["image"] = None
 
-    fig_kwargs["x_key"] = config.get("x_3d", num_keys[0])
-    fig_kwargs["x_label"] = keys_dict[fig_kwargs["x_key"]].get(
-        "description", fig_kwargs["x_key"]
-    )
-    fig_kwargs["y_key"] = config.get("y_3d", num_keys[1])
-    fig_kwargs["y_label"] = keys_dict[fig_kwargs["y_key"]].get(
-        "description", fig_kwargs["y_key"]
-    )
-    fig_kwargs["z_key"] = config.get("z_3d", num_keys[2])
-    fig_kwargs["z_label"] = keys_dict[fig_kwargs["z_key"]].get(
-        "description", fig_kwargs["z_key"]
-    )
-    fig_kwargs["c_key"] = c_key
-    fig_kwargs["c_label"] = keys_dict[fig_kwargs["c_key"]].get(
-        "description", fig_kwargs["c_key"]
-    )
-    fig_kwargs["x_ref"] = config.get("x_ref", None)
-    if fig_kwargs["x_ref"] == "None":
-        fig_kwargs["x_ref"] = None
-    fig_kwargs["y_ref"] = config.get("y_ref", None)
-    if fig_kwargs["y_ref"] == "None":
-        fig_kwargs["y_ref"] = None
-    fig_kwargs["z_ref"] = config.get("z_ref", None)
-    if fig_kwargs["z_ref"] == "None":
-        fig_kwargs["z_ref"] = None
+    def normalize_ref_value(value: Optional[str]) -> Optional[str]:
+        """Convert string 'None' to actual None value."""
+        return None if value == "None" else value
 
-    # set graph's range the same for all the frames
-    if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
-        fig_kwargs["x_range"] = [
-            min(
-                [
-                    num_values[num_keys.index(fig_kwargs["x_key"])][0],
-                    num_values[num_keys.index(fig_kwargs["x_ref"])][0],
-                ]
-            ),
-            max(
-                [
-                    num_values[num_keys.index(fig_kwargs["x_key"])][1],
-                    num_values[num_keys.index(fig_kwargs["x_ref"])][1],
-                ]
-            ),
-        ]
-        fig_kwargs["y_range"] = [
-            min(
-                [
-                    num_values[num_keys.index(fig_kwargs["y_key"])][0],
-                    num_values[num_keys.index(fig_kwargs["y_ref"])][0],
-                ]
-            ),
-            max(
-                [
-                    num_values[num_keys.index(fig_kwargs["y_key"])][1],
-                    num_values[num_keys.index(fig_kwargs["y_ref"])][1],
-                ]
-            ),
-        ]
-    else:
-        fig_kwargs["x_range"] = [
-            num_values[num_keys.index(fig_kwargs["x_key"])][0],
-            num_values[num_keys.index(fig_kwargs["x_key"])][1],
-        ]
-        fig_kwargs["y_range"] = [
-            num_values[num_keys.index(fig_kwargs["y_key"])][0],
-            num_values[num_keys.index(fig_kwargs["y_key"])][1],
-        ]
+    def get_axis_range(key: str, ref_key: Optional[str] = None) -> List[float]:
+        """Calculate axis range considering reference key if provided."""
+        key_idx = num_keys.index(key)
+        base_range = [num_values[key_idx][0], num_values[key_idx][1]]
 
-    if fig_kwargs["z_ref"] is not None:
-        fig_kwargs["z_range"] = [
-            min(
-                [
-                    num_values[num_keys.index(fig_kwargs["z_key"])][0],
-                    num_values[num_keys.index(fig_kwargs["z_ref"])][0],
-                ]
-            ),
-            max(
-                [
-                    num_values[num_keys.index(fig_kwargs["z_key"])][1],
-                    num_values[num_keys.index(fig_kwargs["z_ref"])][1],
-                ]
-            ),
-        ]
-    else:
-        fig_kwargs["z_range"] = [
-            num_values[num_keys.index(fig_kwargs["z_key"])][0],
-            num_values[num_keys.index(fig_kwargs["z_key"])][1],
-        ]
+        if ref_key is not None:
+            ref_idx = num_keys.index(ref_key)
+            ref_range = [num_values[ref_idx][0], num_values[ref_idx][1]]
+            return [min(base_range[0], ref_range[0]), max(base_range[1], ref_range[1])]
+        return base_range
 
-    if keys_dict[c_key].get("type", KEY_TYPES["NUM"]) == KEY_TYPES["NUM"]:
-        fig_kwargs["c_range"] = [
-            num_values[num_keys.index(c_key)][0],
-            num_values[num_keys.index(c_key)][1],
-        ]
+    # Initialize figure kwargs with basic settings
+    fig_kwargs = {
+        "image": None,
+        "ref_name": "Host Vehicle",
+        "size_vary": size_vary,
+    }
+
+    # Setup axis keys and labels
+    x_key = config.get("x_3d", num_keys[0])
+    y_key = config.get("y_3d", num_keys[1])
+    z_key = config.get("z_3d", num_keys[2])
+
+    fig_kwargs.update(
+        {
+            "x_key": x_key,
+            "x_label": keys_dict[x_key].get("description", x_key),
+            "y_key": y_key,
+            "y_label": keys_dict[y_key].get("description", y_key),
+            "z_key": z_key,
+            "z_label": keys_dict[z_key].get("description", z_key),
+        }
+    )
+
+    # Setup color mapping
+    fig_kwargs.update(
+        {
+            "c_key": c_key,
+            "c_label": keys_dict[c_key].get("description", c_key),
+            "c_type": keys_dict[c_key].get("type", KEY_TYPES["NUM"]),
+        }
+    )
+
+    # Setup reference points
+    x_ref = normalize_ref_value(config.get("x_ref"))
+    y_ref = normalize_ref_value(config.get("y_ref"))
+    z_ref = normalize_ref_value(config.get("z_ref"))
+
+    fig_kwargs.update(
+        {
+            "x_ref": x_ref,
+            "y_ref": y_ref,
+            "z_ref": z_ref,
+        }
+    )
+
+    # Calculate axis ranges
+    fig_kwargs.update(
+        {
+            "x_range": get_axis_range(x_key, x_ref if x_ref and y_ref else None),
+            "y_range": get_axis_range(y_key, y_ref if x_ref and y_ref else None),
+            "z_range": get_axis_range(z_key, z_ref),
+        }
+    )
+
+    # Setup color range
+    if fig_kwargs["c_type"] == KEY_TYPES["NUM"]:
+        c_idx = num_keys.index(c_key)
+        fig_kwargs["c_range"] = [num_values[c_idx][0], num_values[c_idx][1]]
     else:
         fig_kwargs["c_range"] = [0, 0]
 
+    # Setup plot name/title
     slider_label = keys_dict[config["slider"]]["description"]
     fig_kwargs["name"] = (
-        "Index: "
-        + str(slider_arg)
-        + " ("
-        + slider_label
-        + ": "
-        + str(frame_list[slider_arg])
-        + ")"
+        f"Index: {slider_arg} ({slider_label}: {frame_list[slider_arg]})"
     )
-
-    fig_kwargs["c_type"] = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
-    fig_kwargs["size_vary"] = size_vary
-    fig_kwargs["ref_name"] = "Host Vehicle"
 
     return fig_kwargs
 
@@ -404,21 +380,20 @@ def filter_all(
     Returns:
         Filtered DataFrame meeting all specified conditions.
     """
+    # Initialize condition as True for all rows
+    condition = pd.Series([True] * len(data), index=data.index)
+
+    # Apply numerical filters
     for f_idx, f_name in enumerate(num_list):
         if f_name not in data.columns:
             continue
 
-        if f_idx == 0:
-            condition = (data[f_name] >= num_values[f_idx][0]) & (
-                data[f_name] <= num_values[f_idx][1]
-            )
-        else:
-            condition = (
-                condition
-                & (data[f_name] >= num_values[f_idx][0])
-                & (data[f_name] <= num_values[f_idx][1])
-            )
+        condition = condition & (
+            (data[f_name] >= num_values[f_idx][0])
+            & (data[f_name] <= num_values[f_idx][1])
+        )
 
+    # Apply categorical filters
     for f_idx, f_name in enumerate(cat_list):
         if f_name not in data.columns:
             continue
@@ -427,17 +402,17 @@ def filter_all(
             condition = condition & False
             break
 
-        for val_idx, val in enumerate(cat_values[f_idx]):
-            if val_idx == 0:
-                val_condition = data[f_name] == val
-            else:
-                val_condition = val_condition | (data[f_name] == val)
+        val_condition = pd.Series([False] * len(data), index=data.index)
+        for val in cat_values[f_idx]:
+            val_condition = val_condition | (data[f_name] == val)
 
         condition = condition & val_condition
 
-    if len(visible_list) == 1:
-        condition = condition & (visible_table["_VIS_"] == visible_list[0])
-    elif not visible_list:
-        condition = condition & False
+    # Apply visibility filter
+    if visible_list is not None and visible_table is not None:
+        if len(visible_list) == 1:
+            condition = condition & (visible_table["_VIS_"] == visible_list[0])
+        elif not visible_list:
+            condition = condition & False
 
     return data.loc[condition]
