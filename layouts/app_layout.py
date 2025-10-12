@@ -99,8 +99,16 @@ def get_app_layout():
             dcc.Store(id="local-file-selection", storage_type="local"),
             dcc.Store(id="current-file"),
             dcc.Store(id="key-dict"),
-            dcc.Store(id="dark-template", data=pio.templates["plotly_dark"]),
-            dcc.Store(id="light-template", data=pio.templates["plotly"]),
+            dcc.Store(
+                id="dark-template",
+                data=pio.templates[
+                    "plotly_dark"
+                ],  # pyright: ignore[reportArgumentType]
+            ),
+            dcc.Store(
+                id="light-template",
+                data=pio.templates["plotly"],  # pyright: ignore[reportArgumentType]
+            ),
             dcc.Store(id="trigger-remote-figure", data=0),
             dcc.Interval(
                 id="interval-buffer",

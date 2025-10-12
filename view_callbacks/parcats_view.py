@@ -134,6 +134,10 @@ def get_parcats_view_callbacks(app: dash.Dash) -> None:
             }
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            parallel_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
+            return {"parallel": parallel_fig}
+        
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
