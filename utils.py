@@ -153,7 +153,7 @@ def prepare_figure_kwargs(
     config: Dict[str, Any],
     # Data parameters
     num_keys: List[str],
-    num_values: List[Union[float, int]],
+    num_values: List[Tuple[float, float]],
     # Color and visualization parameters
     c_key: str,
     size_vary: bool,
