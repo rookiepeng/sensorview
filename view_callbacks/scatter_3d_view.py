@@ -181,6 +181,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             dict: Updated scatter plot figure data
         """
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            raise PreventUpdate
 
         if overlay_enable:
             fig = process_overlay_frame(
@@ -291,7 +293,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         prevent_initial_call=True,
     )
-    def size_vary_callback(size_vary: list, fig: dict, session_id: str, c_key: str) -> dict:
+    def size_vary_callback(
+        size_vary: list, fig: dict, session_id: str, c_key: str
+    ) -> dict:
         """
         Toggle size variation for the 3D scatter plot.
 
@@ -304,11 +308,16 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         """
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None or "keys" not in config:
+            raise PreventUpdate
         keys_dict = config["keys"]
 
         ctype = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
 
-        if config.get("x_ref", None) is not None and config.get("y_ref", None) is not None:
+        if (
+            config.get("x_ref", None) is not None
+            and config.get("y_ref", None) is not None
+        ):
             data_length = len(fig["data"]) - 1
         else:
             data_length = len(fig["data"])
@@ -359,15 +368,25 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             PreventUpdate: If click-to-hide is not enabled
         """
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-        if click_hide:
-            if visible_table["_VIS_"][click_data["points"][0]["id"]] == "visible":
-                visible_table.at[click_data["points"][0]["id"], "_VIS_"] = "hidden"
-            else:
-                visible_table.at[click_data["points"][0]["id"], "_VIS_"] = "visible"
+        if click_hide and visible_table is not None and click_data is not None:
+            point_id = (
+                click_data.get("points", [{}])[0].get("id")
+                if click_data.get("points")
+                else None
+            )
+            if (
+                point_id is not None
+                and "_VIS_" in visible_table
+                and point_id in visible_table["_VIS_"]
+            ):
+                if visible_table["_VIS_"][point_id] == "visible":
+                    visible_table.at[point_id, "_VIS_"] = "hidden"
+                else:
+                    visible_table.at[point_id, "_VIS_"] = "visible"
 
-            cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
+                cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
-            return {"trigger": trigger_input + 1}
+                return {"trigger": trigger_input + 1}
 
         raise PreventUpdate
 
@@ -623,11 +642,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         # prepare figure key word arguments
         fig_kwargs = prepare_figure_kwargs(
             config,
-            frame_list,
-            c_key,
-            False,
             num_keys,
             num_values,
+            c_key,
+            False,
+            frame_list,
         )
 
         for slider_arg, frame_idx in enumerate(frame_list):
@@ -829,11 +848,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         fig_kwargs = prepare_figure_kwargs(
             config,
-            frame_list,
-            c_key,
-            bool(size_vary),
             num_keys,
             num_values,
+            c_key,
+            bool(size_vary),
+            frame_list,
         )
 
         if darkmode:
