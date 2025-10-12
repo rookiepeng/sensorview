@@ -44,6 +44,7 @@ Website: https://zpeng.me
 License: GPL-3.0
 """
 
+from typing import Dict, List, Union, Any, Callable
 import json
 import os
 import datetime
@@ -144,8 +145,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     def slider_change_callback(
         unused_remote_trigger: int,
         slider_arg: int,
-        cat_values: list,
-        num_values: list,
+        cat_values: Dict[str, List[str]],
+        num_values: List[Union[float, int]],
         ispaused: bool,
         colormap: str,
         visible_list: list,
@@ -580,7 +581,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         prevent_initial_call=True,
     )
     def regenerate_figure_background_callback(
-        set_progress: callable,
+        set_progress: Callable,
         trigger_idx: int,
         cat_values: list,
         num_values: list,
