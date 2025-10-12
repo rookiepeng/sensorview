@@ -107,14 +107,20 @@ def process_single_frame(
 
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
-    cat_keys = filter_kwargs["cat_keys"]
-    num_keys = filter_kwargs["num_keys"]
+    if filter_kwargs is None:
+        cat_keys = []
+        num_keys = []
+    else:
+        cat_keys = filter_kwargs["cat_keys"]
+        num_keys = filter_kwargs["num_keys"]
 
     # get visibility table from Redis
     visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
     # get frame list from Redis
     frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+    if frame_list is None:
+        frame_list = []
 
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
