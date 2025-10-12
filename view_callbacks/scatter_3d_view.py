@@ -252,7 +252,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 session_id,
                 file,
                 file_list,
@@ -265,7 +265,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 decay,
                 session_id,
                 file,
@@ -475,8 +475,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     )
     def regenerate_figure_callback(
         # Filter inputs
-        cat_values: list,
-        num_values: list,
+        cat_values: Dict[str, List[str]],
+        num_values: List[Union[float, int]],
         visible_list: list,
         # Picker 3D inputs
         slider_picker_3d: str,
@@ -553,6 +553,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         # save filter key word arguments to Redis
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            filter_kwargs = {}
         filter_kwargs["num_values"] = num_values
         filter_kwargs["cat_values"] = cat_values
         cache_set(filter_kwargs, session_id, CACHE_KEYS["filter_kwargs"])
@@ -562,6 +564,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         # get config from Redis
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            raise PreventUpdate
         config["slider"] = slider_picker_3d
         config["x_3d"] = x_picker_3d
         config["y_3d"] = y_picker_3d
@@ -585,7 +589,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 session_id,
                 file,
                 file_list,
@@ -598,7 +602,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 colormap,
                 visible_list,
                 c_key,
-                bool(size_vary),
+                size_vary,
                 decay,
                 session_id,
                 file,
@@ -678,11 +682,15 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None or "keys" not in config:
+            raise PreventUpdate
         keys_dict = config["keys"]
 
         slider_label = keys_dict[config["slider"]]["description"]
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
 
@@ -1149,6 +1157,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
@@ -1156,9 +1166,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         # file = json.loads(file)
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        if frame_list is None:
+            raise PreventUpdate
         data = cache_get(
             session_id, CACHE_KEYS["frame_data"], str(frame_list[slider_arg])
         )
+        if data is None:
+            raise PreventUpdate
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
         filtered_table = filter_all(
