@@ -1206,3 +1206,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         )
 
         return {"download": send_file(file_name)}
+
+    @app.callback(Output("relayout-data", "data"), Input("scatter3d", "relayoutData"))
+    def display_relayout_data(relayout_data):
+        return relayout_data
