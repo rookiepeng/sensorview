@@ -65,7 +65,7 @@ Website: https://zpeng.me
 License: GPL-3.0
 """
 
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 import json
 import os
 import datetime
@@ -162,8 +162,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         ispaused: bool,
         decay: int,
         # Filter state parameters
-        cat_values: Dict[str, List[str]],
-        num_values: List[Union[float, int]],
+        cat_values: List[List[str]],
+        num_values: List[Tuple[float, float]],
         visible_list: list,
         # Visual state parameters
         colormap: str,
@@ -452,8 +452,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     )
     def regenerate_figure_callback(
         # Filter inputs
-        cat_values: Dict[str, List[str]],
-        num_values: List[Union[float, int]],
+        cat_values: List[List[str]],
+        num_values: List[Tuple[float, float]],
         visible_list: list,
         # Picker 3D inputs
         slider_picker_3d: str,

@@ -47,7 +47,7 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Tuple, Any
 import json
 import os
 
@@ -69,8 +69,8 @@ from app_config import CACHE_KEYS
 
 def process_single_frame(
     config: Dict[str, Any],
-    cat_values: Dict[str, List[str]],
-    num_values: List[Union[float, int]],
+    cat_values: List[List[str]],
+    num_values: List[Tuple[float, float]],
     colormap: str,
     visible_list: List[str],
     c_key: str,
@@ -133,9 +133,9 @@ def process_single_frame(
         frame_idx,
     )
 
-    file = json.loads(file)
+    file_dict = json.loads(file)
     img_path = os.path.join(
-        file["path"], file["name"][0:-4], str(frame_list[frame_idx]) + ".jpg"
+        file_dict["path"], file_dict["name"][0:-4], str(frame_list[frame_idx]) + ".jpg"
     )
 
     # encode image frame
@@ -143,6 +143,9 @@ def process_single_frame(
 
     # get a single frame data from Redis
     data = cache_get(session_id, CACHE_KEYS["frame_data"], str(frame_list[frame_idx]))
+
+    if data is None:
+        raise ValueError(f"No data found for frame {frame_list[frame_idx]}")
 
     filterd_frame = filter_all(
         data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
@@ -154,12 +157,12 @@ def process_single_frame(
 
     if load_hover and hover_list:
         for idx, hover_str in enumerate(hover_list):
-            fig[idx]["text"] = hover_str
-            fig[idx]["hovertemplate"] = "%{text}"
+            fig[idx]["text"] = hover_str  # type: ignore
+            fig[idx]["hovertemplate"] = "%{text}"  # type: ignore
 
     if fig_kwargs["c_type"] == "numerical":
         if "marker" in fig[0]:
-            fig[0]["marker"]["colorscale"] = colormap
+            fig[0]["marker"]["colorscale"] = colormap  # type: ignore
 
     if decay > 0:
         for val in range(1, decay + 1):
@@ -192,15 +195,14 @@ def process_single_frame(
                 result = get_scatter3d_data(frame_temp, hover=keys_dict, **fig_kwargs)
                 new_fig = result["scatter_data"]
                 hover_list = result["hover_strings"]
-
                 if load_hover and hover_list:
                     for idx, hover_str in enumerate(hover_list):
-                        new_fig[idx]["text"] = hover_str
-                        new_fig[idx]["hovertemplate"] = "%{text}"
+                        new_fig[idx]["text"] = hover_str  # type: ignore
+                        new_fig[idx]["hovertemplate"] = "%{text}"  # type: ignore
 
                 if fig_kwargs["c_type"] == "numerical":
                     if "marker" in new_fig[0]:
-                        new_fig[0]["marker"]["colorscale"] = colormap
+                        new_fig[0]["marker"]["colorscale"] = colormap  # type: ignore
 
                 fig = fig + new_fig
 
@@ -230,8 +232,8 @@ def process_single_frame(
 def process_overlay_frame(
     frame_idx: int,
     config: Dict[str, Any],
-    cat_values: Dict[str, List[str]],
-    num_values: List[Union[float, int]],
+    cat_values: List[List[str]],
+    num_values: List[Tuple[float, float]],
     colormap: str,
     visible_list: List[str],
     c_key: str,
