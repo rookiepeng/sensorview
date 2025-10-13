@@ -167,13 +167,21 @@ def process_single_frame(
     if decay > 0:
         for val in range(1, decay + 1):
             if (frame_idx - val) >= 0:
+                # get cached frame data
+                cached_data = cache_get(
+                    session_id,
+                    CACHE_KEYS["frame_data"],
+                    str(frame_list[frame_idx - val]),
+                )
+                if cached_data is None:
+                    raise ValueError(
+                        f"No cached data found for decay frame "
+                        f"{frame_list[frame_idx - val]} (session: {session_id})"
+                    )
+
                 # filter the data
                 frame_temp = filter_all(
-                    cache_get(
-                        session_id,
-                        CACHE_KEYS["frame_data"],
-                        str(frame_list[frame_idx - val]),
-                    ),
+                    cached_data,
                     num_keys,
                     num_values,
                     cat_keys,
@@ -263,14 +271,20 @@ def process_overlay_frame(
     """
     # save filter key word arguments to Redis
     filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
-    cat_keys = filter_kwargs["cat_keys"]
-    num_keys = filter_kwargs["num_keys"]
+    if filter_kwargs is None:
+        cat_keys = []
+        num_keys = []
+    else:
+        cat_keys = filter_kwargs["cat_keys"]
+        num_keys = filter_kwargs["num_keys"]
 
     # get visibility table from Redis
     visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
     # get frame list from Redis
     frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+    if frame_list is None:
+        frame_list = []
 
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(

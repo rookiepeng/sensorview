@@ -65,7 +65,7 @@ Website: https://zpeng.me
 License: GPL-3.0
 """
 
-from typing import Dict, List, Tuple, Union
+from typing import List, Tuple
 import json
 import os
 import datetime
