@@ -446,7 +446,7 @@ def get_scatter_2d_right_view_callbacks(app):
             s_data = pd.DataFrame(selected_data["points"])
             if s_data.empty or "id" not in s_data.columns:
                 raise PreventUpdate
-            
+
             selected_ids = s_data["id"].values
         except (KeyError, ValueError, TypeError):
             raise PreventUpdate
@@ -454,12 +454,13 @@ def get_scatter_2d_right_view_callbacks(app):
         # Toggle visibility for selected points efficiently
         mask = visible_table.index.isin(selected_ids)
         current_visibility = visible_table.loc[mask, "_VIS_"]
-        
+
         # Toggle: visible -> hidden, hidden -> visible
-        visible_table.loc[mask, "_VIS_"] = current_visibility.map({
-            "visible": "hidden",
-            "hidden": "visible"
-        }).fillna(current_visibility)  # Keep original value if not visible/hidden
+        visible_table.loc[mask, "_VIS_"] = current_visibility.map(
+            {"visible": "hidden", "hidden": "visible"}
+        ).fillna(
+            current_visibility
+        )  # Keep original value if not visible/hidden
 
         cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
