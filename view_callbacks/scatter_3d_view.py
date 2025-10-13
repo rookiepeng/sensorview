@@ -75,67 +75,6 @@ from viz.graph_layout import get_scatter3d_layout
 from process_frame import process_overlay_frame
 from process_frame import process_single_frame
 
-# Common state definitions to reduce repetition
-COMMON_STATE = {
-    "session_id": State("session-id", "data"),
-    "file": State("current-file", "data"),
-    "file_list": State("file-add", "value"),
-    "c_key": State("c-picker-3d", "value"),
-    "size_vary": State("size-vary-switch", "value"),
-    "darkmode": State("darkmode-switch", "value"),
-}
-
-FILTER_STATE = {
-    "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
-    "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
-    "visible_list": State("visible-picker", "value"),
-}
-
-ANIMATION_STATE = {
-    "slider_arg": State("slider-frame", "value"),
-    "ispaused": State("interval-component", "disabled"),
-    "decay": State("decay-slider", "value"),
-}
-
-VISUAL_STATE = {
-    "colormap": State("colormap-3d", "value"),
-    "overlay_enable": State("overlay-switch", "value"),
-}
-
-PICKER_3D_STATE = {
-    "slider_picker_3d": State("slider-picker-3d", "value"),
-    "x_picker_3d": State("x-picker-3d", "value"),
-    "y_picker_3d": State("y-picker-3d", "value"),
-    "z_picker_3d": State("z-picker-3d", "value"),
-    "x_ref_picker_3d": State("x-ref-picker-3d", "value"),
-    "y_ref_picker_3d": State("y-ref-picker-3d", "value"),
-    "z_ref_picker_3d": State("z-ref-picker-3d", "value"),
-}
-
-# Common input definitions
-FILTER_INPUTS = {
-    "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
-    "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
-    "visible_list": Input("visible-picker", "value"),
-}
-
-PICKER_3D_INPUTS = {
-    "slider_picker_3d": Input("slider-picker-3d", "value"),
-    "x_picker_3d": Input("x-picker-3d", "value"),
-    "y_picker_3d": Input("y-picker-3d", "value"),
-    "z_picker_3d": Input("z-picker-3d", "value"),
-    "x_ref_picker_3d": Input("x-ref-picker-3d", "value"),
-    "y_ref_picker_3d": Input("y-ref-picker-3d", "value"),
-    "z_ref_picker_3d": Input("z-ref-picker-3d", "value"),
-}
-
-TRIGGER_INPUTS = {
-    "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
-    "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
-    "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
-    "unused_file_loaded": Input("file-loaded-trigger", "data"),
-}
-
 
 def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     """
@@ -187,10 +126,19 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "overlay_enable": Input("overlay-switch", "value"),
         },
         state={
-            **ANIMATION_STATE,
-            **FILTER_STATE,
-            **VISUAL_STATE,
-            **COMMON_STATE,
+            "slider_arg": State("slider-frame", "value"),
+            "ispaused": State("interval-component", "disabled"),
+            "decay": State("decay-slider", "value"),
+            "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
+            "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
+            "visible_list": State("visible-picker", "value"),
+            "colormap": State("colormap-3d", "value"),
+            "c_key": State("c-picker-3d", "value"),
+            "size_vary": State("size-vary-switch", "value"),
+            "darkmode": State("darkmode-switch", "value"),
+            "session_id": State("session-id", "data"),
+            "file": State("current-file", "data"),
+            "file_list": State("file-add", "value"),
         },
         prevent_initial_call=True,
     )
@@ -208,13 +156,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         visible_list: list,
         # Visual state parameters
         colormap: str,
+        c_key: str,
+        size_vary: str,
+        darkmode: list,
         # Common state parameters
         session_id: str,
         file: str,
         file_list: list,
-        c_key: str,
-        size_vary: str,
-        darkmode: list,
     ) -> dict:
         """
         Update the 3D scatter plot when slider position changes.
@@ -458,15 +406,33 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             ),
         },
         inputs={
-            **FILTER_INPUTS,  # cat_values, num_values, visible_list
-            **PICKER_3D_INPUTS,  # slider_picker_3d, x_picker_3d, etc.
-            **TRIGGER_INPUTS,  # unused triggers
+            "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
+            "num_values": Input({"type": "filter-slider", "index": ALL}, "value"),
+            "visible_list": Input("visible-picker", "value"),
+            "slider_picker_3d": Input("slider-picker-3d", "value"),
+            "x_picker_3d": Input("x-picker-3d", "value"),
+            "y_picker_3d": Input("y-picker-3d", "value"),
+            "z_picker_3d": Input("z-picker-3d", "value"),
+            "x_ref_picker_3d": Input("x-ref-picker-3d", "value"),
+            "y_ref_picker_3d": Input("y-ref-picker-3d", "value"),
+            "z_ref_picker_3d": Input("z-ref-picker-3d", "value"),
+            "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
+            "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
+            "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
+            "unused_file_loaded": Input("file-loaded-trigger", "data"),
             "c_key": Input("c-picker-3d", "value"),
         },
         state={
-            **ANIMATION_STATE,  # ispaused, slider_arg, decay
-            **VISUAL_STATE,  # overlay_enable, colormap
-            **COMMON_STATE,  # size_vary, darkmode, session_id, file, file_list
+            "slider_arg": State("slider-frame", "value"),
+            "ispaused": State("interval-component", "disabled"),
+            "decay": State("decay-slider", "value"),
+            "colormap": State("colormap-3d", "value"),
+            "overlay_enable": State("overlay-switch", "value"),
+            "size_vary": State("size-vary-switch", "value"),
+            "darkmode": State("darkmode-switch", "value"),
+            "session_id": State("session-id", "data"),
+            "file": State("current-file", "data"),
+            "file_list": State("file-add", "value"),
             "trigger_val": State("background-trigger", "data"),
             "data_path": State("data-path", "value"),
             "case": State("test-case", "value"),
@@ -626,7 +592,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "trigger_idx": Input("background-trigger", "data"),
         },
         state={
-            **FILTER_STATE,  # cat_values, num_values, visible_list
+            "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
+            "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
+            "visible_list": State("visible-picker", "value"),
             "c_key": State("c-picker-3d", "value"),
             "session_id": State("session-id", "data"),
             "file": State("current-file", "data"),
