@@ -52,7 +52,7 @@ import pandas as pd
 import plotly.graph_objs as go
 
 import dash
-from dash import dcc
+from dash.dcc import send_file  # pyright: ignore[reportPrivateImportUsage]
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
@@ -354,7 +354,7 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
 
         Returns:
             dict: Contains:
-                - download (dcc.send_file): File download data
+                - download (send_file): File download data
 
         Raises:
             PreventUpdate: If button not clicked
@@ -373,7 +373,7 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
         temp_fig = go.Figure(fig)
         temp_fig.write_image(file_name, scale=2)
 
-        return {"download": dcc.send_file(file_name)}
+        return {"download": send_file(file_name)}
 
     @app.callback(
         output={"dummy": Output("selected-data-left", "data")},
