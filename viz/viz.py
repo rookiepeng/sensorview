@@ -113,8 +113,8 @@ def get_scatter3d(
 
     if fig_dict["hover_strings"]:
         for idx, hover_str in enumerate(fig_dict["hover_strings"]):
-            data[idx]["text"] = hover_str
-            data[idx]["hovertemplate"] = "%{text}"
+            data[idx]["text"] = hover_str  # type: ignore
+            data[idx]["hovertemplate"] = "%{text}"  # type: ignore
 
     return {
         "data": data,
@@ -268,8 +268,19 @@ def get_scatter2d(
                     "name": c_item,
                 }
             )
+            return {
+                "data": data,
+                "layout": {
+                    "xaxis": {"title": {"text": x_label}},
+                    "yaxis": {"title": {"text": y_label}},
+                    "margin": margin,
+                    "uirevision": uirevision,
+                },
+            }
+
+        # Default fallback for any other c_type value
         return {
-            "data": data,
+            "data": [],
             "layout": {
                 "xaxis": {"title": {"text": x_label}},
                 "yaxis": {"title": {"text": y_label}},
@@ -397,10 +408,10 @@ def get_animation_data(
         # Apply hover strings and colormap
         if hover_list:
             for scatter, hover_str in zip(fig, hover_list):
-                scatter["text"] = hover_str
-                scatter["hovertemplate"] = "%{text}"
+                scatter["text"] = hover_str  # type: ignore
+                scatter["hovertemplate"] = "%{text}"  # type: ignore
 
-        if colormap and fig and "marker" in fig[0]:
+        if colormap and fig and isinstance(fig[0], dict) and "marker" in fig[0]:
             fig[0]["marker"]["colorscale"] = colormap
 
         # Add reference data if needed
@@ -452,7 +463,12 @@ def get_animation_data(
                     )
 
                     decay_fig = decay_results["scatter_data"]
-                    if colormap and decay_fig and "marker" in decay_fig[0]:
+                    if (
+                        colormap
+                        and decay_fig
+                        and isinstance(decay_fig[0], dict)
+                        and "marker" in decay_fig[0]
+                    ):
                         decay_fig[0]["marker"]["colorscale"] = colormap
 
                     decay_data.extend(decay_fig)
