@@ -423,24 +423,32 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         selected_data = cache_get(session_id, CACHE_KEYS["selected_data_left"])
-
-        if selected_data is None:
+        if selected_data is None or "points" not in selected_data:
             raise PreventUpdate
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-
         if visible_table is None:
             raise PreventUpdate
 
-        s_data = pd.DataFrame(selected_data["points"])
-        idx = s_data["id"]
-        idx.index = idx
+        # Extract selected point IDs more efficiently
+        try:
+            s_data = pd.DataFrame(selected_data["points"])
+            if s_data.empty or "id" not in s_data.columns:
+                raise PreventUpdate
+            
+            selected_ids = s_data["id"].values
+        except (KeyError, ValueError, TypeError):
+            raise PreventUpdate
 
-        vis_idx = idx[visible_table["_VIS_"][idx] == "visible"]
-        hid_idx = idx[visible_table["_VIS_"][idx] == "hidden"]
-
-        visible_table.loc[vis_idx, "_VIS_"] = "hidden"
-        visible_table.loc[hid_idx, "_VIS_"] = "visible"
+        # Toggle visibility for selected points efficiently
+        mask = visible_table.index.isin(selected_ids)
+        current_visibility = visible_table.loc[mask, "_VIS_"]
+        
+        # Toggle: visible -> hidden, hidden -> visible
+        visible_table.loc[mask, "_VIS_"] = current_visibility.map({
+            "visible": "hidden",
+            "hidden": "visible"
+        }).fillna(current_visibility)  # Keep original value if not visible/hidden
 
         cache_set(visible_table, session_id, CACHE_KEYS["visible_table"])
 
