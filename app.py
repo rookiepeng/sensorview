@@ -73,6 +73,9 @@ from utils import load_config, save_config, cache_get
 from view_callbacks.test_case_view import get_test_case_view_callbacks
 from view_callbacks.control_view import get_control_view_callbacks
 from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
+from view_callbacks.scatter_3d_view_background import (
+    get_scatter_3d_view_background_callbacks,
+)
 from view_callbacks.scatter_2d_left_view import get_scatter_2d_left_view_callbacks
 from view_callbacks.scatter_2d_right_view import get_scatter_2d_right_view_callbacks
 from view_callbacks.heatmap_view import get_heatmap_view_callbacks
@@ -544,6 +547,7 @@ app.clientside_callback(
 get_test_case_view_callbacks(app)
 get_control_view_callbacks(app)
 get_scatter_3d_view_callbacks(app)
+get_scatter_3d_view_background_callbacks(app)
 get_scatter_2d_left_view_callbacks(app)
 get_scatter_2d_right_view_callbacks(app)
 get_heatmap_view_callbacks(app)
