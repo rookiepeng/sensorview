@@ -437,8 +437,8 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
                 raise PreventUpdate
 
             selected_ids = s_data["id"].values
-        except (KeyError, ValueError, TypeError):
-            raise PreventUpdate
+        except (KeyError, ValueError, TypeError) as exc:
+            raise PreventUpdate from exc
 
         # Toggle visibility for selected points efficiently
         mask = visible_table.index.isin(selected_ids)
