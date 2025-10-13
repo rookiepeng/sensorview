@@ -268,19 +268,9 @@ def get_scatter2d(
                     "name": c_item,
                 }
             )
-            return {
-                "data": data,
-                "layout": {
-                    "xaxis": {"title": {"text": x_label}},
-                    "yaxis": {"title": {"text": y_label}},
-                    "margin": margin,
-                    "uirevision": uirevision,
-                },
-            }
 
-        # Default fallback for any other c_type value
         return {
-            "data": [],
+            "data": data,
             "layout": {
                 "xaxis": {"title": {"text": x_label}},
                 "yaxis": {"title": {"text": y_label}},
@@ -288,6 +278,17 @@ def get_scatter2d(
                 "uirevision": uirevision,
             },
         }
+
+    # Default fallback for any other c_type value
+    return {
+        "data": [],
+        "layout": {
+            "xaxis": {"title": {"text": x_label}},
+            "yaxis": {"title": {"text": y_label}},
+            "margin": margin,
+            "uirevision": uirevision,
+        },
+    }
 
 
 def frame_args(duration: int) -> Dict[str, Any]:
