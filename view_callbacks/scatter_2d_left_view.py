@@ -207,8 +207,12 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             return {"figure": left_fig}
 
         config = cache_get(session_id, CACHE_KEYS["config"])
+        if config is None:
+            raise PreventUpdate
 
         filter_kwargs = cache_get(session_id, CACHE_KEYS["filter_kwargs"])
+        if filter_kwargs is None:
+            raise PreventUpdate
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
@@ -225,11 +229,16 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             data = load_data(file_list, file)
         else:
             frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+            if frame_list is None:
+                raise PreventUpdate
             data = cache_get(
                 session_id, CACHE_KEYS["frame_data"], str(frame_list[slider_arg])
             )
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
+
+        if data is None:
+            raise PreventUpdate
 
         filtered_table = filter_all(
             data,
@@ -419,6 +428,9 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
+
+        if visible_table is None:
+            raise PreventUpdate
 
         s_data = pd.DataFrame(selected_data["points"])
         idx = s_data["id"]
