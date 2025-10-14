@@ -55,10 +55,13 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
 
     Args:
         file_list: List of file specifications in JSON string format.
-        file: Optional single file to add to the file list.
+        file: Optional single file specification to add to the file list. Defaults to None.
 
     Returns:
         Combined DataFrame containing data from all specified files.
+
+    Raises:
+        ValueError: If an unsupported file type is encountered.
     """
     if file is not None and file not in file_list:
         file_list.append(file)
@@ -94,7 +97,10 @@ def load_image(img_path: str) -> Optional[str]:
         img_path: Path to the image file.
 
     Returns:
-        Base64 encoded image string with data URI scheme prefix, or None if file not found.
+        Base64 encoded image string with data URI scheme prefix, or None if file cannot be loaded.
+
+    Note:
+        Returns None for FileNotFoundError, NotADirectoryError, or other IO errors.
     """
     try:
         with open(img_path, "rb") as img_file:
@@ -124,16 +130,16 @@ def prepare_figure_kwargs(
     Prepare keyword arguments for creating a 3D scatter plot figure.
 
     Args:
-        config: Configuration dictionary containing plot settings.
+        config: Configuration dictionary containing plot settings and key definitions.
         num_keys: List of numerical column names.
-        num_values: List of (min, max) tuples for numerical values.
-        c_key: Key for color mapping.
+        num_values: List of (min, max) tuples for numerical value ranges.
+        c_key: Column name for color mapping.
         size_vary: Whether to vary marker sizes based on groups.
-        frame_list: List of frame values for animation.
-        slider_arg: Current slider position index.
+        frame_list: List or array of frame values for animation.
+        slider_arg: Current slider position index. Defaults to 0.
 
     Returns:
-        Dictionary containing all necessary arguments for plotting.
+        Dictionary containing all necessary keyword arguments for plotting.
     """
     keys_dict = config["keys"]
 
@@ -229,10 +235,10 @@ def cache_set(
     Store data in the cache with expiration time.
 
     Args:
-        data: Data to be cached.
-        id_str: Unique identifier string.
-        key_major: Primary key for cache entry.
-        key_minor: Optional secondary key for cache entry.
+        data: Data to be cached (any type).
+        id_str: Unique identifier string for the cache entry.
+        key_major: Primary key component for cache entry.
+        key_minor: Optional secondary key component for cache entry. Defaults to None.
     """
     if key_minor is None:
         key_str = key_major + id_str
@@ -274,9 +280,9 @@ def cache_get(
     Retrieve data from the cache.
 
     Args:
-        id_str: Unique identifier string.
-        key_major: Primary key for cache entry.
-        key_minor: Optional secondary key for cache entry.
+        id_str: Unique identifier string for the cache entry.
+        key_major: Primary key component for cache entry.
+        key_minor: Optional secondary key component for cache entry. Defaults to None.
 
     Returns:
         Cached data if found, None otherwise.
@@ -329,15 +335,15 @@ def filter_all(
 
     Args:
         data: Input DataFrame to filter.
-        num_list: List of numerical column names.
-        num_values: List of (min, max) ranges for numerical filters.
-        cat_list: List of categorical column names.
+        num_list: List of numerical column names to filter on.
+        num_values: List of (min, max) tuples defining ranges for numerical filters.
+        cat_list: List of categorical column names to filter on.
         cat_values: List of lists containing allowed values for each categorical column.
-        visible_table: Optional DataFrame containing visibility information.
-        visible_list: Optional list of visibility values to filter by.
+        visible_table: Optional DataFrame containing visibility information. Defaults to None.
+        visible_list: Optional list of visibility values to filter by. Defaults to None.
 
     Returns:
-        Filtered DataFrame meeting all specified conditions.
+        Filtered DataFrame containing only rows that meet all specified conditions.
     """
     # Initialize condition as True for all rows
     condition = pd.Series([True] * len(data), index=data.index)

@@ -3,7 +3,7 @@
 Handles processing and visualization of individual data frames with single frame
 processing, overlay frame processing, decay effects, and multi-file data integration.
 
-Functions: process_single_frame() and process_overlay_frame() for 3D scatter
+Key functions: process_single_frame() and process_overlay_frame() for 3D scatter
 plot generation with filtering, reference overlays, and temporal effects.
 
 Author: Zhengyu Peng
@@ -50,17 +50,17 @@ def process_single_frame(
 
     Args:
         config: Configuration dictionary containing plot settings and key definitions.
-        cat_values: Dictionary mapping categorical column names to lists of
-                    selected values for filtering.
-        num_values: List of numerical values for filtering (min/max ranges).
+        cat_values: List of lists containing selected categorical values for filtering.
+        num_values: List of (min, max) tuples for numerical value filtering.
         colormap: Name of the colormap to apply to the scatter plot.
         visible_list: List of visibility filter values.
         c_key: Column name for color mapping.
+        size_vary: String indicating whether to vary marker sizes.
         decay: Number of previous frames to include with decreasing opacity.
         session_id: Unique session identifier for cache access.
         file: JSON string containing file path and name information.
-        frame_idx: Index of the current frame to process.
-        load_hover: Whether to include hover text in the plot data.
+        frame_idx: Index of the current frame to process. Defaults to 0.
+        load_hover: Whether to include hover text in the plot data. Defaults to False.
 
     Returns:
         Dictionary containing the complete 3D scatter plot figure with data and layout.
@@ -220,12 +220,12 @@ def process_overlay_frame(
     Args:
         frame_idx: Index of the frame to process.
         config: Configuration dictionary containing plot settings and key definitions.
-        cat_values: Dictionary mapping categorical column names to lists of
-                    selected values for filtering.
-        num_values: List of numerical values for filtering (min/max ranges).
+        cat_values: List of lists containing selected categorical values for filtering.
+        num_values: List of (min, max) tuples for numerical value filtering.
         colormap: Name of the colormap to apply to the scatter plot.
         visible_list: List of visibility filter values.
         c_key: Column name for color mapping.
+        size_vary: String indicating whether to vary marker sizes.
         session_id: Unique session identifier for cache access.
         file: JSON string containing primary file path and name information.
         file_list: List of JSON strings representing additional files to overlay.
