@@ -32,7 +32,8 @@ def get_violin_card_layout():
         None
 
     Returns:
-        dbc.Card: A Dash Bootstrap Card component containing the violin plot controls and visualization.
+        dbc.Card: A Dash Bootstrap Card component containing the violin plot
+        controls and visualization.
     """
     return dbc.Card(
         [

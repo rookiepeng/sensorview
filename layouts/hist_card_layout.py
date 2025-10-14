@@ -32,7 +32,8 @@ def get_hist_card_layout():
         None
 
     Returns:
-        dbc.Card: A Dash Bootstrap Card component containing the histogram controls and visualization.
+        dbc.Card: A Dash Bootstrap Card component containing the
+        histogram controls and visualization.
     """
     return dbc.Card(
         [

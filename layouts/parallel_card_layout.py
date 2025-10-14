@@ -21,7 +21,8 @@ from app_config import THEME
 
 def get_parallel_card_layout():
     """
-    Creates and returns a Dash Bootstrap Card layout for configuring and displaying a parallel categories plot.
+    Creates and returns a Dash Bootstrap Card layout for configuring and displaying a
+    parallel categories plot.
 
     The layout includes:
         - A label and switch to enable/disable the parallel categories plot.
@@ -35,7 +36,8 @@ def get_parallel_card_layout():
         None
 
     Returns:
-        dbc.Card: A Dash Bootstrap Card component containing the layout for the parallel categories plot.
+        dbc.Card: A Dash Bootstrap Card component containing the layout for the
+        parallel categories plot.
     """
     return dbc.Card(
         [
