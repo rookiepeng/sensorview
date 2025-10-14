@@ -1,43 +1,13 @@
 """SensorView Heatmap View Callbacks
 
-This module provides callback functions for managing heatmap visualization
-in the SensorView application.
-
-Core Features:
--------------
-1. Visualization Management:
-   - Dynamic heatmap plot generation
-   - Axis configuration
-   - Plot visibility controls
-   - Interactive data display
-
-2. UI Controls:
-   - X/Y axis selection
-   - Collapse panel management
-   - Plot export functionality
-   - View state management
-
-3. Data Processing:
-   - Data filtering and aggregation
-   - Axis label management
-   - Plot configuration
-   - Cache management
-
-Dependencies:
-------------
-- dash & plotly
-- app_config settings
-- Standard Python libraries
+Callback functions for heatmap visualization including dynamic plot generation,
+axis configuration, collapse panel management, and PNG export functionality.
 
 Usage:
-------
-Register callbacks with app instance:
     from view_callbacks.heatmap_view import get_heatmap_view_callbacks
     get_heatmap_view_callbacks(app)
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 """
 

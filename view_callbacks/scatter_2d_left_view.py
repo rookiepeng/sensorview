@@ -1,45 +1,13 @@
 """SensorView Left 2D Scatter View Callbacks
 
-This module provides callback functions for managing the left 2D scatter plot
-visualization in the SensorView application.
-
-Core Features:
--------------
-1. View Management:
-   - Real-time plot updates
-   - Frame-based visualization
-   - View state persistence
-   - Dynamic colormap updates
-
-2. Interaction Handling:
-   - Selection management
-   - Visibility toggling
-   - Export capabilities
-   - Frame navigation
-
-3. Data Processing:
-   - Data filtering
-   - Cache integration
-   - Frame-specific updates
-   - All-frame mode support
-
-Dependencies:
-------------
-- dash & plotly
-- pandas
-- app_config settings
-- viz.viz components
-- utils functions
+Callback functions for left 2D scatter plot with real-time updates, frame-based
+visualization, selection management, visibility toggling, and PNG export.
 
 Usage:
-------
-Register callbacks with app instance:
     from view_callbacks.scatter_2d_left_view import get_scatter_2d_left_view_callbacks
     get_scatter_2d_left_view_callbacks(app)
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 """
 

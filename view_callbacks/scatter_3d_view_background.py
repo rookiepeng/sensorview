@@ -1,61 +1,16 @@
 """SensorView 3D Scatter View Background Callbacks
 
-This module provides background callback functions for managing the 3D scatter plot view
-in the SensorView application. It specializes in computationally intensive operations
-that run asynchronously to maintain responsive user interactions.
-
-Background Processing Features:
-------------------------------
-1. Asynchronous Figure Generation:
-   - Non-blocking 3D scatter plot regeneration
-   - Frame-by-frame data processing with progress tracking
-   - Real-time buffer status updates
-   - Task cancellation support
-
-2. Data Pipeline Management:
-   - Multi-frame dataset loading and caching
-   - Memory-efficient frame buffering
-   - Background image processing and encoding
-   - Filtered data preparation for visualization
-
-3. Export Operations:
-   - Asynchronous HTML animation export
-   - Progress indication during long operations
-   - File generation with timestamp naming
-   - Background image compilation for animations
-
-4. Performance Optimization:
-   - Background task management with cancellation
-   - Cache expiration and cleanup
-   - Progressive loading with user feedback
-   - Resource-efficient data handling
-
-Core Callback Functions:
------------------------
-- regenerate_figure_background_callback(): Handles background figure regeneration
-- export_3d_scatter_animation(): Manages asynchronous animation export
-
-Dependencies:
-------------
-- dash: Web application framework and background callback management
-- plotly: 3D visualization and graph objects
-- numpy: Numerical computations and data processing
-- app_config: Application configuration and cache management
-- utils: Data loading, filtering, and utility functions
-- viz: Visualization data preparation and layout management
+Background callback functions for computationally intensive 3D scatter plot operations
+including asynchronous figure generation, frame processing, animation export, and
+background task management with progress tracking.
 
 Usage:
-------
-Register background callbacks with app instance:
     from view_callbacks.scatter_3d_view_background import get_scatter_3d_view_background_callbacks
     get_scatter_3d_view_background_callbacks(app)
 
-Note: This module requires the background callback manager to be properly configured
-in app_config for asynchronous task execution.
+Note: Requires background callback manager configuration in app_config.
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 """
 
