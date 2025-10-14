@@ -1,19 +1,11 @@
 """Layout Constants Module
 
-Defines reusable constants for layout components in the SensorView application.
-
-Core Components:
----------------
-- Color scale options for visualizations
+Reusable constants for layout components including color scale options for visualizations.
 
 Usage:
-------
-Import the color scales:
     from layouts.layout_constants import colorscales
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """

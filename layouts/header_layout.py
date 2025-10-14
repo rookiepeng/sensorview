@@ -1,33 +1,12 @@
 """SensorView Header Layout Module
 
-This module defines the header section of the SensorView application using Dash and Bootstrap components.
-
-Core Components:
----------------
-- Application logo and title
-- Data path, test case, and log file display
-- File selection and combination controls
-- Tooltips and dropdowns for file management
-
-Layout Structure:
----------------
-- Header row
-  |- Logo and title column
-  |- File information and controls column
-
-Dependencies:
-------------
-- dash & dash-bootstrap-components
-- app_config settings
+Defines the header section with application logo, title, data path display,
+file selection controls, and file management dropdowns.
 
 Usage:
-------
-Import the header layout:
-    from header_layout import header
+    from header_layout import get_header_layout
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
