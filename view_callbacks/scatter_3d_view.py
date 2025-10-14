@@ -1,67 +1,16 @@
 """SensorView 3D Scatter View Interactive Callbacks
 
-This module provides interactive callback functions for the 3D scatter plot view in the
-SensorView application. It handles real-time user interactions, UI state management,
-and synchronous visualization updates that require immediate response.
+Interactive callbacks for 3D scatter plot view handling real-time user interactions,
+UI state management, and synchronous visualization updates.
 
-Interactive Features:
---------------------
-1. Real-time UI Controls:
-   - Slider position changes and frame navigation
-   - Configuration panel toggle and visibility
-   - Color picker and colormap selection
-   - Theme switching (dark/light mode)
-   - Size variation and overlay mode controls
-
-2. User Interaction Handling:
-   - Click-to-hide functionality with point selection
-   - Visibility table management from user clicks
-   - Configuration collapse panel interactions
-   - Export button handling for immediate operations
-
-3. Synchronous Data Operations:
-   - Filter parameter updates and validation
-   - Figure regeneration triggers
-   - Cache management for UI state
-   - Configuration persistence to JSON files
-
-4. Export Functionality:
-   - Static HTML export of current view
-   - PNG image export with high resolution
-   - CSV data export for current and all frames
-   - Timestamped file generation
-
-Core Callback Functions:
------------------------
-- toggle_3d_config_collapse(): UI panel visibility control
-- slider_change_callback(): Frame navigation and overlay processing
-- colormap_change_callback(): Real-time colormap updates
-- darkmode_change_callback(): Theme switching
-- size_vary_callback(): Point size variation control
-- visible_table_change_callback(): Click-to-hide interactions
-- regenerate_figure_callback(): Main figure regeneration orchestrator
-- export_*_callbacks(): Various export operations
-
-Dependencies:
-------------
-- dash: Web application framework and callback decorators
-- plotly: 3D visualization, graph objects, and I/O operations
-- app_config: Application configuration and cache key management
-- utils: Data loading, filtering, and caching utilities
-- process_frame: Frame processing for single and overlay modes
+Features: UI controls, click-to-hide, theming, filters, exports (HTML/PNG/CSV),
+and figure regeneration.
 
 Usage:
-------
-Register interactive callbacks with app instance:
     from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
     get_scatter_3d_view_callbacks(app)
 
-Note: This module handles synchronous operations that require immediate UI response.
-For computationally intensive background operations, see scatter_3d_view_background.py.
-
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 """
 
@@ -89,13 +38,17 @@ from process_frame import process_single_frame
 
 def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     """
-    Register the callback functions for the 3D scatter plot view.
+    Register interactive callbacks for 3D scatter plot view.
+
+    Sets up UI interactions, real-time updates, user controls, and export functionality.
+    Includes configuration panels, slider/overlay changes, theming, size variation,
+    click-to-hide, figure regeneration, and export operations.
 
     Args:
-        app (dash.Dash): The Dash application instance
+        app (dash.Dash): Dash application instance with required layout components.
 
-    Returns:
-        None
+    Note:
+        Call after layout definition but before app.run_server().
     """
 
     @app.callback(
@@ -153,7 +106,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         prevent_initial_call=True,
     )
-    def slider_change_callback(
+    def server_side_figure_update_callback(
         # Input parameters (ordered by input definition)
         unused_remote_trigger: int,
         overlay_enable: list,
@@ -176,27 +129,33 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         file_list: list,
     ) -> dict:
         """
-        Update the 3D scatter plot when slider position changes.
+        Handle server-side figure updates for slider and overlay changes.
+
+        Processes frames in single or overlay mode based on settings, optimized
+        for real-time animation playback.
 
         Args:
-            unused_remote_trigger (int): Remote figure trigger count
-            overlay_enable (list): Overlay mode enable state
-            slider_arg (int): Current slider position
+            unused_remote_trigger (int): Remote trigger count (unused)
+            overlay_enable (list): Overlay mode state (empty=disabled)
+            slider_arg (int): Current frame index
             ispaused (bool): Animation pause state
-            decay (int): Number of past frames to show
-            cat_values (list): Selected categorical filter values
-            num_values (list): Selected numerical filter values
-            visible_list (list): List of visible elements
-            colormap (str): Selected colormap name
-            session_id (str): Session identifier
-            file (str): Current file path
-            file_list (list): List of all file paths
-            c_key (str): Selected color key
+            decay (int): Past frames to show in overlay mode
+            cat_values (Dict[str, List[str]]): Categorical filter values
+            num_values (List[Union[float, int]]): Numerical filter ranges
+            visible_list (list): Visible data elements
+            colormap (str): Selected colormap
+            c_key (str): Color mapping column
             size_vary (str): Size variation enable state
-            darkmode (list): Dark mode enable state
+            darkmode (list): Dark mode state (empty=disabled)
+            session_id (str): Session identifier
+            file (str): Current file path (JSON)
+            file_list (list): All loaded file paths
 
         Returns:
-            dict: Updated scatter plot figure data
+            dict: Updated scatter plot figure with theme and visual settings.
+
+        Raises:
+            PreventUpdate: If configuration unavailable.
         """
         config = cache_get(session_id, CACHE_KEYS["config"])
         if config is None:
@@ -315,14 +274,21 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         size_vary: list, fig: dict, session_id: str, c_key: str
     ) -> dict:
         """
-        Toggle size variation for the 3D scatter plot.
+        Toggle point size variation for categorical data visualization.
+
+        Applies different sizes to each category when enabled and color key is categorical.
 
         Args:
-            size_vary (list): Size variation enable state
-            fig (dict): Current figure dictionary
+            size_vary (list): Enable state (empty=disabled)
+            fig (dict): Current figure data and layout
+            session_id (str): Session identifier
+            c_key (str): Color mapping column
 
         Returns:
-            dict: Updated figure with new theme
+            dict: Figure with modified marker sizes.
+
+        Raises:
+            PreventUpdate: If configuration unavailable.
         """
 
         config = cache_get(session_id, CACHE_KEYS["config"])
@@ -489,40 +455,50 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         case: str,
     ) -> dict:
         """
-        Regenerate the 3D scatter plot figure.
+        Complete 3D scatter plot figure regeneration for major configuration changes.
+
+        Handles axis selections, filters, visibility updates, and triggers background
+        processing for animation buffers. Manages immediate figure generation and
+        configuration persistence.
 
         Args:
-            cat_values (list): Selected categorical filter values
-            num_values (list): Selected numerical filter values
-            visible_list (list): List of visible elements
-            slider_picker_3d (str): Selected slider for 3D plot
-            x_picker_3d (str): Selected x-axis for 3D plot
-            y_picker_3d (str): Selected y-axis for 3D plot
-            z_picker_3d (str): Selected z-axis for 3D plot
-            x_ref_picker_3d (str): Selected x-reference for 3D plot
-            y_ref_picker_3d (str): Selected y-reference for 3D plot
-            z_ref_picker_3d (str): Selected z-reference for 3D plot
-            unused_vistable_trigger (int): Visibility table trigger
-            unused_left_hide_trigger (int): Left hide trigger
-            unused_right_hide_trigger (int): Right hide trigger
-            unused_file_loaded (int): File loaded trigger
-            c_key (str): Selected color key
+            cat_values (Dict[str, List[str]]): Categorical filter selections
+            num_values (List[Union[float, int]]): Numerical filter ranges
+            visible_list (list): Visible data elements
+            slider_picker_3d (str): Frame/time slider column
+            x_picker_3d (str): X-axis column
+            y_picker_3d (str): Y-axis column
+            z_picker_3d (str): Z-axis column
+            x_ref_picker_3d (str): Reference line X-column
+            y_ref_picker_3d (str): Reference line Y-column
+            z_ref_picker_3d (str): Reference line Z-column
+            unused_vistable_trigger (int): Visibility trigger (unused)
+            unused_left_hide_trigger (int): Left panel trigger (unused)
+            unused_right_hide_trigger (int): Right panel trigger (unused)
+            unused_file_loaded (int): File loaded trigger (unused)
+            c_key (str): Color mapping column
             ispaused (bool): Animation pause state
-            slider_arg (int): Current slider position
-            decay (int): Number of past frames to show
-            overlay_enable (list): Overlay mode enable state
-            colormap (str): Selected colormap name
+            slider_arg (int): Current frame position
+            decay (int): Historical frames in overlay mode
+            overlay_enable (list): Overlay state (empty=disabled)
+            colormap (str): Selected colormap
             size_vary (str): Size variation enable state
-            darkmode (list): Dark mode enable state
+            darkmode (list): Dark theme state (empty=disabled)
             session_id (str): Session identifier
-            file (str): Current file path
-            file_list (list): List of all file paths
-            trigger_val (int): Current trigger value
-            data_path (str): Data path for configuration
-            case (str): Test case name
+            file (str): Primary file path (JSON)
+            file_list (list): All loaded file paths
+            trigger_val (int): Background task trigger counter
+            data_path (str): Configuration file base path
+            case (str): Test case/project name
 
         Returns:
-            dict: Updated figure data and trigger values
+            dict: Updated figure, incremented trigger, and reset buffer index.
+
+        Raises:
+            PreventUpdate: If configuration unavailable.
+
+        Side Effects:
+            Updates cache, persists config to JSON, triggers background processing.
         """
         # invoke task
         cache_set(-1, session_id, CACHE_KEYS["task_id"])
@@ -647,17 +623,19 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     )
     def export_3d_scatter_html(btn: int, fig: dict) -> dict:
         """
-        Export current 3D scatter plot to HTML file.
+        Export current 3D scatter plot to interactive HTML file.
+
+        Creates standalone HTML with full interactivity (zoom, rotation, hover).
 
         Args:
-            btn (int): Button click count
-            fig (dict): Current figure dictionary
+            btn (int): Button click count (must be > 0)
+            fig (dict): Current figure data and layout
 
         Returns:
-            dict: Download data for file
+            dict: Download response for browser.
 
         Raises:
-            PreventUpdate: If button not clicked
+            PreventUpdate: If button not clicked.
         """
         if btn == 0:
             raise PreventUpdate
@@ -685,17 +663,22 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     )
     def export_3d_scatter_png(btn: int, fig: dict) -> dict:
         """
-        Export current 3D scatter plot to PNG image.
+        Export current 3D scatter plot to high-resolution PNG image.
+
+        Generates static PNG at 2x scale for high-quality output.
 
         Args:
-            btn (int): Button click count
-            fig (dict): Current figure dictionary
+            btn (int): Button click count (must be > 0)
+            fig (dict): Current figure data and layout
 
         Returns:
-            dict: Download data for file
+            dict: Download response with PNG file.
 
         Raises:
-            PreventUpdate: If button not clicked
+            PreventUpdate: If button not clicked.
+
+        Note:
+            Requires plotly kaleido for image export.
         """
         if btn == 0:
             raise PreventUpdate
@@ -858,4 +841,15 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(Output("relayout-data", "data"), Input("scatter3d", "relayoutData"))
     def display_relayout_data(relayout_data):
+        """
+        Capture and relay 3D plot layout changes.
+
+        Pass-through callback for monitoring camera position, zoom, and axis changes.
+
+        Args:
+            relayout_data: Plot layout change data from Plotly events.
+
+        Returns:
+            Same relayout_data for downstream use.
+        """
         return relayout_data
