@@ -1,48 +1,12 @@
 """Frame Processing Module for SensorView
 
-This module handles the processing and visualization of individual data frames
-in the SensorView application.
+Handles processing and visualization of individual data frames with single frame
+processing, overlay frame processing, decay effects, and multi-file data integration.
 
-Core Functions:
---------------
-1. Single Frame Processing:
-   - Data filtering and preparation
-   - 3D scatter plot generation
-   - Reference frame overlay
-   - Decay effect implementation
-
-2. Overlay Frame Processing:
-   - Multi-file data combination
-   - Unified visualization generation
-   - Data filtering across sources
-
-Features:
----------
-- Frame-by-frame processing
-- Multi-file data integration
-- Customizable visualization parameters
-- Cache-aware data handling
-- Reference frame support
-- Decay effect for temporal visualization
-
-Dependencies:
-------------
-- numpy
-- pandas
-- plotly
-- custom visualization modules (viz.*)
-- utility functions (utils.py)
-
-Usage:
-------
-Primarily used by the main application server (app.py) for:
-- Real-time frame processing
-- Data visualization generation
-- Multi-frame overlay effects
+Functions: process_single_frame() and process_overlay_frame() for 3D scatter
+plot generation with filtering, reference overlays, and temporal effects.
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """

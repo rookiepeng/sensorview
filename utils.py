@@ -1,53 +1,12 @@
 """Utility Functions for SensorView
 
-This module provides common utility functions used throughout the SensorView
-application for data handling, caching, and visualization preparation.
+Common utility functions for data handling, caching, and visualization preparation
+including configuration management, cache operations, data processing, and filtering.
 
-Core Functionalities:
--------------------
-1. Configuration Management:
-   - JSON configuration loading/saving
-   - Data file handling
-   - Image processing
-
-2. Cache Operations:
-   - Data caching implementation
-   - Cache key management
-   - Expiration handling
-
-3. Data Processing:
-   - DataFrame filtering
-   - Numerical/categorical data handling
-   - Figure parameter preparation
-
-Key Components:
--------------
-- Configuration file operations
-- Data loading and preprocessing
-- Cache management
-- Image encoding
-- Data filtering
-- Figure parameter preparation
-
-Usage:
-------
-Imported by other modules for:
-- Data management
-- Cache operations
-- Configuration handling
-- Visualization preparation
-
-Dependencies:
-------------
-- pandas
-- numpy
-- json
-- base64
-- custom configuration (app_config)
+Key functions: load_config(), save_config(), load_data(), cache_set(), cache_get(),
+filter_all(), and prepare_figure_kwargs().
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
