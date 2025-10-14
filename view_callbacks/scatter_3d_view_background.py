@@ -47,7 +47,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
     Register the background callback functions for the 3D scatter plot view.
 
     Args:
-        app (dash.Dash): The Dash application instance
+        app: The Dash application instance to register callbacks with.
 
     Returns:
         None
@@ -90,21 +90,24 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         file_list: list,
     ) -> dict:
         """
-        Background task for regenerating the 3D scatter plot.
+        Background task for regenerating the 3D scatter plot with progress tracking.
 
         Args:
-            set_progress (callable): Progress update function
-            trigger_idx (int): Task trigger index
-            cat_values (list): Selected categorical filter values
-            num_values (list): Selected numerical filter values
-            visible_list (list): List of visible elements
-            c_key (str): Selected color key
-            session_id (str): Session identifier
-            file (str): Current file path
-            file_list (list): List of all file paths
+            set_progress: Function to update progress indicators during processing.
+            trigger_idx: Unique task trigger index for cancellation tracking.
+            cat_values: List of selected categorical filter values.
+            num_values: List of selected numerical filter ranges.
+            visible_list: List of visibility filter values.
+            c_key: Column name for color mapping.
+            session_id: Unique session identifier for cache access.
+            file: Current file path as JSON string.
+            file_list: List of additional file paths as JSON strings.
 
         Returns:
-            dict: Dummy output for completion
+            Dictionary with dummy output indicating task completion.
+
+        Raises:
+            PreventUpdate: If configuration data is missing or invalid.
         """
         cache_set(trigger_idx, session_id, CACHE_KEYS["task_id"])
         print("start new task (" + str(trigger_idx) + ")")
@@ -267,25 +270,27 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         darkmode: list,
     ) -> dict:
         """
-        Export 3D scatter plot animation to HTML file.
+        Export 3D scatter plot animation to HTML file with progress tracking.
 
         Args:
-            btn (int): Button click count
-            case (str): Test case name
-            session_id (str): Session identifier
-            c_key (str): Selected color key
-            colormap (str): Selected colormap name
-            visible_list (list): List of visible elements
-            file (str): Current file path
-            file_list (list): List of all file paths
-            decay (int): Number of past frames to show
-            darkmode (list): Dark mode enable state
+            set_progress: Function to control export progress spinner visibility.
+            btn: Number of button clicks (must be > 0 to proceed).
+            case: Test case name for file organization.
+            session_id: Unique session identifier for cache access.
+            c_key: Column name for color mapping.
+            size_vary: String indicating whether to vary marker sizes.
+            colormap: Name of the colormap to apply.
+            visible_list: List of visibility filter values.
+            file: Current file path as JSON string.
+            file_list: List of additional file paths as JSON strings.
+            decay: Number of past frames to show with decreasing opacity.
+            darkmode: List indicating dark mode state (non-empty = enabled).
 
         Returns:
-            dict: Dummy output for completion
+            Dictionary containing file download data for the generated HTML animation.
 
         Raises:
-            PreventUpdate: If button not clicked
+            PreventUpdate: If button has not been clicked or configuration data is missing.
         """
         if btn == 0:
             raise PreventUpdate
