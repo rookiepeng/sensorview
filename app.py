@@ -1,52 +1,12 @@
 """SensorView Application Server
 
-A Flask/Dash-based web application for real-time sensor data visualization and analysis.
+Flask/Dash-based web application for real-time sensor data visualization and analysis
+with multiple visualization modes, test case management, and WebWorker-based caching.
 
-Main Components:
----------------
-1. Server Configuration:
-   - Flask/Dash server setup
-   - WebWorker integration for client-side data management
-   - Cache management for data buffering
-
-2. Data Management:
-   - File selection and loading
-   - Test case management
-   - Configuration persistence
-   - Data buffering and caching
-
-3. UI Callbacks:
-   - Modal dialogs for configuration
-   - Data file selection
-   - Real-time visualization updates
-   - Frame navigation and playback
-   - View customization
-
-Features:
----------
-- Multiple visualization modes (3D/2D scatter, heatmaps, etc.)
-- Real-time data processing and display
-- Test case management
-- WebWorker-based caching system
-- Interactive controls and filtering
-
-Configuration:
--------------
-- config.json: Data paths and preferences
-- Modal UI for runtime configuration
-- Session-based data isolation
-
-Dependencies:
-------------
-- Flask & Dash
-- plotly
-- pandas & numpy
-- flaskwebgui
-- IndexedDB (client-side)
+Features: 3D/2D scatter plots, heatmaps, histograms, interactive controls, frame
+navigation, data filtering, and session-based data isolation.
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
