@@ -1,43 +1,13 @@
 """SensorView Test Case View Callbacks
 
-This module provides callback functions for managing test case selection and configuration
-in the SensorView application.
-
-Core Features:
--------------
-1. Test Case Management:
-   - Test case loading and validation
-   - Configuration persistence
-   - Path management
-   - File selection
-
-2. UI Controls:
-   - Case picker updates
-   - File picker updates
-   - Modal dialog management
-   - Error handling
-
-3. Data Validation:
-   - Path existence checking
-   - File format validation
-   - Configuration verification
-   - Error reporting
-
-Dependencies:
-------------
-- dash & dash-bootstrap-components
-- app_config settings
-- Standard Python libraries
+Callback functions for test case selection and configuration including case loading,
+file validation, UI controls, modal management, and configuration persistence.
 
 Usage:
-------
-Register callbacks with app instance:
     from view_callbacks.test_case_view import get_test_case_view_callbacks
     get_test_case_view_callbacks(app)
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 """
 

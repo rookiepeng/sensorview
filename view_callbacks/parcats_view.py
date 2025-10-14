@@ -1,44 +1,13 @@
 """SensorView Parallel Coordinates View Callbacks
 
-This module provides callback functions for managing parallel coordinates visualization
-in the SensorView application.
-
-Core Features:
--------------
-1. Visualization Management:
-   - Dynamic parallel coordinates plot generation
-   - Color mapping for dimensions
-   - Interactive dimension selection
-   - Plot visibility controls
-
-2. UI Controls:
-   - Dimension picker updates
-   - Color dimension selection
-   - Collapse panel management
-   - Plot export functionality
-
-3. Data Processing:
-   - Data filtering and transformation
-   - Categorical and numerical data handling
-   - Color scale generation
-   - Plot configuration
-
-Dependencies:
-------------
-- dash & plotly
-- numpy
-- app_config settings
-- Standard Python libraries
+Callback functions for parallel coordinates visualization with dynamic plot generation,
+color mapping, dimension selection, collapse panel management, and PNG export.
 
 Usage:
-------
-Register callbacks with app instance:
     from view_callbacks.parcats_view import get_parcats_view_callbacks
     get_parcats_view_callbacks(app)
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 """
 
@@ -137,7 +106,7 @@ def get_parcats_view_callbacks(app: dash.Dash) -> None:
         if filter_kwargs is None:
             parallel_fig = {"data": [{"type": "histogram", "x": []}], "layout": {}}
             return {"parallel": parallel_fig}
-        
+
         cat_keys = filter_kwargs["cat_keys"]
         num_keys = filter_kwargs["num_keys"]
         cat_values = filter_kwargs["cat_values"]
