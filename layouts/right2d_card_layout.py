@@ -1,29 +1,12 @@
 """Right 2D Card Layout Module
 
-Defines the layout for the right 2D scatter plot card in the SensorView application,
-using Dash and Bootstrap components.
-
-Core Components:
----------------
-- Enable switch
-- Axis selectors (x, y, color)
-- Colormap selector
-- Frame selection radio
-- 2D scatter plot area with loading overlay
-- Hide and export buttons
-
-Dependencies:
-------------
-- dash & dash-bootstrap-components
+Layout for right 2D scatter plot card with enable switch, axis selectors (x, y, color),
+colormap selector, frame selection, plot area, and hide/export buttons.
 
 Usage:
-------
-Import the right 2D card layout:
-    from layouts.right2d_card_layout import right2d_card
+    from layouts.right2d_card_layout import get_right2d_card_layout
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """

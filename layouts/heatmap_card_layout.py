@@ -1,27 +1,12 @@
 """Heatmap Card Layout Module
 
-Defines the layout for the heatmap visualization card in the SensorView application,
-using Dash and Bootstrap components.
-
-Core Components:
----------------
-- Heatmap enable switch
-- Axis selectors (x, y)
-- Heatmap plot area with loading overlay
-- Export button
-
-Dependencies:
-------------
-- dash & dash-bootstrap-components
+Layout for heatmap visualization card with enable switch, axis selectors,
+plot area with loading overlay, and export button.
 
 Usage:
-------
-Import the heatmap card layout:
-    from layouts.heatmap_card_layout import heatmap_card
+    from layouts.heatmap_card_layout import get_heatmap_card
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """

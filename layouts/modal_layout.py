@@ -1,28 +1,12 @@
 """SensorView Modal Layout Module
 
-Defines the data selection modal dialog layout for the SensorView application,
-using Dash and Bootstrap components.
-
-Core Components:
----------------
-- Data path input group
-- Test case picker
-- Log file picker
-- Tooltips for guidance
-- Modal dialog structure
-
-Dependencies:
-------------
-- dash & dash-bootstrap-components
+Data selection modal dialog layout with data path input, test case picker,
+log file picker, tooltips, and modal dialog structure.
 
 Usage:
-------
-Import the modal layout:
-    from layouts.modal_layout import modal
+    from layouts.modal_layout import get_modal_layout
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """

@@ -1,48 +1,11 @@
-"""
+"""SensorView Graph Layout Module
 
-SensorView Graph Layout Module
+Layout configurations for plot types with focus on 3D scatter plot layouts,
+axis range management, aspect ratio calculation, and image overlay support.
 
-Module providing layout configurations for various plot types in the SensorView
-application, with a focus on optimized 3D scatter plot layouts.
-
-Core Features:
-------------
-1. Layout Generation:
-   - 3D scatter plot layouts
-   - Axis range management
-   - Aspect ratio calculation
-   - Image overlay support
-
-2. Configuration Management:
-   - Customizable axes labels
-   - Dynamic range calculation
-   - Margin control
-   - Legend positioning
-
-3. Optimization:
-   - Efficient dict construction
-   - Cached calculations
-   - Memory-optimized structures
-
-Key Components:
--------------
-- Scene configuration
-- Axis properties
-- Image overlay settings
-- UI revision handling
-
-Dependencies:
-------------
-- Standard Python typing
-- Dict/Tuple utilities
-
-Usage:
-------
-from viz.graph_layout import get_scatter3d_layout
+Key function: get_scatter3d_layout()
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """

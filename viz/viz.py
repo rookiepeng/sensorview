@@ -1,48 +1,12 @@
 """SensorView Visualization Module
 
-Core visualization module providing high-level plotting functions for sensor data
-visualization in the SensorView application.
+Core visualization module providing high-level plotting functions including 3D/2D
+scatter plots with color mapping, heatmaps, animated plots with decay effects,
+reference point overlays, and image integration.
 
-Main Components:
---------------
-1. Scatter Plot Generation:
-   - 3D scatter plots with reference points
-   - 2D scatter plots with color mapping
-   - Animated scatter plots with decay effects
-
-2. Heatmap Generation:
-   - 2D density visualizations
-   - Customizable color scales
-   - Automatic range calculation
-
-3. Animation Support:
-   - Frame-by-frame animation
-   - Decay trail effects
-   - Image overlay support
-
-Features:
---------
-- Interactive 3D/2D visualizations
-- Multiple color mapping modes
-- Customizable hover information
-- Animation frame management
-- Reference point overlays
-- Image integration
-
-Dependencies:
-------------
-- numpy
-- pandas
-- plotly (implicit through layout/data modules)
-- Base64 encoding for images
-
-Usage:
-------
-from viz.viz import get_scatter3d, get_scatter2d, get_heatmap
+Key functions: get_scatter3d(), get_scatter2d(), get_heatmap(), get_animation_data()
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """

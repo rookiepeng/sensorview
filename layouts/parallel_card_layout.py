@@ -1,27 +1,12 @@
 """Parallel Categories Card Layout Module
 
-Defines the layout for the parallel categories visualization card in the SensorView application,
-using Dash and Bootstrap components.
-
-Core Components:
----------------
-- Enable switch
-- Axis selectors and options
-- Parallel categories plot area with loading overlay
-- Export button
-
-Dependencies:
-------------
-- dash & dash-bootstrap-components
+Layout for parallel categories visualization card with enable switch, axis selectors,
+plot area with loading overlay, and export button.
 
 Usage:
-------
-Import the parallel categories card layout:
-    from layouts.parallel_card_layout import parallel_card
+    from layouts.parallel_card_layout import get_parallel_card_layout
 
 Author: Zhengyu Peng
-Email: zpeng.me@gmail.com
-Website: https://zpeng.me
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
