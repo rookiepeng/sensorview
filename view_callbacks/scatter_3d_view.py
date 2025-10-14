@@ -45,7 +45,10 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     click-to-hide, figure regeneration, and export operations.
 
     Args:
-        app (dash.Dash): Dash application instance with required layout components.
+        app: Dash application instance with required layout components.
+
+    Returns:
+        None
 
     Note:
         Call after layout definition but before app.run_server().
@@ -67,14 +70,14 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Toggle the visibility of the 3D configuration collapse panel.
 
         Args:
-            n_clicks (int): Number of times the more button has been clicked
-            is_open (bool): Current state of the collapse panel
+            n_clicks: Number of times the more button has been clicked.
+            is_open: Current state of the collapse panel.
 
         Returns:
-            dict: Updated collapse panel state
+            Dictionary with updated collapse panel state.
 
         Raises:
-            PreventUpdate: If button has not been clicked
+            PreventUpdate: If button has not been clicked.
         """
         if n_clicks == 0:
             raise PreventUpdate
@@ -135,27 +138,27 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         for real-time animation playback.
 
         Args:
-            unused_remote_trigger (int): Remote trigger count (unused)
-            overlay_enable (list): Overlay mode state (empty=disabled)
-            slider_arg (int): Current frame index
-            ispaused (bool): Animation pause state
-            decay (int): Past frames to show in overlay mode
-            cat_values (Dict[str, List[str]]): Categorical filter values
-            num_values (List[Union[float, int]]): Numerical filter ranges
-            visible_list (list): Visible data elements
-            colormap (str): Selected colormap
-            c_key (str): Color mapping column
-            size_vary (str): Size variation enable state
-            darkmode (list): Dark mode state (empty=disabled)
-            session_id (str): Session identifier
-            file (str): Current file path (JSON)
-            file_list (list): All loaded file paths
+            unused_remote_trigger: Remote trigger count (unused).
+            overlay_enable: Overlay mode state (empty=disabled).
+            slider_arg: Current frame index.
+            ispaused: Animation pause state.
+            decay: Past frames to show in overlay mode.
+            cat_values: List of lists containing categorical filter values.
+            num_values: List of (min, max) tuples for numerical filter ranges.
+            visible_list: List of visible data elements.
+            colormap: Selected colormap name.
+            c_key: Color mapping column name.
+            size_vary: Size variation enable state.
+            darkmode: Dark mode state (empty=disabled).
+            session_id: Session identifier.
+            file: Current file path (JSON string).
+            file_list: All loaded file paths.
 
         Returns:
-            dict: Updated scatter plot figure with theme and visual settings.
+            Dictionary with updated scatter plot figure including theme and visual settings.
 
         Raises:
-            PreventUpdate: If configuration unavailable.
+            PreventUpdate: If configuration is unavailable.
         """
         config = cache_get(session_id, CACHE_KEYS["config"])
         if config is None:
@@ -215,11 +218,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Update the colormap of the 3D scatter plot.
 
         Args:
-            colormap (str): Name of the selected colormap
-            fig (dict): Current figure dictionary
+            colormap: Name of the selected colormap.
+            fig: Current figure dictionary.
 
         Returns:
-            dict: Updated figure with new colormap
+            Dictionary with updated figure containing new colormap.
         """
         for idx in range(0, len(fig["data"])):
             fig["data"][idx]["marker"]["colorscale"] = colormap
@@ -243,11 +246,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Toggle dark mode for the 3D scatter plot.
 
         Args:
-            darkmode (list): Dark mode enable state
-            fig (dict): Current figure dictionary
+            darkmode: Dark mode enable state (non-empty = enabled).
+            fig: Current figure dictionary.
 
         Returns:
-            dict: Updated figure with new theme
+            Dictionary with updated figure containing new theme.
         """
         if darkmode:
             fig["layout"]["template"] = pio.templates["plotly_dark"]
@@ -279,16 +282,16 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Applies different sizes to each category when enabled and color key is categorical.
 
         Args:
-            size_vary (list): Enable state (empty=disabled)
-            fig (dict): Current figure data and layout
-            session_id (str): Session identifier
-            c_key (str): Color mapping column
+            size_vary: Enable state (empty=disabled).
+            fig: Current figure data and layout.
+            session_id: Session identifier.
+            c_key: Color mapping column name.
 
         Returns:
-            dict: Figure with modified marker sizes.
+            Dictionary with figure containing modified marker sizes.
 
         Raises:
-            PreventUpdate: If configuration unavailable.
+            PreventUpdate: If configuration is unavailable.
         """
 
         config = cache_get(session_id, CACHE_KEYS["config"])
@@ -337,19 +340,19 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         session_id: str,
     ) -> dict:
         """
-        Handle visibility changes from click interactions.
+        Handle visibility changes from click interactions on data points.
 
         Args:
-            click_data (dict): Data from click event
-            trigger_input (int): Current trigger state
-            click_hide (list): Click-to-hide feature state
-            session_id (str): Session identifier
+            click_data: Data from click event containing point information.
+            trigger_input: Current trigger state value.
+            click_hide: Click-to-hide feature state (empty=disabled).
+            session_id: Session identifier.
 
         Returns:
-            dict: Updated trigger value
+            Dictionary with updated trigger value.
 
         Raises:
-            PreventUpdate: If click-to-hide is not enabled
+            PreventUpdate: If click-to-hide is not enabled or click data is invalid.
         """
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
         if click_hide and visible_table is not None and click_data is not None:
@@ -462,40 +465,40 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         configuration persistence.
 
         Args:
-            cat_values (Dict[str, List[str]]): Categorical filter selections
-            num_values (List[Union[float, int]]): Numerical filter ranges
-            visible_list (list): Visible data elements
-            slider_picker_3d (str): Frame/time slider column
-            x_picker_3d (str): X-axis column
-            y_picker_3d (str): Y-axis column
-            z_picker_3d (str): Z-axis column
-            x_ref_picker_3d (str): Reference line X-column
-            y_ref_picker_3d (str): Reference line Y-column
-            z_ref_picker_3d (str): Reference line Z-column
-            unused_vistable_trigger (int): Visibility trigger (unused)
-            unused_left_hide_trigger (int): Left panel trigger (unused)
-            unused_right_hide_trigger (int): Right panel trigger (unused)
-            unused_file_loaded (int): File loaded trigger (unused)
-            c_key (str): Color mapping column
-            ispaused (bool): Animation pause state
-            slider_arg (int): Current frame position
-            decay (int): Historical frames in overlay mode
-            overlay_enable (list): Overlay state (empty=disabled)
-            colormap (str): Selected colormap
-            size_vary (str): Size variation enable state
-            darkmode (list): Dark theme state (empty=disabled)
-            session_id (str): Session identifier
-            file (str): Primary file path (JSON)
-            file_list (list): All loaded file paths
-            trigger_val (int): Background task trigger counter
-            data_path (str): Configuration file base path
-            case (str): Test case/project name
+            cat_values: List of lists containing categorical filter selections.
+            num_values: List of (min, max) tuples for numerical filter ranges.
+            visible_list: List of visible data elements.
+            slider_picker_3d: Frame/time slider column name.
+            x_picker_3d: X-axis column name.
+            y_picker_3d: Y-axis column name.
+            z_picker_3d: Z-axis column name.
+            x_ref_picker_3d: Reference line X-column name.
+            y_ref_picker_3d: Reference line Y-column name.
+            z_ref_picker_3d: Reference line Z-column name.
+            unused_vistable_trigger: Visibility trigger (unused).
+            unused_left_hide_trigger: Left panel trigger (unused).
+            unused_right_hide_trigger: Right panel trigger (unused).
+            unused_file_loaded: File loaded trigger (unused).
+            c_key: Color mapping column name.
+            ispaused: Animation pause state.
+            slider_arg: Current frame position.
+            decay: Historical frames in overlay mode.
+            overlay_enable: Overlay state (empty=disabled).
+            colormap: Selected colormap name.
+            size_vary: Size variation enable state.
+            darkmode: Dark theme state (empty=disabled).
+            session_id: Session identifier.
+            file: Primary file path (JSON string).
+            file_list: List of all loaded file paths.
+            trigger_val: Background task trigger counter.
+            data_path: Configuration file base path.
+            case: Test case/project name.
 
         Returns:
-            dict: Updated figure, incremented trigger, and reset buffer index.
+            Dictionary with updated figure, incremented trigger, and reset buffer index.
 
         Raises:
-            PreventUpdate: If configuration unavailable.
+            PreventUpdate: If configuration is unavailable.
 
         Side Effects:
             Updates cache, persists config to JSON, triggers background processing.
@@ -596,18 +599,18 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         trigger_idx: int,
     ) -> dict:
         """
-        Increment the filter trigger counter.
+        Increment the filter trigger counter for filter change events.
 
         Args:
-            unused_cat_values (list): Categorical filter values
-            unused_num_values (list): Numerical filter values
-            unused_visible_list (list): Visible elements list
-            unused_vistable_trigger (int): Visibility table trigger
-            unused_file_loaded (int): File loaded trigger
-            trigger_idx (int): Current trigger value
+            unused_cat_values: Categorical filter values (unused).
+            unused_num_values: Numerical filter values (unused).
+            unused_visible_list: Visible elements list (unused).
+            unused_vistable_trigger: Visibility table trigger (unused).
+            unused_file_loaded: File loaded trigger (unused).
+            trigger_idx: Current trigger value.
 
         Returns:
-            dict: Incremented trigger value
+            Dictionary with incremented trigger value.
         """
         filter_trig = trigger_idx + 1
 
@@ -628,11 +631,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Creates standalone HTML with full interactivity (zoom, rotation, hover).
 
         Args:
-            btn (int): Button click count (must be > 0)
-            fig (dict): Current figure data and layout
+            btn: Button click count (must be > 0).
+            fig: Current figure data and layout.
 
         Returns:
-            dict: Download response for browser.
+            Dictionary with download response for browser.
 
         Raises:
             PreventUpdate: If button not clicked.
@@ -668,11 +671,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Generates static PNG at 2x scale for high-quality output.
 
         Args:
-            btn (int): Button click count (must be > 0)
-            fig (dict): Current figure data and layout
+            btn: Button click count (must be > 0).
+            fig: Current figure data and layout.
 
         Returns:
-            dict: Download response with PNG file.
+            Dictionary with download response containing PNG file.
 
         Raises:
             PreventUpdate: If button not clicked.
@@ -711,20 +714,20 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         btn: int, session_id: str, visible_list: list, file: str, file_list: list
     ) -> dict:
         """
-        Export data from all frames to CSV file.
+        Export filtered data from all frames to CSV file.
 
         Args:
-            btn (int): Button click count
-            session_id (str): Session identifier
-            visible_list (list): List of visible elements
-            file (str): Current file path
-            file_list (list): List of all file paths
+            btn: Button click count (must be > 0).
+            session_id: Session identifier.
+            visible_list: List of visible elements for filtering.
+            file: Current file path as JSON string.
+            file_list: List of all file paths.
 
         Returns:
-            dict: Download data for file
+            Dictionary with download data for CSV file.
 
         Raises:
-            PreventUpdate: If button not clicked
+            PreventUpdate: If button not clicked or filter configuration unavailable.
         """
         if btn == 0:
             raise PreventUpdate
@@ -737,7 +740,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         cat_values = filter_kwargs["cat_values"]
         num_values = filter_kwargs["num_values"]
 
-        # file = json.loads(file)
         data = load_data(file_list, file)
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
@@ -779,20 +781,20 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         btn: int, slider_arg: int, session_id: str, visible_list: list, file: str
     ) -> dict:
         """
-        Export data from current frame to CSV file.
+        Export filtered data from current frame to CSV file.
 
         Args:
-            btn (int): Button click count
-            slider_arg (int): Current slider position
-            session_id (str): Session identifier
-            visible_list (list): List of visible elements
-            file (str): Current file path
+            btn: Button click count (must be > 0).
+            slider_arg: Current slider position/frame index.
+            session_id: Session identifier.
+            visible_list: List of visible elements for filtering.
+            file: Current file path as JSON string.
 
         Returns:
-            dict: Download data for file
+            Dictionary with download data for CSV file.
 
         Raises:
-            PreventUpdate: If button not clicked
+            PreventUpdate: If button not clicked or required data unavailable.
         """
         if btn == 0:
             raise PreventUpdate
@@ -805,7 +807,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         cat_values = filter_kwargs["cat_values"]
         num_values = filter_kwargs["num_values"]
 
-        # file = json.loads(file)
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
         if frame_list is None:
             raise PreventUpdate
