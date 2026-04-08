@@ -253,8 +253,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         if not file:
             raise PreventUpdate
 
-        # Initialize task and figure indices
-        cache_set(-1, session_id, CACHE_KEYS["task_id"])
+        # Initialize figure index
         cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
         # Load and validate configuration
