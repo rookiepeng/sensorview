@@ -86,6 +86,34 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         output={
+            "sidebar_style": Output("filter-sidebar-col", "style"),
+            "main_width": Output("3d-play-view-col", "width"),
+        },
+        inputs={
+            "n_clicks": Input("toggle-sidebar-button", "n_clicks"),
+        },
+        state={
+            "sidebar_style": State("filter-sidebar-col", "style"),
+        },
+    )
+    def toggle_sidebar(n_clicks: int, sidebar_style: dict) -> dict:
+        """
+        Toggle the visibility of the filter sidebar and adjust the main view width.
+        """
+        if n_clicks == 0:
+            raise PreventUpdate
+
+        if sidebar_style and sidebar_style.get("display") == "none":
+            # Show sidebar
+            new_style = {"overflowY": "scroll", "height": "100vh", "display": "block"}
+            return {"sidebar_style": new_style, "main_width": 9}
+        else:
+            # Hide sidebar
+            new_style = {"display": "none"}
+            return {"sidebar_style": new_style, "main_width": 12}
+
+    @app.callback(
+        output={
             "scatter3d": Output("scatter3d", "figure", allow_duplicate=True),
         },
         inputs={
