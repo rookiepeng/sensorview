@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Any, Tuple, Union
 import json
 import base64
 import pandas as pd
+import polars as pl
 import numpy as np
 
 from app_config import EXPIRATION, KEY_TYPES
@@ -77,9 +78,9 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
             # new_data = new_data.reset_index(drop=True)
 
         elif file_dict["name"].endswith(".csv"):
-            new_data = pd.read_csv(
-                os.path.join(file_dict["path"], file_dict["name"]), engine="pyarrow"
-            )
+            new_data = pl.read_csv(
+                os.path.join(file_dict["path"], file_dict["name"])
+            ).to_pandas()
         else:
             raise ValueError(f"Unsupported file type: {file_dict['name']}")
 

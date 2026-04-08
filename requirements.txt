@@ -2,6 +2,7 @@ dash
 dash[diskcache]
 dash-daq
 dash-bootstrap-components
+polars
 pyarrow
 numpy
 pandas
