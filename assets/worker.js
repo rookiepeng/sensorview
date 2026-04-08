@@ -104,63 +104,33 @@ function generateUUID() {
 }
 
 /**
- * Stores data in the IndexedDB store
+ * Stores data in the IndexedDB store using a single transaction for all items.
  * @param {Object|Array} data - Single item or array of items to store
  * @returns {Promise<Object>} Object containing status, count, and results of the operation
  */
 async function storeData(data) {
   if (!db) await openDatabase();
   
+  const items = Array.isArray(data) ? data : [data];
+  const now = Date.now();
+  
   return new Promise((resolve, reject) => {
     const tx = db.transaction("figureStore", "readwrite");
     const store = tx.objectStore("figureStore");
     
-    let results = [];
+    let successCount = 0;
     
-    if (Array.isArray(data)) {
-      // Process array of items
-      data.forEach(item => {
-        // Ensure each item has an ID
-        if (!item.id) {
-          item.id = generateUUID();
-        }
-        
-        // Add timestamp if not present
-        if (!item.timestamp) {
-          item.timestamp = Date.now();
-        }
-        
-        const request = store.put(item);
-        request.onsuccess = (event) => {
-          results.push({
-            id: event.target.result,
-            success: true
-          });
-        };
-      });
-    } else {
-      // Process single item
-      if (!data.id) {
-        data.id = generateUUID();
-      }
+    for (const item of items) {
+      if (!item.id) item.id = generateUUID();
+      if (!item.timestamp) item.timestamp = now;
       
-      if (!data.timestamp) {
-        data.timestamp = Date.now();
-      }
-      
-      const request = store.put(data);
-      request.onsuccess = (event) => {
-        results.push({
-          id: event.target.result,
-          success: true
-        });
-      };
+      store.put(item);
+      successCount++;
     }
     
     tx.oncomplete = () => resolve({ 
       status: "complete", 
-      count: results.length,
-      results: results
+      count: successCount,
     });
     
     tx.onerror = (event) => reject(event.target.error);
@@ -443,6 +413,9 @@ self.onmessage = async function(e) {
     
     switch (action) {
       case "store":
+        result = await storeData(payload);
+        break;
+      case "storeBatch":
         result = await storeData(payload);
         break;
       case "getById":

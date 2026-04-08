@@ -210,13 +210,15 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                 set_progress([0, "Buffering ... (0 %)"])
                 return {"dummy": 0}
 
+            # Bundle all per-frame data into a single cache entry
+            frame_bundle = {
+                "fig": fig,
+                "hover_strings": hover_strings,
+                "ref_fig": ref_fig,
+                "fig_layout": fig_layout,
+            }
+            cache_set(frame_bundle, session_id, CACHE_KEYS["figure_bundle"], str(slider_arg))
             cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
-            cache_set(fig, session_id, CACHE_KEYS["figure"], str(slider_arg))
-            cache_set(hover_strings, session_id, CACHE_KEYS["hover"], str(slider_arg))
-            cache_set(ref_fig, session_id, CACHE_KEYS["figure_ref"], str(slider_arg))
-            cache_set(
-                fig_layout, session_id, CACHE_KEYS["figure_layout"], str(slider_arg)
-            )
 
             percent = slider_arg / len(frame_list) * 100
             set_progress(

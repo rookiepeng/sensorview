@@ -18,7 +18,7 @@ from dash import DiskcacheManager
 from dash.dependencies import Output, State
 
 # import redis
-from diskcache import Cache
+from diskcache import FanoutCache
 
 
 APP_TITLE = "SensorView"
@@ -37,10 +37,7 @@ CACHE_KEYS = {
     "visible_table": "VIS_TABLE",
     "config": "CONFIG",
     "figure_idx": "FIGURE_IDX",
-    "figure": "FIGURE",
-    "hover": "HOVER",
-    "figure_ref": "FIGURE_REF",
-    "figure_layout": "FIGURE_LAYOUT",
+    "figure_bundle": "FIGURE_BUNDLE",
     "task_id": "TASK_ID",
     "filter_kwargs": "FILTGER_KWARGS",
     "selected_data_left": "SELECTED_DATA_LEFT",
@@ -52,9 +49,13 @@ KEY_TYPES = {"CAT": "categorical", "NUM": "numerical"}
 # redis_url = "redis://" + redis_ip + ":6379"
 # redis_instance = redis.StrictRedis.from_url(redis_url)
 
-frame_cache = Cache(FRAME_CACHE_PATH, timeout=120, eviction_policy="none")
+frame_cache = FanoutCache(
+    FRAME_CACHE_PATH, timeout=120, shards=8, eviction_policy="none"
+)
 
-dash_cache = Cache(DASH_CACHE_PATH, timeout=120, eviction_policy="none")
+dash_cache = FanoutCache(
+    DASH_CACHE_PATH, timeout=120, shards=4, eviction_policy="none"
+)
 background_callback_manager = DiskcacheManager(dash_cache)
 
 

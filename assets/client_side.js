@@ -49,54 +49,58 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
         let lastValidIndex = local_index;
 
+        // Validate all items first, then batch-store
+        const validItems = [];
         for (const item of dataArray) {
-          // Check if any required field is null or undefined
           if (
             !item.fig ||
             !item.hover_strings ||
             !item.ref_fig ||
             !item.fig_layout
           ) {
-            // console.log(`Invalid data at index ${item.index}, stopping storage`);
-
-            return [
-              (lastValidIndex / max_val) * 100,
-              `Stored items up to index ${lastValidIndex} (stopped due to invalid data)`,
-              lastValidIndex,
-            ];
+            break;
           }
+          validItems.push({
+            id: `${session}_${item.index}`,
+            data: item,
+            timestamp: Date.now(),
+          });
+          lastValidIndex = item.index;
+        }
 
-          // Store valid item
-          try {
-            await new Promise((resolve, reject) => {
-              const messageHandler = (e) => {
-                window.dbWorker.removeEventListener("message", messageHandler);
-                if (e.data.status === "success") {
-                  resolve(e.data);
-                } else {
-                  reject(new Error(e.data.message));
-                }
-              };
+        if (validItems.length === 0) {
+          return [
+            dash_clientside.no_update,
+            "No valid data to store",
+            local_index,
+          ];
+        }
 
-              window.dbWorker.addEventListener("message", messageHandler);
-              window.dbWorker.postMessage({
-                action: "store",
-                payload: {
-                  id: `${session}_${item.index}`,
-                  data: item,
-                  timestamp: Date.now(),
-                },
-              });
+        // Batch store all valid items in a single IndexedDB transaction
+        try {
+          await new Promise((resolve, reject) => {
+            const messageHandler = (e) => {
+              window.dbWorker.removeEventListener("message", messageHandler);
+              if (e.data.status === "success") {
+                resolve(e.data);
+              } else {
+                reject(new Error(e.data.message));
+              }
+            };
+
+            window.dbWorker.addEventListener("message", messageHandler);
+            window.dbWorker.postMessage({
+              action: "storeBatch",
+              payload: validItems,
             });
-            lastValidIndex = item.index;
-          } catch (error) {
-            console.error(`Error storing item ${item.index}:`, error);
-            return [
-              dash_clientside.no_update,
-              `Error storing data: ${error.message}`,
-              lastValidIndex,
-            ];
-          }
+          });
+        } catch (error) {
+          console.error("Error batch storing items:", error);
+          return [
+            dash_clientside.no_update,
+            `Error storing data: ${error.message}`,
+            local_index,
+          ];
         }
 
         return [

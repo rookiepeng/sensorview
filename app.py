@@ -22,7 +22,8 @@ from multiprocessing import freeze_support
 
 from flaskwebgui import FlaskUI
 
-from flask import jsonify, Response
+import orjson
+from flask import Response
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -79,24 +80,29 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
         latest_server_buffer_index = -1
 
     if start_index > latest_server_buffer_index:
-        return jsonify([{"index": -1}])
+        return Response(
+            orjson.dumps([{"index": -1}]),
+            mimetype="application/json",
+        )
 
     if start_index == latest_server_buffer_index:
-        return jsonify([])
+        return Response(orjson.dumps([]), mimetype="application/json")
 
     buffer = []
     for idx in range(start_index + 1, latest_server_buffer_index + 1):
-        buffer.append(
-            {
-                "index": idx,
-                "fig": cache_get(session, CACHE_KEYS["figure"], str(idx)),
-                "hover_strings": cache_get(session, CACHE_KEYS["hover"], str(idx)),
-                "ref_fig": cache_get(session, CACHE_KEYS["figure_ref"], str(idx)),
-                "fig_layout": cache_get(session, CACHE_KEYS["figure_layout"], str(idx)),
-            }
-        )
+        bundle = cache_get(session, CACHE_KEYS["figure_bundle"], str(idx))
+        if bundle is not None:
+            buffer.append(
+                {
+                    "index": idx,
+                    "fig": bundle["fig"],
+                    "hover_strings": bundle["hover_strings"],
+                    "ref_fig": bundle["ref_fig"],
+                    "fig_layout": bundle["fig_layout"],
+                }
+            )
 
-    return jsonify(buffer)
+    return Response(orjson.dumps(buffer), mimetype="application/json")
 
 
 # Initialize worker
