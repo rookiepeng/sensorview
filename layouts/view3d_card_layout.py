@@ -79,7 +79,7 @@ def get_3d_view_config_layout():
                 [
                     dbc.Label(
                         html.I(className="bi bi-brightness-high-fill"),
-                        className="me-2",
+                        className="me-2 mb-0 d-flex align-items-center",
                     ),
                     dbc.Checklist(
                         options=[
@@ -91,6 +91,8 @@ def get_3d_view_config_layout():
                         value=[True],
                         id="darkmode-switch",
                         switch=True,
+                        className="mb-0 d-flex align-items-center mt-1",
+                        inline=True,
                     ),
                     dbc.Tooltip(
                         "Toggle between light and dark background",
@@ -99,20 +101,39 @@ def get_3d_view_config_layout():
                         placement="top",
                     ),
                 ],
+                className="align-items-center",
             ),
             className="ms-auto",
             width="auto",
         ),
         dbc.Col(
             dbc.Button(
-                html.I(className="bi bi-three-dots-vertical"),
-                id="3d-config-more-button",
-                className="mb-3",
+                html.I(className="bi bi-layout-sidebar-reverse"),
+                id="toggle-sidebar-button",
+                className="mb-0",
                 color="transparent",
                 n_clicks=0,
                 size="sm",
             ),
             width="auto",
+            className="d-flex align-items-center",
+        ),
+        dbc.Tooltip(
+            "Toggle filter sidebar",
+            target="toggle-sidebar-button",
+            placement="top",
+        ),
+        dbc.Col(
+            dbc.Button(
+                html.I(className="bi bi-three-dots-vertical"),
+                id="3d-config-more-button",
+                className="mb-0",
+                color="transparent",
+                n_clicks=0,
+                size="sm",
+            ),
+            width="auto",
+            className="d-flex align-items-center",
         ),
         dbc.Tooltip(
             "More configuration options",
@@ -606,11 +627,14 @@ def get_view3d_card_layout():
                         [
                             dbc.Col(
                                 get_3d_play_view_layout(),
+                                id="3d-play-view-col",
                                 width=9,
                                 className="me-3",
                             ),
                             dbc.Col(
                                 get_filter_sidebar(),
+                                id="filter-sidebar-col",
+                                width=True,
                                 style={"overflowY": "scroll", "height": "100vh"},
                             ),
                         ]
