@@ -117,19 +117,26 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
                 var_list = []
                 value_list = []
 
-            new_dropdown.extend(
-                [
-                    dbc.Label(keys_dict[d_item]["description"]),
-                    html.Div(
-                        dcc.Dropdown(
-                            id={"type": "filter-dropdown", "index": idx},
-                            options=[{"label": i, "value": i} for i in var_list],
-                            value=value_list,
-                            multi=True,
+            new_dropdown.append(
+                html.Div(
+                    [
+                        dbc.Label(
+                            keys_dict[d_item]["description"],
+                            className="mb-1 fw-bold",
+                            style={"fontSize": "0.85rem"},
                         ),
-                        className=THEME,
-                    ),
-                ]
+                        html.Div(
+                            dcc.Dropdown(
+                                id={"type": "filter-dropdown", "index": idx},
+                                options=[{"label": i, "value": i} for i in var_list],
+                                value=value_list,
+                                multi=True,
+                            ),
+                            className=f"{THEME} mb-0",
+                        ),
+                    ],
+                    className="mb-3",
+                )
             )
             cat_values.append(value_list)
 
@@ -141,23 +148,34 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             else:
                 var_min = var_max = 0
 
-            new_slider.extend(
-                [
-                    dbc.Label(keys_dict[item]["description"]),
-                    dcc.RangeSlider(
-                        id={"type": "filter-slider", "index": idx},
-                        min=var_min,
-                        max=var_max,
-                        marks=None,
-                        step=(
-                            round((var_max - var_min) / 100, 3)
-                            if var_max != var_min
-                            else 1
+            new_slider.append(
+                html.Div(
+                    [
+                        dbc.Label(
+                            keys_dict[item]["description"],
+                            className="mb-1 fw-bold",
+                            style={"fontSize": "0.85rem"},
                         ),
-                        value=[var_min, var_max],
-                        tooltip={"always_visible": False},
-                    ),
-                ]
+                        html.Div(
+                            dcc.RangeSlider(
+                                id={"type": "filter-slider", "index": idx},
+                                min=var_min,
+                                max=var_max,
+                                marks=None,
+                                step=(
+                                    round((var_max - var_min) / 100, 3)
+                                    if var_max != var_min
+                                    else 1
+                                ),
+                                value=[var_min, var_max],
+                                tooltip={"always_visible": False},
+                                className="px-0 py-0",
+                            ),
+                            className="mt-1",
+                        ),
+                    ],
+                    className="mb-3",
+                )
             )
             num_values.append([var_min, var_max])
 
