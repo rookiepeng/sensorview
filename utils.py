@@ -346,38 +346,34 @@ def filter_all(
         Filtered DataFrame containing only rows that meet all specified conditions.
     """
     # Initialize condition as True for all rows
-    condition = pd.Series([True] * len(data), index=data.index)
+    condition = np.ones(len(data), dtype=bool)
 
-    # Apply numerical filters
+    # Apply numerical filters using numpy for speed
     for f_idx, f_name in enumerate(num_list):
         if f_name not in data.columns:
             continue
 
-        condition = condition & (
-            (data[f_name] >= num_values[f_idx][0])
-            & (data[f_name] <= num_values[f_idx][1])
-        )
+        col = data[f_name].values
+        condition &= (col >= num_values[f_idx][0]) & (col <= num_values[f_idx][1])
 
-    # Apply categorical filters
+    # Apply categorical filters using vectorized isin()
     for f_idx, f_name in enumerate(cat_list):
         if f_name not in data.columns:
             continue
 
         if not cat_values[f_idx]:
-            condition = condition & False
+            condition[:] = False
             break
 
-        val_condition = pd.Series([False] * len(data), index=data.index)
-        for val in cat_values[f_idx]:
-            val_condition = val_condition | (data[f_name] == val)
+        condition &= data[f_name].isin(cat_values[f_idx]).values
 
-        condition = condition & val_condition
-
-    # Apply visibility filter
+    # Apply visibility filter using index alignment
     if visible_list is not None and visible_table is not None:
         if len(visible_list) == 1:
-            condition = condition & (visible_table["_VIS_"] == visible_list[0])
+            condition &= (
+                visible_table.loc[data.index, "_VIS_"].values == visible_list[0]
+            )
         elif not visible_list:
-            condition = condition & False
+            condition[:] = False
 
     return data.loc[condition]

@@ -137,12 +137,19 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
-        dataset = load_data(file_list)
-        dataset[config["slider"]] = dataset[config["slider"]].astype(int)
-        frame_list = np.sort(dataset[config["slider"]].unique())
-        cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
-
-        frame_group = dataset.groupby(config["slider"])
+        # Use cached frame data instead of re-reading CSV from disk
+        frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        if frame_list is None:
+            # Fallback: load from disk if cache miss
+            dataset = load_data(file_list)
+            dataset[config["slider"]] = dataset[config["slider"]].astype(int)
+            frame_list = np.sort(dataset[config["slider"]].unique())
+            cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
+            frame_group = dataset.groupby(config["slider"])
+            use_cached_frames = False
+        else:
+            frame_group = None
+            use_cached_frames = True
 
         # prepare figure key word arguments
         fig_kwargs = prepare_figure_kwargs(
@@ -154,16 +161,27 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             frame_list,
         )
 
+        # Move loop-invariant operations outside the loop
+        file_dict = json.loads(file_list[0])
+        img_dir = os.path.join(
+            file_dict["path"],
+            file_dict["name"][0:-4],
+        )
+
+        # Pre-compute base layout (only image changes per frame)
+        fig_kwargs["image"] = None
+        base_layout = get_scatter3d_layout(**fig_kwargs)
+        has_ref = fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None
+
         for slider_arg, frame_idx in enumerate(frame_list):
-            file_dict = json.loads(file_list[0])
             img_path = os.path.join(
-                file_dict["path"],
-                file_dict["name"][0:-4],
+                img_dir,
                 str(frame_list[slider_arg]) + ".jpg",
             )
 
             # encode image frame
-            fig_kwargs["image"] = load_image(img_path)
+            img = load_image(img_path)
+            fig_kwargs["image"] = img
 
             fig_kwargs["name"] = (
                 "Index: "
@@ -175,7 +193,14 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                 + ")"
             )
 
-            data = frame_group.get_group(frame_idx)
+            data = (
+                cache_get(session_id, CACHE_KEYS["frame_data"], str(frame_idx))
+                if use_cached_frames
+                else frame_group.get_group(frame_idx)
+            )
+            if data is None:
+                continue
+
             filterd_frame = filter_all(
                 data,
                 num_keys,
@@ -190,7 +215,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             fig = result["scatter_data"]
             hover_strings = result["hover_strings"]
 
-            if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
+            if has_ref:
                 ref_fig = [
                     get_ref_scatter3d_data(
                         data_frame=filterd_frame,
@@ -203,7 +228,24 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             else:
                 ref_fig = []
 
-            fig_layout = get_scatter3d_layout(**fig_kwargs)
+            # Reuse base layout, only update image
+            if img is not None:
+                fig_layout = dict(base_layout)
+                fig_layout["images"] = [
+                    {
+                        "source": img,
+                        "xref": "x domain",
+                        "yref": "y domain",
+                        "x": 0,
+                        "y": 1,
+                        "xanchor": "left",
+                        "yanchor": "top",
+                        "sizex": 0.3,
+                        "sizey": 0.3,
+                    }
+                ]
+            else:
+                fig_layout = base_layout
 
             if trigger_idx != cache_get(session_id, CACHE_KEYS["task_id"]):
                 print("task (" + str(trigger_idx) + ") cancelled")

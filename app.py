@@ -79,6 +79,8 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
     if latest_server_buffer_index is None:
         latest_server_buffer_index = -1
 
+    _orjson_opts = orjson.OPT_SERIALIZE_NUMPY
+
     if start_index > latest_server_buffer_index:
         return Response(
             orjson.dumps([{"index": -1}]),
@@ -102,7 +104,9 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
                 }
             )
 
-    return Response(orjson.dumps(buffer), mimetype="application/json")
+    return Response(
+        orjson.dumps(buffer, option=_orjson_opts), mimetype="application/json"
+    )
 
 
 # Initialize worker
