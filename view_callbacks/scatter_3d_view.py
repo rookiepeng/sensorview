@@ -504,7 +504,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             Updates cache, persists config to JSON, triggers background processing.
         """
         # invoke task
-        cache_set(-1, session_id, CACHE_KEYS["task_id"])
         cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
         # save filter key word arguments to Redis

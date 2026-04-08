@@ -17,8 +17,20 @@ import dash
 from dash import DiskcacheManager
 from dash.dependencies import Output, State
 
+import psutil
+
 # import redis
 from diskcache import FanoutCache
+
+
+class SafeDiskcacheManager(DiskcacheManager):
+    """DiskcacheManager that silently ignores already-terminated processes on cancel."""
+
+    def terminate_job(self, job):
+        try:
+            super().terminate_job(job)
+        except psutil.NoSuchProcess:
+            pass
 
 
 APP_TITLE = "SensorView"
@@ -38,7 +50,6 @@ CACHE_KEYS = {
     "config": "CONFIG",
     "figure_idx": "FIGURE_IDX",
     "figure_bundle": "FIGURE_BUNDLE",
-    "task_id": "TASK_ID",
     "filter_kwargs": "FILTGER_KWARGS",
     "selected_data_left": "SELECTED_DATA_LEFT",
     "selected_data_right": "SELECTED_DATA_RIGHT",
@@ -56,7 +67,7 @@ frame_cache = FanoutCache(
 dash_cache = FanoutCache(
     DASH_CACHE_PATH, timeout=120, shards=4, eviction_policy="none"
 )
-background_callback_manager = DiskcacheManager(dash_cache)
+background_callback_manager = SafeDiskcacheManager(dash_cache)
 
 
 app = dash.Dash(

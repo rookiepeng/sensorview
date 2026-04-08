@@ -75,6 +75,11 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             Output("buffer", "value"),
             Output("buffer-tooltip", "children"),
         ],
+        running=[
+            (Output("buffer", "color"), "warning", "success"),
+            (Output("buffer", "value"), 0, 100),
+            (Output("buffer-tooltip", "children"), "Restarting ...", "Buffer ready (100 %)"),
+        ],
         manager=background_callback_manager,
         prevent_initial_call=True,
     )
@@ -109,7 +114,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         Raises:
             PreventUpdate: If configuration data is missing or invalid.
         """
-        cache_set(trigger_idx, session_id, CACHE_KEYS["task_id"])
         print("start new task (" + str(trigger_idx) + ")")
 
         set_progress([0, "Buffering ... (0 %)"])
@@ -118,9 +122,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
 
         if file not in file_list:
             file_list.append(file)
-
-        # set figure index to -1 (no buffer is ready)
-        cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
         config = cache_get(session_id, CACHE_KEYS["config"])
         if config is None or "keys" not in config:
@@ -246,11 +247,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                 ]
             else:
                 fig_layout = base_layout
-
-            if trigger_idx != cache_get(session_id, CACHE_KEYS["task_id"]):
-                print("task (" + str(trigger_idx) + ") cancelled")
-                set_progress([0, "Buffering ... (0 %)"])
-                return {"dummy": 0}
 
             # Bundle all per-frame data into a single cache entry
             frame_bundle = {
