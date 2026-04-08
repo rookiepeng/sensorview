@@ -368,6 +368,7 @@ def get_3d_play_view_layout():
                     },
                 ),
                 width=12,
+                className="mb-3",
             ),
             dbc.Row(
                 [
@@ -517,6 +518,7 @@ def get_filter_sidebar():
                 value=[],
                 id="overlay-switch",
                 switch=True,
+                className="mb-2",
             ),
             dbc.Tooltip(
                 "Overlay all the frames",
@@ -533,6 +535,7 @@ def get_filter_sidebar():
                 value=[],
                 id="click-hide-switch",
                 switch=True,
+                className="mb-2",
             ),
             dbc.Tooltip(
                 "When this is enabled, you can click a scatter "
@@ -550,42 +553,63 @@ def get_filter_sidebar():
                 value=[],
                 id="size-vary-switch",
                 switch=True,
+                className="mb-3",
             ),
             dbc.Tooltip(
                 "When this is enabled, the dot size varies with categories",
                 target="size-vary-switch",
                 placement="top",
             ),
-            dbc.Label("Decay"),
-            dcc.Slider(
-                id="decay-slider",
-                min=0,
-                max=10,
-                step=1,
-                value=0,
-                marks=None,
-                tooltip={
-                    "always_visible": False,
-                    "placement": "top",
-                },
+            html.Div(
+                [
+                    dbc.Label(
+                        "Decay",
+                        className="mb-1 fw-bold",
+                        style={"fontSize": "0.85rem"},
+                    ),
+                    dcc.Slider(
+                        id="decay-slider",
+                        min=0,
+                        max=10,
+                        step=1,
+                        value=0,
+                        marks=None,
+                        tooltip={
+                            "always_visible": False,
+                            "placement": "top",
+                        },
+                        className="px-0 py-0",
+                    ),
+                ],
+                className="mb-4 mt-2",
             ),
-            dbc.CardHeader("Filter"),
+            dbc.CardHeader("Filter", className="fw-bold mb-2 rounded"),
             dbc.CardBody(
                 [
-                    dbc.Label("Visibility Options"),
                     html.Div(
-                        dcc.Dropdown(
-                            id="visible-picker",
-                            options=["visible", "hidden"],
-                            value=["visible"],
-                            multi=True,
-                        ),
-                        className=THEME,
+                        [
+                            dbc.Label(
+                                "Visibility Options",
+                                className="mb-1 fw-bold",
+                                style={"fontSize": "0.85rem"},
+                            ),
+                            html.Div(
+                                dcc.Dropdown(
+                                    id="visible-picker",
+                                    options=["visible", "hidden"],
+                                    value=["visible"],
+                                    multi=True,
+                                ),
+                                className=f"{THEME} mb-0",
+                            ),
+                        ],
+                        className="mb-3",
+                        id="visible-picker-container",
                     ),
                     dbc.Tooltip(
                         "By default, all the data is initially labeled as 'visible.' "
                         "You can change the label of the data to 'hidden' using this tool.",
-                        target="visible-picker",
+                        target="visible-picker-container",
                         placement="top",
                     ),
                     html.Div(id="dropdown-container", children=[]),
