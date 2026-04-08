@@ -186,10 +186,10 @@ def get_scatter3d_data(
         """
         scatter = {
             "type": "scatter3d",
-            "ids": df.index.tolist(),
-            "x": df[x_key].tolist(),
-            "y": df[y_key].tolist(),
-            "z": df[z_key].tolist(),
+            "ids": df.index.to_numpy(),
+            "x": df[x_key].to_numpy(),
+            "y": df[y_key].to_numpy(),
+            "z": df[z_key].to_numpy(),
             "mode": "markers",
             "name": name,
             "showlegend": plot_config["showlegend"],
@@ -223,7 +223,7 @@ def get_scatter3d_data(
 
     if plot_config["c_type"] == "numerical":
         hover_text = process_hover(data_frame)
-        color_values = data_frame[c_key].tolist()
+        color_values = data_frame[c_key].to_numpy()
         result["scatter_data"] = [
             create_scatter(data_frame, plot_config["name"], color_values)
         ]
