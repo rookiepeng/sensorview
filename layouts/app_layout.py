@@ -119,5 +119,5 @@ def get_app_layout():
             ),
         ],
         fluid=True,
-        className="dbc_light",
+        className="dbc",
     )
