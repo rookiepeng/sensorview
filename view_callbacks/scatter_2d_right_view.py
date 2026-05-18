@@ -121,8 +121,15 @@ def get_scatter_2d_right_view_callbacks(app):
             "visible_list": State("visible-picker", "value"),
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
+            "x_min": State("x-min-2d-right", "value"),
+            "x_max": State("x-max-2d-right", "value"),
+            "y_min": State("y-min-2d-right", "value"),
+            "y_max": State("y-max-2d-right", "value"),
         },
         manager=background_callback_manager,
+        running=[
+            (Output("loading_right", "display"), "show", "hide"),
+        ],
         prevent_initial_call=True,
     )
     def regenerate_scatter2d_right_callback(
@@ -141,6 +148,10 @@ def get_scatter_2d_right_view_callbacks(app):
         visible_list,
         file,
         file_list,
+        x_min,
+        x_max,
+        y_min,
+        y_max,
     ):
         """
         Background callback function to regenerate the right 2D scatter plot based on
@@ -233,9 +244,51 @@ def get_scatter_2d_right_view_callbacks(app):
             c_type=keys_dict[c_key].get("type", KEY_TYPES["NUM"]),
         )
 
+        if x_min is not None and x_max is not None:
+            right_fig["layout"]["xaxis"]["range"] = [x_min, x_max]
+            right_fig["layout"]["xaxis"]["autorange"] = False
+        if y_min is not None and y_max is not None:
+            right_fig["layout"]["yaxis"]["range"] = [y_min, y_max]
+            right_fig["layout"]["yaxis"]["autorange"] = False
+
         return {
             "figure": right_fig,
         }
+
+    @app.callback(
+        output={
+            "figure": Output("scatter2d-right", "figure", allow_duplicate=True),
+        },
+        inputs={
+            "x_min": Input("x-min-2d-right", "value"),
+            "x_max": Input("x-max-2d-right", "value"),
+            "y_min": Input("y-min-2d-right", "value"),
+            "y_max": Input("y-max-2d-right", "value"),
+        },
+        state={
+            "fig_in": State("scatter2d-right", "figure"),
+        },
+        prevent_initial_call=True,
+    )
+    def update_right_axis_range(x_min, x_max, y_min, y_max, fig_in) -> dict:
+        if x_min is None and x_max is None and y_min is None and y_max is None:
+            raise PreventUpdate
+
+        if x_min is not None and x_max is not None:
+            fig_in["layout"]["xaxis"]["range"] = [x_min, x_max]
+            fig_in["layout"]["xaxis"]["autorange"] = False
+        else:
+            fig_in["layout"]["xaxis"].pop("range", None)
+            fig_in["layout"]["xaxis"]["autorange"] = True
+
+        if y_min is not None and y_max is not None:
+            fig_in["layout"]["yaxis"]["range"] = [y_min, y_max]
+            fig_in["layout"]["yaxis"]["autorange"] = False
+        else:
+            fig_in["layout"]["yaxis"].pop("range", None)
+            fig_in["layout"]["yaxis"]["autorange"] = True
+
+        return {"figure": fig_in}
 
     @app.callback(
         output={
@@ -314,6 +367,35 @@ def get_scatter_2d_right_view_callbacks(app):
             collapse = True
 
         return {"collapse": collapse}
+
+    @app.callback(
+        output={
+            "is_open": Output("range-config-collapse-right", "is_open"),
+        },
+        inputs={"_n_clicks": Input("range-config-button-right", "n_clicks")},
+        state={"is_open": State("range-config-collapse-right", "is_open")},
+        prevent_initial_call=True,
+    )
+    def toggle_right_range_collapse(_n_clicks, is_open):
+        return {"is_open": not is_open}
+
+    @app.callback(
+        output={
+            "x_min": Output("x-min-2d-right", "value"),
+            "x_max": Output("x-max-2d-right", "value"),
+            "y_min": Output("y-min-2d-right", "value"),
+            "y_max": Output("y-max-2d-right", "value"),
+        },
+        inputs={
+            "_x_right": Input("x-picker-2d-right", "value"),
+            "_y_right": Input("y-picker-2d-right", "value"),
+            "_file": Input("current-file", "data"),
+            "_file_list": Input("file-add", "value"),
+        },
+        prevent_initial_call=True,
+    )
+    def reset_right_axis_range(_x_right, _y_right, _file, _file_list) -> dict:
+        return {"x_min": None, "x_max": None, "y_min": None, "y_max": None}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},

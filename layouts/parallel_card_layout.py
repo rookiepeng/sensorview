@@ -79,7 +79,8 @@ def get_parallel_card_layout():
                                             id="c-picker-parallel",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -87,7 +88,8 @@ def get_parallel_card_layout():
                                 target="c-picker-parallel",
                                 placement="top",
                             ),
-                        ]
+                        ],
+                        class_name="mb-3",
                     ),
                     dcc.Loading(
                         id="loading_parallel",
@@ -110,7 +112,8 @@ def get_parallel_card_layout():
                                                         style={"float": "right"},
                                                     )
                                                 ),
-                                            ]
+                                            ],
+                                            class_name="mt-2",
                                         ),
                                         dbc.Tooltip(
                                             "Export the current figure",

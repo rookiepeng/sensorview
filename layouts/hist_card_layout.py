@@ -64,7 +64,8 @@ def get_hist_card_layout():
                                             id="x-picker-histogram",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -91,7 +92,8 @@ def get_hist_card_layout():
                                             value="density",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -107,7 +109,8 @@ def get_hist_card_layout():
                                             id="c-picker-histogram",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -115,7 +118,8 @@ def get_hist_card_layout():
                                 target="c-picker-histogram",
                                 placement="top",
                             ),
-                        ]
+                        ],
+                        class_name="mb-3",
                     ),
                     dcc.Loading(
                         id="loading_histogram",
@@ -142,7 +146,8 @@ def get_hist_card_layout():
                                                         style={"float": "right"},
                                                     )
                                                 ),
-                                            ]
+                                            ],
+                                            class_name="mt-2",
                                         ),
                                         dbc.Tooltip(
                                             "Export the current figure",

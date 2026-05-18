@@ -64,7 +64,8 @@ def get_violin_card_layout():
                                             id="x-picker-violin",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -80,7 +81,8 @@ def get_violin_card_layout():
                                             id="y-picker-violin",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -96,7 +98,8 @@ def get_violin_card_layout():
                                             id="c-picker-violin",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -104,7 +107,8 @@ def get_violin_card_layout():
                                 target="c-picker-violin",
                                 placement="top",
                             ),
-                        ]
+                        ],
+                        class_name="mb-3",
                     ),
                     dcc.Loading(
                         id="loading_violin",
@@ -127,7 +131,8 @@ def get_violin_card_layout():
                                                         style={"float": "right"},
                                                     )
                                                 ),
-                                            ]
+                                            ],
+                                            class_name="mt-2",
                                         ),
                                         dbc.Tooltip(
                                             "Export the current figure",

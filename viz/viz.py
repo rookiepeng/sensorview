@@ -92,6 +92,8 @@ def get_heatmap(
     y_key: str,
     x_label: Optional[str] = None,
     y_label: Optional[str] = None,
+    log_scale: bool = False,
+    colormap: str = "Jet",
 ) -> Dict[str, Any]:
     """
     Generate a 2D heatmap visualization.
@@ -102,6 +104,8 @@ def get_heatmap(
         y_key: Column name for y-axis values.
         x_label: Optional custom label for x-axis. Defaults to x_key.
         y_label: Optional custom label for y-axis. Defaults to y_key.
+        log_scale: If True, apply log1p to counts and display as heatmap.
+        colormap: Colorscale name for the plot.
 
     Returns:
         Dictionary containing heatmap data and layout configuration.
@@ -112,13 +116,39 @@ def get_heatmap(
     if y_label is None:
         y_label = y_key
 
+    if log_scale:
+        x_vals = data_frame[x_key].dropna().values
+        y_vals = data_frame[y_key].dropna().values
+        x_edges = np.histogram_bin_edges(x_vals, bins="auto")
+        y_edges = np.histogram_bin_edges(y_vals, bins="auto")
+        counts, xedges, yedges = np.histogram2d(x_vals, y_vals, bins=[x_edges, y_edges])
+        log_counts = np.log1p(counts.T)
+        x_centers = (xedges[:-1] + xedges[1:]) / 2
+        y_centers = (yedges[:-1] + yedges[1:]) / 2
+        return {
+            "data": [
+                {
+                    "type": "heatmap",
+                    "x": x_centers.tolist(),
+                    "y": y_centers.tolist(),
+                    "z": log_counts.tolist(),
+                    "colorscale": colormap,
+                    "colorbar": {"title": {"text": "log(count+1)"}},
+                }
+            ],
+            "layout": {
+                "xaxis": {"title": {"text": x_label}},
+                "yaxis": {"title": {"text": y_label}},
+            },
+        }
+
     return {
         "data": [
             {
                 "type": "histogram2dcontour",
                 "x": data_frame[x_key],
                 "y": data_frame[y_key],
-                "colorscale": "Jet",
+                "colorscale": colormap,
             }
         ],
         "layout": {
