@@ -65,6 +65,9 @@ def get_histogram_view_callbacks(app: dash.Dash) -> None:
             "file_list": State("file-add", "value"),
         },
         manager=background_callback_manager,
+        running=[
+            (Output("loading_histogram", "display"), "show", "hide"),
+        ],
     )
     def regenerate_histogram_callback(
         unused_filter_trigger: int,

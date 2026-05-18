@@ -63,6 +63,9 @@ def get_parcats_view_callbacks(app: dash.Dash) -> None:
             "file_list": State("file-add", "value"),
         },
         manager=background_callback_manager,
+        running=[
+            (Output("loading_parallel", "display"), "show", "hide"),
+        ],
     )
     def regenerate_parallel_callback(
         unused_filter_trigger: int,

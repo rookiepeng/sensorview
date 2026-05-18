@@ -64,6 +64,9 @@ def get_heatmap_view_callbacks(app: dash.Dash) -> None:
             "file_list": State("file-add", "value"),
         },
         manager=background_callback_manager,
+        running=[
+            (Output("loading_heat", "display"), "show", "hide"),
+        ],
     )
     def regenerate_heatmap_callback(
         unused_filter_trigger: int,
