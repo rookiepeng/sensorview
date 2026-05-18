@@ -60,6 +60,9 @@ def get_violin_view_callbacks(app: dash.Dash) -> None:
             "file_list": State("file-add", "value"),
         },
         manager=background_callback_manager,
+        running=[
+            (Output("loading_violin", "display"), "show", "hide"),
+        ],
     )
     def regenerate_violin_callback(
         unused_filter_trigger: int,
