@@ -49,7 +49,7 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
         output={"regenerate_trigger": Output("left-regenerate-trigger", "data")},
         inputs={
             "unused_slider_arg": Input("slider-frame", "value"),
-            "unused_stop_click": Input("stop-button", "n_clicks"),
+            "unused_play_stop_click": Input("play-stop-button", "n_clicks"),
             "all_frame_sw": Input("scatter2dl-allframe-switch", "value"),
         },
         state={
@@ -60,7 +60,7 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
     )
     def invoke_scatter2d_left_frame_trigger(
         unused_slider_arg: int,
-        unused_stop_click: int,
+        unused_play_stop_click: int,
         all_frame_sw: str,
         ispaused: bool,
         left_sw: list,
@@ -88,7 +88,7 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
         ctx = dash.callback_context
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
-        if trigger_id == "stop-button":
+        if trigger_id == "play-stop-button" and not ispaused:
             ispaused = True
 
         if ispaused and all_frame_sw == "current" and left_sw:

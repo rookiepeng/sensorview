@@ -145,7 +145,7 @@ app.clientside_callback(
         Output("trigger-remote-figure", "data"),
     ],
     Input("slider-frame", "value"),
-    Input("stop-button", "n_clicks"),
+    Input("play-stop-button", "n_clicks"),
     Input("decay-slider", "value"),
     State("size-vary-switch", "value"),
     State("session-id", "data"),
@@ -464,34 +464,21 @@ def open_modal(unused_select_modal: Optional[int]) -> Dict[str, bool]:
 # is clicked, the interval component remains unchanged.
 app.clientside_callback(
     """
-    function(play_clicks, stop_clicks) {
+    function(n_clicks, ispaused) {
         const triggered = dash_clientside.callback_context.triggered.map(
             t => t.prop_id
             );
-        if (triggered.length > 0) {
-            if (triggered[0].includes('play-button')) {
-                if (play_clicks>0){
-                    return false;
-                }
-                else {
-                    return window.dash_clientside.no_update;
-                }
-            }
-            if (triggered[0].includes('stop-button')) {
-                if (stop_clicks>0){
-                    return true;
-                }
-                else {
-                    return window.dash_clientside.no_update;
-                }
+        if (triggered.length > 0 && triggered[0].includes('play-stop-button')) {
+            if (n_clicks > 0) {
+                return ispaused ? false : true;
             }
         }
         return window.dash_clientside.no_update;
     }
     """,
     Output("interval-component", "disabled"),
-    Input("play-button", "n_clicks"),
-    Input("stop-button", "n_clicks"),
+    Input("play-stop-button", "n_clicks"),
+    State("interval-component", "disabled"),
 )
 
 app.clientside_callback(

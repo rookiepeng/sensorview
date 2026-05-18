@@ -12,6 +12,7 @@ License: GPL-3.0
 """
 
 import dash
+from dash import html
 from dash.dependencies import Input, Output
 
 
@@ -31,8 +32,7 @@ def get_control_view_callbacks(app: dash.Dash) -> None:
             "frame_slider_disabled": Output("slider-frame", "disabled"),
             "previous_button_disabled": Output("previous-button", "disabled"),
             "next_button_disabled": Output("next-button", "disabled"),
-            "play_button_disabled": Output("play-button", "disabled"),
-            "stop_button_disabled": Output("stop-button", "disabled"),
+            "play_stop_button_disabled": Output("play-stop-button", "disabled"),
         },
         inputs={"overlay": Input("overlay-switch", "value")},
     )
@@ -48,22 +48,37 @@ def get_control_view_callbacks(app: dash.Dash) -> None:
                 - frame_slider_disabled (bool): Frame slider disabled state
                 - previous_button_disabled (bool): Previous button disabled state
                 - next_button_disabled (bool): Next button disabled state
-                - play_button_disabled (bool): Play button disabled state
-                - stop_button_disabled (bool): Stop button disabled state
+                - play_stop_button_disabled (bool): Play/stop button disabled state
         """
         if overlay:
             return {
                 "frame_slider_disabled": True,
                 "previous_button_disabled": True,
                 "next_button_disabled": True,
-                "play_button_disabled": True,
-                "stop_button_disabled": True,
+                "play_stop_button_disabled": True,
             }
 
         return {
             "frame_slider_disabled": False,
             "previous_button_disabled": False,
             "next_button_disabled": False,
-            "play_button_disabled": False,
-            "stop_button_disabled": False,
+            "play_stop_button_disabled": False,
+        }
+
+    @app.callback(
+        output={
+            "children": Output("play-stop-button", "children"),
+            "color": Output("play-stop-button", "color"),
+        },
+        inputs={"ispaused": Input("interval-component", "disabled")},
+    )
+    def update_play_stop_button(ispaused: bool) -> dict:
+        if ispaused:
+            return {
+                "children": html.I(className="bi bi-play-fill"),
+                "color": "primary",
+            }
+        return {
+            "children": html.I(className="bi bi-stop-fill"),
+            "color": "danger",
         }
