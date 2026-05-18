@@ -54,6 +54,8 @@ def get_heatmap_view_callbacks(app: dash.Dash) -> None:
             "heat_sw": Input("heat-switch", "value"),
             "x_heat": Input("x-picker-heatmap", "value"),
             "y_heat": Input("y-picker-heatmap", "value"),
+            "log_scale": Input("heatmap-log-scale", "value"),
+            "colormap": Input("colormap-heatmap", "value"),
         },
         state={
             "session_id": State("session-id", "data"),
@@ -70,6 +72,8 @@ def get_heatmap_view_callbacks(app: dash.Dash) -> None:
         heat_sw: list,
         x_heat: str,
         y_heat: str,
+        log_scale: list,
+        colormap: str,
         session_id: str,
         visible_list: list,
         file: str,
@@ -141,6 +145,8 @@ def get_heatmap_view_callbacks(app: dash.Dash) -> None:
             y_key,
             x_label,
             y_label,
+            log_scale=bool(log_scale),
+            colormap=colormap or "Jet",
         )
 
         return {

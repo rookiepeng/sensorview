@@ -16,6 +16,8 @@ from dash import html
 
 import dash_bootstrap_components as dbc
 
+from layouts.layout_constants import colorscales
+
 
 def get_heatmap_card():
     """
@@ -62,7 +64,8 @@ def get_heatmap_card():
                                             id="x-picker-heatmap",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -78,7 +81,8 @@ def get_heatmap_card():
                                             id="y-picker-heatmap",
                                             disabled=False,
                                         ),
-                                    ]
+                                    ],
+                                    size="sm",
                                 )
                             ),
                             dbc.Tooltip(
@@ -86,7 +90,46 @@ def get_heatmap_card():
                                 target="y-picker-heatmap",
                                 placement="top",
                             ),
-                        ]
+                            dbc.Col(
+                                dbc.InputGroup(
+                                    [
+                                        dbc.InputGroupText("cmap"),
+                                        dbc.Select(
+                                            id="colormap-heatmap",
+                                            options=[
+                                                {"value": x, "label": x}
+                                                for x in colorscales
+                                            ],
+                                            value="Jet",
+                                        ),
+                                    ],
+                                    size="sm",
+                                )
+                            ),
+                            dbc.Tooltip(
+                                "Select colormap",
+                                target="colormap-heatmap",
+                                placement="top",
+                            ),
+                            dbc.Col(
+                                dbc.Checklist(
+                                    options=[{"label": "Log color", "value": True}],
+                                    value=[],
+                                    id="heatmap-log-scale",
+                                    switch=True,
+                                    className="mb-0 d-flex align-items-center",
+                                    inline=True,
+                                ),
+                                width="auto",
+                                className="d-flex align-items-center",
+                            ),
+                            dbc.Tooltip(
+                                "Use log scale for color axis",
+                                target="heatmap-log-scale",
+                                placement="top",
+                            ),
+                        ],
+                        class_name="mb-3",
                     ),
                     dcc.Loading(
                         id="loading_heat",
@@ -118,7 +161,8 @@ def get_heatmap_card():
                                                         style={"float": "right"},
                                                     )
                                                 ),
-                                            ]
+                                            ],
+                                            class_name="mt-2",
                                         ),
                                         dbc.Tooltip(
                                             "Export the current figure",

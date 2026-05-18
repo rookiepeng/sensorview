@@ -135,8 +135,90 @@ def get_right2d_card_layout():
                                 target="colormap-scatter2d-right",
                                 placement="top",
                             ),
+                            dbc.Col(
+                                dbc.Button(
+                                    html.I(className="bi bi-three-dots-vertical"),
+                                    id="range-config-button-right",
+                                    className="mb-0",
+                                    color="transparent",
+                                    n_clicks=0,
+                                    size="sm",
+                                ),
+                                width="auto",
+                                className="d-flex align-items-center",
+                            ),
+                            dbc.Tooltip(
+                                "Toggle axis range options",
+                                target="range-config-button-right",
+                                placement="top",
+                            ),
                         ],
                         className="g-1 mb-2",
+                    ),
+                    dbc.Collapse(
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("x min"),
+                                            dbc.Input(
+                                                id="x-min-2d-right",
+                                                type="number",
+                                                placeholder="auto",
+                                                debounce=True,
+                                            ),
+                                        ],
+                                        size="sm",
+                                    )
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("x max"),
+                                            dbc.Input(
+                                                id="x-max-2d-right",
+                                                type="number",
+                                                placeholder="auto",
+                                                debounce=True,
+                                            ),
+                                        ],
+                                        size="sm",
+                                    )
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("y min"),
+                                            dbc.Input(
+                                                id="y-min-2d-right",
+                                                type="number",
+                                                placeholder="auto",
+                                                debounce=True,
+                                            ),
+                                        ],
+                                        size="sm",
+                                    )
+                                ),
+                                dbc.Col(
+                                    dbc.InputGroup(
+                                        [
+                                            dbc.InputGroupText("y max"),
+                                            dbc.Input(
+                                                id="y-max-2d-right",
+                                                type="number",
+                                                placeholder="auto",
+                                                debounce=True,
+                                            ),
+                                        ],
+                                        size="sm",
+                                    )
+                                ),
+                            ],
+                            className="g-1 mb-2",
+                        ),
+                        id="range-config-collapse-right",
+                        is_open=False,
                     ),
                     dbc.Row(
                         [

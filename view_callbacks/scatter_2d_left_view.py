@@ -121,8 +121,15 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             "visible_list": State("visible-picker", "value"),
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
+            "x_min": State("x-min-2d-left", "value"),
+            "x_max": State("x-max-2d-left", "value"),
+            "y_min": State("y-min-2d-left", "value"),
+            "y_max": State("y-max-2d-left", "value"),
         },
         manager=background_callback_manager,
+        running=[
+            (Output("loading_left", "display"), "show", "hide"),
+        ],
         prevent_initial_call=True,
     )
     def regenerate_scatter2d_left_callback(
@@ -141,6 +148,10 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
         visible_list: list,
         file: str,
         file_list: list,
+        x_min,
+        x_max,
+        y_min,
+        y_max,
     ) -> dict:
         """
         Regenerate the left 2D scatter plot.
@@ -230,7 +241,49 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             c_type=config["keys"][c_key].get("type", KEY_TYPES["NUM"]),
         )
 
+        if x_min is not None and x_max is not None:
+            left_fig["layout"]["xaxis"]["range"] = [x_min, x_max]
+            left_fig["layout"]["xaxis"]["autorange"] = False
+        if y_min is not None and y_max is not None:
+            left_fig["layout"]["yaxis"]["range"] = [y_min, y_max]
+            left_fig["layout"]["yaxis"]["autorange"] = False
+
         return {"figure": left_fig}
+
+    @app.callback(
+        output={
+            "figure": Output("scatter2d-left", "figure", allow_duplicate=True),
+        },
+        inputs={
+            "x_min": Input("x-min-2d-left", "value"),
+            "x_max": Input("x-max-2d-left", "value"),
+            "y_min": Input("y-min-2d-left", "value"),
+            "y_max": Input("y-max-2d-left", "value"),
+        },
+        state={
+            "fig_in": State("scatter2d-left", "figure"),
+        },
+        prevent_initial_call=True,
+    )
+    def update_left_axis_range(x_min, x_max, y_min, y_max, fig_in: dict) -> dict:
+        if x_min is None and x_max is None and y_min is None and y_max is None:
+            raise PreventUpdate
+
+        if x_min is not None and x_max is not None:
+            fig_in["layout"]["xaxis"]["range"] = [x_min, x_max]
+            fig_in["layout"]["xaxis"]["autorange"] = False
+        else:
+            fig_in["layout"]["xaxis"].pop("range", None)
+            fig_in["layout"]["xaxis"]["autorange"] = True
+
+        if y_min is not None and y_max is not None:
+            fig_in["layout"]["yaxis"]["range"] = [y_min, y_max]
+            fig_in["layout"]["yaxis"]["autorange"] = False
+        else:
+            fig_in["layout"]["yaxis"].pop("range", None)
+            fig_in["layout"]["yaxis"]["autorange"] = True
+
+        return {"figure": fig_in}
 
     @app.callback(
         output={
@@ -303,6 +356,33 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             collapse = True
 
         return {"collapse": collapse}
+
+    @app.callback(
+        output={"is_open": Output("range-config-collapse-left", "is_open")},
+        inputs={"_n_clicks": Input("range-config-button-left", "n_clicks")},
+        state={"is_open": State("range-config-collapse-left", "is_open")},
+        prevent_initial_call=True,
+    )
+    def toggle_left_range_collapse(_n_clicks: int, is_open: bool) -> dict:
+        return {"is_open": not is_open}
+
+    @app.callback(
+        output={
+            "x_min": Output("x-min-2d-left", "value"),
+            "x_max": Output("x-max-2d-left", "value"),
+            "y_min": Output("y-min-2d-left", "value"),
+            "y_max": Output("y-max-2d-left", "value"),
+        },
+        inputs={
+            "_x_left": Input("x-picker-2d-left", "value"),
+            "_y_left": Input("y-picker-2d-left", "value"),
+            "_file": Input("current-file", "data"),
+            "_file_list": Input("file-add", "value"),
+        },
+        prevent_initial_call=True,
+    )
+    def reset_left_axis_range(_x_left, _y_left, _file, _file_list) -> dict:
+        return {"x_min": None, "x_max": None, "y_min": None, "y_max": None}
 
     @app.callback(
         output={"download": Output("download", "data", allow_duplicate=True)},
