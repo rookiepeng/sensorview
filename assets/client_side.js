@@ -134,11 +134,11 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       local_index,
       remote_trigger
     ) {
-      // Check if triggered by stop button
+      // Check if triggered by play-stop button while playing
       const triggered = dash_clientside.callback_context.triggered.map(
         (t) => t.prop_id
       );
-      if (triggered.length > 0 && triggered[0].includes("stop-button")) {
+      if (triggered.length > 0 && triggered[0].includes("play-stop-button") && !ispaused) {
         ispaused = true;
       }
 

@@ -392,14 +392,8 @@ def get_3d_play_view_layout():
                                 ),
                                 dbc.Button(
                                     html.I(className="bi bi-play-fill"),
-                                    id="play-button",
+                                    id="play-stop-button",
                                     color="primary",
-                                    n_clicks=0,
-                                ),
-                                dbc.Button(
-                                    html.I(className="bi bi-stop-fill"),
-                                    id="stop-button",
-                                    color="danger",
                                     n_clicks=0,
                                 ),
                                 dbc.Button(
@@ -463,13 +457,8 @@ def get_3d_play_view_layout():
                         placement="top",
                     ),
                     dbc.Tooltip(
-                        "Play",
-                        target="play-button",
-                        placement="top",
-                    ),
-                    dbc.Tooltip(
-                        "Stop",
-                        target="stop-button",
+                        "Play / Stop",
+                        target="play-stop-button",
                         placement="top",
                     ),
                     dbc.Tooltip(
