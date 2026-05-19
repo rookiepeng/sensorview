@@ -87,7 +87,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     @app.callback(
         output={
             "sidebar_style": Output("filter-sidebar-col", "style"),
-            "main_width": Output("3d-play-view-col", "width"),
         },
         inputs={
             "n_clicks": Input("toggle-sidebar-button", "n_clicks"),
@@ -103,14 +102,29 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         if n_clicks == 0:
             raise PreventUpdate
 
-        if sidebar_style and sidebar_style.get("display") == "none":
+        if (sidebar_style or {}).get("width", "280px") == "0":
             # Show sidebar
-            new_style = {"overflowY": "scroll", "height": "100vh", "display": "block"}
-            return {"sidebar_style": new_style, "main_width": 9}
+            new_style = {
+                "width": "25%",
+                "flexShrink": 0,
+                "alignSelf": "flex-start",
+                "overflowY": "auto",
+                "overflowX": "hidden",
+                "maxHeight": "100vh",
+                "transition": "width 0.35s ease, opacity 0.35s ease",
+                "opacity": 1,
+            }
         else:
             # Hide sidebar
-            new_style = {"display": "none"}
-            return {"sidebar_style": new_style, "main_width": 12}
+            new_style = {
+                "width": "0",
+                "flexShrink": 0,
+                "overflow": "hidden",
+                "maxHeight": "0",
+                "transition": "width 0.35s ease, opacity 0.35s ease, max-height 0.35s ease",
+                "opacity": 0,
+            }
+        return {"sidebar_style": new_style}
 
     @app.callback(
         output={
