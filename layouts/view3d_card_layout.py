@@ -641,16 +641,27 @@ def get_view3d_card_layout():
                             dbc.Col(
                                 get_3d_play_view_layout(),
                                 id="3d-play-view-col",
-                                width=9,
-                                className="me-3",
+                                style={
+                                    "flex": "1 1 0%",
+                                    "minWidth": 0,
+                                },
                             ),
-                            dbc.Col(
+                            html.Div(
                                 get_filter_sidebar(),
                                 id="filter-sidebar-col",
-                                width=True,
-                                style={"overflowY": "scroll", "height": "100vh"},
+                                style={
+                                    "width": "25%",
+                                    "flexShrink": 0,
+                                    "alignSelf": "flex-start",
+                                    "overflowY": "auto",
+                                    "overflowX": "hidden",
+                                    "maxHeight": "100vh",
+                                    "transition": "width 0.35s ease, opacity 0.35s ease",
+                                    "opacity": 1,
+                                },
                             ),
-                        ]
+                        ],
+                        className="flex-nowrap",
                     )
                 ],
                 className="mx-3 my-3 g-0",
