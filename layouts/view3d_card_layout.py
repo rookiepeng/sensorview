@@ -351,7 +351,7 @@ def get_3d_play_view_layout():
                         "marginLeft": 25,
                         "marginRight": 25,
                     },
-                    className="mb-3",
+                    className="mb-1",
                 ),
                 width=12,
             ),
@@ -368,7 +368,7 @@ def get_3d_play_view_layout():
                     },
                 ),
                 width=12,
-                className="mb-3",
+                className="mb-1",
             ),
             dbc.Row(
                 [
