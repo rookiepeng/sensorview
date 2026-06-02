@@ -51,8 +51,9 @@ A Flask/Dash-based web application for sensor data visualization and analysis wi
 ### Server Components
 
 - **Flask/Dash Server**: Main application server with REST API endpoints
+- **REST API**: `/api/data/<session>/<start_index>` endpoint for streaming buffered frame data to the client
 - **WebWorker Integration**: Client-side data management and processing
-- **Cache Management**: Multi-level caching (server + client-side IndexedDB)
+- **Cache Management**: Multi-level caching — server-side `diskcache` FanoutCache for session/frame data, client-side IndexedDB via WebWorker
 - **Session Isolation**: Independent data sessions for multiple users
 
 ### Client Components
@@ -67,10 +68,13 @@ A Flask/Dash-based web application for sensor data visualization and analysis wi
 
 See `requirements.txt` for complete list:
 
-- **Flask & Dash**: Web framework and interactive components
-- **plotly**: Advanced visualization library
-- **pandas & numpy**: Data manipulation and analysis
+- **dash**, **dash-bootstrap-components**, **dash-daq**: Web framework and interactive UI components
+- **polars**, **pandas**, **numpy**, **pyarrow**: Data manipulation and analysis
+- **diskcache**: Server-side FanoutCache for session and frame data
+- **orjson**: High-performance JSON serialization for API responses
+- **kaleido**: Static image export for plots
 - **flaskwebgui**: Desktop application wrapper
+- **waitress**: Production WSGI server (optional)
 
 ## Installation
 
@@ -122,7 +126,7 @@ Specify data column mappings, visualization settings, and metadata:
   "z_3d": "Height",
   "x_ref": "Host_Latitude",
   "y_ref": "Host_Longitude",
-  "z_ref": "Height",
+  "z_ref": "None",
   "keys": {
     "Height": {
       "description": "Height (m)",
@@ -171,7 +175,7 @@ Specify data column mappings, visualization settings, and metadata:
 
 - **slider**: Column to use for frame navigation/time slider
 - **x_3d, y_3d, z_3d**: Default columns for 3D visualization axes
-- **x_ref, y_ref, z_ref**: Reference point columns for 3D visualization
+- **x_ref, y_ref, z_ref**: Reference point columns for 3D visualization; set to `"None"` (string) to disable a reference axis
 - **keys**: Column definitions with metadata:
   - **description**: Human-readable column description
   - **decimal**: Number of decimal places for numerical display
@@ -193,7 +197,7 @@ Set `DEBUG = True` in app.py for development with hot reload.
 python app.py
 ```
 
-The application will launch as a desktop application using FlaskWebGUI.
+The application will launch as a desktop application using FlaskWebGUI on port 8521.
 
 #### Server Mode
 
@@ -237,6 +241,7 @@ The application uses a modular callback system with separate modules for differe
 - `test_case_view`: Test case management
 - `control_view`: Playback and navigation controls
 - `scatter_3d_view`: 3D visualization callbacks
+- `scatter_3d_view_background`: Background callback for pre-computing and buffering 3D frame data
 - `scatter_2d_left_view` & `scatter_2d_right_view`: 2D visualization panels
 - `heatmap_view`: Statistical heatmap visualization
 - `histogram_view`: Distribution analysis
