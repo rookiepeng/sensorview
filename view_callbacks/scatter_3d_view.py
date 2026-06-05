@@ -266,8 +266,10 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Returns:
             Dictionary with updated figure containing new colormap.
         """
-        for idx in range(0, len(fig["data"])):
-            fig["data"][idx]["marker"]["colorscale"] = colormap
+        for trace in fig["data"]:
+            # Empty-frame placeholder traces have no "marker" key; skip them
+            if "marker" in trace:
+                trace["marker"]["colorscale"] = colormap
 
         return {"scatter3d": fig}
 
@@ -354,10 +356,13 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         if size_vary and ctype == KEY_TYPES["CAT"]:
             for i in range(0, data_length):
                 size_offset = data_length - 1 - i
-                fig["data"][i]["marker"]["size"] = 3 + size_offset
+                # Empty-frame placeholder traces may have no "marker" key
+                if "marker" in fig["data"][i]:
+                    fig["data"][i]["marker"]["size"] = 3 + size_offset
         else:
             for i in range(0, data_length):
-                fig["data"][i]["marker"]["size"] = 3
+                if "marker" in fig["data"][i]:
+                    fig["data"][i]["marker"]["size"] = 3
 
         return {"scatter3d": fig}
 
