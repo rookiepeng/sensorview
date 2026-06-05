@@ -332,8 +332,10 @@ def get_scatter_2d_right_view_callbacks(app):
                 "figure": right_fig,
             }
 
-        for idx in range(0, len(fig_in["data"])):
-            fig_in["data"][idx]["marker"]["colorscale"] = colormap
+        for trace in fig_in["data"]:
+            # Empty-frame placeholder traces have no "marker" key; skip them
+            if "marker" in trace:
+                trace["marker"]["colorscale"] = colormap
 
         return {
             "figure": fig_in,
