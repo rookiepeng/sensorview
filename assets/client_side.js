@@ -50,13 +50,16 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         let lastValidIndex = local_index;
 
         // Validate all items first, then batch-store
+        // Note: hover_strings and ref_fig may be empty arrays ([]) for empty frames,
+        // so we check for null/undefined explicitly rather than falsy to avoid breaking
+        // the loop when a filtered frame has no data points.
         const validItems = [];
         for (const item of dataArray) {
           if (
-            !item.fig ||
-            !item.hover_strings ||
-            !item.ref_fig ||
-            !item.fig_layout
+            item.fig == null ||
+            item.hover_strings == null ||
+            item.ref_fig == null ||
+            item.fig_layout == null
           ) {
             break;
           }
@@ -181,12 +184,13 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
               }
 
               // Validate required data fields
+              // fig and ref_fig may be empty arrays for empty frames — check for null/undefined only
               const data = response.result;
               if (
                 !data.data ||
-                !data.data.fig ||
-                !data.data.ref_fig ||
-                !data.data.fig_layout
+                data.data.fig == null ||
+                data.data.ref_fig == null ||
+                data.data.fig_layout == null
               ) {
                 throw new Error("Missing required data fields");
               }
@@ -268,28 +272,35 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           (_, i) => 1 - (0.8 * i) / (allData.length - 1 || 1)
         );
 
-        // Apply opacity to each trace group
+        // Apply opacity to each trace group using a cumulative offset.
+        // Using `groupIndex * d.data.fig.length` was wrong when fig is an empty array
+        // (e.g. a filtered-out frame), which caused startIdx to be 0 for all groups
+        // and overwrote/leaked traces from earlier groups.
+        let traceOffset = 0;
         allData.forEach((d, groupIndex) => {
-          const startIdx = groupIndex * d.data.fig.length;
+          const groupLen = d.data.fig.length;
           d.data.fig.forEach((_, idx) => {
-            if (fig.data[startIdx + idx]?.marker) {
-              fig.data[startIdx + idx].marker.opacity =
+            if (fig.data[traceOffset + idx]?.marker) {
+              fig.data[traceOffset + idx].marker.opacity =
                 opacityValues[groupIndex];
             }
           });
+          traceOffset += groupLen;
         });
 
         if (ispaused) {
-          allData.forEach((d, dataIndex) => {
-            if (d.data.hover_strings) {
-              const startIdx = dataIndex * d.data.fig.length;
+          let hoverOffset = 0;
+          allData.forEach((d) => {
+            const groupLen = d.data.fig.length;
+            if (d.data.hover_strings && d.data.hover_strings.length > 0) {
               d.data.hover_strings.forEach((hover_str, idx) => {
-                if (fig.data[startIdx + idx]) {
-                  fig.data[startIdx + idx].text = hover_str;
-                  fig.data[startIdx + idx].hovertemplate = "%{text}";
+                if (fig.data[hoverOffset + idx]) {
+                  fig.data[hoverOffset + idx].text = hover_str;
+                  fig.data[hoverOffset + idx].hovertemplate = "%{text}";
                 }
               });
             }
+            hoverOffset += groupLen;
           });
         }
 

@@ -325,8 +325,10 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
                 "figure": left_fig,
             }
 
-        for idx in range(0, len(fig_in["data"])):
-            fig_in["data"][idx]["marker"]["colorscale"] = colormap
+        for trace in fig_in["data"]:
+            # Empty-frame placeholder traces have no "marker" key; skip them
+            if "marker" in trace:
+                trace["marker"]["colorscale"] = colormap
 
         return {
             "figure": fig_in,

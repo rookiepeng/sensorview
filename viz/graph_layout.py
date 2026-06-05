@@ -48,17 +48,24 @@ def get_scatter3d_layout(
     ) -> Dict[str, Any]:
         return {"range": list(range_vals), "title": {"text": title}, "autorange": False}
 
+    # Guard against division-by-zero when a filter collapses an axis to a single value
+    # (min == max), which makes scale == 0. Fall back to a 1:1:1 aspect ratio.
+    if scale == 0:
+        aspect_ratio = {"x": 1.0, "y": 1.0, "z": 1.0}
+    else:
+        aspect_ratio = {
+            "x": x_size / scale,
+            "y": y_size / scale,
+            "z": z_size / scale,
+        }
+
     # Build scene configuration
     scene_config = {
         "xaxis": create_axis_config(x_range, kwargs.get("x_label")),
         "yaxis": create_axis_config(y_range, kwargs.get("y_label")),
         "zaxis": create_axis_config(z_range, kwargs.get("z_label")),
         "aspectmode": "manual",
-        "aspectratio": {
-            "x": x_size / scale,
-            "y": y_size / scale,
-            "z": z_size / scale,
-        },
+        "aspectratio": aspect_ratio,
     }
 
     # Efficiently create image configuration

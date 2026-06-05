@@ -116,9 +116,28 @@ def get_heatmap(
     if y_label is None:
         y_label = y_key
 
+    # Guard against empty DataFrames — numpy histogram raises on zero-length arrays
+    if data_frame.empty:
+        return {
+            "data": [{"type": "histogram2dcontour", "x": [], "y": []}],
+            "layout": {
+                "xaxis": {"title": {"text": x_label}},
+                "yaxis": {"title": {"text": y_label}},
+            },
+        }
+
     if log_scale:
         x_vals = data_frame[x_key].dropna().values
         y_vals = data_frame[y_key].dropna().values
+        # Additional guard: histogram_bin_edges requires at least 1 value
+        if len(x_vals) == 0 or len(y_vals) == 0:
+            return {
+                "data": [{"type": "heatmap", "x": [], "y": [], "z": []}],
+                "layout": {
+                    "xaxis": {"title": {"text": x_label}},
+                    "yaxis": {"title": {"text": y_label}},
+                },
+            }
         x_edges = np.histogram_bin_edges(x_vals, bins="auto")
         y_edges = np.histogram_bin_edges(y_vals, bins="auto")
         counts, xedges, yedges = np.histogram2d(x_vals, y_vals, bins=[x_edges, y_edges])
@@ -206,6 +225,18 @@ def get_scatter2d(
     if c_label is None:
         c_label = c_key
     c_type = kwargs.get("c_type", "numerical")
+
+    # Guard against empty DataFrames to avoid downstream Plotly errors
+    if data_frame.empty:
+        return {
+            "data": [{"mode": "markers", "type": "scattergl", "x": [], "y": []}],
+            "layout": {
+                "xaxis": {"title": {"text": x_label}},
+                "yaxis": {"title": {"text": y_label}},
+                "margin": margin,
+                "uirevision": uirevision,
+            },
+        }
 
     if c_type == "numerical":
         return {
