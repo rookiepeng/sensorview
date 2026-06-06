@@ -431,6 +431,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "local_buffer_idx": Output(
                 "local-buffer-index", "data", allow_duplicate=True
             ),
+            "buffer_color": Output("buffer", "color", allow_duplicate=True),
+            "buffer_value": Output("buffer", "value", allow_duplicate=True),
+            "buffer_tooltip": Output("buffer-tooltip", "children", allow_duplicate=True),
         },
         inputs={
             "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
@@ -617,7 +620,14 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         else:
             fig["layout"]["template"] = pio.templates["plotly"]
 
-        return {"scatter3d": fig, "trigger": trigger_val + 1, "local_buffer_idx": -1}
+        return {
+            "scatter3d": fig,
+            "trigger": trigger_val + 1,
+            "local_buffer_idx": -1,
+            "buffer_color": "warning",
+            "buffer_value": 0,
+            "buffer_tooltip": "Restarting ...",
+        }
 
     @app.callback(
         output={"filter_trigger": Output("filter-trigger", "data")},
