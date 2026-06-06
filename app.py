@@ -90,8 +90,14 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
     if start_index == latest_server_buffer_index:
         return Response(orjson.dumps([]), mimetype="application/json")
 
+    # Cap the number of frames returned per request to prevent huge JSON responses
+    # that cause browser memory spikes. storeBuffer polls on an interval and will
+    # pick up remaining frames in subsequent requests.
+    MAX_BATCH_SIZE = 20
+    end_index = min(start_index + 1 + MAX_BATCH_SIZE, latest_server_buffer_index + 1)
+
     buffer = []
-    for idx in range(start_index + 1, latest_server_buffer_index + 1):
+    for idx in range(start_index + 1, end_index):
         bundle = cache_get(session, CACHE_KEYS["figure_bundle"], str(idx))
         if bundle is not None:
             buffer.append(
