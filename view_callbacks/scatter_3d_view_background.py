@@ -120,6 +120,12 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
 
         cache_expire()
 
+        # --- Cooperative cancellation ---
+        # Claim ownership of this session's buffer generation. If an older task
+        # is still running (OS-level termination is not instantaneous on Windows),
+        # it will detect the mismatch inside its frame loop and abort itself.
+        cache_set(trigger_idx, session_id, CACHE_KEYS["active_task_id"])
+
         if file not in file_list:
             file_list.append(file)
 
@@ -175,6 +181,18 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         has_ref = fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None
 
         for slider_arg, frame_idx in enumerate(frame_list):
+            # --- Cooperative cancellation check ---
+            # Abort immediately if a newer task has started and claimed ownership.
+            # This prevents a stale task from overwriting figure_bundle / figure_idx
+            # entries that the new task is already populating.
+            if cache_get(session_id, CACHE_KEYS["active_task_id"]) != trigger_idx:
+                print(
+                    "task ("
+                    + str(trigger_idx)
+                    + ") superseded by newer task, aborting"
+                )
+                return {"dummy": 0}
+
             img_path = os.path.join(
                 img_dir,
                 str(frame_list[slider_arg]) + ".jpg",
