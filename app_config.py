@@ -53,6 +53,9 @@ CACHE_KEYS = {
     "filter_kwargs": "FILTGER_KWARGS",
     "selected_data_left": "SELECTED_DATA_LEFT",
     "selected_data_right": "SELECTED_DATA_RIGHT",
+    # Used for cooperative cancellation: newest task stores its trigger_idx
+    # here so older tasks can detect they've been superseded and abort.
+    "active_task_id": "ACTIVE_TASK_ID",
 }
 KEY_TYPES = {"CAT": "categorical", "NUM": "numerical"}
 
