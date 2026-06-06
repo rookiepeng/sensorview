@@ -74,11 +74,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         progress=[
             Output("buffer", "value"),
             Output("buffer-tooltip", "children"),
-        ],
-        running=[
-            (Output("buffer", "color"), "warning", "success"),
-            (Output("buffer", "value"), 0, 100),
-            (Output("buffer-tooltip", "children"), "Restarting ...", "Buffer ready (100 %)"),
+            Output("buffer", "color"),
         ],
         manager=background_callback_manager,
         prevent_initial_call=True,
@@ -116,7 +112,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         """
         print("start new task (" + str(trigger_idx) + ")")
 
-        set_progress([0, "Buffering ... (0 %)"])
+        set_progress([0, "Buffering ... (0 %)", "warning"])
 
         cache_expire()
 
@@ -281,10 +277,11 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                 [
                     percent,
                     "Buffering ... (" + str(round(percent, 2)) + " %)",
+                    "warning"
                 ]
             )
 
-        set_progress([100, "Buffer ready (100 %)"])
+        set_progress([100, "Buffer ready (100 %)", "success"])
 
         print("task (" + str(trigger_idx) + ") completed")
 
