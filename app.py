@@ -93,7 +93,7 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
     # Cap the number of frames returned per request to prevent huge JSON responses
     # that cause browser memory spikes. storeBuffer polls on an interval and will
     # pick up remaining frames in subsequent requests.
-    MAX_BATCH_SIZE = 20
+    MAX_BATCH_SIZE = 40
     end_index = min(start_index + 1 + MAX_BATCH_SIZE, latest_server_buffer_index + 1)
 
     buffer = []

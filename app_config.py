@@ -34,7 +34,7 @@ class SafeDiskcacheManager(DiskcacheManager):
 
 
 APP_TITLE = "RadarViz"
-APP_VERSION = "v3.7"
+APP_VERSION = "v3.8"
 
 DATA_PATH = "./data"
 FRAME_CACHE_PATH = "./cache/frame"
