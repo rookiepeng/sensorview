@@ -41,7 +41,12 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
         // Check for reset signal
         if (dataArray[0].index === -1) {
-          console.log("Reset signal received");
+          console.log("Reset signal received, clearing IndexedDB session data");
+          // Clear all stale IndexedDB entries for this session to free browser memory
+          window.dbWorker.postMessage({
+            action: "clearSession",
+            payload: session,
+          });
           return [0, "Reset signal received", -1];
         }
 
@@ -81,8 +86,11 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
         // Batch store all valid items in a single IndexedDB transaction
         try {
+          const storeRequestId = `store_${Date.now()}_${Math.random()}`;
           await new Promise((resolve, reject) => {
             const messageHandler = (e) => {
+              // Only handle responses matching our requestId
+              if (e.data.requestId !== storeRequestId) return;
               window.dbWorker.removeEventListener("message", messageHandler);
               if (e.data.status === "success") {
                 resolve(e.data);
@@ -95,6 +103,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
             window.dbWorker.postMessage({
               action: "storeBatch",
               payload: validItems,
+              requestId: storeRequestId,
             });
           });
         } catch (error) {
@@ -158,8 +167,12 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         ) => {
           for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
+              const reqId = `get_${sliderArg}_${Date.now()}_${Math.random()}`;
               const response = await new Promise((resolve, reject) => {
                 const messageHandler = (e) => {
+                  // Only handle responses matching our requestId —
+                  // prevents storeBuffer's response from being consumed here
+                  if (e.data.requestId !== reqId) return;
                   window.dbWorker.removeEventListener(
                     "message",
                     messageHandler
@@ -175,6 +188,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
                 window.dbWorker.postMessage({
                   action: "getById",
                   payload: `${session}_${sliderArg}`,
+                  requestId: reqId,
                 });
               });
 

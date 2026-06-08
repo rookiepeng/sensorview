@@ -405,10 +405,52 @@ async function cleanupOldData(maxAgeDays = 2) {
   });
 }
 
+/**
+ * Clears all IndexedDB entries whose ID starts with the given session prefix.
+ * Called when the background buffer task restarts (filter change) to free
+ * browser memory from stale frame data.
+ * @param {string} sessionPrefix - The session ID prefix to match
+ * @returns {Promise<Object>} Status object containing count of deleted records
+ */
+async function clearSessionData(sessionPrefix) {
+  if (!db) await openDatabase();
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("figureStore", "readwrite");
+    const store = tx.objectStore("figureStore");
+    // IDBKeyRange.bound selects all string keys from "<prefix>_" to "<prefix>_\uffff"
+    const range = IDBKeyRange.bound(
+      `${sessionPrefix}_`,
+      `${sessionPrefix}_\uffff`
+    );
+    const request = store.openCursor(range);
+    let deletedCount = 0;
+
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        cursor.delete();
+        deletedCount++;
+        cursor.continue();
+      }
+    };
+
+    tx.oncomplete = () => {
+      resolve({
+        status: "complete",
+        deletedCount: deletedCount,
+        message: `Cleared ${deletedCount} entries for session ${sessionPrefix}`
+      });
+    };
+
+    tx.onerror = (event) => reject(event.target.error);
+  });
+}
+
 // Handle messages from the main thread
 self.onmessage = async function(e) {
   try {
-    const { action, payload } = e.data;
+    const { action, payload, requestId } = e.data;
     let result;
     
     switch (action) {
@@ -442,6 +484,9 @@ self.onmessage = async function(e) {
       case "cleanup":
         result = await cleanupOldData(payload);
         break;
+      case "clearSession":
+        result = await clearSessionData(payload);
+        break;
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -449,12 +494,14 @@ self.onmessage = async function(e) {
     self.postMessage({
       status: "success",
       action: action,
+      requestId: requestId,
       result: result
     });
   } catch (error) {
     self.postMessage({
       status: "error", 
       action: e.data.action,
+      requestId: e.data.requestId,
       message: error.toString()
     });
   }
