@@ -1,5 +1,5 @@
 dash
-dash[diskcache]
+dash[diskcache, flask]
 dash-daq
 dash-bootstrap-components
 polars
