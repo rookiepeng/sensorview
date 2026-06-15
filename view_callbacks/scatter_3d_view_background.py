@@ -70,7 +70,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
         },
-        cancel=[Input("background-trigger", "data")],
         progress=[
             Output("buffer", "value"),
             Output("buffer-tooltip", "children"),
