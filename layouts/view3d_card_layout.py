@@ -261,6 +261,7 @@ def get_3d_view_config_layout():
                 is_open=False,
             ),
             width=12,
+            className="mt-2",
         ),
     ]
 
