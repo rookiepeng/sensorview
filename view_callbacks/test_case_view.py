@@ -222,6 +222,8 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "dp_vals_num": DROPDOWN_VALUES_3D_XYZ,
             "dp_opts_num_with_none": DROPDOWN_OPTIONS_3D_XYZ_REF,
             "dp_vals_num_with_none": DROPDOWN_VALUES_3D_XYZ_REF,
+            "error_modal_open": Output("error-modal", "is_open"),
+            "error_message": Output("error-modal-message", "children"),
         },
         inputs={
             "file": Input("current-file", "data"),
@@ -288,7 +290,45 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         keys_dict = config["keys"]
 
         # Load and process data
-        new_data = load_data(add_file_value, file)
+        try:
+            new_data = load_data(add_file_value, file)
+        except Exception as exc:
+            set_progress(
+                [
+                    {
+                        "position": "fixed",
+                        "top": 0,
+                        "left": 0,
+                        "width": "100%",
+                        "height": "100%",
+                        "backgroundColor": "rgba(0, 0, 0, 0.9)",
+                        "display": "none",
+                    }
+                ]
+            )
+            return {
+                "key_dict": dash.no_update,
+                "file_load_trigger": dash.no_update,
+                "stored_file": dash.no_update,
+                "frame_min": dash.no_update,
+                "frame_max": dash.no_update,
+                "dropdown_container": dash.no_update,
+                "slider_container": dash.no_update,
+                "dim_picker_opt": dash.no_update,
+                "dim_picker_val": dash.no_update,
+                "dp_opts_all": dash.no_update,
+                "dp_vals_all": dash.no_update,
+                "dp_opts_cat_color": dash.no_update,
+                "dp_vals_cat_color": dash.no_update,
+                "dp_opts_cat": dash.no_update,
+                "dp_vals_cat": dash.no_update,
+                "dp_opts_num": dash.no_update,
+                "dp_vals_num": dash.no_update,
+                "dp_opts_num_with_none": dash.no_update,
+                "dp_vals_num_with_none": dash.no_update,
+                "error_modal_open": True,
+                "error_message": str(exc),
+            }
         frame_list = _setup_data_cache(new_data, config, session_id)
 
         # Create filter components
@@ -385,6 +425,8 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "dp_vals_num": xyz_all,
             "dp_opts_num_with_none": options_num_with_none,
             "dp_vals_num_with_none": xyz_ref_all,
+            "error_modal_open": False,
+            "error_message": "",
         }
 
     @app.callback(
@@ -553,3 +595,12 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "parallel_switch": [],
             "heat_switch": [],
         }
+
+    @app.callback(
+        output={"is_open": Output("error-modal", "is_open")},
+        inputs={"_close": Input("close-error-modal", "n_clicks")},
+        prevent_initial_call=True,
+    )
+    def close_error_modal(_close: int) -> dict:
+        """Close the error modal when the user clicks the Close button."""
+        return {"is_open": False}

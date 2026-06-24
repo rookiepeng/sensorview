@@ -160,3 +160,29 @@ def get_modal_layout():
         is_open=True,
         backdrop="static",
     )
+
+
+def get_error_modal() -> dbc.Modal:
+    """
+    Create an error notification modal for reporting data loading failures.
+
+    Returns:
+        dbc.Modal: A modal dialog that displays error messages with a close button.
+    """
+    return dbc.Modal(
+        [
+            dbc.ModalHeader(dbc.ModalTitle("Error Loading Data")),
+            dbc.ModalBody(html.P(id="error-modal-message")),
+            dbc.ModalFooter(
+                dbc.Button(
+                    "Close",
+                    id="close-error-modal",
+                    className="ms-auto",
+                    n_clicks=0,
+                )
+            ),
+        ],
+        id="error-modal",
+        centered=True,
+        is_open=False,
+    )
