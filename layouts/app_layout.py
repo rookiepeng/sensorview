@@ -22,7 +22,7 @@ import plotly.io as pio
 
 from app_config import APP_VERSION
 
-from layouts.modal_layout import get_modal_layout
+from layouts.modal_layout import get_modal_layout, get_error_modal
 from layouts.header_layout import get_header_layout
 from layouts.view3d_card_layout import get_view3d_card_layout
 from layouts.left2d_card_layout import get_left2d_card_layout
@@ -72,6 +72,7 @@ def get_app_layout():
             dcc.Store(id="worker-status"),
             dcc.Download(id="download"),
             get_modal_layout(),
+            get_error_modal(),
             get_header_layout(),
             get_view3d_card_layout(),
             dbc.CardGroup(
