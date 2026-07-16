@@ -142,9 +142,9 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
 
         # Create numerical sliders
         for idx, item in enumerate(num_keys):
-            if item in data.columns:
-                var_min = np.floor(np.min(data[item])).tolist()
-                var_max = np.ceil(np.max(data[item])).tolist()
+            if item in data.columns and data[item].notna().any():
+                var_min = np.floor(np.nanmin(data[item])).tolist()
+                var_max = np.ceil(np.nanmax(data[item])).tolist()
             else:
                 var_min = var_max = 0
 

@@ -78,8 +78,13 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
             # new_data = new_data.reset_index(drop=True)
 
         elif file_dict["name"].endswith(".csv"):
+            # Polars only recognizes "inf"/"-inf" as float tokens out of the
+            # box; a bare "nan" makes it fall back to inferring the whole
+            # column as a string, so list it (and common variants) as a
+            # null value to keep numeric columns numeric.
             new_data = pl.read_csv(
-                os.path.join(file_dict["path"], file_dict["name"])
+                os.path.join(file_dict["path"], file_dict["name"]),
+                null_values=["nan", "NaN", "NAN", "null", "NULL"],
             ).to_pandas()
         else:
             raise ValueError(f"Unsupported file type: {file_dict['name']}")
@@ -87,7 +92,17 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
         data_list.append(new_data)
 
     data = pd.concat(data_list)
-    return data.reset_index(drop=True)
+    data = data.reset_index(drop=True)
+
+    # Normalize +/-Inf to NaN so downstream min/max, filtering, and
+    # plotting code only has to deal with one "missing" representation.
+    numeric_cols = data.select_dtypes(include=[np.number]).columns
+    if len(numeric_cols) > 0:
+        data[numeric_cols] = data[numeric_cols].replace(
+            [np.inf, -np.inf], np.nan
+        )
+
+    return data
 
 
 def load_image(img_path: str) -> Optional[str]:
