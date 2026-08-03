@@ -11,17 +11,17 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-import os
 from typing import Dict, List, Optional, Any, Tuple, Union
 
 import json
 import base64
 import pandas as pd
-import polars as pl
 import numpy as np
 
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
+
+from dataio.radar_store import load_radar
 
 
 def load_config(json_file: str) -> Dict[str, Any]:
@@ -52,7 +52,10 @@ def save_config(json_dict: Dict[str, Any], json_file: str) -> None:
 
 def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
     """
-    Load data from multiple files into a pandas DataFrame.
+    Load radar point cloud data from multiple files into a pandas DataFrame.
+
+    Thin wrapper over :func:`dataio.radar_store.load_radar`, which owns format
+    handling (Parquet, plus legacy CSV/pickle) and non-finite normalization.
 
     Args:
         file_list: List of file specifications in JSON string format.
@@ -64,45 +67,7 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
     Raises:
         ValueError: If an unsupported file type is encountered.
     """
-    if file is not None and file not in file_list:
-        file_list.append(file)
-
-    data_list = []
-    for _, f_dict in enumerate(file_list):
-        file_dict = json.loads(f_dict)
-
-        if file_dict["name"].endswith(".pkl"):
-            new_data = pd.read_pickle(
-                os.path.join(file_dict["path"], file_dict["name"])
-            )
-            # new_data = new_data.reset_index(drop=True)
-
-        elif file_dict["name"].endswith(".csv"):
-            # Polars only recognizes "inf"/"-inf" as float tokens out of the
-            # box; a bare "nan" makes it fall back to inferring the whole
-            # column as a string, so list it (and common variants) as a
-            # null value to keep numeric columns numeric.
-            new_data = pl.read_csv(
-                os.path.join(file_dict["path"], file_dict["name"]),
-                null_values=["nan", "NaN", "NAN", "null", "NULL"],
-            ).to_pandas()
-        else:
-            raise ValueError(f"Unsupported file type: {file_dict['name']}")
-
-        data_list.append(new_data)
-
-    data = pd.concat(data_list)
-    data = data.reset_index(drop=True)
-
-    # Normalize +/-Inf to NaN so downstream min/max, filtering, and
-    # plotting code only has to deal with one "missing" representation.
-    numeric_cols = data.select_dtypes(include=[np.number]).columns
-    if len(numeric_cols) > 0:
-        data[numeric_cols] = data[numeric_cols].replace(
-            [np.inf, -np.inf], np.nan
-        )
-
-    return data
+    return load_radar(file_list, file)
 
 
 def load_image(img_path: str) -> Optional[str]:

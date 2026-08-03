@@ -1,3 +1,39 @@
+// Lidar backdrop frames, keyed "<session>/<frame index>". Lidar is display-only
+// and identical every time a frame is revisited, so an in-memory cache makes
+// scrubbing back over visited frames free. Bounded so long sessions cannot grow
+// it without limit.
+const LIDAR_CACHE = new Map();
+const LIDAR_CACHE_LIMIT = 240;
+
+async function getLidarTrace(session, frameIndex) {
+  if (session == null || frameIndex == null) {
+    return null;
+  }
+
+  const key = `${session}/${frameIndex}`;
+  if (LIDAR_CACHE.has(key)) {
+    return LIDAR_CACHE.get(key);
+  }
+
+  let trace = null;
+  try {
+    const response = await fetch(`/api/lidar/${session}/${frameIndex}`);
+    if (response.ok) {
+      trace = (await response.json()).trace ?? null;
+    }
+  } catch (error) {
+    // A missing backdrop must never block the radar figure from rendering.
+    console.warn(`Lidar frame ${frameIndex} unavailable:`, error);
+    return null;
+  }
+
+  if (LIDAR_CACHE.size >= LIDAR_CACHE_LIMIT) {
+    LIDAR_CACHE.delete(LIDAR_CACHE.keys().next().value);
+  }
+  LIDAR_CACHE.set(key, trace);
+  return trace;
+}
+
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   clientside_callback: {
     initWorker: function (n_clicks) {
@@ -319,6 +355,14 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         }
 
         fig.data = [...fig.data, ...allData[0].data.ref_fig];
+
+        // Lidar backdrop. Appended after the opacity/hover loops above so the
+        // decay-opacity ramp applied to radar trace groups never touches it —
+        // lidar has no decay and no controls, its styling is fixed at ingest.
+        const lidarTrace = await getLidarTrace(session, slider_arg);
+        if (lidarTrace) {
+          fig.data = [...fig.data, lidarTrace];
+        }
 
         const c_type = key_dict[c_picker]?.type || "numerical";
         if (c_type === "numerical") {

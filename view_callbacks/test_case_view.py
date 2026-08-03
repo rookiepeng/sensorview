@@ -11,6 +11,7 @@ Author: Zhengyu Peng
 License: GPL-3.0
 """
 
+import json
 import os
 
 import pandas as pd
@@ -35,7 +36,12 @@ from app_config import DROPDOWN_VALUES_3D_XYZ, DROPDOWN_VALUES_3D_XYZ_REF
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES, THEME
 
-from utils import load_config, cache_set, cache_get
+from dataio.frames import build_frame_index
+from dataio.manifest import Manifest, ManifestError
+
+from frame_sources import cache_log_info, cache_manifest
+
+from utils import cache_set, cache_get
 from utils import load_data
 
 
@@ -182,12 +188,15 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         return new_dropdown, new_slider, cat_values, num_values
 
     def _setup_data_cache(
-        data: pd.DataFrame, config: dict, session_id: str
+        data: pd.DataFrame, config: dict, session_id: str, stem: str
     ) -> np.ndarray:
         """Setup data caching for frames and visibility."""
-        # Cache frame list
-        frame_list = np.sort(data[config["slider"]].unique())
+        # The frame index is derived from the data itself, never declared in the
+        # manifest, so it can never drift out of sync with the log. The capture
+        # rate falls out of the same timestamps the ingest encoded video at.
+        frame_list, timestamps, fps = build_frame_index(data, config["slider"])
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
+        cache_log_info(session_id, stem, timestamps, fps)
 
         # Create and cache visibility table
         visible_table = pd.DataFrame({"_IDS_": data.index, "_VIS_": "visible"})
@@ -276,12 +285,22 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         # Initialize figure index
         cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
-        # Load and validate configuration
-        config_path = os.path.join(data_path, case, "info.json")
-        if not os.path.exists(config_path):
+        # Load the dataset manifest. A v1 info.json is upgraded in memory, so
+        # both old and new datasets take this same path.
+        case_dir = os.path.join(data_path, case)
+        if not os.path.exists(os.path.join(case_dir, "info.json")):
             raise PreventUpdate
 
-        config = load_config(config_path)
+        try:
+            manifest = Manifest.load(case_dir)
+        except ManifestError as exc:
+            raise PreventUpdate from exc
+
+        cache_manifest(manifest, session_id)
+
+        # Existing filter / 3D / 2D / stats callbacks read the flat v1 config
+        # shape; project the manifest down so they keep working unchanged.
+        config = manifest.legacy_config()
         cache_set(config, session_id, CACHE_KEYS["config"])
 
         # Extract keys by type
@@ -329,7 +348,10 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
                 "error_modal_open": True,
                 "error_message": str(exc),
             }
-        frame_list = _setup_data_cache(new_data, config, session_id)
+        # Sidecars are keyed on the primary log's basename. With several logs
+        # overlaid, the primary one owns the backdrop, maps, and video.
+        stem = manifest.stem_of(json.loads(file)["name"])
+        frame_list = _setup_data_cache(new_data, config, session_id, stem)
 
         # Create filter components
         new_dropdown, new_slider, cat_values, num_values = _create_filter_components(

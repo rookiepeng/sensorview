@@ -23,7 +23,7 @@ from multiprocessing import freeze_support
 from flaskwebgui import FlaskUI
 
 import orjson
-from flask import Response
+from flask import Response, abort, send_file
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -43,10 +43,14 @@ from view_callbacks.heatmap_view import get_heatmap_view_callbacks
 from view_callbacks.histogram_view import get_histogram_view_callbacks
 from view_callbacks.parcats_view import get_parcats_view_callbacks
 from view_callbacks.violin_view import get_violin_view_callbacks
+from view_callbacks.camera_view import get_camera_view_callbacks
+from view_callbacks.threshold_view import get_threshold_view_callbacks
+
+from frame_sources import get_log_stem, get_manifest, get_lidar_trace
 
 from app_config import app
 from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
-from app_config import SPECIAL_FOLDERS
+from app_config import SPECIAL_FOLDERS, RADAR_FILE_EXTENSIONS
 
 from layouts.app_layout import get_app_layout
 
@@ -113,6 +117,77 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
     return Response(
         orjson.dumps(buffer, option=_orjson_opts), mimetype="application/json"
     )
+
+
+@app.server.route("/api/lidar/<session>/<int:frame_idx>", methods=["GET"])
+def get_lidar_frame(session: str, frame_idx: int) -> Response:
+    """
+    Serve the lidar backdrop trace for one frame.
+
+    Lidar is deliberately kept off the IndexedDB figure-buffer path that the
+    radar traces use. The buffer pre-fetches a window of frames ahead, and a
+    decimated lidar frame is orders of magnitude larger than a radar one --
+    buffering it would balloon client storage for data that is pure backdrop.
+    Instead the client fetches just the frame it is displaying, and caches it.
+
+    Args:
+        session: Session identifier used to look up the manifest and frame list.
+        frame_idx: Slider position (an index into the frame list, not a frame id).
+
+    Returns:
+        JSON ``{"trace": <scatter3d trace>}``, or ``{"trace": null}`` when the
+        dataset has no lidar or that frame is missing.
+    """
+    empty = Response(orjson.dumps({"trace": None}), mimetype="application/json")
+
+    manifest = get_manifest(session)
+    stem = get_log_stem(session)
+    if manifest is None or not stem or not manifest.has_lidar(stem):
+        return empty
+
+    frame_list = cache_get(session, CACHE_KEYS["frame_list"])
+    if frame_list is None or frame_idx < 0 or frame_idx >= len(frame_list):
+        return empty
+
+    trace = get_lidar_trace(manifest, stem, frame_list[frame_idx])
+    if trace is None:
+        return empty
+
+    return Response(
+        orjson.dumps({"trace": trace}, option=orjson.OPT_SERIALIZE_NUMPY),
+        mimetype="application/json",
+    )
+
+
+@app.server.route("/api/camera/<session>/<stream_id>", methods=["GET"])
+def get_camera_stream(session: str, stream_id: str):
+    """
+    Serve a camera mp4 for the browser's video element.
+
+    The file path comes from the session's manifest, never from the URL, so a
+    caller cannot walk outside the dataset directory by crafting ``stream_id``.
+
+    Args:
+        session: Session identifier used to look up the manifest.
+        stream_id: Camera stream identifier declared in the manifest.
+
+    Returns:
+        The mp4 file response. ``conditional=True`` enables HTTP Range
+        requests, which is what makes ``currentTime`` seeking work at all --
+        without it the browser must download the whole clip before it can seek.
+    """
+    manifest = get_manifest(session)
+    stem = get_log_stem(session)
+    if manifest is None or not stem:
+        abort(404)
+
+    stream = next(
+        (s for s in manifest.camera_streams(stem) if s["id"] == stream_id), None
+    )
+    if stream is None:
+        abort(404)
+
+    return send_file(stream["file"], mimetype="video/mp4", conditional=True)
 
 
 # Initialize worker
@@ -307,20 +382,7 @@ def on_case_change(
     for dirpath, dirnames, files in os.walk(case_dir):
         dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
         for name in files:
-            if name.lower().endswith(".csv"):
-                data_files.append(
-                    {
-                        "label": os.path.join(dirpath[len(case_dir) :], name),
-                        "value": json.dumps(
-                            {
-                                "path": dirpath,
-                                "name": name,
-                                "label": os.path.join(dirpath[len(case_dir) :], name),
-                            }
-                        ),
-                    }
-                )
-            elif name.lower().endswith(".pkl"):
+            if name.lower().endswith(RADAR_FILE_EXTENSIONS):
                 data_files.append(
                     {
                         "label": os.path.join(dirpath[len(case_dir) :], name),
@@ -517,6 +579,8 @@ get_heatmap_view_callbacks(app)
 get_histogram_view_callbacks(app)
 get_parcats_view_callbacks(app)
 get_violin_view_callbacks(app)
+get_camera_view_callbacks(app)
+get_threshold_view_callbacks(app)
 
 
 if __name__ == "__main__":

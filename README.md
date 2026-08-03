@@ -46,6 +46,104 @@ A Flask/Dash-based web application for sensor data visualization and analysis wi
 - **Configuration Persistence**: JSON-based configuration management
 - **Test Case Management**: Organized data file and test case selection
 
+## Data Architecture
+
+Each kind of sensor data gets the storage format that suits its shape, joined by
+a single `frame_id`:
+
+| Data | Format | Filterable | Updates on |
+|---|---|---|---|
+| Radar point cloud | Parquet (tidy table) | **Yes** — full filter pipeline | filter changes + frame changes |
+| Lidar point cloud | HDF5, decimated at ingest | No — fixed backdrop | frame changes only |
+| Threshold maps | HDF5, chunked per (frame, sensor) | No | frame changes only |
+| Camera | mp4, all-intra | No | frame changes only |
+
+The reasoning behind the split:
+
+- **Radar is the only queried dataset**, so it stays columnar. Parquet gives
+  compression plus projection/predicate pushdown, and MATLAB reads it natively
+  via `parquetread`/`parquetwrite` (Feather/Arrow IPC has no such support).
+- **Lidar and threshold maps are display-only** frame-indexed blobs. Nobody
+  queries them by column, so Parquet's columnar machinery would be pure
+  overhead; a chunked HDF5 dataset per frame reads as one contiguous block and
+  is equally native in MATLAB (`h5read`).
+- **Lidar decimation happens once at ingest.** Since the backdrop has no runtime
+  controls, no full-resolution data is kept on the read path.
+- **Camera is seeked client-side.** A native `<video>` element does the decoding
+  and the frame slider drives `currentTime`, so scrubbing costs no server round
+  trip. Video is encoded all-intra because browsers can only seek to keyframes.
+
+Because the display-only views never depend on filter state, dragging a filter
+slider re-renders radar alone — it never re-reads lidar, threshold maps, or video.
+
+### Dataset Layout
+
+A case folder holds any number of logs side by side. A log's files are
+associated by **basename** — no subfolders, no per-file manifest entries:
+
+```
+data/MyCase/
+├── info.json                # manifest v2 (conventions only)
+├── drive_01.parquet         # filterable radar point cloud
+├── drive_01.lidar.h5        # decimated lidar backdrop
+├── drive_01.threshold.h5    # per-(frame, sensor) threshold maps
+├── drive_01.mp4             # camera
+├── drive_01.rear.mp4        # a second, named camera stream
+├── drive_02.parquet         # the next log, same conventions
+└── drive_02.mp4
+```
+
+Adding a log is dropping files in the folder — nothing to register. Selecting a
+log in the file picker swaps its lidar, threshold maps, and video together.
+Every sidecar is optional; cards for missing data hide themselves.
+
+### Dataset Manifest (`info.json` v2)
+
+The manifest describes the *case*, not any individual log: radar column
+metadata, sidecar filename suffixes, calibration, and lidar styling. Two things
+it deliberately does **not** contain:
+
+- **The frame index.** Frame ids, timestamps, and capture rate are derived from
+  the radar Parquet at load time, so a manifest can never drift out of sync with
+  the data. The same derivation runs at ingest, which is what guarantees the
+  rate a video was *encoded* at matches the rate it is *seeked* at.
+- **Per-log file lists.** Sidecars resolve from the selected log's basename, and
+  threshold sensors and camera streams are discovered from the files themselves.
+
+A v1 `info.json` (no `manifest_version`) is still accepted and upgraded in
+memory, so **existing datasets keep working with no conversion**.
+
+### Ingestion
+
+Convert a recording into the layout above:
+
+```bash
+python -m dataio.ingest ./data/Example --out ./data/Example_v2
+```
+
+Every radar table in the source folder becomes a log. Each log's raw sidecars are
+discovered by basename, mirroring the output convention:
+
+```
+raw/MyCase/
+├── drive_01.csv          → drive_01.parquet
+├── drive_01/             → drive_01.mp4          (per-frame images)
+├── drive_01.rear/        → drive_01.rear.mp4
+├── drive_01.lidar/       → drive_01.lidar.h5     (<frame_id>.npy)
+└── drive_01.threshold/   → drive_01.threshold.h5 (<sensor_id>/<frame_id>.npy)
+```
+
+A single recording's sidecars can also be passed explicitly:
+
+```bash
+python -m dataio.ingest ./data/RawCase --out ./data/MyCase --lidar ./raw/lidar --threshold ./raw/threshold
+```
+
+Key options: `--voxel-size` / `--max-points` / `--coord-decimals` control lidar
+decimation, `--fps` overrides the capture rate (inferred from timestamps by
+default), and `--keyframe-interval` controls camera GOP length (1 = all-intra,
+keeping every seek frame-exact).
+
 ## Architecture
 
 ### Server Components
@@ -69,7 +167,9 @@ A Flask/Dash-based web application for sensor data visualization and analysis wi
 See `requirements.txt` for complete list:
 
 - **dash**, **dash-bootstrap-components**, **dash-daq**: Web framework and interactive UI components
-- **polars**, **pandas**, **numpy**, **pyarrow**: Data manipulation and analysis
+- **polars**, **pandas**, **numpy**, **pyarrow**: Data manipulation and Parquet I/O
+- **h5py**: HDF5 sidecars for lidar point clouds and threshold maps
+- **imageio-ffmpeg**: Ingest-time only; bundles a static ffmpeg for camera mp4 encoding
 - **diskcache**: Server-side FanoutCache for session and frame data
 - **orjson**: High-performance JSON serialization for API responses
 - **kaleido**: Static image export for plots
@@ -247,6 +347,21 @@ The application uses a modular callback system with separate modules for differe
 - `histogram_view`: Distribution analysis
 - `parcats_view`: Parallel categories visualization
 - `violin_view`: Violin plot analysis
+- `camera_view`: mp4 stream selection and clientside frame-exact seeking
+- `threshold_view`: Per-frame threshold map rendering
+
+### Data IO Package (`dataio/`)
+
+- `manifest`: `info.json` v2 parsing, v1 upgrade, basename sidecar resolution,
+  non-destructive persistence
+- `frames`: Frame ids, timestamps, and capture rate derived from the Parquet
+  data — shared by the ingest pipeline and the running app
+- `radar_store`: Parquet loading with projection/predicate pushdown
+- `dense_store`: HDF5 readers/writers for lidar and threshold maps
+- `decimate`: Ingest-time voxel + budget point cloud decimation
+- `calibration`: Extrinsics → 4×4 transform for cross-sensor alignment
+- `video`: Camera mp4 encoding
+- `ingest`: Pipeline orchestration and CLI
 
 ### Client-side Functions
 

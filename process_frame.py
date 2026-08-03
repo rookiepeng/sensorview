@@ -23,6 +23,8 @@ from utils import load_data
 from utils import load_image
 from utils import prepare_figure_kwargs
 
+from frame_sources import get_lidar_trace, get_log_stem, get_manifest
+
 from viz.viz import get_scatter3d
 from viz.graph_data import get_ref_scatter3d_data
 from viz.graph_data import get_scatter3d_data
@@ -97,13 +99,21 @@ def process_single_frame(
         frame_idx,
     )
 
-    file_dict = json.loads(file)
-    img_path = os.path.join(
-        file_dict["path"], file_dict["name"][0:-4], str(frame_list[frame_idx]) + ".jpg"
-    )
+    manifest = get_manifest(session_id)
+    stem = get_log_stem(session_id)
 
-    # encode image frame
-    fig_kwargs["image"] = load_image(img_path)
+    # Logs with an mp4 camera stream render it in the camera card, seeked
+    # client-side; only legacy per-frame JPG datasets get the inline overlay.
+    if manifest is not None and manifest.has_camera(stem):
+        fig_kwargs["image"] = None
+    else:
+        file_dict = json.loads(file)
+        img_path = os.path.join(
+            file_dict["path"],
+            file_dict["name"][0:-4],
+            str(frame_list[frame_idx]) + ".jpg",
+        )
+        fig_kwargs["image"] = load_image(img_path)
 
     # get a single frame data from Redis
     data = cache_get(session_id, CACHE_KEYS["frame_data"], str(frame_list[frame_idx]))
@@ -194,9 +204,14 @@ def process_single_frame(
     else:
         fig_ref = []
 
+    # Lidar is a display-only backdrop: read once per frame, never refiltered,
+    # and drawn first so the radar detections render on top of it.
+    lidar_trace = get_lidar_trace(manifest, stem, frame_list[frame_idx])
+    fig_lidar = [lidar_trace] if lidar_trace is not None else []
+
     layout = get_scatter3d_layout(**fig_kwargs)
 
-    fig = {"data": fig + fig_ref, "layout": layout}
+    fig = {"data": fig_lidar + fig + fig_ref, "layout": layout}
 
     return fig
 
