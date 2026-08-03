@@ -71,6 +71,56 @@ def get_ref_scatter3d_data(
     return fig_data
 
 
+def get_lidar_scatter3d_data(
+    points: Optional[np.ndarray],
+    display: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    """
+    Build the lidar backdrop trace.
+
+    Lidar is display-only: it carries no filter state and has no runtime
+    controls, so styling is fixed by the manifest rather than wired to any UI
+    input. Hover is disabled outright -- the backdrop is context, not something
+    to interrogate, and skipping hover text keeps 60k points off the wire.
+
+    Args:
+        points: (N, 3+) array of already-decimated xyz points in the reference
+            frame. Extra columns beyond xyz are ignored.
+        display: Fixed styling with ``color``, ``size``, ``opacity``, ``name``.
+
+    Returns:
+        Scatter3d trace dictionary, or None when there is nothing to draw.
+    """
+    if points is None or len(points) == 0:
+        return None
+
+    display = display or {}
+    points = np.asarray(points)
+
+    # Column slices of a 2D array are strided views, which orjson refuses to
+    # serialize ("numpy array is not C contiguous"). Copy each axis into its own
+    # contiguous buffer -- still far cheaper than materializing Python lists.
+    x_vals = np.ascontiguousarray(points[:, 0])
+    y_vals = np.ascontiguousarray(points[:, 1])
+    z_vals = np.ascontiguousarray(points[:, 2])
+
+    return {
+        "type": "scatter3d",
+        "x": x_vals,
+        "y": y_vals,
+        "z": z_vals,
+        "mode": "markers",
+        "name": display.get("name", "Lidar"),
+        "showlegend": True,
+        "hoverinfo": "skip",
+        "marker": {
+            "color": display.get("color", "#8d99ae"),
+            "size": display.get("size", 1.2),
+            "opacity": display.get("opacity", 0.35),
+        },
+    }
+
+
 def get_scatter3d_data(
     data_frame: pd.DataFrame,
     x_key: str,

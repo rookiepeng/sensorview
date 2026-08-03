@@ -32,6 +32,8 @@ from utils import filter_all
 from utils import cache_set, cache_get
 from utils import load_data
 
+from frame_sources import cache_manifest, get_manifest
+
 from process_frame import process_overlay_frame
 from process_frame import process_single_frame
 
@@ -579,11 +581,16 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         config["y_ref"] = y_ref_picker_3d
         config["z_ref"] = z_ref_picker_3d
         cache_set(config, session_id, CACHE_KEYS["config"])
-        # save the config to os.path.join(data_path, case, "info.json"
-        with open(
-            os.path.join(data_path, case, "info.json"), "w", encoding="utf-8"
-        ) as f:
-            json.dump(config, f, indent=4)
+
+        # Persist the axis selections back to the dataset. This goes through the
+        # manifest rather than dumping `config` straight over info.json: config
+        # is only the flat radar projection, so writing it verbatim would wipe
+        # the frames / lidar / threshold / camera blocks of a v2 manifest.
+        manifest = get_manifest(session_id)
+        if manifest is not None:
+            manifest.update_radar_view(config)
+            manifest.save()
+            cache_manifest(manifest, session_id)
 
         if overlay_enable:
             fig = process_overlay_frame(

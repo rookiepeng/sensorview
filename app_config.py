@@ -46,6 +46,15 @@ CACHE_KEYS = {
     "dataset": "DATASET",
     "frame_list": "FRAME_LIST",
     "frame_data": "FRAME_DATA",
+    # Dataset manifest (info.json v2): declares the radar/lidar/threshold/camera
+    # stores and the frame_id <-> timestamp map every view synchronizes on.
+    "manifest": "MANIFEST",
+    # Current log: the stem its sidecars are keyed on, plus the frame timestamps
+    # and capture rate derived from that log's Parquet data.
+    "log_info": "LOG_INFO",
+    # Per-(log, sensor) threshold-map color range, estimated once so the scale
+    # stays fixed while scrubbing instead of re-normalizing every frame.
+    "threshold_range": "THRESHOLD_RANGE",
     "visible_table": "VIS_TABLE",
     "config": "CONFIG",
     "figure_idx": "FIGURE_IDX",
@@ -176,4 +185,13 @@ DROPDOWN_VALUES_CAT_COLOR = [
 
 """ Global Variables """
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", APP_TITLE)
+
+# Folders skipped when scanning a case directory for selectable radar tables.
+# Sidecars (.h5/.mp4) sit beside their log rather than in subfolders, and are
+# excluded by extension rather than by folder.
 SPECIAL_FOLDERS = ["images"]
+
+# Radar point cloud formats offered in the file picker. Parquet is the format
+# the ingest pipeline produces; CSV and pickle stay supported so pre-existing
+# datasets load without conversion.
+RADAR_FILE_EXTENSIONS = (".parquet", ".csv", ".pkl")
