@@ -1,10 +1,11 @@
-"""Right 2D Card Layout Module
+"""Right 2D Pane Layout Module
 
-Layout for right 2D scatter plot card with enable switch, axis selectors (x, y, color),
-colormap selector, frame selection, plot area, and hide/export buttons.
+The right 2D scatter pane in the analysis dock. Identical in structure to the
+left pane; the two exist so a dataset can be looked at through two different
+projections at once.
 
 Usage:
-    from layouts.right2d_card_layout import get_right2d_card_layout
+    from layouts.right2d_card_layout import get_right2d_pane_layout
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -17,298 +18,97 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from layouts.layout_constants import colorscales
+from layouts.pane_common import icon_button, labelled_select, number_input, pane
 
 
-def get_right2d_card_layout():
+def get_right2d_pane_layout():
     """
-    Creates and returns a Dash Bootstrap Card layout for the 2D scatter plot controls
-    and display on the right panel.
-
-    The layout includes:
-        - A switch to enable/disable the 2D view.
-        - Dropdown selectors for x, y, c (color), and colormap axes.
-        - Tooltips for each selector.
-        - Radio items to toggle between "Current frame" and "All frames".
-        - A loading spinner wrapping a collapsible section containing:
-            - The 2D scatter plot graph.
-            - Buttons to hide/show selected dots and to export the figure.
-            - Tooltips for the buttons.
-
-    Args:
-        None
+    Build the right 2D scatter pane.
 
     Returns:
-        dbc.Card: A Dash Bootstrap Card component containing the 2D scatter plot
-        controls and display layout.
+        html.Div: The pane.
     """
-    return dbc.Card(
-        [
-            dbc.CardBody(
-                [
-                    dbc.Row(
-                        [
-                            dbc.Col(dbc.Label("2D View")),
-                            dbc.Col(
-                                dbc.Checklist(
-                                    options=[{"label": "Enable", "value": True}],
-                                    value=[],
-                                    id="right-switch",
-                                    switch=True,
-                                    style={"float": "right"},
-                                )
-                            ),
-                        ]
-                    ),
-                    html.Hr(),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("x"),
-                                        dbc.Select(
-                                            id="x-picker-2d-right",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select x axis",
-                                target="x-picker-2d-right",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("y"),
-                                        dbc.Select(
-                                            id="y-picker-2d-right",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select y axis",
-                                target="y-picker-2d-right",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("c"),
-                                        dbc.Select(
-                                            id="c-picker-2d-right",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select color axis",
-                                target="c-picker-2d-right",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("cmap"),
-                                        dbc.Select(
-                                            id="colormap-scatter2d-right",
-                                            disabled=False,
-                                            options=[
-                                                {"value": x, "label": x}
-                                                for x in colorscales
-                                            ],
-                                            value="Portland",
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select colormap",
-                                target="colormap-scatter2d-right",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.Button(
-                                    html.I(className="bi bi-three-dots-vertical"),
-                                    id="range-config-button-right",
-                                    className="mb-0",
-                                    color="transparent",
-                                    n_clicks=0,
-                                    size="sm",
-                                ),
-                                width="auto",
-                                className="d-flex align-items-center",
-                            ),
-                            dbc.Tooltip(
-                                "Toggle axis range options",
-                                target="range-config-button-right",
-                                placement="top",
-                            ),
-                        ],
-                        className="g-1 mb-2",
-                    ),
-                    dbc.Collapse(
-                        dbc.Row(
-                            [
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText("x min"),
-                                            dbc.Input(
-                                                id="x-min-2d-right",
-                                                type="number",
-                                                placeholder="auto",
-                                                debounce=True,
-                                            ),
-                                        ],
-                                        size="sm",
-                                    )
-                                ),
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText("x max"),
-                                            dbc.Input(
-                                                id="x-max-2d-right",
-                                                type="number",
-                                                placeholder="auto",
-                                                debounce=True,
-                                            ),
-                                        ],
-                                        size="sm",
-                                    )
-                                ),
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText("y min"),
-                                            dbc.Input(
-                                                id="y-min-2d-right",
-                                                type="number",
-                                                placeholder="auto",
-                                                debounce=True,
-                                            ),
-                                        ],
-                                        size="sm",
-                                    )
-                                ),
-                                dbc.Col(
-                                    dbc.InputGroup(
-                                        [
-                                            dbc.InputGroupText("y max"),
-                                            dbc.Input(
-                                                id="y-max-2d-right",
-                                                type="number",
-                                                placeholder="auto",
-                                                debounce=True,
-                                            ),
-                                        ],
-                                        size="sm",
-                                    )
-                                ),
-                            ],
-                            className="g-1 mb-2",
-                        ),
-                        id="range-config-collapse-right",
-                        is_open=False,
-                    ),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.RadioItems(
-                                    options=[
-                                        {
-                                            "label": "Current frame",
-                                            "value": "current",
-                                        },
-                                        {
-                                            "label": "All frames",
-                                            "value": "all",
-                                        },
-                                    ],
-                                    value="current",
-                                    id="scatter2dr-allframe-switch",
-                                    inline=True,
-                                    style={"float": "right"},
-                                ),
-                            )
-                        ]
-                    ),
-                    dcc.Loading(
-                        id="loading_right",
-                        children=[
-                            dbc.Collapse(
-                                html.Div(
-                                    [
-                                        dcc.Graph(
-                                            id="scatter2d-right",
-                                            config={"displaylogo": False},
-                                            figure={
-                                                "data": [
-                                                    {
-                                                        "mode": "markers",
-                                                        "type": "scattergl",
-                                                        "x": [],
-                                                        "y": [],
-                                                    }
-                                                ],
-                                                "layout": {"uirevision": "no_change"},
-                                            },
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    dbc.Button(
-                                                        html.I(
-                                                            className="bi bi-eye-slash-fill"
-                                                        ),
-                                                        id="hide-right",
-                                                        color="warning",
-                                                        n_clicks=0,
-                                                    )
-                                                ),
-                                                dbc.Tooltip(
-                                                    "Toggle the hidden/visible states of \
-                                    the selected dots",
-                                                    target="hide-right",
-                                                    placement="top",
-                                                ),
-                                                dbc.Col(
-                                                    dbc.Button(
-                                                        html.I(
-                                                            className="bi bi-camera-fill"
-                                                        ),
-                                                        id="export-scatter2d-right",
-                                                        n_clicks=0,
-                                                        style={"float": "right"},
-                                                    )
-                                                ),
-                                            ],
-                                            style={"marginTop": 10},
-                                        ),
-                                        dbc.Tooltip(
-                                            "Export the current figure",
-                                            target="export-scatter2d-right",
-                                            placement="top",
-                                        ),
-                                    ]
-                                ),
-                                is_open=False,
-                                id="collapse-right2d",
-                            )
-                        ],
-                        type="default",
-                    ),
-                ]
-            )
-        ],
-        className="shadow-sm",
+    controls = [
+        labelled_select("x-picker-2d-right", "x", "Column plotted on the x axis"),
+        labelled_select("y-picker-2d-right", "y", "Column plotted on the y axis"),
+        labelled_select("c-picker-2d-right", "c", "Column mapped to marker color"),
+        labelled_select(
+            "colormap-scatter2d-right",
+            "map",
+            "Colormap applied to the color axis",
+            options=[{"value": x, "label": x} for x in colorscales],
+            value="Portland",
+        ),
+        dbc.RadioItems(
+            options=[
+                {"label": "Frame", "value": "current"},
+                {"label": "All", "value": "all"},
+            ],
+            value="current",
+            id="scatter2dr-allframe-switch",
+            inline=True,
+            className="ms-1",
+        ),
+        dbc.Tooltip(
+            "Plot only the current frame, or every frame at once",
+            target="scatter2dr-allframe-switch",
+            placement="top",
+        ),
+        html.Div(
+            [
+                dbc.Button(
+                    html.I(className="bi bi-arrows-angle-expand"),
+                    id="range-config-button-right",
+                    color="transparent",
+                    n_clicks=0,
+                    className="sv-icon-btn",
+                ),
+                dbc.Tooltip(
+                    "Set fixed axis limits",
+                    target="range-config-button-right",
+                    placement="top",
+                ),
+            ],
+            className="ms-auto",
+        ),
+        icon_button(
+            "hide-right",
+            "bi-eye-slash-fill",
+            "Toggle the hidden/visible state of the selected points",
+            color="warning",
+        ),
+        icon_button("export-scatter2d-right", "bi-camera-fill", "Export this figure"),
+    ]
+
+    ranges = dbc.Collapse(
+        html.Div(
+            [
+                number_input("x-min-2d-right", "x min"),
+                number_input("x-max-2d-right", "x max"),
+                number_input("y-min-2d-right", "y min"),
+                number_input("y-max-2d-right", "y max"),
+            ],
+            className="sv-pane-controls",
+        ),
+        id="range-config-collapse-right",
+        is_open=False,
+    )
+
+    graph = dcc.Graph(
+        id="scatter2d-right",
+        responsive=True,
+        config={"displaylogo": False},
+        figure={
+            "data": [{"mode": "markers", "type": "scattergl", "x": [], "y": []}],
+            "layout": {"uirevision": "no_change"},
+        },
+        style={"height": "100%", "width": "100%"},
+    )
+
+    return pane(
+        controls,
+        graph,
+        collapse_id="collapse-right2d",
+        loading_id="loading_right",
+        extra_rows=[ranges],
     )

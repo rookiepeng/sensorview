@@ -1,10 +1,10 @@
 """SensorView Modal Layout Module
 
-Data selection modal dialog layout with data path input, test case picker,
-log file picker, tooltips, and modal dialog structure.
+The data selection dialog, opened by the top bar breadcrumb, plus the error
+dialog shown when a log fails to load.
 
 Usage:
-    from layouts.modal_layout import get_modal_layout
+    from layouts.modal_layout import get_modal_layout, get_error_modal
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -12,145 +12,106 @@ Copyright (C) 2019 - PRESENT
 """
 
 from typing import List
+
 from dash import html
+
 import dash_bootstrap_components as dbc
 
 
-def get_path_input_group() -> dbc.InputGroup:
+def _field(label: str, control, hint: str, target: str) -> html.Div:
     """
-    Create the input group for specifying the data path.
+    Build one labelled row of the dialog.
+
+    Args:
+        label: Field caption.
+        control: The input group for the field.
+        hint: Tooltip text.
+        target: Component the tooltip attaches to.
 
     Returns:
-        dbc.InputGroup: Input group component for the data path.
+        html.Div: The labelled field.
     """
-    return dbc.InputGroup(
+    return html.Div(
         [
-            dbc.InputGroupText("Data Path"),
-            dbc.Input(
-                id="data-path-modal",
-                placeholder="Add path to the data files ...",
-                type="text",
-            ),
-            dbc.Button(
-                html.I(className="bi bi-arrow-clockwise"),
-                id="refresh-button-modal",
-                n_clicks=0,
-            ),
-        ]
+            html.Span(label, className="sv-section-label"),
+            control,
+            dbc.Tooltip(hint, target=target, placement="top"),
+        ],
+        className="sv-field",
     )
 
 
-def get_tooltips() -> List[dbc.Tooltip]:
+def get_modal_body() -> List[html.Div]:
     """
-    Create tooltip components for modal input elements.
+    Assemble the dialog body: where the data lives, then what to open.
 
     Returns:
-        List[dbc.Tooltip]: List of tooltip components for guidance.
+        List[html.Div]: Path, test case, and log file fields.
     """
     return [
-        dbc.Tooltip(
+        _field(
+            "Data path",
+            dbc.InputGroup(
+                [
+                    dbc.Input(
+                        id="data-path-modal",
+                        placeholder="Directory containing the test cases …",
+                        type="text",
+                    ),
+                    dbc.Button(
+                        html.I(className="bi bi-arrow-clockwise"),
+                        id="refresh-button-modal",
+                        n_clicks=0,
+                    ),
+                    dbc.Tooltip(
+                        "Rescan for test cases",
+                        target="refresh-button-modal",
+                        placement="top",
+                    ),
+                ]
+            ),
             "Directory of the data files",
-            target="data-path-modal",
-            placement="top",
+            "data-path-modal",
         ),
-        dbc.Tooltip(
-            "Refresh test cases",
-            target="refresh-button-modal",
-            placement="top",
-        ),
-        dbc.Tooltip(
+        _field(
+            "Test case",
+            dbc.Select(id="case-picker-modal"),
             "Select a test case",
-            target="case-picker-modal",
-            placement="top",
+            "case-picker-modal",
         ),
-        dbc.Tooltip(
+        _field(
+            "Log file",
+            dbc.Select(id="file-picker-modal"),
             "Select a log file",
-            target="file-picker-modal",
-            placement="top",
+            "file-picker-modal",
         ),
     ]
 
 
-def get_case_picker() -> dbc.InputGroup:
+def get_modal_layout() -> dbc.Modal:
     """
-    Create the input group for selecting a test case.
+    Build the data selection dialog.
+
+    It opens on load and cannot be dismissed without a selection: with no log
+    there is nothing for the workbench to show.
 
     Returns:
-        dbc.InputGroup: Input group component for test case selection.
-    """
-    return dbc.InputGroup(
-        [
-            dbc.InputGroupText("Test Case"),
-            dbc.Select(id="case-picker-modal"),
-        ]
-    )
-
-
-def get_file_picker() -> dbc.InputGroup:
-    """
-    Create the input group for selecting a log file.
-
-    Returns:
-        dbc.InputGroup: Input group component for log file selection.
-    """
-    return dbc.InputGroup(
-        [
-            dbc.InputGroupText("Log File"),
-            dbc.Select(id="file-picker-modal"),
-        ]
-    )
-
-
-def get_modal_body() -> dbc.Row:
-    """
-    Assemble the modal body with all input groups and tooltips.
-
-    Returns:
-        dbc.Row: Modal body layout containing all input elements.
-    """
-    return dbc.Row(
-        [
-            dbc.Col(get_path_input_group(), width=12),
-            *get_tooltips(),
-            dbc.Col(
-                get_case_picker(),
-                width=12,
-                className="mt-3",
-            ),
-            dbc.Col(
-                get_file_picker(),
-                width=12,
-                className="mt-3",
-            ),
-        ]
-    )
-
-
-def get_modal_layout():
-    """
-    Creates and returns a Dash Bootstrap Components Modal for selecting a data file.
-
-    The modal includes a header with the title "Select Data File", a body generated by
-    `get_modal_body()`, and a footer with an "OK" button. The modal is centered,
-    large-sized, non-dismissible via keyboard or backdrop, and is open by default.
-
-    Args:
-        None
-
-    Returns:
-        dbc.Modal: A Dash Bootstrap Components Modal object configured for data file selection.
+        dbc.Modal: The dialog.
     """
     return dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("Select Data File"), close_button=False),
+            dbc.ModalHeader(
+                dbc.ModalTitle(
+                    html.Span(
+                        [html.I(className="bi bi-database"), "Open dataset"],
+                        className="sv-modal-title",
+                    )
+                ),
+                close_button=False,
+            ),
             dbc.ModalBody(get_modal_body()),
             dbc.ModalFooter(
-                dbc.Button(
-                    "OK",
-                    id="ok-modal",
-                    className="ms-auto",
-                    n_clicks=0,
-                )
+                dbc.Button("Open", id="ok-modal", color="primary", n_clicks=0)
             ),
         ],
         id="modal-centered",
@@ -164,21 +125,28 @@ def get_modal_layout():
 
 def get_error_modal() -> dbc.Modal:
     """
-    Create an error notification modal for reporting data loading failures.
+    Build the load-failure dialog.
 
     Returns:
-        dbc.Modal: A modal dialog that displays error messages with a close button.
+        dbc.Modal: The dialog.
     """
     return dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("Error Loading Data")),
-            dbc.ModalBody(html.P(id="error-modal-message")),
+            dbc.ModalHeader(
+                dbc.ModalTitle(
+                    html.Span(
+                        [
+                            html.I(className="bi bi-exclamation-triangle text-warning"),
+                            "Could not load data",
+                        ],
+                        className="sv-modal-title",
+                    )
+                )
+            ),
+            dbc.ModalBody(html.P(id="error-modal-message", className="mb-0")),
             dbc.ModalFooter(
                 dbc.Button(
-                    "Close",
-                    id="close-error-modal",
-                    className="ms-auto",
-                    n_clicks=0,
+                    "Close", id="close-error-modal", color="secondary", n_clicks=0
                 )
             ),
         ],
