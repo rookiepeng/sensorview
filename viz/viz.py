@@ -177,56 +177,63 @@ def get_heatmap(
     }
 
 
-def get_threshold_map(
-    values: Optional[np.ndarray],
+def get_threshold_plot(
+    series: Optional[Dict[str, np.ndarray]] = None,
     x_values: Optional[np.ndarray] = None,
-    y_values: Optional[np.ndarray] = None,
+    traces: Optional[List[Dict[str, Any]]] = None,
     x_label: str = "",
     y_label: str = "",
-    value_label: str = "",
-    colormap: str = "Jet",
     title: Optional[str] = None,
-    value_range: Optional[List[float]] = None,
+    x_range: Optional[List[float]] = None,
+    y_range: Optional[List[float]] = None,
+    log_y: bool = False,
 ) -> Dict[str, Any]:
     """
-    Render one radar threshold map (e.g. range-Doppler, range-angle).
+    Render one 1D threshold plot: a signal and the thresholds applied to it.
 
-    Unlike :func:`get_heatmap`, which bins a tidy table, this plots a dense 2D
-    array straight out of the HDF5 sidecar -- no binning, one cell per bin as
-    the signal processing produced it.
+    Which curves appear together, and how each is styled, comes from the
+    dataset's ``info.json`` rather than being inferred -- a threshold file holds
+    many named series and only the author knows which belong on the same axes.
 
     Args:
-        values: (rows, cols) array of map values, or None when the frame or
-            sensor has no map.
-        x_values: Optional column axis bin values; defaults to column indices.
-        y_values: Optional row axis bin values; defaults to row indices.
+        series: Mapping of trace name to its 1D values for this frame.
+        x_values: Shared x-axis values. Falls back to sample index when absent
+            or mismatched in length.
+        traces: Normalized trace definitions (``name``, ``label``, ``color``,
+            ``dash``, ``width``, ``mode``) in draw order.
         x_label: X-axis title.
         y_label: Y-axis title.
-        value_label: Colorbar title.
-        colormap: Colorscale name.
         title: Optional figure title.
-        value_range: Optional [min, max] clamp for the color scale. Pinning this
-            across frames keeps the scale stable while scrubbing.
+        x_range: Optional [min, max] x clamp.
+        y_range: Optional [min, max] y clamp. Pinning this keeps levels
+            comparable while scrubbing.
+        log_y: Whether to use a logarithmic y-axis.
 
     Returns:
         Dictionary containing figure data and layout.
     """
-    base_layout = {
+    layout: Dict[str, Any] = {
         "title": {"text": title} if title else None,
         "xaxis": {"title": {"text": x_label}},
-        "yaxis": {"title": {"text": y_label}},
-        "margin": {"l": 60, "r": 10, "b": 45, "t": 40},
+        "yaxis": {"title": {"text": y_label}, "type": "log" if log_y else "linear"},
+        "margin": {"l": 55, "r": 12, "b": 40, "t": 30},
+        "legend": {"orientation": "h", "yanchor": "bottom", "y": 1.0, "x": 0},
+        "hovermode": "x unified",
         "uirevision": "no_change",
     }
+    if x_range:
+        layout["xaxis"]["range"] = list(x_range)
+    if y_range:
+        layout["yaxis"]["range"] = list(y_range)
 
-    if values is None or np.size(values) == 0:
+    if not series or not traces:
         return {
-            "data": [{"type": "heatmap", "x": [], "y": [], "z": []}],
+            "data": [{"type": "scatter", "x": [], "y": []}],
             "layout": {
-                **base_layout,
+                **layout,
                 "annotations": [
                     {
-                        "text": "No threshold map for this frame",
+                        "text": "No threshold data for this frame",
                         "xref": "paper",
                         "yref": "paper",
                         "x": 0.5,
@@ -237,28 +244,42 @@ def get_threshold_map(
             },
         }
 
-    values = np.asarray(values)
-    trace: Dict[str, Any] = {
-        "type": "heatmap",
-        "z": values,
-        "colorscale": colormap,
-        "colorbar": {"title": {"text": value_label, "side": "right"}},
-        "hovertemplate": (
-            f"{x_label or 'x'}: %{{x}}<br>"
-            f"{y_label or 'y'}: %{{y}}<br>"
-            f"{value_label or 'value'}: %{{z:.2f}}<extra></extra>"
-        ),
-    }
+    figure_data = []
+    for trace in traces:
+        values = series.get(trace["name"])
+        if values is None or np.size(values) == 0:
+            continue
 
-    if x_values is not None and len(x_values) == values.shape[1]:
-        trace["x"] = np.asarray(x_values)
-    if y_values is not None and len(y_values) == values.shape[0]:
-        trace["y"] = np.asarray(y_values)
+        values = np.asarray(values).reshape(-1)
+        if x_values is not None and len(x_values) == len(values):
+            axis = np.asarray(x_values)
+        else:
+            # An x-axis that does not line up is worse than none: fall back to
+            # sample index so the curve still reads correctly.
+            axis = np.arange(len(values))
 
-    if value_range is not None:
-        trace["zmin"], trace["zmax"] = value_range[0], value_range[1]
+        figure_data.append(
+            {
+                "type": "scattergl",
+                "x": axis,
+                "y": values,
+                "mode": trace.get("mode", "lines"),
+                "name": trace.get("label", trace["name"]),
+                "line": {
+                    "color": trace.get("color"),
+                    "dash": trace.get("dash", "solid"),
+                    "width": trace.get("width", 2),
+                },
+                "hovertemplate": "%{y:.2f}<extra>"
+                + str(trace.get("label", trace["name"]))
+                + "</extra>",
+            }
+        )
 
-    return {"data": [trace], "layout": base_layout}
+    if not figure_data:
+        figure_data = [{"type": "scatter", "x": [], "y": []}]
+
+    return {"data": figure_data, "layout": layout}
 
 
 def get_scatter2d(

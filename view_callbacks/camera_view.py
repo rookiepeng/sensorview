@@ -27,7 +27,6 @@ from dash.exceptions import PreventUpdate
 from frame_sources import get_log_info, get_manifest
 
 HIDDEN = {"display": "none"}
-VISIBLE = {"display": "block"}
 
 
 def get_camera_view_callbacks(app: dash.Dash) -> None:
@@ -43,7 +42,7 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         output={
-            "card_style": Output("camera-card", "style"),
+            "section_style": Output("subview-camera-section", "style"),
             "stream_options": Output("camera-stream-picker", "options"),
             "stream_value": Output("camera-stream-picker", "value"),
             "picker_style": Output("camera-stream-picker-col", "style"),
@@ -55,14 +54,14 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         unused_file_loaded: int, session_id: str
     ) -> Dict[str, Any]:
         """
-        Populate the stream selector and show or hide the camera card.
+        Populate the stream selector and show or hide the camera section.
 
         Args:
             unused_file_loaded (int): File load trigger count
             session_id (str): Session identifier
 
         Returns:
-            dict: Card visibility, stream options, and selected stream
+            dict: Section visibility, stream options, and selected stream
         """
         manifest = get_manifest(session_id)
         stem = get_log_info(session_id).get("stem", "")
@@ -70,7 +69,7 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
 
         if not streams:
             return {
-                "card_style": HIDDEN,
+                "section_style": HIDDEN,
                 "stream_options": [],
                 "stream_value": None,
                 "picker_style": HIDDEN,
@@ -78,12 +77,41 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
 
         options = [{"label": s["label"], "value": s["id"]} for s in streams]
         return {
-            "card_style": VISIBLE,
+            "section_style": {},
             "stream_options": options,
             "stream_value": streams[0]["id"],
             # A selector is noise when there is only one stream to select.
             "picker_style": HIDDEN if len(streams) == 1 else {},
         }
+
+    @app.callback(
+        output={"panel_style": Output("subview-panel", "style")},
+        inputs={"unused_file_loaded": Input("file-loaded-trigger", "data")},
+        state={"session_id": State("session-id", "data")},
+    )
+    def toggle_subview_panel(
+        unused_file_loaded: int, session_id: str
+    ) -> Dict[str, Any]:
+        """
+        Show the floating panel only when the log has something to put in it.
+
+        Args:
+            unused_file_loaded (int): File load trigger count
+            session_id (str): Session identifier
+
+        Returns:
+            dict: Panel visibility style
+        """
+        manifest = get_manifest(session_id)
+        stem = get_log_info(session_id).get("stem", "")
+        if manifest is None or not stem:
+            return {"panel_style": HIDDEN}
+
+        has_content = manifest.has_camera(stem) or bool(
+            manifest.has_threshold(stem) and manifest.threshold_plots()
+        )
+        # Clearing `display` lets the stylesheet's flex layout take over again.
+        return {"panel_style": {} if has_content else HIDDEN}
 
     @app.callback(
         output={

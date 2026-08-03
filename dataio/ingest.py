@@ -282,23 +282,26 @@ def ingest_lidar(
     }
 
 
-def ingest_threshold(
-    source: str,
-    out_dir: str,
-    stem: str,
-    axes: Optional[Dict[str, Sequence[float]]] = None,
-) -> List[str]:
+def ingest_threshold(source: str, out_dir: str, stem: str) -> List[str]:
     """
-    Write one log's per-(frame, sensor) threshold maps.
+    Write one log's per-frame 1D threshold series.
+
+    The source directory holds one folder per named series, plus an optional
+    ``axes`` folder for the shared x vectors::
+
+        drive_01.threshold/
+        ├── axes/range.npy          shared x-axis
+        ├── signal/<frame_id>.npy   1D series, one file per frame
+        ├── threshold/<frame_id>.npy
+        └── noise_floor/<frame_id>.npy
 
     Args:
-        source: Directory laid out as ``<sensor_id>/<frame_id>.npy``.
+        source: Directory laid out as above.
         out_dir: Destination dataset root.
         stem: Log stem to write under.
-        axes: Optional axis vectors, e.g. ``{"range": [...], "doppler": [...]}``.
 
     Returns:
-        Sensor ids written.
+        Series names written, in sorted order.
 
     Raises:
         ValueError: If ``source`` is not a directory.
@@ -307,15 +310,23 @@ def ingest_threshold(
         raise ValueError(f"Threshold source must be a directory: {source}")
 
     frames: Dict[Any, Dict[str, np.ndarray]] = {}
-    sensors: List[str] = []
+    axes: Dict[str, np.ndarray] = {}
+    signals: List[str] = []
 
-    for sensor_id in sorted(os.listdir(source)):
-        sensor_dir = os.path.join(source, sensor_id)
-        if not os.path.isdir(sensor_dir):
+    for entry in sorted(os.listdir(source)):
+        entry_dir = os.path.join(source, entry)
+        if not os.path.isdir(entry_dir):
             continue
-        sensors.append(sensor_id)
 
-        for name in sorted(os.listdir(sensor_dir)):
+        if entry == "axes":
+            for name in sorted(os.listdir(entry_dir)):
+                base, ext = os.path.splitext(name)
+                if ext.lower() == ".npy":
+                    axes[base] = np.load(os.path.join(entry_dir, name))
+            continue
+
+        signals.append(entry)
+        for name in sorted(os.listdir(entry_dir)):
             base, ext = os.path.splitext(name)
             if ext.lower() != ".npy":
                 continue
@@ -323,19 +334,80 @@ def ingest_threshold(
                 frame_id: Any = int(base)
             except ValueError:
                 frame_id = base
-            frames.setdefault(frame_id, {})[sensor_id] = np.load(
-                os.path.join(sensor_dir, name)
+            frames.setdefault(frame_id, {})[entry] = np.load(
+                os.path.join(entry_dir, name)
             )
 
-    axis_arrays = (
-        {name: np.asarray(values) for name, values in axes.items()} if axes else None
-    )
     write_threshold_frames(
         os.path.join(out_dir, f"{stem}{DEFAULT_THRESHOLD_SUFFIX}"),
         frames,
-        axes=axis_arrays,
+        axes=axes or None,
     )
-    return sensors
+    return sorted(signals)
+
+
+def _starter_threshold_plots(
+    signals: Sequence[str], axes: Sequence[str]
+) -> List[Dict[str, Any]]:
+    """
+    Build a starting ``threshold.plots`` config from what was ingested.
+
+    Series are grouped onto axes by name prefix: with axes ``range`` and
+    ``doppler``, ``doppler_signal`` lands on the Doppler plot and everything
+    unprefixed lands on the remaining one. That is only a starting point --
+    which curves belong together, and how they are styled, is an authoring
+    decision made by editing ``info.json``.
+
+    Args:
+        signals: Series names written.
+        axes: Axis names written.
+
+    Returns:
+        One plot definition per axis in use, or a single index-based plot when
+        the file declares no axes. Empty when there are no series.
+    """
+    if not signals:
+        return []
+
+    def as_trace(name: str) -> Dict[str, str]:
+        return {"name": name, "label": name.replace("_", " ").title()}
+
+    if not axes:
+        return [
+            {
+                "id": "threshold",
+                "label": "Threshold",
+                "x": {"dataset": "", "label": "Sample"},
+                "y_label": "Magnitude (dB)",
+                "traces": [as_trace(n) for n in signals],
+            }
+        ]
+
+    grouped = {axis: [n for n in signals if n.startswith(f"{axis}_")] for axis in axes}
+    claimed = {n for names in grouped.values() for n in names}
+    leftover = [n for n in signals if n not in claimed]
+
+    # Unprefixed series go to an axis that matched nothing, which is what makes
+    # the common "range is the default axis" case come out right.
+    if leftover:
+        host = next((axis for axis in axes if not grouped[axis]), axes[0])
+        grouped[host] = grouped[host] + leftover
+
+    plots = []
+    for axis in axes:
+        if not grouped[axis]:
+            continue
+        label = axis.replace("_", " ").title()
+        plots.append(
+            {
+                "id": axis,
+                "label": f"{label} Profile",
+                "x": {"dataset": f"/axes/{axis}", "label": label},
+                "y_label": "Magnitude (dB)",
+                "traces": [as_trace(n) for n in grouped[axis]],
+            }
+        )
+    return plots
 
 
 def ingest_camera(
@@ -488,7 +560,8 @@ def ingest_case(
     }
 
     lidar_stats: Optional[Dict[str, Any]] = None
-    threshold_sensors: List[str] = []
+    threshold_signals: List[str] = []
+    threshold_axes: List[str] = []
     wrote_camera = False
 
     for index, source in enumerate(sources):
@@ -532,9 +605,15 @@ def ingest_case(
             else _discover_sidecar_dir(case_dir, stem, "threshold")
         )
         if log_threshold:
-            sensors = ingest_threshold(log_threshold, out_dir, stem)
-            threshold_sensors = threshold_sensors or sensors
-            print(f"    threshold: {len(sensors)} sensor(s)")
+            signals = ingest_threshold(log_threshold, out_dir, stem)
+            if not threshold_signals:
+                threshold_signals = signals
+                threshold_axes = sorted(
+                    os.path.splitext(n)[0]
+                    for n in os.listdir(os.path.join(log_threshold, "axes"))
+                    if n.lower().endswith(".npy")
+                ) if os.path.isdir(os.path.join(log_threshold, "axes")) else []
+            print(f"    threshold: {len(signals)} series {signals}")
 
         streams = (
             camera_dirs
@@ -572,14 +651,14 @@ def ingest_case(
             "calibration": {"translation": [0, 0, 0], "rotation_rpy_deg": [0, 0, 0]},
         }
 
-    if threshold_sensors:
-        # Sensor ids are discovered from the HDF5 file at read time, so the
-        # manifest only carries labelling that cannot be inferred.
+    if threshold_signals:
+        # A starter config grouping every series onto one plot. Splitting and
+        # styling them is an authoring decision, made by editing info.json.
         manifest["threshold"] = {
             "format": "hdf5",
             "suffix": DEFAULT_THRESHOLD_SUFFIX,
-            "dataset_pattern": "/frames/{frame_id}/{sensor_id}",
-            "value_label": "Magnitude (dB)",
+            "dataset_pattern": "/frames/{frame_id}/{name}",
+            "plots": _starter_threshold_plots(threshold_signals, threshold_axes),
         }
 
     if wrote_camera:

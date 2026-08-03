@@ -55,7 +55,7 @@ a single `frame_id`:
 |---|---|---|---|
 | Radar point cloud | Parquet (tidy table) | **Yes** — full filter pipeline | filter changes + frame changes |
 | Lidar point cloud | HDF5, decimated at ingest | No — fixed backdrop | frame changes only |
-| Threshold maps | HDF5, chunked per (frame, sensor) | No | frame changes only |
+| Threshold series | HDF5, 1D series per frame | No | frame changes only |
 | Camera | mp4, all-intra | No | frame changes only |
 
 The reasoning behind the split:
@@ -63,7 +63,7 @@ The reasoning behind the split:
 - **Radar is the only queried dataset**, so it stays columnar. Parquet gives
   compression plus projection/predicate pushdown, and MATLAB reads it natively
   via `parquetread`/`parquetwrite` (Feather/Arrow IPC has no such support).
-- **Lidar and threshold maps are display-only** frame-indexed blobs. Nobody
+- **Lidar and threshold series are display-only** frame-indexed blobs. Nobody
   queries them by column, so Parquet's columnar machinery would be pure
   overhead; a chunked HDF5 dataset per frame reads as one contiguous block and
   is equally native in MATLAB (`h5read`).
@@ -74,7 +74,7 @@ The reasoning behind the split:
   trip. Video is encoded all-intra because browsers can only seek to keyframes.
 
 Because the display-only views never depend on filter state, dragging a filter
-slider re-renders radar alone — it never re-reads lidar, threshold maps, or video.
+slider re-renders radar alone — it never re-reads lidar, threshold series, or video.
 
 ### Dataset Layout
 
@@ -86,7 +86,7 @@ data/MyCase/
 ├── info.json                # manifest v2 (conventions only)
 ├── drive_01.parquet         # filterable radar point cloud
 ├── drive_01.lidar.h5        # decimated lidar backdrop
-├── drive_01.threshold.h5    # per-(frame, sensor) threshold maps
+├── drive_01.threshold.h5    # 1D threshold series
 ├── drive_01.mp4             # camera
 ├── drive_01.rear.mp4        # a second, named camera stream
 ├── drive_02.parquet         # the next log, same conventions
@@ -94,7 +94,7 @@ data/MyCase/
 ```
 
 Adding a log is dropping files in the folder — nothing to register. Selecting a
-log in the file picker swaps its lidar, threshold maps, and video together.
+log in the file picker swaps its lidar, threshold plots, and video together.
 Every sidecar is optional; cards for missing data hide themselves.
 
 ### Dataset Manifest (`info.json` v2)
@@ -108,10 +108,56 @@ it deliberately does **not** contain:
   the data. The same derivation runs at ingest, which is what guarantees the
   rate a video was *encoded* at matches the rate it is *seeked* at.
 - **Per-log file lists.** Sidecars resolve from the selected log's basename, and
-  threshold sensors and camera streams are discovered from the files themselves.
+  camera streams are discovered from the files themselves.
 
 A v1 `info.json` (no `manifest_version`) is still accepted and upgraded in
 memory, so **existing datasets keep working with no conversion**.
+
+### Threshold Plots
+
+Threshold data is 1D, and one HDF5 file holds many named series per frame — a
+signal, the threshold applied to it, a noise floor, and so on. Which series
+share a plot, and how each curve is drawn, is **declared in `info.json`**: only
+the author knows which curves belong on the same axes.
+
+```json
+"threshold": {
+    "suffix": ".threshold.h5",
+    "dataset_pattern": "/frames/{frame_id}/{name}",
+    "plots": [
+        {
+            "id": "range",
+            "label": "Range Profile",
+            "x": { "dataset": "/axes/range", "label": "Range (m)" },
+            "y_label": "Magnitude (dB)",
+            "traces": [
+                { "name": "signal",      "label": "Signal",         "color": "#4c9be8" },
+                { "name": "threshold",   "label": "CFAR Threshold", "color": "#e8734c", "dash": "dash" },
+                { "name": "noise_floor", "label": "Noise Floor",    "color": "#8d99ae", "dash": "dot", "width": 1 }
+            ]
+        }
+    ]
+}
+```
+
+A trace's `name` fills the `{name}` placeholder in the plot's dataset pattern;
+an explicit `"dataset"` overrides that. Optional per-plot keys: `y_range` (pins
+the axis instead of estimating it), `x.range`, and `log_y`. Any number of plots
+can be declared — the panel gets a selector when there is more than one.
+
+The y axis is held constant across frames rather than autoscaling, so where the
+signal sits relative to its threshold stays readable while scrubbing. Ingest
+writes a starter config grouping series onto axes by name prefix
+(`doppler_signal` → the Doppler plot), which you then split and style.
+
+### Subview Panel
+
+The camera and threshold plot live in a floating panel over the 3D view rather
+than stacked below it — all three show the same instant, so scrolling between
+them defeats the purpose. The panel is draggable by its header, minimizes to a
+title bar, resizes from its bottom-right corner, and stays clamped inside the
+viewport. It hides itself entirely when a log has neither a camera nor threshold
+data, and each half hides independently.
 
 ### Ingestion
 
@@ -130,7 +176,7 @@ raw/MyCase/
 ├── drive_01/             → drive_01.mp4          (per-frame images)
 ├── drive_01.rear/        → drive_01.rear.mp4
 ├── drive_01.lidar/       → drive_01.lidar.h5     (<frame_id>.npy)
-└── drive_01.threshold/   → drive_01.threshold.h5 (<sensor_id>/<frame_id>.npy)
+└── drive_01.threshold/   → drive_01.threshold.h5 (<series>/<frame_id>.npy + axes/)
 ```
 
 A single recording's sidecars can also be passed explicitly:
@@ -168,7 +214,7 @@ See `requirements.txt` for complete list:
 
 - **dash**, **dash-bootstrap-components**, **dash-daq**: Web framework and interactive UI components
 - **polars**, **pandas**, **numpy**, **pyarrow**: Data manipulation and Parquet I/O
-- **h5py**: HDF5 sidecars for lidar point clouds and threshold maps
+- **h5py**: HDF5 sidecars for lidar point clouds and threshold series
 - **imageio-ffmpeg**: Ingest-time only; bundles a static ffmpeg for camera mp4 encoding
 - **diskcache**: Server-side FanoutCache for session and frame data
 - **orjson**: High-performance JSON serialization for API responses
@@ -347,17 +393,18 @@ The application uses a modular callback system with separate modules for differe
 - `histogram_view`: Distribution analysis
 - `parcats_view`: Parallel categories visualization
 - `violin_view`: Violin plot analysis
-- `camera_view`: mp4 stream selection and clientside frame-exact seeking
-- `threshold_view`: Per-frame threshold map rendering
+- `camera_view`: mp4 stream selection, clientside frame-exact seeking, and
+  subview panel visibility
+- `threshold_view`: Per-frame 1D threshold plot rendering
 
 ### Data IO Package (`dataio/`)
 
 - `manifest`: `info.json` v2 parsing, v1 upgrade, basename sidecar resolution,
-  non-destructive persistence
+  threshold plot definitions, non-destructive persistence
 - `frames`: Frame ids, timestamps, and capture rate derived from the Parquet
   data — shared by the ingest pipeline and the running app
 - `radar_store`: Parquet loading with projection/predicate pushdown
-- `dense_store`: HDF5 readers/writers for lidar and threshold maps
+- `dense_store`: HDF5 readers/writers for lidar points and 1D threshold series
 - `decimate`: Ingest-time voxel + budget point cloud decimation
 - `calibration`: Extrinsics → 4×4 transform for cross-sensor alignment
 - `video`: Camera mp4 encoding

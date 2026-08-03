@@ -35,7 +35,7 @@ from dataio.manifest import Manifest
 from utils import cache_get, cache_set
 
 from viz.graph_data import get_lidar_scatter3d_data
-from viz.viz import get_threshold_map
+from viz.viz import get_threshold_plot
 
 
 def cache_manifest(manifest: Manifest, session_id: str) -> None:
@@ -190,60 +190,67 @@ def get_lidar_trace(
     return get_lidar_scatter3d_data(points, manifest.lidar_display())
 
 
-def get_threshold_sensors(manifest: Optional[Manifest], stem: str) -> List[Dict[str, str]]:
+def get_threshold_plots(
+    manifest: Optional[Manifest], stem: str
+) -> List[Dict[str, str]]:
     """
-    List the sensors with threshold maps in the current log.
+    List the threshold plots available for the current log.
 
     Args:
         manifest: Dataset manifest, or None.
         stem: Log stem.
 
     Returns:
-        List of ``{"id", "label"}`` dicts; empty when the log has no maps.
+        List of ``{"id", "label"}`` dicts; empty when the log has no threshold
+        sidecar or the manifest declares no plots.
     """
     if manifest is None or not manifest.has_threshold(stem):
         return []
-
-    store = ThresholdStore(
-        manifest.threshold_path(stem), manifest.threshold_dataset_pattern()
-    )
     return [
-        {"id": sensor, "label": sensor.replace("_", " ").title()}
-        for sensor in store.sensors()
+        {"id": plot["id"], "label": plot["label"]}
+        for plot in manifest.threshold_plots()
     ]
 
 
-def get_threshold_value_range(
+def get_threshold_y_range(
     manifest: Optional[Manifest],
     stem: str,
-    sensor_id: str,
+    plot_id: str,
     session_id: str,
     frame_ids: Optional[Any] = None,
     max_frames: int = 50,
 ) -> Optional[list]:
     """
-    Estimate a stable color range for a sensor's threshold maps.
+    Estimate a stable y range for one threshold plot.
 
-    Re-normalizing per frame makes levels jump while scrubbing, so the range is
-    estimated once per (log, sensor) and cached for the session. Estimation
-    samples at most ``max_frames`` evenly spaced frames and uses the 2nd/98th
-    percentiles, which keeps a single hot cell from flattening the rest.
+    Letting the axis autoscale per frame makes the curves jump while scrubbing,
+    which hides exactly the thing these plots exist to show -- where the signal
+    sits relative to its threshold. The range is estimated once per (log, plot)
+    and cached, sampling at most ``max_frames`` evenly spaced frames.
+
+    A manifest-declared ``y_range`` always wins over the estimate.
 
     Args:
         manifest: Dataset manifest, or None.
         stem: Log stem.
-        sensor_id: Sensor identifier.
+        plot_id: Plot identifier.
         session_id: Session identifier, used as the cache scope.
         frame_ids: Frame ids to sample from, as derived from the Parquet data.
         max_frames: Maximum number of frames to sample.
 
     Returns:
-        ``[vmin, vmax]``, or None when no maps could be read.
+        ``[ymin, ymax]``, or None when nothing could be read.
     """
-    if manifest is None or not sensor_id or not manifest.has_threshold(stem):
+    if manifest is None or not plot_id or not manifest.has_threshold(stem):
         return None
 
-    cache_key = f"{stem}/{sensor_id}"
+    plot = manifest.threshold_plot(plot_id)
+    if plot is None:
+        return None
+    if plot.get("y_range"):
+        return list(plot["y_range"])
+
+    cache_key = f"{stem}/{plot_id}"
     cached = cache_get(session_id, CACHE_KEYS["threshold_range"], cache_key)
     if cached is not None:
         return cached
@@ -258,71 +265,72 @@ def get_threshold_value_range(
     else:
         sampled = frame_ids
 
-    store = ThresholdStore(
-        manifest.threshold_path(stem), manifest.threshold_dataset_pattern()
-    )
+    store = ThresholdStore(manifest.threshold_path(stem))
 
-    lows, highs = [], []
+    low, high = np.inf, -np.inf
     for frame_id in sampled:
-        values = store.read_map(frame_id, sensor_id)
-        if values is None or np.size(values) == 0:
-            continue
-        finite = values[np.isfinite(values)]
-        if finite.size == 0:
-            continue
-        lows.append(float(np.percentile(finite, 2)))
-        highs.append(float(np.percentile(finite, 98)))
+        for trace in plot["traces"]:
+            values = store.read_series(trace["dataset"], frame_id)
+            if values is None or np.size(values) == 0:
+                continue
+            finite = values[np.isfinite(values)]
+            if finite.size == 0:
+                continue
+            low = min(low, float(finite.min()))
+            high = max(high, float(finite.max()))
 
-    if not lows:
+    if not np.isfinite(low) or not np.isfinite(high):
         return None
 
-    value_range = [min(lows), max(highs)]
-    cache_set(value_range, session_id, CACHE_KEYS["threshold_range"], cache_key)
-    return value_range
+    # A little headroom so curves never sit flush against the frame.
+    padding = (high - low) * 0.05 or 1.0
+    y_range = [low - padding, high + padding]
+    cache_set(y_range, session_id, CACHE_KEYS["threshold_range"], cache_key)
+    return y_range
 
 
 def get_threshold_figure(
     manifest: Optional[Manifest],
     stem: str,
     frame_id: Any,
-    sensor_id: str,
-    colormap: str = "Jet",
-    value_range: Optional[list] = None,
+    plot_id: str,
+    y_range: Optional[list] = None,
 ) -> Dict[str, Any]:
     """
-    Build the threshold-map figure for one (frame, sensor).
+    Build the 1D threshold figure for one (frame, plot).
 
     Args:
         manifest: Dataset manifest, or None.
         stem: Log stem.
         frame_id: Frame identifier.
-        sensor_id: Sensor identifier.
-        colormap: Colorscale name.
-        value_range: Optional [min, max] color clamp held constant across frames.
+        plot_id: Plot identifier declared in the manifest.
+        y_range: Optional [min, max] y clamp held constant across frames.
 
     Returns:
-        Figure dictionary; an empty placeholder figure when no map exists.
+        Figure dictionary; an empty placeholder figure when nothing is readable.
     """
-    if manifest is None or not sensor_id or not manifest.has_threshold(stem):
-        return get_threshold_map(None)
+    if manifest is None or not plot_id or not manifest.has_threshold(stem):
+        return get_threshold_plot()
 
-    block = manifest.threshold or {}
-    store = ThresholdStore(
-        manifest.threshold_path(stem), manifest.threshold_dataset_pattern()
-    )
-    values = store.read_map(frame_id, sensor_id)
+    plot = manifest.threshold_plot(plot_id)
+    if plot is None:
+        return get_threshold_plot()
 
-    axes = block.get("axes") or {}
-    x_axis = axes.get("x") or {}
-    y_axis = axes.get("y") or {}
+    store = ThresholdStore(manifest.threshold_path(stem))
 
-    return get_threshold_map(
-        values,
-        x_values=store.read_axis(x_axis.get("values_dataset", "")),
-        y_values=store.read_axis(y_axis.get("values_dataset", "")),
-        x_label=x_axis.get("label", ""),
-        y_label=y_axis.get("label", ""),
-        value_label=block.get("value_label", ""),
-        colormap=colormap,
-        value_range=value_range,
+    series = {}
+    for trace in plot["traces"]:
+        values = store.read_series(trace["dataset"], frame_id)
+        if values is not None:
+            series[trace["name"]] = values
+
+    return get_threshold_plot(
+        series=series,
+        x_values=store.read_axis(plot["x_dataset"]),
+        traces=plot["traces"],
+        x_label=plot["x_label"],
+        y_label=plot["y_label"],
+        x_range=plot["x_range"],
+        y_range=y_range or plot["y_range"],
+        log_y=plot["log_y"],
     )
