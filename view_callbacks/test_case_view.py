@@ -45,6 +45,10 @@ from utils import cache_set, cache_get
 from utils import load_data
 
 
+# The overlay's geometry lives in the stylesheet; callbacks only toggle display.
+HIDE_LOADING = {"display": "none"}
+
+
 def get_test_case_view_callbacks(app: dash.Dash) -> None:
     """
     Register the callback functions for the test case selection view.
@@ -313,17 +317,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             new_data = load_data(add_file_value, file)
         except Exception as exc:
             set_progress(
-                [
-                    {
-                        "position": "fixed",
-                        "top": 0,
-                        "left": 0,
-                        "width": "100%",
-                        "height": "100%",
-                        "backgroundColor": "rgba(0, 0, 0, 0.9)",
-                        "display": "none",
-                    }
-                ]
+                [HIDE_LOADING]
             )
             return {
                 "key_dict": dash.no_update,
@@ -414,17 +408,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
 
         # Hide loading indicator
         set_progress(
-            [
-                {
-                    "position": "fixed",
-                    "top": 0,
-                    "left": 0,
-                    "width": "100%",
-                    "height": "100%",
-                    "backgroundColor": "rgba(0, 0, 0, 0.9)",
-                    "display": "none",
-                }
-            ]
+            [HIDE_LOADING]
         )
 
         return {
@@ -567,56 +551,10 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
 
         return {"state": True}
 
-    @app.callback(
-        output={
-            "left_switch": Output("left-switch", "value"),
-            "right_switch": Output("right-switch", "value"),
-            "hist_switch": Output("histogram-switch", "value"),
-            "violin_switch": Output("violin-switch", "value"),
-            "parallel_switch": Output("parallel-switch", "value"),
-            "heat_switch": Output("heat-switch", "value"),
-        },
-        inputs={"unused_file_loaded": Input("file-loaded-trigger", "data")},
-        state={
-            "file": State("current-file", "data"),
-            "case": State("test-case", "value"),
-        },
-    )
-    def reset_switch_state(unused_file_loaded: int, file: str, case: str) -> dict:
-        """
-        Reset the state of all switch components when a new file is loaded.
-
-        Args:
-            unused_file_loaded (int): File load trigger count
-            file (str): Selected file value
-            case (str): Selected test case value
-
-        Returns:
-            dict: Contains empty lists for all switches:
-                - left_switch (list)
-                - right_switch (list)
-                - hist_switch (list)
-                - violin_switch (list)
-                - parallel_switch (list)
-                - heat_switch (list)
-
-        Raises:
-            PreventUpdate: If either file or case is None
-        """
-        if file is None:
-            raise PreventUpdate
-
-        if case is None:
-            raise PreventUpdate
-
-        return {
-            "left_switch": [],
-            "right_switch": [],
-            "hist_switch": [],
-            "violin_switch": [],
-            "parallel_switch": [],
-            "heat_switch": [],
-        }
+    # The six analysis enable switches are no longer reset here. They are driven
+    # by the active dock tab (see the clientside gate in app.py), which already
+    # re-fires on `file-loaded-trigger` -- so a newly loaded log refreshes the
+    # view being looked at instead of switching it off.
 
     @app.callback(
         output={"is_open": Output("error-modal", "is_open")},

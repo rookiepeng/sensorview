@@ -1,7 +1,9 @@
 """SensorView Layout Components Package
 
-Reusable layout components including modal dialogs, visualization cards,
-and layout structure elements using Dash and Bootstrap components.
+The workbench shell and its regions. ``app_layout`` assembles the whole thing;
+``topbar_layout``, ``filter_panel_layout``, ``canvas_layout``,
+``inspector_layout``, and ``analysis_dock_layout`` each own one region, and the
+six ``*_card_layout`` modules build the panes the analysis dock hosts.
 
 Author: Zhengyu Peng
 License: GPL-3.0

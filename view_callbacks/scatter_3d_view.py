@@ -86,47 +86,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         return {"is_open": not is_open}
 
-    @app.callback(
-        output={
-            "sidebar_style": Output("filter-sidebar-col", "style"),
-        },
-        inputs={
-            "n_clicks": Input("toggle-sidebar-button", "n_clicks"),
-        },
-        state={
-            "sidebar_style": State("filter-sidebar-col", "style"),
-        },
-    )
-    def toggle_sidebar(n_clicks: int, sidebar_style: dict) -> dict:
-        """
-        Toggle the visibility of the filter sidebar and adjust the main view width.
-        """
-        if n_clicks == 0:
-            raise PreventUpdate
-
-        if (sidebar_style or {}).get("width", "280px") == "0":
-            # Show sidebar
-            new_style = {
-                "width": "25%",
-                "flexShrink": 0,
-                "alignSelf": "flex-start",
-                "overflowY": "auto",
-                "overflowX": "hidden",
-                "maxHeight": "100vh",
-                "transition": "width 0.35s ease, opacity 0.35s ease",
-                "opacity": 1,
-            }
-        else:
-            # Hide sidebar
-            new_style = {
-                "width": "0",
-                "flexShrink": 0,
-                "overflow": "hidden",
-                "maxHeight": "0",
-                "transition": "width 0.35s ease, opacity 0.35s ease, max-height 0.35s ease",
-                "opacity": 0,
-            }
-        return {"sidebar_style": new_style}
+    # Collapsing the filter rail is handled clientside (assets/workbench.js).
+    # It changes nothing the server knows about, so a round trip per click would
+    # only add latency to a purely visual change.
 
     @app.callback(
         output={
