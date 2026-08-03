@@ -206,10 +206,23 @@ def get_threshold_plots(
     """
     if manifest is None or not manifest.has_threshold(stem):
         return []
-    return [
-        {"id": plot["id"], "label": plot["label"]}
-        for plot in manifest.threshold_plots()
-    ]
+
+    # Plot definitions are declared once for the whole case, but which series a
+    # given log actually recorded varies. Offering a plot whose series are all
+    # missing would just show an empty frame, so check the file once here.
+    available = set(ThresholdStore(manifest.threshold_path(stem)).signals())
+
+    plots = []
+    for plot in manifest.threshold_plots():
+        usable = any(
+            # A trace addressing a dataset directly cannot be checked by name;
+            # keep it and let the read decide.
+            not trace["name"] or trace["name"] in available
+            for trace in plot["traces"]
+        )
+        if usable:
+            plots.append({"id": plot["id"], "label": plot["label"]})
+    return plots
 
 
 def get_threshold_y_range(
