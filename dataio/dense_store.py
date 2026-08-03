@@ -130,64 +130,81 @@ class LidarStore:
 
 
 class ThresholdStore:
-    """Read-only accessor for per-(frame, sensor) threshold maps."""
+    """Read-only accessor for 1D threshold series.
 
-    def __init__(
-        self, path: str, dataset_pattern: str = DEFAULT_THRESHOLD_PATTERN
-    ) -> None:
+    One file holds many named series per frame -- a detection threshold, the
+    signal it is applied to, a noise floor, and so on. Which series are drawn
+    together, and how, is declared in ``info.json`` rather than inferred here.
+    """
+
+    def __init__(self, path: str) -> None:
         """
         Args:
-            path: Path to the threshold-map HDF5 file.
-            dataset_pattern: Dataset path pattern with ``{frame_id}`` and
-                ``{sensor_id}`` placeholders.
+            path: Path to the threshold HDF5 file.
         """
         self.path = path
-        self.dataset_pattern = dataset_pattern
 
     @property
     def exists(self) -> bool:
         """True when the backing file is present on disk."""
         return os.path.exists(self.path)
 
-    def read_map(self, frame_id: Any, sensor_id: str) -> Optional[np.ndarray]:
+    def read_series(
+        self, dataset_pattern: str, frame_id: Any = None
+    ) -> Optional[np.ndarray]:
         """
-        Read one threshold map.
+        Read one 1D series.
 
         Args:
-            frame_id: Frame identifier.
-            sensor_id: Sensor identifier.
+            dataset_pattern: Dataset path, optionally containing a
+                ``{frame_id}`` placeholder for per-frame series. Patterns
+                without the placeholder read a frame-independent dataset, which
+                is how shared x-axes are stored.
+            frame_id: Frame identifier substituted into the pattern.
 
         Returns:
-            2D array of map values, or None when absent.
+            1D array of values, or None when absent. Multi-dimensional datasets
+            are flattened, so a stored (1, N) row still plots.
         """
-        if not self.exists:
+        if not self.exists or not dataset_pattern:
             return None
 
-        dataset_path = _format_dataset(
-            self.dataset_pattern, frame_id=frame_id, sensor_id=sensor_id
-        )
+        dataset_path = _format_dataset(dataset_pattern, frame_id=frame_id)
         try:
             with h5py.File(self.path, "r") as handle:
                 node = handle.get(dataset_path)
                 if node is None:
                     return None
-                return np.asarray(node[()])
+                values = np.asarray(node[()])
+                return values.reshape(-1) if values.ndim > 1 else values
         except (OSError, KeyError):
             return None
 
-    def sensors(self) -> List[str]:
+    def read_axis(self, dataset_path: str) -> Optional[np.ndarray]:
         """
-        Discover which sensors have maps in this file.
-
-        Sensors are read from the file rather than declared in the manifest, so
-        a log that adds a sensor needs no manifest edit.
+        Read a stored axis vector (e.g. range bins, Doppler bins).
 
         Args:
-            None
+            dataset_path: Dataset path inside the file.
 
         Returns:
-            Sorted sensor ids taken from the first frame group; empty on any
-            error or when the file has no frames.
+            1D array of axis values, or None when absent.
+        """
+        return self.read_series(dataset_path)
+
+    def signals(self, frame_id: Any = None) -> List[str]:
+        """
+        List the series names stored for a frame.
+
+        Useful when writing the ``info.json`` plot config against an existing
+        file, and for validating that config at load time.
+
+        Args:
+            frame_id: Frame to inspect; defaults to the first frame present.
+
+        Returns:
+            Sorted series names; empty on any error or when the file has no
+            frames.
         """
         if not self.exists:
             return []
@@ -196,6 +213,9 @@ class ThresholdStore:
                 frames = handle.get("frames")
                 if frames is None:
                     return []
+                if frame_id is not None:
+                    group = frames.get(str(frame_id))
+                    return sorted(group.keys()) if group is not None else []
                 for frame_name in frames:
                     group = frames[frame_name]
                     if isinstance(group, h5py.Group):
@@ -203,27 +223,6 @@ class ThresholdStore:
                 return []
         except (OSError, KeyError):
             return []
-
-    def read_axis(self, dataset_path: str) -> Optional[np.ndarray]:
-        """
-        Read a stored axis vector (e.g. range bins, Doppler bins).
-
-        Args:
-            dataset_path: Absolute dataset path inside the file.
-
-        Returns:
-            1D array of axis values, or None when absent.
-        """
-        if not self.exists or not dataset_path:
-            return None
-        try:
-            with h5py.File(self.path, "r") as handle:
-                node = handle.get(dataset_path)
-                if node is None:
-                    return None
-                return np.asarray(node[()])
-        except (OSError, KeyError):
-            return None
 
 
 def write_lidar_frames(
@@ -265,13 +264,14 @@ def write_threshold_frames(
     axes: Optional[Dict[str, np.ndarray]] = None,
 ) -> str:
     """
-    Write per-(frame, sensor) threshold maps to an HDF5 sidecar.
+    Write per-frame 1D threshold series to an HDF5 sidecar.
 
     Args:
         path: Destination ``.h5`` path; parent directories are created.
-        frames: Mapping of frame id to ``{sensor_id: 2D array}``.
+        frames: Mapping of frame id to ``{series_name: 1D array}``.
         axes: Optional mapping of axis name to a 1D vector of bin values,
-            stored under ``/axes/<name>``.
+            stored under ``/axes/<name>``. Axes live outside the frame groups
+            because they are usually shared by every frame.
 
     Returns:
         The path written.

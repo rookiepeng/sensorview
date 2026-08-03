@@ -52,8 +52,8 @@ CACHE_KEYS = {
     # Current log: the stem its sidecars are keyed on, plus the frame timestamps
     # and capture rate derived from that log's Parquet data.
     "log_info": "LOG_INFO",
-    # Per-(log, sensor) threshold-map color range, estimated once so the scale
-    # stays fixed while scrubbing instead of re-normalizing every frame.
+    # Per-(log, plot) threshold y range, estimated once so the axis stays
+    # fixed while scrubbing instead of autoscaling every frame.
     "threshold_range": "THRESHOLD_RANGE",
     "visible_table": "VIS_TABLE",
     "config": "CONFIG",

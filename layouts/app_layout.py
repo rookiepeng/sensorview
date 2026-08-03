@@ -31,8 +31,7 @@ from layouts.hist_card_layout import get_hist_card_layout
 from layouts.violin_card_layout import get_violin_card_layout
 from layouts.parallel_card_layout import get_parallel_card_layout
 from layouts.heatmap_card_layout import get_heatmap_card
-from layouts.camera_card_layout import get_camera_card_layout
-from layouts.threshold_card_layout import get_threshold_card_layout
+from layouts.subview_layout import get_subview_layout
 
 
 def get_app_layout():
@@ -77,13 +76,10 @@ def get_app_layout():
             get_error_modal(),
             get_header_layout(),
             get_view3d_card_layout(),
-            # Camera and threshold maps sit directly under the 3D view: all
-            # three are per-frame views of the same instant, driven by the one
-            # frame slider. Each card hides itself when the dataset lacks it.
-            dbc.CardGroup(
-                [get_camera_card_layout(), get_threshold_card_layout()],
-                className="mb-3",
-            ),
+            # Camera and threshold float over the 3D view rather than sitting
+            # below it: all three show the same instant, so scrolling between
+            # them defeats the point of having them.
+            get_subview_layout(),
             dbc.CardGroup(
                 [get_left2d_card_layout(), get_right2d_card_layout()], className="mb-3"
             ),

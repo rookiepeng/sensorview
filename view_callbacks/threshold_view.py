@@ -1,11 +1,13 @@
-"""SensorView Threshold Map View Callbacks
+"""SensorView Threshold View Callbacks
 
-Renders one dense threshold map (range-Doppler, range-angle, ...) per frame,
-read straight from the HDF5 sidecar.
+Renders one 1D threshold plot per frame -- a signal and the thresholds applied
+to it -- read from the log's HDF5 sidecar. A single file holds many named
+series; which of them share a plot, and how each is styled, comes from
+``info.json``.
 
-Note what this callback does *not* listen to: ``filter-trigger``. Threshold maps
-are display-only, so dragging a filter slider never re-reads or re-renders them.
-They update on frame change and on their own selectors, nothing else.
+Note what this callback does *not* listen to: ``filter-trigger``. Threshold
+series are display-only, so dragging a filter slider never re-reads or
+re-renders them. They update on frame change and on their own selector.
 
 Usage:
     from view_callbacks.threshold_view import get_threshold_view_callbacks
@@ -27,19 +29,18 @@ from frame_sources import (
     get_log_stem,
     get_manifest,
     get_threshold_figure,
-    get_threshold_sensors,
-    get_threshold_value_range,
+    get_threshold_plots,
+    get_threshold_y_range,
 )
 
 from utils import cache_get
 
 HIDDEN = {"display": "none"}
-VISIBLE = {"display": "block"}
 
 
 def get_threshold_view_callbacks(app: dash.Dash) -> None:
     """
-    Register the callback functions for the threshold map view.
+    Register the callback functions for the threshold view.
 
     Args:
         app (dash.Dash): The Dash application instance
@@ -50,79 +51,72 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         output={
-            "card_style": Output("threshold-card", "style"),
-            "sensor_options": Output("threshold-sensor-picker", "options"),
-            "sensor_value": Output("threshold-sensor-picker", "value"),
+            "section_style": Output("subview-threshold-section", "style"),
+            "picker_style": Output("threshold-plot-picker-col", "style"),
+            "plot_options": Output("threshold-plot-picker", "options"),
+            "plot_value": Output("threshold-plot-picker", "value"),
         },
         inputs={"unused_file_loaded": Input("file-loaded-trigger", "data")},
         state={"session_id": State("session-id", "data")},
     )
-    def populate_threshold_sensors(
+    def populate_threshold_plots(
         unused_file_loaded: int, session_id: str
     ) -> Dict[str, Any]:
         """
-        Populate the sensor selector and show or hide the threshold card.
+        Populate the plot selector and show or hide the threshold section.
 
         Args:
             unused_file_loaded (int): File load trigger count
             session_id (str): Session identifier
 
         Returns:
-            dict: Card visibility, sensor options, and selected sensor
+            dict: Section visibility, plot options, and selected plot
         """
         manifest = get_manifest(session_id)
-        # Sensors are discovered from the log's HDF5 sidecar, not declared.
-        sensors = get_threshold_sensors(manifest, get_log_stem(session_id))
+        plots = get_threshold_plots(manifest, get_log_stem(session_id))
 
-        if not sensors:
+        if not plots:
             return {
-                "card_style": HIDDEN,
-                "sensor_options": [],
-                "sensor_value": None,
+                "section_style": HIDDEN,
+                "picker_style": HIDDEN,
+                "plot_options": [],
+                "plot_value": None,
             }
 
         return {
-            "card_style": VISIBLE,
-            "sensor_options": [
-                {"label": s["label"], "value": s["id"]} for s in sensors
-            ],
-            "sensor_value": sensors[0]["id"],
+            "section_style": {},
+            # A selector is noise when there is only one plot to select.
+            "picker_style": HIDDEN if len(plots) == 1 else {},
+            "plot_options": [{"label": p["label"], "value": p["id"]} for p in plots],
+            "plot_value": plots[0]["id"],
         }
 
     @app.callback(
-        output={"figure": Output("threshold-map", "figure")},
+        output={"figure": Output("threshold-plot", "figure")},
         inputs={
             "frame_idx": Input("slider-frame", "value"),
-            "sensor_id": Input("threshold-sensor-picker", "value"),
-            "colormap": Input("colormap-threshold", "value"),
-            "lock_scale": Input("threshold-lock-scale", "value"),
+            "plot_id": Input("threshold-plot-picker", "value"),
         },
         state={"session_id": State("session-id", "data")},
     )
-    def update_threshold_map(
-        frame_idx: int,
-        sensor_id: str,
-        colormap: str,
-        lock_scale: list,
-        session_id: str,
+    def update_threshold_plot(
+        frame_idx: int, plot_id: str, session_id: str
     ) -> Dict[str, Any]:
         """
-        Render the threshold map for the current frame and sensor.
+        Render the threshold plot for the current frame.
 
         Args:
             frame_idx (int): Current slider position
-            sensor_id (str): Selected sensor identifier
-            colormap (str): Selected colorscale name
-            lock_scale (list): Non-empty when the color scale is pinned
+            plot_id (str): Selected plot identifier
             session_id (str): Session identifier
 
         Returns:
-            dict: Contains the threshold map figure
+            dict: Contains the threshold figure
 
         Raises:
-            PreventUpdate: If no sensor is selected
+            PreventUpdate: If no plot is selected or no data is loaded
         """
-        if not sensor_id:
+        if not plot_id:
             raise PreventUpdate
 
         manifest = get_manifest(session_id)
@@ -130,31 +124,27 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         # The slider carries a positional index; the stores are keyed by the
-        # dataset's own frame ids.
+        # data's own frame ids.
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
         if frame_list is None or len(frame_list) == 0:
             raise PreventUpdate
         if frame_idx is None or frame_idx >= len(frame_list):
             raise PreventUpdate
 
-        frame_id = frame_list[frame_idx]
         stem = get_log_stem(session_id)
 
-        value_range = (
-            get_threshold_value_range(
-                manifest, stem, sensor_id, session_id, frame_ids=frame_list
-            )
-            if lock_scale
-            else None
+        # Held constant across frames so the signal's position relative to its
+        # threshold stays readable while scrubbing.
+        y_range = get_threshold_y_range(
+            manifest, stem, plot_id, session_id, frame_ids=frame_list
         )
 
         return {
             "figure": get_threshold_figure(
                 manifest,
                 stem,
-                frame_id,
-                sensor_id,
-                colormap=colormap or "Jet",
-                value_range=value_range,
+                frame_list[frame_idx],
+                plot_id,
+                y_range=y_range,
             )
         }

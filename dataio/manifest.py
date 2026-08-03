@@ -6,7 +6,7 @@ nothing about any individual log. It declares:
 - the radar column metadata (description / decimal / type) driving the filter UI
 - the filename suffixes that associate a log's sidecars with it
 - per-sensor calibration, so overlaid point clouds share a reference frame
-- fixed lidar backdrop styling and threshold-map labelling
+- fixed lidar backdrop styling and the 1D threshold plot definitions
 
 Two things it deliberately does **not** declare:
 
@@ -64,7 +64,17 @@ DEFAULT_THRESHOLD_SUFFIX = ".threshold.h5"
 DEFAULT_CAMERA_SUFFIX = ".mp4"
 
 DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
-DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{sensor_id}"
+DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
+
+# Fallback trace colors, used in order for traces that declare none.
+DEFAULT_TRACE_COLORS = (
+    "#4c9be8",
+    "#e8734c",
+    "#5cb85c",
+    "#c678dd",
+    "#e8c34c",
+    "#4cd4e8",
+)
 
 # Fixed lidar backdrop styling. Lidar has no runtime UI controls by design, so
 # these live in the manifest (or fall back to these defaults) rather than
@@ -331,12 +341,12 @@ class Manifest:
 
     @property
     def threshold_suffix(self) -> str:
-        """Filename suffix identifying a threshold-map sidecar."""
+        """Filename suffix identifying a threshold sidecar."""
         return (self.threshold or {}).get("suffix", DEFAULT_THRESHOLD_SUFFIX)
 
     def threshold_path(self, stem: str) -> Optional[str]:
         """
-        Path to one log's threshold-map sidecar.
+        Path to one log's threshold sidecar.
 
         Args:
             stem: Log stem.
@@ -361,11 +371,99 @@ class Manifest:
         path = self.threshold_path(stem)
         return bool(path and os.path.exists(path))
 
-    def threshold_dataset_pattern(self) -> str:
-        """HDF5 dataset path pattern for one (frame, sensor) threshold map."""
-        return (self.threshold or {}).get(
-            "dataset_pattern", DEFAULT_THRESHOLD_PATTERN
-        )
+    def threshold_plots(self) -> List[Dict[str, Any]]:
+        """
+        Normalized threshold plot definitions from the manifest.
+
+        Threshold series are 1D and a single file holds many of them, so what
+        goes on which plot -- and how each curve is drawn -- is declared rather
+        than guessed. Each plot definition looks like::
+
+            {
+              "id": "range_profile",
+              "label": "Range Profile",
+              "x": {"dataset": "/axes/range", "label": "Range (m)"},
+              "y_label": "Magnitude (dB)",
+              "y_range": [-120, -20],
+              "traces": [
+                {"name": "signal",    "label": "Signal"},
+                {"name": "threshold", "label": "CFAR Threshold",
+                 "color": "#e8734c", "dash": "dash"}
+              ]
+            }
+
+        A trace's ``name`` fills the ``{name}`` placeholder in the plot's
+        dataset pattern; an explicit ``dataset`` overrides that entirely.
+
+        Returns:
+            List of plot definitions with defaults filled in. Empty when the
+            dataset declares no threshold plots.
+        """
+        block = self.threshold or {}
+        default_pattern = block.get("dataset_pattern", DEFAULT_THRESHOLD_PATTERN)
+
+        plots = []
+        for index, plot in enumerate(block.get("plots") or []):
+            if not isinstance(plot, dict):
+                continue
+
+            plot_id = plot.get("id") or f"plot_{index}"
+            pattern = plot.get("dataset_pattern", default_pattern)
+
+            traces = []
+            for position, trace in enumerate(plot.get("traces") or []):
+                if isinstance(trace, str):
+                    trace = {"name": trace}
+                if not isinstance(trace, dict) or not (
+                    trace.get("name") or trace.get("dataset")
+                ):
+                    continue
+
+                name = trace.get("name", "")
+                traces.append(
+                    {
+                        "name": name,
+                        "label": trace.get("label", name),
+                        "dataset": trace.get("dataset")
+                        or pattern.replace("{name}", name),
+                        "color": trace.get(
+                            "color",
+                            DEFAULT_TRACE_COLORS[position % len(DEFAULT_TRACE_COLORS)],
+                        ),
+                        "dash": trace.get("dash", "solid"),
+                        "width": trace.get("width", 2),
+                        "mode": trace.get("mode", "lines"),
+                    }
+                )
+
+            x_axis = plot.get("x") or {}
+            plots.append(
+                {
+                    "id": plot_id,
+                    "label": plot.get("label", plot_id),
+                    "x_dataset": x_axis.get("dataset", ""),
+                    "x_label": x_axis.get("label", ""),
+                    "x_range": x_axis.get("range"),
+                    "y_label": plot.get("y_label", ""),
+                    "y_range": plot.get("y_range"),
+                    "log_y": bool(plot.get("log_y", False)),
+                    "traces": traces,
+                }
+            )
+
+        return plots
+
+    def threshold_plot(self, plot_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Look up one normalized threshold plot definition.
+
+        Args:
+            plot_id: Plot identifier.
+
+        Returns:
+            The plot definition, or None when no plot has that id.
+        """
+        return next((p for p in self.threshold_plots() if p["id"] == plot_id), None)
 
     # ------------------------------------------------------------------
     # Camera
