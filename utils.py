@@ -255,24 +255,6 @@ def cache_expire() -> None:
     frame_cache.expire()
 
 
-# def redis_set(data, id_str, key_major, key_minor=None):
-#     """
-#     Set data in Redis.
-
-#     Parameters:
-#     - data (any): The data to be stored in Redis.
-#     - id_str (str): A unique identifier string.
-#     - key_major (str): The major Redis key.
-#     - key_minor (str, optional): The minor Redis key. Defaults to None.
-#     """
-#     if key_minor is None:
-#         key_str = key_major + id_str
-#     else:
-#         key_str = key_major + id_str + key_minor
-
-#     redis_instance.set(key_str, pickle.dumps(data), ex=EXPIRATION)
-
-
 def cache_get(
     id_str: str, key_major: str, key_minor: Optional[str] = None
 ) -> Optional[Any]:
@@ -294,31 +276,6 @@ def cache_get(
 
     val = frame_cache.get(key_str, default=None, retry=True)
     return val
-
-
-# def redis_get(id_str, key_major, key_minor=None):
-#     """
-#     Get data from Redis.
-
-#     Parameters:
-#     - id_str (str): A unique identifier string.
-#     - key_major (str): The major Redis key.
-#     - key_minor (str, optional): The minor Redis key. Defaults to None.
-
-#     Returns:
-#     - any: The retrieved data, or None if not found.
-#     """
-#     if key_minor is None:
-#         key_str = key_major + id_str
-#     else:
-#         key_str = key_major + id_str + key_minor
-
-#     val = redis_instance.get(key_str)
-
-#     if val is not None:
-#         return pickle.loads(val)
-
-#     return None
 
 
 def filter_all(

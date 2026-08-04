@@ -284,16 +284,18 @@ def ingest_lidar(
 
 def ingest_threshold(source: str, out_dir: str, stem: str) -> List[str]:
     """
-    Write one log's per-frame 1D threshold series.
+    Write one log's per-frame threshold curves.
 
-    The source directory holds one folder per named series, plus an optional
-    ``axes`` folder for the shared x vectors::
+    The source directory holds one folder per named series::
 
         drive_01.threshold/
-        ├── axes/range.npy          shared x-axis
-        ├── signal/<frame_id>.npy   1D series, one file per frame
+        ├── signal/<frame_id>.npy       (N, 2): x column, then value
         ├── threshold/<frame_id>.npy
         └── noise_floor/<frame_id>.npy
+
+    Each frame's array carries its own x column, because a shared axis cannot
+    describe real data -- bin spacing varies between sensors and between frames.
+    A plain 1D array is still accepted and is paired with its sample index.
 
     Args:
         source: Directory laid out as above.
@@ -310,19 +312,11 @@ def ingest_threshold(source: str, out_dir: str, stem: str) -> List[str]:
         raise ValueError(f"Threshold source must be a directory: {source}")
 
     frames: Dict[Any, Dict[str, np.ndarray]] = {}
-    axes: Dict[str, np.ndarray] = {}
     signals: List[str] = []
 
     for entry in sorted(os.listdir(source)):
         entry_dir = os.path.join(source, entry)
         if not os.path.isdir(entry_dir):
-            continue
-
-        if entry == "axes":
-            for name in sorted(os.listdir(entry_dir)):
-                base, ext = os.path.splitext(name)
-                if ext.lower() == ".npy":
-                    axes[base] = np.load(os.path.join(entry_dir, name))
             continue
 
         signals.append(entry)
@@ -341,73 +335,39 @@ def ingest_threshold(source: str, out_dir: str, stem: str) -> List[str]:
     write_threshold_frames(
         os.path.join(out_dir, f"{stem}{DEFAULT_THRESHOLD_SUFFIX}"),
         frames,
-        axes=axes or None,
     )
     return sorted(signals)
 
 
-def _starter_threshold_plots(
-    signals: Sequence[str], axes: Sequence[str]
-) -> List[Dict[str, Any]]:
+def _starter_threshold_plots(signals: Sequence[str]) -> List[Dict[str, Any]]:
     """
     Build a starting ``threshold.plots`` config from what was ingested.
 
-    Series are grouped onto axes by name prefix: with axes ``range`` and
-    ``doppler``, ``doppler_signal`` lands on the Doppler plot and everything
-    unprefixed lands on the remaining one. That is only a starting point --
-    which curves belong together, and how they are styled, is an authoring
-    decision made by editing ``info.json``.
+    Every series lands on one plot. That is only a starting point -- which
+    curves belong together, and how they are styled, is an authoring decision
+    made by editing ``info.json``.
 
     Args:
         signals: Series names written.
-        axes: Axis names written.
 
     Returns:
-        One plot definition per axis in use, or a single index-based plot when
-        the file declares no axes. Empty when there are no series.
+        A single plot definition, or empty when there are no series.
     """
     if not signals:
         return []
 
-    def as_trace(name: str) -> Dict[str, str]:
-        return {"name": name, "label": name.replace("_", " ").title()}
-
-    if not axes:
-        return [
-            {
-                "id": "threshold",
-                "label": "Threshold",
-                "x": {"dataset": "", "label": "Sample"},
-                "y_label": "Magnitude (dB)",
-                "traces": [as_trace(n) for n in signals],
-            }
-        ]
-
-    grouped = {axis: [n for n in signals if n.startswith(f"{axis}_")] for axis in axes}
-    claimed = {n for names in grouped.values() for n in names}
-    leftover = [n for n in signals if n not in claimed]
-
-    # Unprefixed series go to an axis that matched nothing, which is what makes
-    # the common "range is the default axis" case come out right.
-    if leftover:
-        host = next((axis for axis in axes if not grouped[axis]), axes[0])
-        grouped[host] = grouped[host] + leftover
-
-    plots = []
-    for axis in axes:
-        if not grouped[axis]:
-            continue
-        label = axis.replace("_", " ").title()
-        plots.append(
-            {
-                "id": axis,
-                "label": f"{label} Profile",
-                "x": {"dataset": f"/axes/{axis}", "label": label},
-                "y_label": "Magnitude (dB)",
-                "traces": [as_trace(n) for n in grouped[axis]],
-            }
-        )
-    return plots
+    return [
+        {
+            "id": "threshold",
+            "label": "Threshold",
+            "x": {"label": "Sample"},
+            "y_label": "Magnitude (dB)",
+            "traces": [
+                {"name": name, "label": name.replace("_", " ").title()}
+                for name in signals
+            ],
+        }
+    ]
 
 
 def ingest_camera(
@@ -561,7 +521,6 @@ def ingest_case(
 
     lidar_stats: Optional[Dict[str, Any]] = None
     threshold_signals: List[str] = []
-    threshold_axes: List[str] = []
     wrote_camera = False
 
     for index, source in enumerate(sources):
@@ -608,11 +567,6 @@ def ingest_case(
             signals = ingest_threshold(log_threshold, out_dir, stem)
             if not threshold_signals:
                 threshold_signals = signals
-                threshold_axes = sorted(
-                    os.path.splitext(n)[0]
-                    for n in os.listdir(os.path.join(log_threshold, "axes"))
-                    if n.lower().endswith(".npy")
-                ) if os.path.isdir(os.path.join(log_threshold, "axes")) else []
             print(f"    threshold: {len(signals)} series {signals}")
 
         streams = (
@@ -658,7 +612,7 @@ def ingest_case(
             "format": "hdf5",
             "suffix": DEFAULT_THRESHOLD_SUFFIX,
             "dataset_pattern": "/frames/{frame_id}/{name}",
-            "plots": _starter_threshold_plots(threshold_signals, threshold_axes),
+            "plots": _starter_threshold_plots(threshold_signals),
         }
 
     if wrote_camera:

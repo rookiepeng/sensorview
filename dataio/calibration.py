@@ -57,13 +57,6 @@ class Calibration:
             rotation_rpy_deg=cal.get("rotation_rpy_deg"),
         )
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Serialize back to the manifest ``calibration`` block shape."""
-        return {
-            "translation": self.translation.tolist(),
-            "rotation_rpy_deg": self.rotation_rpy_deg.tolist(),
-        }
-
     @property
     def is_identity(self) -> bool:
         """True when the transform is a no-op and can be skipped entirely."""
@@ -89,31 +82,6 @@ class Calibration:
         rot_z = np.array([[c_y, -s_y, 0], [s_y, c_y, 0], [0, 0, 1]])
 
         return rot_z @ rot_y @ rot_x
-
-    def matrix(self) -> np.ndarray:
-        """
-        Build the full 4x4 homogeneous transform.
-
-        Returns:
-            4x4 transform matrix mapping sensor frame -> vehicle frame.
-        """
-        transform = np.eye(4)
-        transform[:3, :3] = self.rotation_matrix()
-        transform[:3, 3] = self.translation
-        return transform
-
-    def apply(self, points: np.ndarray) -> np.ndarray:
-        """
-        Transform an (N, 3) array of points into the vehicle frame.
-
-        Args:
-            points: (N, 3) array of xyz coordinates.
-
-        Returns:
-            (N, 3) transformed array. Returns the input unchanged (no copy) when
-            the calibration is an identity transform.
-        """
-        return apply_transform(points, self)
 
 
 def apply_transform(points: np.ndarray, calibration: Calibration) -> np.ndarray:

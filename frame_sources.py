@@ -285,7 +285,7 @@ def _threshold_store(
     path = manifest.threshold_path(stem, source_id)
     if not path:
         return None
-    return ThresholdStore(path, layout=manifest.threshold_layout, sensor_id=source_id)
+    return ThresholdStore(path, sensor_id=source_id)
 
 
 def get_threshold_plots(
@@ -444,8 +444,8 @@ def get_threshold_figure(
     if store is None:
         return get_threshold_plot()
 
-    # Under the ``xy`` layout every series carries its own x column, so each
-    # curve is drawn against its own axis rather than a shared one.
+    # Every series carries its own x column, so each curve is drawn against its
+    # own axis rather than a shared one.
     series = {}
     x_series = {}
     for trace in plot["traces"]:
@@ -458,7 +458,6 @@ def get_threshold_figure(
 
     return get_threshold_plot(
         series=series,
-        x_values=store.read_axis(plot["x_dataset"]),
         x_series=x_series,
         traces=plot["traces"],
         x_label=plot["x_label"],

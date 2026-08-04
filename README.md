@@ -132,20 +132,27 @@ signal, the threshold applied to it, a noise floor, and so on. Which series
 share a plot, and how each curve is drawn, is **declared in `info.json`**: only
 the author knows which curves belong on the same axes.
 
+Every dataset is an **(N, 2) pair** — column 0 the x axis, column 1 the value —
+so each curve carries its own axis. A shared x vector would be smaller but it
+cannot describe real data: range bins differ from one sensor to the next, and
+differ frame to frame as the look type alternates. Both orientations are
+accepted, so a 2xN array written by MATLAB reads back correctly, and `x` in a
+plot definition therefore carries only a label.
+
 ```json
 "threshold": {
-    "suffix": ".threshold.h5",
-    "dataset_pattern": "/frames/{frame_id}/{name}",
+    "suffix": ".h5",
+    "dataset_pattern": "/frame_{frame_id}/{name}",
     "plots": [
         {
-            "id": "range",
+            "id": "range_profile",
             "label": "Range Profile",
-            "x": { "dataset": "/axes/range", "label": "Range (m)" },
+            "x": { "label": "Range (m)" },
             "y_label": "Magnitude (dB)",
             "traces": [
-                { "name": "signal",      "label": "Signal",         "color": "#4c9be8" },
-                { "name": "threshold",   "label": "CFAR Threshold", "color": "#e8734c", "dash": "dash" },
-                { "name": "noise_floor", "label": "Noise Floor",    "color": "#8d99ae", "dash": "dot", "width": 1 }
+                { "name": "mprb",      "label": "Range Bin Power", "color": "#4c9be8" },
+                { "name": "cfarThold", "label": "CFAR Threshold",  "color": "#e8734c", "dash": "dash" },
+                { "name": "nfEst",     "label": "Noise Floor",     "color": "#8d99ae", "dash": "dot", "width": 1 }
             ]
         }
     ]
@@ -153,9 +160,12 @@ the author knows which curves belong on the same axes.
 ```
 
 A trace's `name` fills the `{name}` placeholder in the plot's dataset pattern;
-an explicit `"dataset"` overrides that. Optional per-plot keys: `y_range` (pins
-the axis instead of estimating it), `x.range`, and `log_y`. Any number of plots
-can be declared — the panel gets a selector when there is more than one.
+an explicit `"dataset"` overrides that. The pattern also sets where a frame's
+series live, which covers `/frames/{frame_id}/{name}` for a sidecar ingest wrote
+and `/frame_{frame_id}/{name}` for a MATLAB struct array alike. Optional
+per-plot keys: `y_range` (pins the axis instead of estimating it), `x.range`,
+and `log_y`. Any number of plots can be declared — the panel gets a selector
+when there is more than one.
 
 **Several sources per log.** Threshold sidecars are discovered the same way
 camera streams are: `<stem><suffix>` is the default source and
@@ -166,21 +176,13 @@ per sensor. The panel gets a **Sensor** selector, and each source keeps its own
 plot list and its own y-range estimate, because one sensor's levels say nothing
 about another's.
 
-**Datasets that carry their own x.** `"dataset_layout": "xy"` says each dataset
-is an (N, 2) pair — column 0 the x axis, column 1 the value — instead of y
-values against a shared `x.dataset` vector. That is what a per-sensor export
-looks like in practice: range bins differ from one sensor to the next, and can
-differ frame to frame as the look type alternates, so no single shared axis
-would fit. Under this layout `x` needs only a `label`. Both orientations of the
-pair are accepted, so a 2xN array written by MATLAB reads back correctly.
-
 Non-finite values (`-inf` for bins a threshold does not apply to) are drawn as
 gaps in the line rather than being clamped or dropped.
 
 The y axis is held constant across frames rather than autoscaling, so where the
 signal sits relative to its threshold stays readable while scrubbing. Ingest
-writes a starter config grouping series onto axes by name prefix
-(`doppler_signal` → the Doppler plot), which you then split and style.
+writes a starter config putting every series on one plot, which you then split
+and style.
 
 ### Camera
 
