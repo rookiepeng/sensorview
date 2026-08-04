@@ -192,10 +192,10 @@ def get_topbar_layout():
         [
             _brand(),
             *_breadcrumb(),
+            *_combine_control(),
             html.Div(className="sv-topbar-spacer"),
             html.Div(
                 [
-                    *_combine_control(),
                     _theme_toggle(),
                     _export_menu(),
                     dbc.Tooltip("Export", target="export-dropdown", placement="bottom"),
