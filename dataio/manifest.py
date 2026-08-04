@@ -23,6 +23,7 @@ Two things it deliberately does **not** declare:
       ├── drive_01.parquet          radar point cloud
       ├── drive_01.lidar.h5         lidar backdrop
       ├── drive_01.threshold.h5     threshold maps
+      ├── drive_01.sensor_2.h5      threshold maps from a second sensor
       ├── drive_01.mp4              camera
       ├── drive_01.rear.mp4         second camera stream
       └── drive_02.parquet          another log, same conventions
@@ -67,6 +68,7 @@ DEFAULT_CAMERA_SUFFIX = ".mp4"
 
 DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
 DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
+DEFAULT_THRESHOLD_LAYOUT = "series"
 
 # Fallback trace colors, used in order for traces that declare none.
 DEFAULT_TRACE_COLORS = (
@@ -470,19 +472,112 @@ class Manifest:
         """Filename suffix identifying a threshold sidecar."""
         return (self.threshold or {}).get("suffix", DEFAULT_THRESHOLD_SUFFIX)
 
-    def threshold_path(self, stem: str) -> Optional[str]:
+    @property
+    def threshold_layout(self) -> str:
         """
-        Path to one log's threshold sidecar.
+        How one stored dataset maps to a curve.
+
+        ``series`` (the default) means the dataset holds y values alone and the
+        x axis is a separate shared vector. ``xy`` means each dataset is an
+        (N, 2) pair carrying its own x column -- which is what a per-sensor
+        export looks like, since range bins differ from one sensor to the next
+        and no single shared axis would fit them all.
+        """
+        return (self.threshold or {}).get("dataset_layout", DEFAULT_THRESHOLD_LAYOUT)
+
+    def threshold_dataset_pattern(self) -> str:
+        """HDF5 dataset path pattern for one threshold series."""
+        return (self.threshold or {}).get("dataset_pattern", DEFAULT_THRESHOLD_PATTERN)
+
+    def threshold_sources(self, stem: str) -> List[Dict[str, Any]]:
+        """
+        Discover a log's threshold sidecars on disk.
+
+        Sources are found rather than declared, the same way camera streams are:
+        ``<stem><suffix>`` is the log's default source and ``<stem>.<id><suffix>``
+        adds a named one. A dataset whose maps are split per sensor therefore
+        declares ``"suffix": ".h5"`` and drops ``<stem>.sensor_1.h5`` …
+        ``<stem>.sensor_5.h5`` in the folder -- no manifest edit per sensor.
 
         Args:
             stem: Log stem.
 
         Returns:
-            Absolute path, or None when the dataset declares no threshold maps.
+            List of source dicts with ``id``, ``label``, and absolute ``file``,
+            sorted with the default source first.
+        """
+        if not self.threshold or not stem:
+            return []
+
+        suffix = self.threshold_suffix
+        try:
+            entries = os.listdir(self.case_dir)
+        except OSError:
+            return []
+
+        # A suffix as generic as ".h5" would otherwise swallow the lidar
+        # sidecar, which is a different kind of file entirely.
+        reserved = {
+            other.lower()
+            for other in (self.lidar_suffix, self.radar_suffix)
+            if other.lower() != suffix.lower()
+        }
+
+        sources = []
+        for name in entries:
+            lowered = name.lower()
+            if not name.startswith(stem) or not lowered.endswith(suffix.lower()):
+                continue
+            if any(lowered.endswith(other) for other in reserved):
+                continue
+
+            middle = name[len(stem) : -len(suffix)]
+            if middle == "":
+                source_id = "threshold"
+                label = "Threshold"
+            elif middle.startswith("."):
+                source_id = middle[1:]
+                label = source_id.replace("_", " ").title()
+            else:
+                # Belongs to a different log whose stem merely shares a prefix.
+                continue
+
+            sources.append(
+                {
+                    "id": source_id,
+                    "label": label,
+                    "file": os.path.join(self.case_dir, name),
+                }
+            )
+
+        return sorted(sources, key=lambda s: (s["id"] != "threshold", s["id"]))
+
+    def threshold_path(
+        self, stem: str, source_id: Optional[str] = None
+    ) -> Optional[str]:
+        """
+        Path to one of a log's threshold sidecars.
+
+        Args:
+            stem: Log stem.
+            source_id: Source identifier from :meth:`threshold_sources`. Defaults
+                to the log's first source.
+
+        Returns:
+            Absolute path, or None when the dataset declares no threshold maps
+            or names a source this log does not have.
         """
         if not self.threshold:
             return None
-        return self._sidecar_path(stem, self.threshold_suffix)
+
+        sources = self.threshold_sources(stem)
+        if not sources:
+            return None
+        if source_id is None:
+            return sources[0]["file"]
+
+        match = next((s for s in sources if s["id"] == source_id), None)
+        return match["file"] if match else None
 
     def has_threshold(self, stem: str) -> bool:
         """
@@ -492,10 +587,9 @@ class Manifest:
             stem: Log stem.
 
         Returns:
-            True when the sidecar is declared and present.
+            True when at least one sidecar is declared and present.
         """
-        path = self.threshold_path(stem)
-        return bool(path and os.path.exists(path))
+        return bool(self.threshold_sources(stem))
 
     def threshold_plots(self) -> List[Dict[str, Any]]:
         """
@@ -520,6 +614,9 @@ class Manifest:
 
         A trace's ``name`` fills the ``{name}`` placeholder in the plot's
         dataset pattern; an explicit ``dataset`` overrides that entirely.
+
+        Under the ``xy`` dataset layout each series carries its own x column, so
+        ``x`` needs only a ``label`` -- an ``x.dataset`` there is ignored.
 
         Returns:
             List of plot definitions with defaults filled in. Empty when the

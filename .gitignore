@@ -45,3 +45,4 @@ data/*
 !data/Example/
 /temp
 config.json
+.claude/launch.json

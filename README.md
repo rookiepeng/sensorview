@@ -76,6 +76,13 @@ The reasoning behind the split:
 Because the display-only views never depend on filter state, dragging a filter
 slider re-renders radar alone — it never re-reads lidar, threshold series, or video.
 
+Radar columns are flattened to scalars on the way in. Exporters commonly write a
+column as a length-1 list — a sensor id as `["sensor_1"]` rather than
+`"sensor_1"` — which nothing downstream can filter or plot, so list columns are
+collapsed at load time. Columns the manifest declares but a given log never
+exported are dropped from the filter and axis pickers rather than offered and
+then failing.
+
 ### Dataset Layout
 
 A case folder holds any number of logs side by side. A log's files are
@@ -87,6 +94,7 @@ data/MyCase/
 ├── drive_01.parquet         # filterable radar point cloud
 ├── drive_01.lidar.h5        # decimated lidar backdrop
 ├── drive_01.threshold.h5    # 1D threshold series
+├── drive_01.sensor_2.h5     # a second, named threshold source
 ├── drive_01.mp4             # camera
 ├── drive_01.rear.mp4        # a second, named camera stream
 ├── drive_02.parquet         # the next log, same conventions
@@ -144,6 +152,26 @@ A trace's `name` fills the `{name}` placeholder in the plot's dataset pattern;
 an explicit `"dataset"` overrides that. Optional per-plot keys: `y_range` (pins
 the axis instead of estimating it), `x.range`, and `log_y`. Any number of plots
 can be declared — the panel gets a selector when there is more than one.
+
+**Several sources per log.** Threshold sidecars are discovered the same way
+camera streams are: `<stem><suffix>` is the default source and
+`<stem>.<id><suffix>` adds a named one. A log whose maps are exported one file
+per sensor therefore declares a generic `"suffix": ".h5"` and drops
+`drive_01.sensor_1.h5` … `drive_01.sensor_5.h5` in the folder — no manifest edit
+per sensor. The panel gets a **Sensor** selector, and each source keeps its own
+plot list and its own y-range estimate, because one sensor's levels say nothing
+about another's.
+
+**Datasets that carry their own x.** `"dataset_layout": "xy"` says each dataset
+is an (N, 2) pair — column 0 the x axis, column 1 the value — instead of y
+values against a shared `x.dataset` vector. That is what a per-sensor export
+looks like in practice: range bins differ from one sensor to the next, and can
+differ frame to frame as the look type alternates, so no single shared axis
+would fit. Under this layout `x` needs only a `label`. Both orientations of the
+pair are accepted, so a 2xN array written by MATLAB reads back correctly.
+
+Non-finite values (`-inf` for bins a threshold does not apply to) are drawn as
+gaps in the line rather than being clamped or dropped.
 
 The y axis is held constant across frames rather than autoscaling, so where the
 signal sits relative to its threshold stays readable while scrubbing. Ingest
