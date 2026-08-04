@@ -85,7 +85,10 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         }
 
     @app.callback(
-        output={"panel_style": Output("subview-panel", "style")},
+        output={
+            "panel_style": Output("subview-panel", "style"),
+            "splitter_style": Output("inspector-splitter", "style"),
+        },
         inputs={"unused_file_loaded": Input("file-loaded-trigger", "data")},
         state={"session_id": State("session-id", "data")},
     )
@@ -95,23 +98,27 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         """
         Show the floating panel only when the log has something to put in it.
 
+        The panel's resize handle goes with it -- a splitter on the edge of a
+        panel that is not there would drag nothing.
+
         Args:
             unused_file_loaded (int): File load trigger count
             session_id (str): Session identifier
 
         Returns:
-            dict: Panel visibility style
+            dict: Panel and splitter visibility styles
         """
         manifest = get_manifest(session_id)
         stem = get_log_info(session_id).get("stem", "")
         if manifest is None or not stem:
-            return {"panel_style": HIDDEN}
+            return {"panel_style": HIDDEN, "splitter_style": HIDDEN}
 
         has_content = manifest.has_camera(stem) or bool(
             manifest.has_threshold(stem) and manifest.threshold_plots()
         )
         # Clearing `display` lets the stylesheet's flex layout take over again.
-        return {"panel_style": {} if has_content else HIDDEN}
+        style = {} if has_content else HIDDEN
+        return {"panel_style": style, "splitter_style": style}
 
     @app.callback(
         output={

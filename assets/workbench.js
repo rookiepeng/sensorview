@@ -1,9 +1,9 @@
 /*
- * Workbench chrome: panel collapse, dock resize, and Plotly re-fitting.
+ * Workbench chrome: panel collapse, region resize, and Plotly re-fitting.
  *
- * All of it is clientside. Collapsing a panel or dragging the dock splitter
- * fires continuously and changes nothing the server knows about, so a Dash
- * round trip per event would only add latency to a purely visual change.
+ * All of it is clientside. Collapsing a panel or dragging a splitter fires
+ * continuously and changes nothing the server knows about, so a Dash round
+ * trip per event would only add latency to a purely visual change.
  *
  * Plotly sizes itself once and then only listens to `window.resize`, so every
  * layout change here ends with a synthetic resize -- otherwise a graph keeps
@@ -16,9 +16,28 @@
 (function () {
   "use strict";
 
-  var DOCK_MIN = 140;
   var DOCK_MAX_MARGIN = 220; /* pixels of stage that must survive a drag */
+  var CANVAS_MIN = 320; /* likewise, but horizontally */
   var THEME_KEY = "sensorview-theme";
+
+  /* Every draggable edge, keyed by the handle's id. `grow` is the sign the
+     pointer delta carries: the dock and the inspector are anchored to the far
+     edge, so moving toward the origin makes them bigger. */
+  var SPLITTERS = {
+    "dock-splitter": { axis: "y", panel: "analysis-dock", grow: -1, min: 140 },
+    "rail-splitter": {
+      axis: "x",
+      panel: "filter-sidebar-col",
+      grow: 1,
+      min: 200,
+    },
+    "inspector-splitter": {
+      axis: "x",
+      panel: "subview-panel",
+      grow: -1,
+      min: 200,
+    },
+  };
 
   /* ── Plotly re-fit ──────────────────────────────────────────────────── */
 
@@ -61,42 +80,78 @@
     refitDuring(260);
   }
 
-  /* ── Dock splitter ──────────────────────────────────────────────────── */
+  /* ── Splitters ──────────────────────────────────────────────────────── */
 
   var dragState = null;
 
-  function onSplitterDown(event) {
-    var dock = document.getElementById("analysis-dock");
-    if (!dock || dock.classList.contains("sv-collapsed")) return;
+  /* The ceiling is whatever the 3D view can give up and still be usable, which
+     is only knowable at grab time: the canvas is the flexible region, so its
+     current slack is exactly how much further this edge can travel. */
+  function maxSize(spec, startSize) {
+    if (spec.axis === "y") {
+      return window.innerHeight - DOCK_MAX_MARGIN;
+    }
+    var canvas = document.querySelector(".sv-canvas");
+    if (!canvas) return startSize;
+    return startSize + (canvas.getBoundingClientRect().width - CANVAS_MIN);
+  }
+
+  function onSplitterDown(event, spec) {
+    var panel = document.getElementById(spec.panel);
+    if (!panel || panel.classList.contains("sv-collapsed")) return;
+
+    var rect = panel.getBoundingClientRect();
+    var startSize = spec.axis === "y" ? rect.height : rect.width;
 
     dragState = {
-      dock: dock,
-      startY: event.clientY,
-      startHeight: dock.getBoundingClientRect().height,
+      spec: spec,
+      panel: panel,
+      start: spec.axis === "y" ? event.clientY : event.clientX,
+      startSize: startSize,
+      max: Math.max(spec.min, maxSize(spec, startSize)),
     };
-    document.body.classList.add("sv-resizing");
+    document.body.classList.add(
+      "sv-resizing",
+      spec.axis === "y" ? "sv-resizing-row" : "sv-resizing-col"
+    );
     event.preventDefault();
   }
 
   function onPointerMove(event) {
     if (!dragState) return;
 
-    /* Dragging up grows the dock, so the delta is inverted. Clamped so the
-       dock can never swallow the 3D stage or shrink past its own tab bar. */
-    var max = window.innerHeight - DOCK_MAX_MARGIN;
-    var next = dragState.startHeight + (dragState.startY - event.clientY);
-    next = Math.min(Math.max(next, DOCK_MIN), Math.max(DOCK_MIN, max));
+    var spec = dragState.spec;
+    var pos = spec.axis === "y" ? event.clientY : event.clientX;
+    var next = dragState.startSize + (pos - dragState.start) * spec.grow;
+    next = Math.min(Math.max(next, spec.min), dragState.max);
 
-    dragState.dock.style.flexBasis = next + "px";
-    dragState.dock.style.height = next + "px";
+    /* Both properties, because these regions are flex items sized by basis but
+       still read by anything that measures `width`/`height`. */
+    dragState.panel.style.flexBasis = next + "px";
+    dragState.panel.style[spec.axis === "y" ? "height" : "width"] = next + "px";
     refitPlots();
   }
 
   function onPointerUp() {
     if (!dragState) return;
     dragState = null;
-    document.body.classList.remove("sv-resizing");
+    document.body.classList.remove(
+      "sv-resizing",
+      "sv-resizing-row",
+      "sv-resizing-col"
+    );
     refitPlots();
+  }
+
+  /* Double-click restores the stylesheet's size: dropping the inline override
+     is the only way back to a width that tracks the design tokens. */
+  function onSplitterDouble(spec) {
+    var panel = document.getElementById(spec.panel);
+    if (!panel) return;
+    panel.style.flexBasis = "";
+    panel.style.width = "";
+    panel.style.height = "";
+    refitDuring(260);
   }
 
   /* ── Theme ──────────────────────────────────────────────────────────── */
@@ -166,8 +221,15 @@
     });
 
     document.addEventListener("pointerdown", function (event) {
-      if (event.target.closest("#dock-splitter")) {
-        onSplitterDown(event);
+      var handle = event.target.closest(".sv-splitter");
+      if (handle && SPLITTERS[handle.id]) {
+        onSplitterDown(event, SPLITTERS[handle.id]);
+      }
+    });
+    document.addEventListener("dblclick", function (event) {
+      var handle = event.target.closest(".sv-splitter");
+      if (handle && SPLITTERS[handle.id]) {
+        onSplitterDouble(SPLITTERS[handle.id]);
       }
     });
     document.addEventListener("pointermove", onPointerMove);

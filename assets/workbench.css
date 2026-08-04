@@ -338,6 +338,57 @@ body {
     min-width: 0;
 }
 
+/* ── Splitters ───────────────────────────────────────────────────────────
+   One handle for both axes: a 5px band between two regions, with a centered
+   grip so it reads as draggable before the pointer reaches it. The drag
+   itself is clientside (workbench.js), which writes an inline size onto the
+   region -- hence the !important on every collapsed rule, since a collapse
+   has to beat whatever the last drag left behind. */
+.sv-splitter {
+    flex: 0 0 5px;
+    position: relative;
+    background: var(--sv-border);
+    z-index: 5;
+}
+
+.sv-splitter::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 2px;
+    background: var(--sv-border-strong);
+}
+
+.sv-splitter:hover {
+    background: var(--sv-accent);
+}
+
+.sv-splitter-row {
+    cursor: row-resize;
+}
+
+.sv-splitter-row::after {
+    width: 44px;
+    height: 3px;
+}
+
+.sv-splitter-col {
+    cursor: col-resize;
+}
+
+.sv-splitter-col::after {
+    width: 3px;
+    height: 44px;
+}
+
+/* Same reasoning as the dock: a collapsed panel has no width to give. */
+.sv-rail.sv-collapsed + .sv-splitter,
+.sv-splitter:has(+ .sv-inspector.sv-collapsed) {
+    visibility: hidden;
+}
+
 /* ── Left rail: filters ───────────────────────────────────────────────────
    Collapses to a 44px strip rather than to nothing, so the way back is always
    on screen. */
@@ -353,8 +404,8 @@ body {
 }
 
 .sv-rail.sv-collapsed {
-    flex-basis: var(--sv-rail-collapsed-w);
-    width: var(--sv-rail-collapsed-w);
+    flex-basis: var(--sv-rail-collapsed-w) !important;
+    width: var(--sv-rail-collapsed-w) !important;
 }
 
 .sv-rail.sv-collapsed .sv-rail-body,
@@ -571,8 +622,8 @@ body {
 }
 
 .sv-inspector.sv-collapsed {
-    flex-basis: var(--sv-rail-collapsed-w);
-    width: var(--sv-rail-collapsed-w);
+    flex-basis: var(--sv-rail-collapsed-w) !important;
+    width: var(--sv-rail-collapsed-w) !important;
 }
 
 .sv-inspector.sv-collapsed .sv-inspector-body,
@@ -626,29 +677,6 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 0;
-}
-
-.sv-splitter {
-    flex: 0 0 5px;
-    cursor: row-resize;
-    background: var(--sv-border);
-    position: relative;
-}
-
-.sv-splitter::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 1px;
-    transform: translateX(-50%);
-    width: 44px;
-    height: 3px;
-    border-radius: 2px;
-    background: var(--sv-border-strong);
-}
-
-.sv-splitter:hover {
-    background: var(--sv-accent);
 }
 
 /* A collapsed dock cannot be resized, so its handle would be a lie. */
@@ -1011,11 +1039,28 @@ body {
     scrollbar-color: var(--sv-border-strong) transparent;
 }
 
-/* Suppress hover/selection noise while a splitter is being dragged. */
+/* Suppress hover/selection noise while a splitter is being dragged, and keep
+   the drag cursor even when the pointer outruns the handle. The collapse
+   animation on the side panels would lag every frame of a drag, so it is off
+   for the duration. */
 .sv-resizing,
 .sv-resizing * {
     user-select: none !important;
+}
+
+.sv-resizing-row,
+.sv-resizing-row * {
     cursor: row-resize !important;
+}
+
+.sv-resizing-col,
+.sv-resizing-col * {
+    cursor: col-resize !important;
+}
+
+.sv-resizing .sv-rail,
+.sv-resizing .sv-inspector {
+    transition: none;
 }
 
 /* Dash's own loading spinner overlay should not paint a white box on dark. */

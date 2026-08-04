@@ -140,7 +140,7 @@ def get_analysis_dock_layout():
 
     return html.Div(
         [
-            html.Div(id="dock-splitter", className="sv-splitter"),
+            html.Div(id="dock-splitter", className="sv-splitter sv-splitter-row"),
             html.Section(
                 [
                     _hidden_switches(),

@@ -4,7 +4,8 @@ The application shell.
 
 Everything is sized against the viewport rather than flowing down the page: the
 top bar and transport are fixed height, the rail, inspector, and dock have
-sizes the user controls, and the 3D canvas takes whatever is left. Nothing
+sizes the user controls -- each has a splitter on its inner edge, dragged
+clientside -- and the 3D canvas takes whatever is left. Nothing
 scrolls except panel interiors, so no view is ever more than a click from
 visible -- which is the point, since all of them describe the same instant.
 
@@ -122,9 +123,24 @@ def get_app_layout():
                         [
                             get_filter_rail_layout(),
                             html.Div(
+                                id="rail-splitter",
+                                className="sv-splitter sv-splitter-col",
+                            ),
+                            html.Div(
                                 [
                                     html.Div(
-                                        [get_canvas_layout(), get_inspector_layout()],
+                                        [
+                                            get_canvas_layout(),
+                                            # Hidden with the inspector until a
+                                            # log arrives that has something to
+                                            # show in it (camera_view.py).
+                                            html.Div(
+                                                id="inspector-splitter",
+                                                className="sv-splitter sv-splitter-col",
+                                                style={"display": "none"},
+                                            ),
+                                            get_inspector_layout(),
+                                        ],
                                         className="sv-stage",
                                     ),
                                     get_transport_layout(),
