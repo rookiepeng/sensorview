@@ -24,13 +24,17 @@ Copyright (C) 2019 - PRESENT
 
 from typing import Any, Dict, List, Optional
 
+import hashlib
+import os
+
 import numpy as np
 
-from app_config import CACHE_KEYS
+from app_config import CACHE_KEYS, VIDEO_CACHE_PATH
 
 from dataio.calibration import apply_transform
 from dataio.dense_store import LidarStore, ThresholdStore
 from dataio.manifest import Manifest
+from dataio.video import VideoEncodeError, is_browser_playable, transcode_to_mp4
 
 from utils import cache_get, cache_set
 
@@ -188,6 +192,53 @@ def get_lidar_trace(
         return None
 
     return get_lidar_scatter3d_data(points, manifest.lidar_display())
+
+
+def playable_camera_file(source: str) -> Optional[str]:
+    """
+    Resolve a camera stream to a file the browser can actually play.
+
+    A recorder's own container is served untouched when browsers understand it.
+    Anything else is transcoded once into the video cache and served from there
+    -- the case folder is treated as read-only input, so nothing is written back
+    beside the user's data.
+
+    The cache key includes the source's size and mtime, so replacing a log's
+    recording invalidates its transcode without anyone having to clear a cache.
+
+    Args:
+        source: Path to the stream file as discovered in the case folder.
+
+    Returns:
+        Path to a playable file, or None when the source is missing or cannot be
+        transcoded.
+    """
+    if not source or not os.path.exists(source):
+        return None
+
+    if is_browser_playable(source):
+        return source
+
+    try:
+        stat = os.stat(source)
+    except OSError:
+        return None
+
+    fingerprint = hashlib.sha1(
+        f"{os.path.abspath(source)}|{stat.st_size}|{int(stat.st_mtime)}".encode()
+    ).hexdigest()[:16]
+    cached = os.path.join(
+        VIDEO_CACHE_PATH,
+        f"{os.path.splitext(os.path.basename(source))[0]}.{fingerprint}.mp4",
+    )
+
+    if os.path.exists(cached) and os.path.getsize(cached) > 0:
+        return cached
+
+    try:
+        return transcode_to_mp4(source, cached)
+    except (VideoEncodeError, FileNotFoundError, OSError):
+        return None
 
 
 def get_threshold_sources(

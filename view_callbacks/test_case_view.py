@@ -193,13 +193,20 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         return new_dropdown, new_slider, cat_values, num_values
 
     def _setup_data_cache(
-        data: pd.DataFrame, config: dict, session_id: str, stem: str
+        data: pd.DataFrame,
+        config: dict,
+        session_id: str,
+        stem: str,
+        time_scale: float = 1.0,
     ) -> np.ndarray:
         """Setup data caching for frames and visibility."""
         # The frame index is derived from the data itself, never declared in the
         # manifest, so it can never drift out of sync with the log. The capture
         # rate falls out of the same timestamps the ingest encoded video at.
-        frame_list, timestamps, fps = build_frame_index(data, config["slider"])
+        # Only the *unit* of those timestamps comes from the manifest.
+        frame_list, timestamps, fps = build_frame_index(
+            data, config["slider"], time_scale=time_scale
+        )
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
         cache_log_info(session_id, stem, timestamps, fps)
 
@@ -353,7 +360,9 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         # Sidecars are keyed on the primary log's basename. With several logs
         # overlaid, the primary one owns the backdrop, maps, and video.
         stem = manifest.stem_of(json.loads(file)["name"])
-        frame_list = _setup_data_cache(new_data, config, session_id, stem)
+        frame_list = _setup_data_cache(
+            new_data, config, session_id, stem, manifest.time_scale
+        )
 
         # Create filter components
         new_dropdown, new_slider, cat_values, num_values = _create_filter_components(

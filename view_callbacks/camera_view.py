@@ -4,11 +4,15 @@ Drives the mp4 camera panel. The frame slider stays the single source of truth
 for time: the video element never plays on its own, it is seeked to the frame
 the rest of the app is showing.
 
-Seeking is index-based (``(frame_index + 0.5) / fps``) rather than keyed off
-dataset timestamps. Video frame *i* is slider index *i* by construction at
-ingest, and an index mapping stays correct even when capture timing is not
-perfectly uniform. The half-frame offset lands mid-frame so float rounding
-cannot spill onto a neighbour.
+Seeking is keyed off the log's own per-frame timestamps. For a stream this
+project encoded, frame *i* is slider index *i* and the timestamp is *i / fps*,
+so this agrees with the index mapping it replaces. For a recording that arrived
+alongside the data it is the only thing that works: a 10 fps dashcam against a
+20 Hz radar log shares wall-clock time with it and nothing else. The index
+mapping remains the fallback for logs with no usable time column.
+
+Half a frame is added so the seek lands mid-frame, where float rounding cannot
+spill onto a neighbour.
 
 Usage:
     from view_callbacks.camera_view import get_camera_view_callbacks
@@ -152,14 +156,17 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         if not any(s["id"] == stream_id for s in streams):
             return {"src": None, "config": None}
 
-        # The rate comes from the log's own timestamps, computed by the same
-        # code the ingest used to encode the video -- so the seek maths and the
-        # encode can't disagree.
+        # Timestamps and rate both come from the log's own Parquet, computed by
+        # the same code the ingest used to encode the video -- so the seek maths
+        # and the encode can't disagree. `offset` shifts the clip against the
+        # data for a recording that did not start rolling at radar frame 0.
         return {
             "src": f"/api/camera/{session_id}/{stream_id}",
             "config": {
                 "src": f"/api/camera/{session_id}/{stream_id}",
                 "fps": log_info.get("fps") or 10.0,
+                "timestamps": log_info.get("timestamps") or [],
+                "offset": float((manifest.camera or {}).get("time_offset", 0.0)),
             },
         }
 
@@ -178,9 +185,16 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
             }
 
             const fps = config.fps > 0 ? config.fps : 10;
+            const stamps = config.timestamps || [];
+            // Wall clock is the only thing a recording and the data reliably
+            // share; index/fps is the fallback for logs with no time column,
+            // where it is exactly what the timestamps would have been anyway.
+            const base = (frame_index >= 0 && frame_index < stamps.length)
+                ? stamps[frame_index]
+                : frame_index / fps;
             // Aim at the middle of the target frame: landing exactly on a
             // boundary can round onto the neighbouring frame.
-            const target = (frame_index + 0.5) / fps;
+            const target = Math.max(0, base + 0.5 / fps + (config.offset || 0));
 
             const seek = function() {
                 try {

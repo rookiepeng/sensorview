@@ -39,6 +39,9 @@ APP_VERSION = "v3.8"
 DATA_PATH = "./data"
 FRAME_CACHE_PATH = "./cache/frame"
 DASH_CACHE_PATH = "./cache/dash"
+# Transcoded copies of camera recordings a browser cannot play natively. Kept
+# out of the case folder so the dataset directory stays read-only input.
+VIDEO_CACHE_PATH = "./cache/video"
 THEME = "dbc"
 
 EXPIRATION = 172800  # 2 days in seconds
