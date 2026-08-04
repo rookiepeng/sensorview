@@ -202,7 +202,7 @@ def _plottable(values: np.ndarray) -> Any:
 
 def get_threshold_plot(
     series: Optional[Dict[str, np.ndarray]] = None,
-    x_values: Optional[np.ndarray] = None,
+    x_series: Optional[Dict[str, np.ndarray]] = None,
     traces: Optional[List[Dict[str, Any]]] = None,
     x_label: str = "",
     y_label: str = "",
@@ -210,7 +210,6 @@ def get_threshold_plot(
     x_range: Optional[List[float]] = None,
     y_range: Optional[List[float]] = None,
     log_y: bool = False,
-    x_series: Optional[Dict[str, np.ndarray]] = None,
 ) -> Dict[str, Any]:
     """
     Render one 1D threshold plot: a signal and the thresholds applied to it.
@@ -221,8 +220,9 @@ def get_threshold_plot(
 
     Args:
         series: Mapping of trace name to its 1D values for this frame.
-        x_values: Shared x-axis values. Falls back to sample index when absent
-            or mismatched in length.
+        x_series: Per-trace x vectors -- every curve carries its own axis, since
+            range bins differ between sensors and between frames. Falls back to
+            sample index when absent or mismatched in length.
         traces: Normalized trace definitions (``name``, ``label``, ``color``,
             ``dash``, ``width``, ``mode``) in draw order.
         x_label: X-axis title.
@@ -232,8 +232,6 @@ def get_threshold_plot(
         y_range: Optional [min, max] y clamp. Pinning this keeps levels
             comparable while scrubbing.
         log_y: Whether to use a logarithmic y-axis.
-        x_series: Per-trace x vectors, for stores where each series carries its
-            own x column. Takes precedence over ``x_values``.
 
     Returns:
         Dictionary containing figure data and layout.
@@ -280,8 +278,6 @@ def get_threshold_plot(
         own_axis = (x_series or {}).get(trace["name"])
         if own_axis is not None and len(own_axis) == len(values):
             axis = np.asarray(own_axis)
-        elif x_values is not None and len(x_values) == len(values):
-            axis = np.asarray(x_values)
         else:
             # An x-axis that does not line up is worse than none: fall back to
             # sample index so the curve still reads correctly.

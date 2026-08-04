@@ -31,11 +31,6 @@ _COMPRESSION_OPTS = 4
 DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
 DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
 
-# How one stored dataset maps to a curve. ``series`` is y values alone, with a
-# shared x vector stored separately; ``xy`` is an (N, 2) pair carrying its own x.
-LAYOUT_SERIES = "series"
-LAYOUT_XY = "xy"
-
 
 def _format_dataset(pattern: str, **kwargs: Any) -> str:
     """
@@ -67,8 +62,9 @@ def _split_xy(values: np.ndarray) -> Tuple[Optional[np.ndarray], np.ndarray]:
         values: Raw dataset contents.
 
     Returns:
-        Tuple of (x, y). x is None when the array is not a coordinate pair, in
-        which case the whole thing is treated as y.
+        Tuple of (x, y). x is None for a dataset that is not a coordinate pair,
+        which is not a layout this reads but is worth plotting against the
+        sample index rather than failing on.
     """
     if values.ndim == 2:
         if values.shape[1] == 2:
@@ -167,28 +163,24 @@ class ThresholdStore:
     signal it is applied to, a noise floor, and so on. Which series are drawn
     together, and how, is declared in ``info.json`` rather than inferred here.
 
-    Nothing about the file's internal shape is assumed. The dataset pattern says
-    where a frame's series live (``/frames/{frame_id}/{name}`` for a sidecar
-    this package wrote, ``/frame_{frame_id}/{name}`` for a MATLAB struct array),
-    and the layout says whether a dataset is y values alone or an (N, 2) pair
-    carrying its own x column.
+    Every dataset is an (N, 2) pair carrying its own x column. A shared x vector
+    would be smaller, but it cannot describe real data: range bins differ from
+    one sensor to the next, and differ frame to frame as the look type
+    alternates, so the axis belongs with the curve it measures.
+
+    Where a frame's series live is not assumed either -- the dataset pattern
+    says, which covers ``/frames/{frame_id}/{name}`` for a sidecar this package
+    wrote and ``/frame_{frame_id}/{name}`` for a MATLAB struct array alike.
     """
 
-    def __init__(
-        self,
-        path: str,
-        layout: str = LAYOUT_SERIES,
-        sensor_id: Optional[str] = None,
-    ) -> None:
+    def __init__(self, path: str, sensor_id: Optional[str] = None) -> None:
         """
         Args:
             path: Path to the threshold HDF5 file.
-            layout: ``series`` or ``xy``; see :func:`_split_xy`.
             sensor_id: Value for a ``{sensor_id}`` placeholder, for files that
                 key their series by sensor internally rather than one file each.
         """
         self.path = path
-        self.layout = layout
         self.sensor_id = sensor_id
 
     @property
@@ -204,9 +196,7 @@ class ThresholdStore:
 
         Args:
             dataset_pattern: Dataset path, optionally containing ``{frame_id}``
-                and ``{sensor_id}`` placeholders. A pattern without ``{frame_id}``
-                reads a frame-independent dataset, which is how shared x-axes
-                are stored.
+                and ``{sensor_id}`` placeholders.
             frame_id: Frame identifier substituted into the pattern.
 
         Returns:
@@ -238,18 +228,14 @@ class ThresholdStore:
             frame_id: Frame identifier substituted into the pattern.
 
         Returns:
-            Tuple of (x, y). Under the ``series`` layout, and for any dataset
-            that is not a coordinate pair, x is None and the caller supplies the
-            axis. Both are None when the dataset is absent.
+            Tuple of (x, y); see :func:`_split_xy`. Both are None when the
+            dataset is absent.
         """
         values = self._read_raw(dataset_pattern, frame_id)
         if values is None:
             return None, None
 
-        if self.layout == LAYOUT_XY:
-            return _split_xy(values)
-
-        return None, values.reshape(-1)
+        return _split_xy(values)
 
     def read_series(
         self, dataset_pattern: str, frame_id: Any = None
@@ -265,19 +251,6 @@ class ThresholdStore:
             1D array of values, or None when absent.
         """
         return self.read_curve(dataset_pattern, frame_id)[1]
-
-    def read_axis(self, dataset_path: str) -> Optional[np.ndarray]:
-        """
-        Read a stored axis vector (e.g. range bins, Doppler bins).
-
-        Args:
-            dataset_path: Dataset path inside the file.
-
-        Returns:
-            1D array of axis values, or None when absent.
-        """
-        values = self._read_raw(dataset_path)
-        return None if values is None else values.reshape(-1)
 
     def frame_groups(
         self, dataset_pattern: str = DEFAULT_THRESHOLD_PATTERN
@@ -401,17 +374,16 @@ def write_lidar_frames(
 def write_threshold_frames(
     path: str,
     frames: Dict[Any, Dict[str, np.ndarray]],
-    axes: Optional[Dict[str, np.ndarray]] = None,
 ) -> str:
     """
-    Write per-frame 1D threshold series to an HDF5 sidecar.
+    Write per-frame threshold curves to an HDF5 sidecar.
 
     Args:
         path: Destination ``.h5`` path; parent directories are created.
-        frames: Mapping of frame id to ``{series_name: 1D array}``.
-        axes: Optional mapping of axis name to a 1D vector of bin values,
-            stored under ``/axes/<name>``. Axes live outside the frame groups
-            because they are usually shared by every frame.
+        frames: Mapping of frame id to ``{series_name: (N, 2) array}``, each
+            curve carrying its own x column. A 1D array is accepted and paired
+            with its sample index, so a caller with no meaningful axis need not
+            invent one.
 
     Returns:
         The path written.
@@ -419,20 +391,17 @@ def write_threshold_frames(
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 
     with h5py.File(path, "w") as handle:
-        if axes:
-            axis_group = handle.create_group("axes")
-            for name, values in axes.items():
-                axis_group.create_dataset(
-                    str(name), data=np.asarray(values, dtype=np.float32)
-                )
-
         group = handle.create_group("frames")
-        for frame_id, sensors in frames.items():
+        for frame_id, series in frames.items():
             frame_group = group.create_group(str(frame_id))
-            for sensor_id, values in sensors.items():
+            for name, values in series.items():
                 values = np.asarray(values, dtype=np.float32)
+                if values.ndim == 1:
+                    values = np.column_stack(
+                        [np.arange(values.size, dtype=np.float32), values]
+                    )
                 frame_group.create_dataset(
-                    str(sensor_id),
+                    str(name),
                     data=values,
                     chunks=values.shape if values.size else None,
                     compression=_COMPRESSION if values.size else None,

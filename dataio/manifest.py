@@ -91,7 +91,6 @@ DEFAULT_CAMERA_SUFFIX = DEFAULT_CAMERA_SUFFIXES[0]
 
 DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
 DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
-DEFAULT_THRESHOLD_LAYOUT = "series"
 
 # Fallback trace colors, used in order for traces that declare none.
 DEFAULT_TRACE_COLORS = (
@@ -295,11 +294,6 @@ class Manifest:
     # ------------------------------------------------------------------
 
     @property
-    def version(self) -> int:
-        """Manifest schema version."""
-        return int(self.raw.get("manifest_version", MANIFEST_VERSION))
-
-    @property
     def name(self) -> str:
         """Human-readable dataset name; defaults to the case directory name."""
         return self.raw.get("name") or os.path.basename(os.path.normpath(self.case_dir))
@@ -328,25 +322,6 @@ class Manifest:
     def reference(self) -> Optional[Dict[str, Any]]:
         """The ``reference`` block as authored, or None when it is absent."""
         return self.raw.get("reference")
-
-    def reference_display(self) -> Dict[str, Any]:
-        """
-        Styling for the reference overlay in the 3D view.
-
-        A dataset whose reference is the host vehicle can draw it to scale::
-
-            "reference": {
-              "shape": "box",
-              "name": "Host Vehicle",
-              "color": "#4c9ffe",
-              "dimensions": [1.9, 4.7, 1.5],
-              "offset": [0.0, 1.35, 0.75]
-            }
-
-        Returns:
-            Normalized display dict; see :func:`normalize_reference_display`.
-        """
-        return normalize_reference_display(self.reference)
 
     @property
     def frame_key(self) -> str:
@@ -398,24 +373,6 @@ class Manifest:
         """
         return log_stem(file_name, self.radar_suffix)
 
-    def logs(self) -> List[str]:
-        """
-        List the log stems present in the case directory.
-
-        Returns:
-            Sorted stems of every radar table found. Empty when the directory is
-            unreadable.
-        """
-        try:
-            entries = os.listdir(self.case_dir)
-        except OSError:
-            return []
-
-        suffix = self.radar_suffix.lower()
-        return sorted(
-            self.stem_of(name) for name in entries if name.lower().endswith(suffix)
-        )
-
     def _sidecar_path(self, stem: str, suffix: str) -> str:
         """
         Build a sidecar path for one log.
@@ -437,22 +394,6 @@ class Manifest:
     def keys(self) -> Dict[str, Dict[str, Any]]:
         """Radar column metadata driving the filter UI and hover text."""
         return self.radar.get("keys", {})
-
-    def radar_path(self, stem: str) -> str:
-        """
-        Path to one log's radar table.
-
-        Args:
-            stem: Log stem.
-
-        Returns:
-            Absolute path to the Parquet file.
-        """
-        return self._sidecar_path(stem, self.radar_suffix)
-
-    def radar_calibration(self) -> Calibration:
-        """Extrinsics for the radar point cloud."""
-        return Calibration.from_dict(self.radar.get("calibration"))
 
     # ------------------------------------------------------------------
     # Lidar
@@ -518,19 +459,6 @@ class Manifest:
     def threshold_suffix(self) -> str:
         """Filename suffix identifying a threshold sidecar."""
         return (self.threshold or {}).get("suffix", DEFAULT_THRESHOLD_SUFFIX)
-
-    @property
-    def threshold_layout(self) -> str:
-        """
-        How one stored dataset maps to a curve.
-
-        ``series`` (the default) means the dataset holds y values alone and the
-        x axis is a separate shared vector. ``xy`` means each dataset is an
-        (N, 2) pair carrying its own x column -- which is what a per-sensor
-        export looks like, since range bins differ from one sensor to the next
-        and no single shared axis would fit them all.
-        """
-        return (self.threshold or {}).get("dataset_layout", DEFAULT_THRESHOLD_LAYOUT)
 
     def threshold_dataset_pattern(self) -> str:
         """HDF5 dataset path pattern for one threshold series."""
@@ -649,7 +577,7 @@ class Manifest:
             {
               "id": "range_profile",
               "label": "Range Profile",
-              "x": {"dataset": "/axes/range", "label": "Range (m)"},
+              "x": {"label": "Range (m)"},
               "y_label": "Magnitude (dB)",
               "y_range": [-120, -20],
               "traces": [
@@ -662,8 +590,8 @@ class Manifest:
         A trace's ``name`` fills the ``{name}`` placeholder in the plot's
         dataset pattern; an explicit ``dataset`` overrides that entirely.
 
-        Under the ``xy`` dataset layout each series carries its own x column, so
-        ``x`` needs only a ``label`` -- an ``x.dataset`` there is ignored.
+        ``x`` carries only a label: every series brings its own x column, so
+        there is no shared axis for the plot to name.
 
         Returns:
             List of plot definitions with defaults filled in. Empty when the
@@ -711,7 +639,6 @@ class Manifest:
                 {
                     "id": plot_id,
                     "label": plot.get("label", plot_id),
-                    "x_dataset": x_axis.get("dataset", ""),
                     "x_label": x_axis.get("label", ""),
                     "x_range": x_axis.get("range"),
                     "y_label": plot.get("y_label", ""),
@@ -738,11 +665,6 @@ class Manifest:
     # ------------------------------------------------------------------
     # Camera
     # ------------------------------------------------------------------
-
-    @property
-    def camera_suffix(self) -> str:
-        """Primary filename suffix identifying a camera stream."""
-        return self.camera_suffixes[0]
 
     @property
     def camera_suffixes(self) -> List[str]:
@@ -920,19 +842,3 @@ def upgrade_to_v2(raw: Dict[str, Any]) -> Dict[str, Any]:
         upgraded["reference"] = raw["reference"]
 
     return upgraded
-
-
-def load_manifest(case_dir: str) -> Manifest:
-    """
-    Load a dataset manifest from a case directory.
-
-    Args:
-        case_dir: Directory containing ``info.json``.
-
-    Returns:
-        Manifest instance.
-
-    Raises:
-        ManifestError: If the manifest is missing or malformed.
-    """
-    return Manifest.load(case_dir)

@@ -245,41 +245,6 @@ def load_radar(
     return _normalize_non_finite(data)
 
 
-def radar_frame_ids(
-    file_list: Optional[Iterable[FileSpec]],
-    frame_key: str,
-    file: Optional[FileSpec] = None,
-) -> np.ndarray:
-    """
-    Read just the sorted unique frame ids, without loading the full table.
-
-    Args:
-        file_list: Selected files.
-        frame_key: Frame column name.
-        file: Primary selected file, merged into ``file_list``.
-
-    Returns:
-        Sorted array of unique frame ids.
-    """
-    paths = resolve_paths(file_list, file)
-    if not paths:
-        return np.asarray([])
-
-    if all(p.lower().endswith(".parquet") for p in paths):
-        ids = (
-            scan_radar(paths)
-            .select(pl.col(frame_key).unique())
-            .collect()
-            .to_series()
-            .to_numpy()
-        )
-    else:
-        data = load_radar(file_list, file, columns=[frame_key])
-        ids = data[frame_key].unique()
-
-    return np.sort(ids)
-
-
 def write_radar(data: pd.DataFrame, path: str, compression: str = "zstd") -> str:
     """
     Write a radar point cloud table to Parquet.
