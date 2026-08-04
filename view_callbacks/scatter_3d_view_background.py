@@ -37,7 +37,7 @@ from utils import load_image
 from utils import prepare_figure_kwargs
 
 from viz.viz import get_animation_data
-from viz.graph_data import get_ref_scatter3d_data
+from viz.graph_data import get_reference_traces
 from viz.graph_data import get_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
@@ -230,15 +230,14 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             hover_strings = result["hover_strings"]
 
             if has_ref:
-                ref_fig = [
-                    get_ref_scatter3d_data(
-                        data_frame=filterd_frame,
-                        x_key=fig_kwargs["x_ref"],
-                        y_key=fig_kwargs["y_ref"],
-                        z_key=fig_kwargs["z_ref"],
-                        name=fig_kwargs.get("ref_name", None),
-                    )
-                ]
+                ref_fig = get_reference_traces(
+                    data_frame=filterd_frame,
+                    x_key=fig_kwargs["x_ref"],
+                    y_key=fig_kwargs["y_ref"],
+                    z_key=fig_kwargs["z_ref"],
+                    name=fig_kwargs.get("ref_name", None),
+                    display=fig_kwargs.get("ref_display"),
+                )
             else:
                 ref_fig = []
 

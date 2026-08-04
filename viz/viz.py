@@ -18,7 +18,7 @@ import pandas as pd
 
 import plotly.io as pio
 
-from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from .graph_data import get_scatter3d_data, get_reference_traces
 from .graph_layout import get_scatter3d_layout
 
 
@@ -65,15 +65,14 @@ def get_scatter3d(
     else:
         if z_ref == "None":
             z_ref = None
-        data = fig_dict["scatter_data"] + [
-            get_ref_scatter3d_data(
-                data_frame=data_frame,
-                x_key=x_ref,
-                y_key=y_ref,
-                z_key=z_ref,
-                name=ref_name,
-            )
-        ]
+        data = fig_dict["scatter_data"] + get_reference_traces(
+            data_frame=data_frame,
+            x_key=x_ref,
+            y_key=y_ref,
+            z_key=z_ref,
+            name=ref_name,
+            display=kwargs.get("ref_display"),
+        )
 
     if fig_dict["hover_strings"]:
         for idx, hover_str in enumerate(fig_dict["hover_strings"]):
@@ -547,16 +546,17 @@ def get_animation_data(
 
         # Add reference data if needed
         if x_ref is not None and y_ref is not None:
-            ref_data = [
-                get_ref_scatter3d_data(
+            fig = (
+                get_reference_traces(
                     data_frame=filtered_df,
                     x_key=x_ref,
                     y_key=y_ref,
                     z_key=z_ref,
-                    name="Host Vehicle",
+                    name=frame_kwargs.get("ref_name", "Host Vehicle"),
+                    display=frame_kwargs.get("ref_display"),
                 )
-            ]
-            fig = ref_data + fig
+                + fig
+            )
 
         return {
             "data": fig,
