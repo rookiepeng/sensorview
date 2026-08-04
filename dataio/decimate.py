@@ -1,7 +1,7 @@
 """Point Cloud Decimation
 
-Lidar frames are commonly 50k-200k+ points, well past what Plotly's WebGL
-scatter3d renders smoothly. Since the lidar backdrop has no runtime controls,
+Cloud frames are commonly 50k-200k+ points, well past what Plotly's WebGL
+scatter3d renders smoothly. Since the cloud backdrop has no runtime controls,
 decimation happens once at ingest time and only the display-ready points are
 stored -- no full-resolution data is kept on the read path.
 
