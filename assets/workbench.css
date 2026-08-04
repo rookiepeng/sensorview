@@ -652,29 +652,51 @@ body {
     flex: 1 1 auto;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 10px 12px 14px;
+    padding: 8px 10px 10px;
     display: flex;
     flex-direction: column;
+    gap: 10px;
     min-height: 0;
 }
 
+/* Sections are sized by their content and never shrink into one another: the
+   video keeps its aspect ratio whatever box it is given, so a shrunk section
+   would not shrink the picture, it would just let it spill over the section
+   below. When the sum no longer fits, the body scrolls instead. */
 .sv-subsection {
     display: flex;
     flex-direction: column;
+    flex: 0 0 auto;
     min-height: 0;
 }
 
 .sv-subsection + .sv-subsection {
-    margin-top: 14px;
-    padding-top: 14px;
+    padding-top: 10px;
     border-top: 1px solid var(--sv-border);
+}
+
+/* A section the log has nothing to fill (no video, no curves) is hidden by
+   its callback, and its divider has to go with it -- an adjacent-sibling rule
+   still matches across a display:none neighbour. */
+#subview-camera-section[style*="none"] + .sv-subsection {
+    padding-top: 0;
+    border-top: 0;
 }
 
 /* The curve section takes whatever height the image section does not use,
    so minimizing the image (or the video simply being shorter) hands the
-   plot more room instead of leaving it empty. */
-#subview-threshold-section {
+   plot more room instead of leaving it empty. Selected by class, not by id:
+   an id here would outrank the collapsed rules below and pin the section
+   open. */
+.sv-subsection--grow {
     flex: 1 1 auto;
+}
+
+.sv-subsection--grow > .sv-subsection-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .sv-subsection-head {
@@ -692,11 +714,24 @@ body {
     min-height: 0;
 }
 
-#subview-threshold-section .sv-subsection-body {
+/* Selectors share a row and wrap only when the dock is genuinely too narrow
+   for two, so they cost one line between them instead of one line each. */
+.sv-subsection-controls {
     display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.sv-subsection-controls > * {
+    flex: 1 1 150px;
+    min-width: 0;
+}
+
+/* With one stream, or one plot, every selector in the row is hidden and the
+   row itself is nothing but its own margin. */
+.sv-subsection-controls:not(:has(> :not([style*="none"]))) {
+    display: none;
 }
 
 /* A minimized subsection keeps just its header; the toggle button's icon
@@ -705,13 +740,16 @@ body {
     flex: 0 0 auto;
 }
 
-.sv-subsection.sv-collapsed .sv-subsection-body {
+.sv-subsection.sv-collapsed > .sv-subsection-body {
     display: none;
 }
 
 .sv-video {
     width: 100%;
     aspect-ratio: 16 / 9;
+    /* However wide the dock is dragged, the picture stops taking height from
+       the curve at some point. */
+    max-height: 30vh;
     object-fit: contain;
     background: #000;
     border: 1px solid var(--sv-border);
@@ -722,7 +760,10 @@ body {
 .sv-threshold-graph {
     width: 100%;
     flex: 1 1 auto;
-    min-height: 280px;
+    /* Enough for the axis, a legend that has wrapped to several rows in a
+       narrow dock, and a readable trace; past that the plot takes whatever
+       the dock has spare. */
+    min-height: 220px;
 }
 
 .sv-threshold-graph > .dash-graph,
