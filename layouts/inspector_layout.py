@@ -38,7 +38,7 @@ def _camera_section():
             dcc.Store(id="camera-config"),
             dcc.Store(id="camera-seek-ack"),
             html.Span(
-                [html.I(className="bi bi-camera-video me-2"), "Camera"],
+                [html.I(className="bi bi-camera-video me-2"), "Image"],
                 className="sv-section-label",
             ),
             html.Div(
@@ -79,7 +79,7 @@ def _threshold_section():
     return html.Div(
         [
             html.Span(
-                [html.I(className="bi bi-graph-up me-2"), "Threshold"],
+                [html.I(className="bi bi-graph-up me-2"), "Curve"],
                 className="sv-section-label",
             ),
             # A log may carry one sidecar per sensor. Their range bins differ,

@@ -26,7 +26,6 @@ from typing import Any, Dict
 
 import dash
 from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
 
 from frame_sources import get_log_info, get_manifest
 
@@ -129,25 +128,34 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
             "src": Output("camera-video", "src"),
             "config": Output("camera-config", "data"),
         },
-        inputs={"stream_id": Input("camera-stream-picker", "value")},
+        inputs={
+            "stream_id": Input("camera-stream-picker", "value"),
+            # A new log can keep the same stream id (an unnamed stream is
+            # always "image"), in which case the picker's value never changes
+            # and this callback would otherwise not refire at all. Depending on
+            # the trigger directly guarantees it runs on every load.
+            "unused_file_loaded": Input("file-loaded-trigger", "data"),
+        },
         state={"session_id": State("session-id", "data")},
     )
-    def select_camera_stream(stream_id: str, session_id: str) -> Dict[str, Any]:
+    def select_camera_stream(
+        stream_id: str, unused_file_loaded: int, session_id: str
+    ) -> Dict[str, Any]:
         """
         Point the video element at the selected stream.
 
         Args:
             stream_id (str): Selected camera stream identifier
+            unused_file_loaded (int): File load trigger count, used only to
+                force a refresh when the stream id is unchanged across logs
             session_id (str): Session identifier
 
         Returns:
-            dict: Video source URL and the descriptor the seek callback reads
-
-        Raises:
-            PreventUpdate: If no stream is selected
+            dict: Video source URL and the descriptor the seek callback reads,
+            or both None when the current log has no matching stream
         """
         if not stream_id:
-            raise PreventUpdate
+            return {"src": None, "config": None}
 
         manifest = get_manifest(session_id)
         log_info = get_log_info(session_id)
@@ -160,10 +168,16 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         # the same code the ingest used to encode the video -- so the seek maths
         # and the encode can't disagree. `offset` shifts the clip against the
         # data for a recording that did not start rolling at radar frame 0.
+        #
+        # The load counter is appended as a cache-busting query string: two
+        # different logs can share the same session id and stream id (both
+        # named "image"), and a browser never reloads a <video src> that comes
+        # out identical to what it already has loaded.
+        src = f"/api/camera/{session_id}/{stream_id}?v={unused_file_loaded}"
         return {
-            "src": f"/api/camera/{session_id}/{stream_id}",
+            "src": src,
             "config": {
-                "src": f"/api/camera/{session_id}/{stream_id}",
+                "src": src,
                 "fps": log_info.get("fps") or 10.0,
                 "timestamps": log_info.get("timestamps") or [],
                 "offset": float((manifest.image or {}).get("time_offset", 0.0)),
