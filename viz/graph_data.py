@@ -31,20 +31,27 @@ _BOX_CORNERS = (
     (+1, -1, +1),
 )
 
-# The 12 triangles closing those 8 corners into a solid.
-_BOX_FACES = (
-    (7, 3, 0),
-    (0, 4, 7),
-    (0, 1, 2),
-    (0, 2, 3),
-    (4, 5, 6),
-    (4, 6, 7),
-    (6, 5, 1),
-    (6, 1, 2),
-    (4, 0, 1),
-    (0, 1, 5),
-    (3, 6, 7),
-    (2, 3, 6),
+# The 6 faces, each as its four corners in cyclic order.
+_BOX_QUADS = (
+    (0, 1, 2, 3),  # z low
+    (4, 5, 6, 7),  # z high
+    (0, 3, 7, 4),  # y low
+    (1, 2, 6, 5),  # y high
+    (0, 1, 5, 4),  # x low
+    (3, 2, 6, 7),  # x high
+)
+
+# Two triangles per face, fanned from its first corner. Derived rather than
+# tabulated: a quad only tiles when its triangles meet along the diagonal, and
+# an index table transposed by one digit still looks plausible -- it fails as a
+# face that overlaps itself on one half and is missing on the other.
+_BOX_FACES = tuple(
+    triangle
+    for corner_a, corner_b, corner_c, corner_d in _BOX_QUADS
+    for triangle in (
+        (corner_a, corner_b, corner_c),
+        (corner_a, corner_c, corner_d),
+    )
 )
 
 # The 12 edges, as corner pairs: bottom face, top face, then the uprights.
