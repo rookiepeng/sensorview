@@ -21,7 +21,7 @@
     --sv-rail-w: 288px;
     --sv-rail-collapsed-w: 44px;
     --sv-inspector-w: 380px;
-    --sv-dock-h: 320px;
+    --sv-dock-h: 50vh;
     --sv-dock-tabs-h: 38px;
     --sv-radius: 6px;
     --sv-gap: 10px;
@@ -43,6 +43,7 @@
     --sv-accent: #4c9ffe;
     --sv-accent-soft: rgba(76, 159, 254, 0.16);
     --sv-warn: #f0a020;
+    --sv-danger: #e5484d;
     --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
 
     /* Bootstrap's own surfaces, so dbc controls inherit the console palette. */
@@ -72,6 +73,7 @@
     --sv-accent: #0b64d0;
     --sv-accent-soft: rgba(11, 100, 208, 0.12);
     --sv-warn: #b46b00;
+    --sv-danger: #c53030;
     --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
 
     --bs-body-bg: var(--sv-bg);
@@ -523,6 +525,13 @@ body {
 .sv-transport-buttons .btn-primary:hover {
     background: var(--sv-accent);
     border-color: var(--sv-accent);
+    color: #fff;
+}
+
+.sv-transport-buttons .btn-danger,
+.sv-transport-buttons .btn-danger:hover {
+    background: var(--sv-danger);
+    border-color: var(--sv-danger);
     color: #fff;
 }
 
