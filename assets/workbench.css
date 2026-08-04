@@ -237,6 +237,7 @@ body {
 
 .sv-topbar-actions .form-check-input {
     margin-top: 0;
+    margin-right: 8px;
 }
 
 /* Icon buttons: quiet until touched. */
