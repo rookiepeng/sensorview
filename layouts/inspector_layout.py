@@ -74,13 +74,26 @@ def _threshold_section():
     Build the threshold portion of the dock.
 
     Returns:
-        html.Div: Plot selector and the 1D threshold figure.
+        html.Div: Source and plot selectors, and the 1D threshold figure.
     """
     return html.Div(
         [
             html.Span(
                 [html.I(className="bi bi-graph-up me-2"), "Threshold"],
                 className="sv-section-label",
+            ),
+            # A log may carry one sidecar per sensor. Their range bins differ,
+            # so they are picked between rather than drawn together.
+            html.Div(
+                dbc.InputGroup(
+                    [
+                        dbc.InputGroupText("Sensor"),
+                        dbc.Select(id="threshold-source-picker"),
+                    ],
+                    size="sm",
+                ),
+                id="threshold-source-picker-col",
+                className="mb-2",
             ),
             html.Div(
                 dbc.InputGroup(

@@ -101,11 +101,12 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         # Use round-robin assignment for default values
         default_values = [keys[x % len(keys)] for x in range(length)]
 
-        # Override with config values if provided
+        # Override with config values if provided. A manifest choice the loaded
+        # log has no column for is ignored, so the round-robin default stands.
         if config and config_keys:
             for i, config_key in enumerate(config_keys):
-                if i < len(default_values) and config_key in config:
-                    default_values[i] = config.get(config_key, default_values[i])
+                if i < len(default_values) and config.get(config_key) in keys:
+                    default_values[i] = config[config_key]
 
         return default_values
 
@@ -342,6 +343,13 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
                 "error_modal_open": True,
                 "error_message": str(exc),
             }
+        # A manifest describes a whole case, so it can name columns a given log
+        # never exported. Drop those now rather than offering a filter, an axis,
+        # or a color scale that resolves to a missing column later.
+        num_keys = [key for key in num_keys if key in new_data.columns]
+        cat_keys = [key for key in cat_keys if key in new_data.columns]
+        all_keys = num_keys + cat_keys
+
         # Sidecars are keyed on the primary log's basename. With several logs
         # overlaid, the primary one owns the backdrop, maps, and video.
         stem = manifest.stem_of(json.loads(file)["name"])

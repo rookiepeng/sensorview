@@ -176,6 +176,30 @@ def get_heatmap(
     }
 
 
+def _plottable(values: np.ndarray) -> Any:
+    """
+    Make a numeric vector safe to serialize into a figure.
+
+    Threshold exports carry ``-inf`` for bins a threshold does not apply to, and
+    JSON has no encoding for it. Replacing those with null both keeps the payload
+    valid and leaves a gap in the line, which is the honest way to draw "no
+    value here".
+
+    Args:
+        values: Numeric vector.
+
+    Returns:
+        The array untouched when every value is finite -- the common case, and
+        the one the fast numpy serialization path handles -- otherwise a list
+        with the non-finite entries replaced by None.
+    """
+    values = np.asarray(values, dtype=float).reshape(-1)
+    finite = np.isfinite(values)
+    if finite.all():
+        return values
+    return [float(value) if ok else None for value, ok in zip(values, finite)]
+
+
 def get_threshold_plot(
     series: Optional[Dict[str, np.ndarray]] = None,
     x_values: Optional[np.ndarray] = None,
@@ -186,6 +210,7 @@ def get_threshold_plot(
     x_range: Optional[List[float]] = None,
     y_range: Optional[List[float]] = None,
     log_y: bool = False,
+    x_series: Optional[Dict[str, np.ndarray]] = None,
 ) -> Dict[str, Any]:
     """
     Render one 1D threshold plot: a signal and the thresholds applied to it.
@@ -207,6 +232,8 @@ def get_threshold_plot(
         y_range: Optional [min, max] y clamp. Pinning this keeps levels
             comparable while scrubbing.
         log_y: Whether to use a logarithmic y-axis.
+        x_series: Per-trace x vectors, for stores where each series carries its
+            own x column. Takes precedence over ``x_values``.
 
     Returns:
         Dictionary containing figure data and layout.
@@ -250,7 +277,10 @@ def get_threshold_plot(
             continue
 
         values = np.asarray(values).reshape(-1)
-        if x_values is not None and len(x_values) == len(values):
+        own_axis = (x_series or {}).get(trace["name"])
+        if own_axis is not None and len(own_axis) == len(values):
+            axis = np.asarray(own_axis)
+        elif x_values is not None and len(x_values) == len(values):
             axis = np.asarray(x_values)
         else:
             # An x-axis that does not line up is worse than none: fall back to
@@ -260,8 +290,8 @@ def get_threshold_plot(
         figure_data.append(
             {
                 "type": "scattergl",
-                "x": axis,
-                "y": values,
+                "x": _plottable(axis),
+                "y": _plottable(values),
                 "mode": trace.get("mode", "lines"),
                 "name": trace.get("label", trace["name"]),
                 "line": {

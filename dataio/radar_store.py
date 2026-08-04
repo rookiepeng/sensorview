@@ -79,6 +79,42 @@ def resolve_paths(
     return paths
 
 
+def _scalarize_list_columns(frame: pl.DataFrame) -> pl.DataFrame:
+    """
+    Collapse Parquet list columns down to plain scalar columns.
+
+    Exporters routinely emit a column as a length-1 list -- a sensor id written
+    as ``["sensor_1"]`` rather than ``"sensor_1"`` is the common case. Pandas
+    turns those into columns of numpy arrays, which are unhashable, so the very
+    first thing the app does with a categorical column (``.unique()`` to build
+    its filter dropdown) raises ``TypeError``. Nothing downstream can plot or
+    filter a list either way, so flatten at the door.
+
+    Args:
+        frame: Radar table as read from disk.
+
+    Returns:
+        The same table with every List/Array column replaced by a scalar one.
+        Numeric-like elements keep their dtype and only the first element
+        survives; anything else is joined into a string, which is lossless for
+        the length-1 case and still readable for longer lists.
+    """
+    exprs = []
+    for name, dtype in frame.schema.items():
+        if not isinstance(dtype, (pl.List, pl.Array)):
+            continue
+
+        inner = dtype.inner
+        if inner.is_numeric() or inner.is_temporal() or inner == pl.Boolean:
+            exprs.append(pl.col(name).list.first().alias(name))
+        else:
+            exprs.append(
+                pl.col(name).cast(pl.List(pl.String)).list.join(", ").alias(name)
+            )
+
+    return frame.with_columns(exprs) if exprs else frame
+
+
 def _normalize_non_finite(data: pd.DataFrame) -> pd.DataFrame:
     """
     Replace +/-Inf with NaN across numeric columns.
@@ -193,7 +229,7 @@ def load_radar(
             frame = frame.select(list(columns))
         if frame_key and frame_ids is not None:
             frame = frame.filter(pl.col(frame_key).is_in(list(frame_ids)))
-        data = frame.collect().to_pandas()
+        data = _scalarize_list_columns(frame.collect()).to_pandas()
     else:
         parts = [_read_one(path) for path in paths]
         combined = (
@@ -203,7 +239,7 @@ def load_radar(
             combined = combined.select([c for c in columns if c in combined.columns])
         if frame_key and frame_ids is not None and frame_key in combined.columns:
             combined = combined.filter(pl.col(frame_key).is_in(list(frame_ids)))
-        data = combined.to_pandas()
+        data = _scalarize_list_columns(combined).to_pandas()
 
     data = data.reset_index(drop=True)
     return _normalize_non_finite(data)

@@ -15,9 +15,10 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import os
+import posixpath
 
 import h5py
 import numpy as np
@@ -28,7 +29,12 @@ _COMPRESSION = "gzip"
 _COMPRESSION_OPTS = 4
 
 DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
-DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{sensor_id}"
+DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
+
+# How one stored dataset maps to a curve. ``series`` is y values alone, with a
+# shared x vector stored separately; ``xy`` is an (N, 2) pair carrying its own x.
+LAYOUT_SERIES = "series"
+LAYOUT_XY = "xy"
 
 
 def _format_dataset(pattern: str, **kwargs: Any) -> str:
@@ -36,7 +42,7 @@ def _format_dataset(pattern: str, **kwargs: Any) -> str:
     Fill a dataset-path pattern, tolerating unused placeholders.
 
     Args:
-        pattern: Path pattern such as ``/frames/{frame_id}/{sensor_id}``.
+        pattern: Path pattern such as ``/frames/{frame_id}/{name}``.
         **kwargs: Placeholder values.
 
     Returns:
@@ -48,6 +54,31 @@ def _format_dataset(pattern: str, **kwargs: Any) -> str:
         raise ValueError(
             f"Dataset pattern {pattern!r} references unknown placeholder {exc}"
         ) from exc
+
+
+def _split_xy(values: np.ndarray) -> Tuple[Optional[np.ndarray], np.ndarray]:
+    """
+    Split an (N, 2) dataset into its x and y vectors.
+
+    MATLAB writes column-major, so a 2xN array there reads back as (N, 2) here;
+    both orientations are accepted so the same file works either way.
+
+    Args:
+        values: Raw dataset contents.
+
+    Returns:
+        Tuple of (x, y). x is None when the array is not a coordinate pair, in
+        which case the whole thing is treated as y.
+    """
+    if values.ndim == 2:
+        if values.shape[1] == 2:
+            return np.ascontiguousarray(values[:, 0]), np.ascontiguousarray(
+                values[:, 1]
+            )
+        if values.shape[0] == 2:
+            return np.ascontiguousarray(values[0]), np.ascontiguousarray(values[1])
+
+    return None, values.reshape(-1)
 
 
 class LidarStore:
@@ -135,50 +166,105 @@ class ThresholdStore:
     One file holds many named series per frame -- a detection threshold, the
     signal it is applied to, a noise floor, and so on. Which series are drawn
     together, and how, is declared in ``info.json`` rather than inferred here.
+
+    Nothing about the file's internal shape is assumed. The dataset pattern says
+    where a frame's series live (``/frames/{frame_id}/{name}`` for a sidecar
+    this package wrote, ``/frame_{frame_id}/{name}`` for a MATLAB struct array),
+    and the layout says whether a dataset is y values alone or an (N, 2) pair
+    carrying its own x column.
     """
 
-    def __init__(self, path: str) -> None:
+    def __init__(
+        self,
+        path: str,
+        layout: str = LAYOUT_SERIES,
+        sensor_id: Optional[str] = None,
+    ) -> None:
         """
         Args:
             path: Path to the threshold HDF5 file.
+            layout: ``series`` or ``xy``; see :func:`_split_xy`.
+            sensor_id: Value for a ``{sensor_id}`` placeholder, for files that
+                key their series by sensor internally rather than one file each.
         """
         self.path = path
+        self.layout = layout
+        self.sensor_id = sensor_id
 
     @property
     def exists(self) -> bool:
         """True when the backing file is present on disk."""
         return os.path.exists(self.path)
 
-    def read_series(
+    def _read_raw(
         self, dataset_pattern: str, frame_id: Any = None
     ) -> Optional[np.ndarray]:
         """
-        Read one 1D series.
+        Read one dataset verbatim, without reshaping it.
 
         Args:
-            dataset_pattern: Dataset path, optionally containing a
-                ``{frame_id}`` placeholder for per-frame series. Patterns
-                without the placeholder read a frame-independent dataset, which
-                is how shared x-axes are stored.
+            dataset_pattern: Dataset path, optionally containing ``{frame_id}``
+                and ``{sensor_id}`` placeholders. A pattern without ``{frame_id}``
+                reads a frame-independent dataset, which is how shared x-axes
+                are stored.
             frame_id: Frame identifier substituted into the pattern.
 
         Returns:
-            1D array of values, or None when absent. Multi-dimensional datasets
-            are flattened, so a stored (1, N) row still plots.
+            The dataset contents, or None when absent.
         """
         if not self.exists or not dataset_pattern:
             return None
 
-        dataset_path = _format_dataset(dataset_pattern, frame_id=frame_id)
+        dataset_path = _format_dataset(
+            dataset_pattern, frame_id=frame_id, sensor_id=self.sensor_id
+        )
         try:
             with h5py.File(self.path, "r") as handle:
                 node = handle.get(dataset_path)
                 if node is None:
                     return None
-                values = np.asarray(node[()])
-                return values.reshape(-1) if values.ndim > 1 else values
+                return np.asarray(node[()])
         except (OSError, KeyError):
             return None
+
+    def read_curve(
+        self, dataset_pattern: str, frame_id: Any = None
+    ) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+        """
+        Read one curve as an (x, y) pair.
+
+        Args:
+            dataset_pattern: Dataset path; see :meth:`_read_raw`.
+            frame_id: Frame identifier substituted into the pattern.
+
+        Returns:
+            Tuple of (x, y). Under the ``series`` layout, and for any dataset
+            that is not a coordinate pair, x is None and the caller supplies the
+            axis. Both are None when the dataset is absent.
+        """
+        values = self._read_raw(dataset_pattern, frame_id)
+        if values is None:
+            return None, None
+
+        if self.layout == LAYOUT_XY:
+            return _split_xy(values)
+
+        return None, values.reshape(-1)
+
+    def read_series(
+        self, dataset_pattern: str, frame_id: Any = None
+    ) -> Optional[np.ndarray]:
+        """
+        Read one 1D series, dropping any x column it carries.
+
+        Args:
+            dataset_pattern: Dataset path; see :meth:`_read_raw`.
+            frame_id: Frame identifier substituted into the pattern.
+
+        Returns:
+            1D array of values, or None when absent.
+        """
+        return self.read_curve(dataset_pattern, frame_id)[1]
 
     def read_axis(self, dataset_path: str) -> Optional[np.ndarray]:
         """
@@ -190,9 +276,57 @@ class ThresholdStore:
         Returns:
             1D array of axis values, or None when absent.
         """
-        return self.read_series(dataset_path)
+        values = self._read_raw(dataset_path)
+        return None if values is None else values.reshape(-1)
 
-    def signals(self, frame_id: Any = None) -> List[str]:
+    def frame_groups(
+        self, dataset_pattern: str = DEFAULT_THRESHOLD_PATTERN
+    ) -> List[str]:
+        """
+        List the per-frame group paths present in the file.
+
+        The pattern up to ``{name}`` is the group holding one frame's series.
+        Splitting *that* at ``{frame_id}`` gives the parent group to list and
+        the prefix its frame members carry -- which resolves ``/frames/<id>``
+        and ``/frame_<id>`` alike, and skips MATLAB's ``#refs#`` bookkeeping.
+
+        Args:
+            dataset_pattern: Dataset path pattern from the manifest.
+
+        Returns:
+            Sorted group paths; empty on any error.
+        """
+        if not self.exists or not dataset_pattern:
+            return []
+
+        template = dataset_pattern.split("{name}")[0].rstrip("/") or "/"
+        if "{frame_id}" not in template:
+            return [template]
+
+        head, _, tail = template.partition("{frame_id}")
+        parent = posixpath.dirname(head) or "/"
+        prefix = posixpath.basename(head)
+
+        try:
+            with h5py.File(self.path, "r") as handle:
+                group = handle.get(parent)
+                if group is None:
+                    return []
+                return sorted(
+                    posixpath.join(parent, name)
+                    for name in group
+                    if name.startswith(prefix)
+                    and name.endswith(tail)
+                    and isinstance(group[name], h5py.Group)
+                )
+        except (OSError, KeyError):
+            return []
+
+    def signals(
+        self,
+        dataset_pattern: str = DEFAULT_THRESHOLD_PATTERN,
+        frame_id: Any = None,
+    ) -> List[str]:
         """
         List the series names stored for a frame.
 
@@ -200,6 +334,7 @@ class ThresholdStore:
         file, and for validating that config at load time.
 
         Args:
+            dataset_pattern: Dataset path pattern from the manifest.
             frame_id: Frame to inspect; defaults to the first frame present.
 
         Returns:
@@ -208,19 +343,24 @@ class ThresholdStore:
         """
         if not self.exists:
             return []
+
+        if frame_id is not None:
+            template = dataset_pattern.split("{name}")[0].rstrip("/") or "/"
+            paths = [
+                _format_dataset(template, frame_id=frame_id, sensor_id=self.sensor_id)
+            ]
+        else:
+            paths = self.frame_groups(dataset_pattern)[:1]
+
+        if not paths:
+            return []
+
         try:
             with h5py.File(self.path, "r") as handle:
-                frames = handle.get("frames")
-                if frames is None:
+                group = handle.get(paths[0])
+                if not isinstance(group, h5py.Group):
                     return []
-                if frame_id is not None:
-                    group = frames.get(str(frame_id))
-                    return sorted(group.keys()) if group is not None else []
-                for frame_name in frames:
-                    group = frames[frame_name]
-                    if isinstance(group, h5py.Group):
-                        return sorted(group.keys())
-                return []
+                return sorted(group.keys())
         except (OSError, KeyError):
             return []
 

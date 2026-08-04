@@ -190,8 +190,55 @@ def get_lidar_trace(
     return get_lidar_scatter3d_data(points, manifest.lidar_display())
 
 
-def get_threshold_plots(
+def get_threshold_sources(
     manifest: Optional[Manifest], stem: str
+) -> List[Dict[str, str]]:
+    """
+    List the threshold sidecars available for the current log.
+
+    A log may record threshold maps from several sensors, each in its own file.
+    They are separate sources rather than merged series because their range
+    bins do not line up -- one sensor's profile ends at 241 m and another's at
+    262 m, so there is no shared axis to draw them against.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stem: Log stem.
+
+    Returns:
+        List of ``{"id", "label"}`` dicts; empty when the log has no threshold
+        sidecar.
+    """
+    if manifest is None or not stem:
+        return []
+    return [
+        {"id": source["id"], "label": source["label"]}
+        for source in manifest.threshold_sources(stem)
+    ]
+
+
+def _threshold_store(
+    manifest: Manifest, stem: str, source_id: Optional[str] = None
+) -> Optional[ThresholdStore]:
+    """
+    Open one of a log's threshold sidecars.
+
+    Args:
+        manifest: Dataset manifest.
+        stem: Log stem.
+        source_id: Source identifier; defaults to the log's first source.
+
+    Returns:
+        Store for that source, or None when it does not exist.
+    """
+    path = manifest.threshold_path(stem, source_id)
+    if not path:
+        return None
+    return ThresholdStore(path, layout=manifest.threshold_layout, sensor_id=source_id)
+
+
+def get_threshold_plots(
+    manifest: Optional[Manifest], stem: str, source_id: Optional[str] = None
 ) -> List[Dict[str, str]]:
     """
     List the threshold plots available for the current log.
@@ -199,6 +246,7 @@ def get_threshold_plots(
     Args:
         manifest: Dataset manifest, or None.
         stem: Log stem.
+        source_id: Threshold source to inspect; defaults to the log's first.
 
     Returns:
         List of ``{"id", "label"}`` dicts; empty when the log has no threshold
@@ -207,10 +255,14 @@ def get_threshold_plots(
     if manifest is None or not manifest.has_threshold(stem):
         return []
 
+    store = _threshold_store(manifest, stem, source_id)
+    if store is None:
+        return []
+
     # Plot definitions are declared once for the whole case, but which series a
-    # given log actually recorded varies. Offering a plot whose series are all
-    # missing would just show an empty frame, so check the file once here.
-    available = set(ThresholdStore(manifest.threshold_path(stem)).signals())
+    # given source actually recorded varies. Offering a plot whose series are
+    # all missing would just show an empty frame, so check the file once here.
+    available = set(store.signals(manifest.threshold_dataset_pattern()))
 
     plots = []
     for plot in manifest.threshold_plots():
@@ -232,6 +284,7 @@ def get_threshold_y_range(
     session_id: str,
     frame_ids: Optional[Any] = None,
     max_frames: int = 50,
+    source_id: Optional[str] = None,
 ) -> Optional[list]:
     """
     Estimate a stable y range for one threshold plot.
@@ -250,6 +303,7 @@ def get_threshold_y_range(
         session_id: Session identifier, used as the cache scope.
         frame_ids: Frame ids to sample from, as derived from the Parquet data.
         max_frames: Maximum number of frames to sample.
+        source_id: Threshold source to sample; defaults to the log's first.
 
     Returns:
         ``[ymin, ymax]``, or None when nothing could be read.
@@ -263,7 +317,9 @@ def get_threshold_y_range(
     if plot.get("y_range"):
         return list(plot["y_range"])
 
-    cache_key = f"{stem}/{plot_id}"
+    # Sources are scaled independently -- one sensor's levels say nothing about
+    # another's -- so each gets its own estimate.
+    cache_key = f"{stem}/{source_id or ''}/{plot_id}"
     cached = cache_get(session_id, CACHE_KEYS["threshold_range"], cache_key)
     if cached is not None:
         return cached
@@ -278,7 +334,9 @@ def get_threshold_y_range(
     else:
         sampled = frame_ids
 
-    store = ThresholdStore(manifest.threshold_path(stem))
+    store = _threshold_store(manifest, stem, source_id)
+    if store is None:
+        return None
 
     low, high = np.inf, -np.inf
     for frame_id in sampled:
@@ -308,6 +366,7 @@ def get_threshold_figure(
     frame_id: Any,
     plot_id: str,
     y_range: Optional[list] = None,
+    source_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Build the 1D threshold figure for one (frame, plot).
@@ -318,6 +377,7 @@ def get_threshold_figure(
         frame_id: Frame identifier.
         plot_id: Plot identifier declared in the manifest.
         y_range: Optional [min, max] y clamp held constant across frames.
+        source_id: Threshold source to read; defaults to the log's first.
 
     Returns:
         Figure dictionary; an empty placeholder figure when nothing is readable.
@@ -329,17 +389,26 @@ def get_threshold_figure(
     if plot is None:
         return get_threshold_plot()
 
-    store = ThresholdStore(manifest.threshold_path(stem))
+    store = _threshold_store(manifest, stem, source_id)
+    if store is None:
+        return get_threshold_plot()
 
+    # Under the ``xy`` layout every series carries its own x column, so each
+    # curve is drawn against its own axis rather than a shared one.
     series = {}
+    x_series = {}
     for trace in plot["traces"]:
-        values = store.read_series(trace["dataset"], frame_id)
-        if values is not None:
-            series[trace["name"]] = values
+        axis, values = store.read_curve(trace["dataset"], frame_id)
+        if values is None:
+            continue
+        series[trace["name"]] = values
+        if axis is not None:
+            x_series[trace["name"]] = axis
 
     return get_threshold_plot(
         series=series,
         x_values=store.read_axis(plot["x_dataset"]),
+        x_series=x_series,
         traces=plot["traces"],
         x_label=plot["x_label"],
         y_label=plot["y_label"],
