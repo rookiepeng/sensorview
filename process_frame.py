@@ -26,7 +26,7 @@ from utils import prepare_figure_kwargs
 from frame_sources import get_lidar_trace, get_log_stem, get_manifest
 
 from viz.viz import get_scatter3d
-from viz.graph_data import get_ref_scatter3d_data
+from viz.graph_data import get_reference_traces
 from viz.graph_data import get_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
@@ -192,15 +192,14 @@ def process_single_frame(
                 break
 
     if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
-        fig_ref = [
-            get_ref_scatter3d_data(
-                data_frame=filterd_frame,
-                x_key=fig_kwargs["x_ref"],
-                y_key=fig_kwargs["y_ref"],
-                z_key=fig_kwargs["z_ref"],
-                name=fig_kwargs.get("ref_name", None),
-            )
-        ]
+        fig_ref = get_reference_traces(
+            data_frame=filterd_frame,
+            x_key=fig_kwargs["x_ref"],
+            y_key=fig_kwargs["y_ref"],
+            z_key=fig_kwargs["z_ref"],
+            name=fig_kwargs.get("ref_name", None),
+            display=fig_kwargs.get("ref_display"),
+        )
     else:
         fig_ref = []
 

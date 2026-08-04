@@ -150,6 +150,36 @@ signal sits relative to its threshold stays readable while scrubbing. Ingest
 writes a starter config grouping series onto axes by name prefix
 (`doppler_signal` → the Doppler plot), which you then split and style.
 
+### Reference Overlay
+
+`x_ref` / `y_ref` / `z_ref` mark a moving origin in the 3D view — usually the
+host vehicle. By default it draws as a white dot, which says where that origin
+is but nothing about how big it is. A `reference` block trades the dot for a
+box, so you can see which detections land on the vehicle and which are past it:
+
+```json
+"reference": {
+    "shape": "box",
+    "name": "Host Vehicle",
+    "color": "#4c9ffe",
+    "opacity": 0.35,
+    "dimensions": [1.9, 4.7, 1.5],
+    "offset": [0.0, 1.35, 0.75]
+}
+```
+
+`dimensions` is the full extent along the plot's **x, y and z axes** rather than
+length/width/height, because which physical quantity each axis carries is
+chosen in the view, not by the manifest. `offset` shifts the box center off the
+reference point, for when the reference columns mark a sensor or the rear axle
+instead of the middle of the vehicle. The 3D scene makes room for whatever the
+box adds beyond the data, so it is never clipped by the axis ranges.
+
+Optional: `edges` (default `true`) draws the wireframe, with `edge_color` and
+`edge_width`. With `"shape": "marker"` — or no block at all — the block instead
+styles the dot through `color`, `size`, `symbol`, `line_color`, and
+`line_width`. The block is read from both v1 and v2 manifests.
+
 ### Subview Panel
 
 The camera and threshold plot live in a floating panel over the 3D view rather

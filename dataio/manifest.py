@@ -7,6 +7,8 @@ nothing about any individual log. It declares:
 - the filename suffixes that associate a log's sidecars with it
 - per-sensor calibration, so overlaid point clouds share a reference frame
 - fixed lidar backdrop styling and the 1D threshold plot definitions
+- how the reference overlay is drawn -- a plain marker, or a box scaled to the
+  thing it stands for (see :func:`normalize_reference_display`)
 
 Two things it deliberately does **not** declare:
 
@@ -86,9 +88,109 @@ DEFAULT_LIDAR_DISPLAY = {
     "name": "Lidar",
 }
 
+# Reference marker styling. *Where* the reference sits is picked in the 3D view
+# (the x/y/z ref columns, which the user can change per session); *what it looks
+# like* is a property of the dataset, so it is declared here. The defaults
+# reproduce the plain white dot this was before the block existed, which is why
+# a manifest that says nothing about the reference draws exactly as it always
+# did.
+REFERENCE_SHAPES = ("marker", "box")
+
+DEFAULT_REFERENCE_DISPLAY = {
+    "name": "Host Vehicle",
+    "shape": "marker",
+    "color": "#ffffff",
+    "opacity": 1.0,
+    # marker only
+    "size": 6,
+    "symbol": "circle",
+    "line_color": "#000000",
+    "line_width": 2,
+}
+
+# Box-only defaults. A solid box at full opacity would bury every detection
+# inside it, so the box is translucent where the dot is not -- hence a separate
+# table rather than one flat set of defaults.
+DEFAULT_REFERENCE_BOX = {
+    "opacity": 0.35,
+    # Full extent along the plot's x, y and z axes, in data units. Dimensions
+    # are per-axis rather than length/width/height because which physical
+    # quantity each axis carries is the user's choice, not the manifest's.
+    "dimensions": [1.9, 4.7, 1.5],
+    # Box center relative to the reference point. The reference column usually
+    # marks a sensor or the rear axle, not the middle of the vehicle.
+    "offset": [0.0, 0.0, 0.0],
+    "edges": True,
+    # None means "follow `color`".
+    "edge_color": None,
+    "edge_width": 2,
+}
+
 
 class ManifestError(Exception):
     """Raised when a manifest is missing, malformed, or internally inconsistent."""
+
+
+def _vec3(value: Any, fallback: List[float]) -> List[float]:
+    """
+    Coerce a manifest 3-vector to three floats.
+
+    Accepts either the list form used by ``calibration`` (``[x, y, z]``) or a
+    mapping (``{"x": .., "y": .., "z": ..}``), since both read naturally in a
+    hand-written manifest.
+
+    Args:
+        value: Raw value from the manifest.
+        fallback: Value to use when ``value`` is missing or unusable.
+
+    Returns:
+        List of three floats.
+    """
+    if isinstance(value, dict):
+        value = [value.get("x"), value.get("y"), value.get("z")]
+
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        return list(fallback)
+
+    try:
+        return [float(component) for component in value]
+    except (TypeError, ValueError):
+        return list(fallback)
+
+
+def normalize_reference_display(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Fill in a manifest ``reference`` block.
+
+    Args:
+        raw: The block as authored, or None when the dataset declares none.
+
+    Returns:
+        Dict carrying every key the renderer reads. An unknown ``shape`` falls
+        back to ``marker`` rather than raising: a typo in a cosmetic field
+        should not cost the user their reference point.
+    """
+    raw = raw or {}
+
+    display = dict(DEFAULT_REFERENCE_DISPLAY)
+    shape = str(raw.get("shape", display["shape"])).lower()
+    if shape not in REFERENCE_SHAPES:
+        shape = DEFAULT_REFERENCE_DISPLAY["shape"]
+
+    if shape == "box":
+        display.update(DEFAULT_REFERENCE_BOX)
+
+    display.update({key: value for key, value in raw.items() if key != "shape"})
+    display["shape"] = shape
+
+    if shape == "box":
+        dimensions = _vec3(display["dimensions"], DEFAULT_REFERENCE_BOX["dimensions"])
+        display["dimensions"] = [abs(size) for size in dimensions]
+        display["offset"] = _vec3(display["offset"], DEFAULT_REFERENCE_BOX["offset"])
+        display["edges"] = bool(display["edges"])
+        display["edge_color"] = display["edge_color"] or display["color"]
+
+    return display
 
 
 def log_stem(file_name: str, radar_suffix: str = DEFAULT_RADAR_SUFFIX) -> str:
@@ -196,6 +298,30 @@ class Manifest:
     def camera(self) -> Optional[Dict[str, Any]]:
         """The ``camera`` block, or None when the dataset declares no camera."""
         return self.raw.get("camera")
+
+    @property
+    def reference(self) -> Optional[Dict[str, Any]]:
+        """The ``reference`` block as authored, or None when it is absent."""
+        return self.raw.get("reference")
+
+    def reference_display(self) -> Dict[str, Any]:
+        """
+        Styling for the reference overlay in the 3D view.
+
+        A dataset whose reference is the host vehicle can draw it to scale::
+
+            "reference": {
+              "shape": "box",
+              "name": "Host Vehicle",
+              "color": "#4c9ffe",
+              "dimensions": [1.9, 4.7, 1.5],
+              "offset": [0.0, 1.35, 0.75]
+            }
+
+        Returns:
+            Normalized display dict; see :func:`normalize_reference_display`.
+        """
+        return normalize_reference_display(self.reference)
 
     @property
     def frame_key(self) -> str:
@@ -554,6 +680,14 @@ class Manifest:
         config = {key: self.radar[key] for key in _V1_RADAR_KEYS if key in self.radar}
         config.setdefault("keys", {})
         config.setdefault("slider", "Frame")
+
+        # Carried verbatim rather than normalized: this projection is also what
+        # `save` writes back over a v1 file, and rewriting the user's manifest
+        # with every default spelled out would be a surprising side effect of
+        # changing an axis picker.
+        if self.reference is not None:
+            config["reference"] = self.reference
+
         return config
 
     def update_radar_view(self, values: Dict[str, Any]) -> None:
@@ -607,11 +741,18 @@ def upgrade_to_v2(raw: Dict[str, Any]) -> Dict[str, Any]:
         return raw
 
     radar = {key: raw[key] for key in _V1_RADAR_KEYS if key in raw}
-    return {
+    upgraded = {
         "manifest_version": MANIFEST_VERSION,
         "name": raw.get("name"),
         "radar": radar,
     }
+
+    # The reference block sits at the top level in both schemas, so a v1
+    # dataset can style its reference without being migrated first.
+    if raw.get("reference") is not None:
+        upgraded["reference"] = raw["reference"]
+
+    return upgraded
 
 
 def load_manifest(case_dir: str) -> Manifest:

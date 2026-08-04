@@ -21,6 +21,7 @@ import numpy as np
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
 
+from dataio.manifest import normalize_reference_display
 from dataio.radar_store import load_radar
 
 
@@ -139,10 +140,15 @@ def prepare_figure_kwargs(
             return [min(base_range[0], ref_range[0]), max(base_range[1], ref_range[1])]
         return base_range
 
+    # How the reference is drawn comes from the dataset manifest; where it sits
+    # comes from the ref pickers below.
+    ref_display = normalize_reference_display(config.get("reference"))
+
     # Initialize figure kwargs with basic settings
     fig_kwargs = {
         "image": None,
-        "ref_name": "Host Vehicle",
+        "ref_name": ref_display["name"],
+        "ref_display": ref_display,
         "size_vary": size_vary,
     }
 
@@ -192,6 +198,19 @@ def prepare_figure_kwargs(
             "z_range": get_axis_range(z_key, z_ref),
         }
     )
+
+    # A box reference occupies space a dot does not, and the 3D scene fixes its
+    # axes (autorange is off), so whatever the box adds beyond the data has to
+    # be made room for here or it is simply clipped away.
+    if ref_display["shape"] == "box" and x_ref and y_ref:
+        for axis, range_key in enumerate(("x_range", "y_range", "z_range")):
+            half = ref_display["dimensions"][axis] / 2.0
+            offset = ref_display["offset"][axis]
+            low, high = fig_kwargs[range_key]
+            fig_kwargs[range_key] = [
+                min(low, low + offset - half),
+                max(high, high + offset + half),
+            ]
 
     # Setup color range
     if fig_kwargs["c_type"] == KEY_TYPES["NUM"]:
