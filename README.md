@@ -163,8 +163,9 @@ plot definition therefore carries only a label.
 
 A trace's `name` fills the `{name}` placeholder in the plot's dataset pattern;
 an explicit `"dataset"` overrides that. The pattern also sets where a frame's
-series live, which covers `/frames/{frame_id}/{name}` for a sidecar ingest wrote
-and `/frame_{frame_id}/{name}` for a MATLAB struct array alike. Optional
+series live — `/frame_{frame_id}/{name}` by default, which is both what ingest
+writes and what a MATLAB struct array reads back as. A nested
+`/frames/{frame_id}/{name}` resolves too, for an older export. Optional
 per-plot keys: `y_range` (pins the axis instead of estimating it), `x.range`,
 and `log_y`. Any number of plots can be declared — the panel gets a selector
 when there is more than one.

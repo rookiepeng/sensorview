@@ -29,7 +29,7 @@ _COMPRESSION = "gzip"
 _COMPRESSION_OPTS = 4
 
 DEFAULT_CLOUD_PATTERN = "/frame_{frame_id}"
-DEFAULT_CURVE_PATTERN = "/frames/{frame_id}/{name}"
+DEFAULT_CURVE_PATTERN = "/frame_{frame_id}/{name}"
 
 
 def _format_dataset(pattern: str, **kwargs: Any) -> str:
@@ -37,7 +37,7 @@ def _format_dataset(pattern: str, **kwargs: Any) -> str:
     Fill a dataset-path pattern, tolerating unused placeholders.
 
     Args:
-        pattern: Path pattern such as ``/frames/{frame_id}/{name}``.
+        pattern: Path pattern such as ``/frame_{frame_id}/{name}``.
         **kwargs: Placeholder values.
 
     Returns:
@@ -82,8 +82,8 @@ def _frame_nodes(path: str, template: str) -> List[str]:
     List the per-frame node names a pattern resolves to.
 
     Splitting the template at ``{frame_id}`` gives the parent to list and the
-    prefix its frame members carry, which resolves ``/frames/<id>`` and
-    ``/frame_<id>`` alike. The prefix is also what keeps MATLAB's ``#refs#``
+    prefix its frame members carry, which resolves ``/frame_<id>`` and the
+    nested ``/frames/<id>`` alike. The prefix is also what keeps MATLAB's ``#refs#``
     bookkeeping out of the result.
 
     Args:
@@ -210,8 +210,9 @@ class CurveStore:
     alternates, so the axis belongs with the curve it measures.
 
     Where a frame's series live is not assumed either -- the dataset pattern
-    says, which covers ``/frames/{frame_id}/{name}`` for a sidecar this package
-    wrote and ``/frame_{frame_id}/{name}`` for a MATLAB struct array alike.
+    says, which covers both ``/frame_{frame_id}/{name}`` -- what this package
+    writes, and what a MATLAB struct array reads back as -- and the nested
+    ``/frames/{frame_id}/{name}`` an older export may carry.
     """
 
     def __init__(self, path: str, sensor_id: Optional[str] = None) -> None:
@@ -301,8 +302,9 @@ class CurveStore:
 
         The pattern up to ``{name}`` is the group holding one frame's series.
         Splitting *that* at ``{frame_id}`` gives the parent group to list and
-        the prefix its frame members carry -- which resolves ``/frames/<id>``
-        and ``/frame_<id>`` alike, and skips MATLAB's ``#refs#`` bookkeeping.
+        the prefix its frame members carry -- which resolves ``/frame_<id>``
+        and the nested ``/frames/<id>`` alike, and skips MATLAB's ``#refs#``
+        bookkeeping.
 
         Args:
             dataset_pattern: Dataset path pattern from the manifest.
@@ -400,6 +402,7 @@ def write_cloud_frames(
 def write_curve_frames(
     path: str,
     frames: Dict[Any, Dict[str, np.ndarray]],
+    dataset_pattern: str = DEFAULT_CURVE_PATTERN,
 ) -> str:
     """
     Write per-frame curves to an HDF5 sidecar.
@@ -410,6 +413,8 @@ def write_curve_frames(
             curve carrying its own x column. A 1D array is accepted and paired
             with its sample index, so a caller with no meaningful axis need not
             invent one.
+        dataset_pattern: Where each curve lands, matching what the manifest
+            declares for reading it back.
 
     Returns:
         The path written.
@@ -417,17 +422,15 @@ def write_curve_frames(
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 
     with h5py.File(path, "w") as handle:
-        group = handle.create_group("frames")
         for frame_id, series in frames.items():
-            frame_group = group.create_group(str(frame_id))
             for name, values in series.items():
                 values = np.asarray(values, dtype=np.float32)
                 if values.ndim == 1:
                     values = np.column_stack(
                         [np.arange(values.size, dtype=np.float32), values]
                     )
-                frame_group.create_dataset(
-                    str(name),
+                handle.create_dataset(
+                    _format_dataset(dataset_pattern, frame_id=frame_id, name=name),
                     data=values,
                     chunks=values.shape if values.size else None,
                     compression=_COMPRESSION if values.size else None,
