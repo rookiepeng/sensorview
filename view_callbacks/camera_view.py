@@ -69,7 +69,7 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         """
         manifest = get_manifest(session_id)
         stem = get_log_info(session_id).get("stem", "")
-        streams = manifest.camera_streams(stem) if manifest else []
+        streams = manifest.image_streams(stem) if manifest else []
 
         if not streams:
             return {
@@ -117,8 +117,8 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         if manifest is None or not stem:
             return {"panel_style": HIDDEN, "splitter_style": HIDDEN}
 
-        has_content = manifest.has_camera(stem) or bool(
-            manifest.has_threshold(stem) and manifest.threshold_plots()
+        has_content = manifest.has_image(stem) or bool(
+            manifest.has_curve(stem) and manifest.curve_plots()
         )
         # Clearing `display` lets the stylesheet's flex layout take over again.
         style = {} if has_content else HIDDEN
@@ -151,7 +151,7 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
 
         manifest = get_manifest(session_id)
         log_info = get_log_info(session_id)
-        streams = manifest.camera_streams(log_info.get("stem", "")) if manifest else []
+        streams = manifest.image_streams(log_info.get("stem", "")) if manifest else []
 
         if not any(s["id"] == stream_id for s in streams):
             return {"src": None, "config": None}
@@ -166,7 +166,7 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
                 "src": f"/api/camera/{session_id}/{stream_id}",
                 "fps": log_info.get("fps") or 10.0,
                 "timestamps": log_info.get("timestamps") or [],
-                "offset": float((manifest.camera or {}).get("time_offset", 0.0)),
+                "offset": float((manifest.image or {}).get("time_offset", 0.0)),
             },
         }
 

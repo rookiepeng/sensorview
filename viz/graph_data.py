@@ -281,14 +281,14 @@ def get_reference_traces(
     return [get_ref_scatter3d_data(data_frame, x_key, y_key, z_key, name, display)]
 
 
-def get_lidar_scatter3d_data(
+def get_cloud_scatter3d_data(
     points: Optional[np.ndarray],
     display: Optional[Dict[str, Any]] = None,
 ) -> Optional[Dict[str, Any]]:
     """
-    Build the lidar backdrop trace.
+    Build the point-cloud backdrop trace.
 
-    Lidar is display-only: it carries no filter state and has no runtime
+    The cloud is display-only: it carries no filter state and has no runtime
     controls, so styling is fixed by the manifest rather than wired to any UI
     input. Hover is disabled outright -- the backdrop is context, not something
     to interrogate, and skipping hover text keeps 60k points off the wire.
@@ -320,7 +320,7 @@ def get_lidar_scatter3d_data(
         "y": y_vals,
         "z": z_vals,
         "mode": "markers",
-        "name": display.get("name", "Lidar"),
+        "name": display.get("name", "Point Cloud"),
         "showlegend": True,
         "hoverinfo": "skip",
         "marker": {

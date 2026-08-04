@@ -23,7 +23,7 @@ from utils import load_data
 from utils import load_image
 from utils import prepare_figure_kwargs
 
-from frame_sources import get_lidar_trace, get_log_stem, get_manifest
+from frame_sources import get_cloud_trace, get_log_stem, get_manifest
 
 from viz.viz import get_scatter3d
 from viz.graph_data import get_reference_traces
@@ -104,7 +104,7 @@ def process_single_frame(
 
     # Logs with an mp4 camera stream render it in the camera card, seeked
     # client-side; only legacy per-frame JPG datasets get the inline overlay.
-    if manifest is not None and manifest.has_camera(stem):
+    if manifest is not None and manifest.has_image(stem):
         fig_kwargs["image"] = None
     else:
         file_dict = json.loads(file)
@@ -203,14 +203,14 @@ def process_single_frame(
     else:
         fig_ref = []
 
-    # Lidar is a display-only backdrop: read once per frame, never refiltered,
+    # The cloud is a display-only backdrop: read once per frame, never refiltered,
     # and drawn first so the radar detections render on top of it.
-    lidar_trace = get_lidar_trace(manifest, stem, frame_list[frame_idx])
-    fig_lidar = [lidar_trace] if lidar_trace is not None else []
+    cloud_trace = get_cloud_trace(manifest, stem, frame_list[frame_idx])
+    fig_cloud = [cloud_trace] if cloud_trace is not None else []
 
     layout = get_scatter3d_layout(**fig_kwargs)
 
-    fig = {"data": fig_lidar + fig + fig_ref, "layout": layout}
+    fig = {"data": fig_cloud + fig + fig_ref, "layout": layout}
 
     return fig
 

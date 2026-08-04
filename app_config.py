@@ -49,7 +49,7 @@ CACHE_KEYS = {
     "dataset": "DATASET",
     "frame_list": "FRAME_LIST",
     "frame_data": "FRAME_DATA",
-    # Dataset manifest (info.json v2): declares the radar/lidar/threshold/camera
+    # Dataset manifest (info.json v2): declares the table/cloud/curve/image
     # stores and the frame_id <-> timestamp map every view synchronizes on.
     "manifest": "MANIFEST",
     # Current log: the stem its sidecars are keyed on, plus the frame timestamps
@@ -57,7 +57,7 @@ CACHE_KEYS = {
     "log_info": "LOG_INFO",
     # Per-(log, plot) threshold y range, estimated once so the axis stays
     # fixed while scrubbing instead of autoscaling every frame.
-    "threshold_range": "THRESHOLD_RANGE",
+    "curve_range": "CURVE_RANGE",
     "visible_table": "VIS_TABLE",
     "config": "CONFIG",
     "figure_idx": "FIGURE_IDX",

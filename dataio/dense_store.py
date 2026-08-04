@@ -1,6 +1,6 @@
 """Dense Frame-Indexed Stores (HDF5)
 
-Lidar point clouds and radar threshold maps are both display-only, frame-indexed
+Point clouds and 1D curves are both display-only, frame-indexed
 dense arrays -- nobody queries them by column -- so Parquet's columnar machinery
 would be wasted overhead. A chunked HDF5 dataset per frame is a contiguous
 binary blob: smaller on disk and faster to pull one frame from. HDF5 also has
@@ -28,8 +28,8 @@ import numpy as np
 _COMPRESSION = "gzip"
 _COMPRESSION_OPTS = 4
 
-DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
-DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
+DEFAULT_CLOUD_PATTERN = "/frame_{frame_id}"
+DEFAULT_CURVE_PATTERN = "/frames/{frame_id}/{name}"
 
 
 def _format_dataset(pattern: str, **kwargs: Any) -> str:
@@ -77,15 +77,49 @@ def _split_xy(values: np.ndarray) -> Tuple[Optional[np.ndarray], np.ndarray]:
     return None, values.reshape(-1)
 
 
-class LidarStore:
-    """Read-only accessor for the decimated lidar point cloud sidecar."""
+def _frame_nodes(path: str, template: str) -> List[str]:
+    """
+    List the per-frame node names a pattern resolves to.
+
+    Splitting the template at ``{frame_id}`` gives the parent to list and the
+    prefix its frame members carry, which resolves ``/frames/<id>`` and
+    ``/frame_<id>`` alike. The prefix is also what keeps MATLAB's ``#refs#``
+    bookkeeping out of the result.
+
+    Args:
+        path: HDF5 file path.
+        template: Path template containing ``{frame_id}``.
+
+    Returns:
+        Sorted ``(parent, name)`` joined paths; empty on any error.
+    """
+    head, _, tail = template.partition("{frame_id}")
+    parent = posixpath.dirname(head) or "/"
+    prefix = posixpath.basename(head)
+
+    try:
+        with h5py.File(path, "r") as handle:
+            group = handle.get(parent)
+            if group is None:
+                return []
+            return sorted(
+                posixpath.join(parent, name)
+                for name in group
+                if name.startswith(prefix) and name.endswith(tail)
+            )
+    except (OSError, KeyError):
+        return []
+
+
+class CloudStore:
+    """Read-only accessor for the decimated point-cloud sidecar."""
 
     def __init__(
-        self, path: str, dataset_pattern: str = DEFAULT_LIDAR_PATTERN
+        self, path: str, dataset_pattern: str = DEFAULT_CLOUD_PATTERN
     ) -> None:
         """
         Args:
-            path: Path to the lidar HDF5 file.
+            path: Path to the cloud HDF5 file.
             dataset_pattern: Dataset path pattern with a ``{frame_id}`` placeholder.
         """
         self.path = path
@@ -98,7 +132,7 @@ class LidarStore:
 
     def read_frame(self, frame_id: Any) -> Optional[np.ndarray]:
         """
-        Read one frame of decimated lidar points.
+        Read one frame of decimated cloud points.
 
         Args:
             frame_id: Frame identifier.
@@ -143,23 +177,30 @@ class LidarStore:
         """
         List frame ids present in the file.
 
+        Derived from this store's dataset pattern rather than assuming a layout,
+        so ``/frames/<id>`` and ``/frame_<id>`` both resolve.
+
         Returns:
-            Frame id strings under the ``/frames`` group; empty on any error.
+            Frame id strings; empty on any error.
         """
-        if not self.exists:
-            return []
-        try:
-            with h5py.File(self.path, "r") as handle:
-                group = handle.get("frames")
-                return list(group.keys()) if group is not None else []
-        except OSError:
+        if not self.exists or "{frame_id}" not in self.dataset_pattern:
             return []
 
+        head, _, tail = self.dataset_pattern.partition("{frame_id}")
+        prefix = posixpath.basename(head)
+        paths = _frame_nodes(self.path, self.dataset_pattern)
+        return [
+            posixpath.basename(p)[len(prefix) : len(posixpath.basename(p)) - len(tail)]
+            if tail
+            else posixpath.basename(p)[len(prefix) :]
+            for p in paths
+        ]
 
-class ThresholdStore:
-    """Read-only accessor for 1D threshold series.
 
-    One file holds many named series per frame -- a detection threshold, the
+class CurveStore:
+    """Read-only accessor for 1D curves.
+
+    One file holds many named curves per frame -- a detection threshold, the
     signal it is applied to, a noise floor, and so on. Which series are drawn
     together, and how, is declared in ``info.json`` rather than inferred here.
 
@@ -176,7 +217,7 @@ class ThresholdStore:
     def __init__(self, path: str, sensor_id: Optional[str] = None) -> None:
         """
         Args:
-            path: Path to the threshold HDF5 file.
+            path: Path to the curve HDF5 file.
             sensor_id: Value for a ``{sensor_id}`` placeholder, for files that
                 key their series by sensor internally rather than one file each.
         """
@@ -253,7 +294,7 @@ class ThresholdStore:
         return self.read_curve(dataset_pattern, frame_id)[1]
 
     def frame_groups(
-        self, dataset_pattern: str = DEFAULT_THRESHOLD_PATTERN
+        self, dataset_pattern: str = DEFAULT_CURVE_PATTERN
     ) -> List[str]:
         """
         List the per-frame group paths present in the file.
@@ -276,28 +317,11 @@ class ThresholdStore:
         if "{frame_id}" not in template:
             return [template]
 
-        head, _, tail = template.partition("{frame_id}")
-        parent = posixpath.dirname(head) or "/"
-        prefix = posixpath.basename(head)
-
-        try:
-            with h5py.File(self.path, "r") as handle:
-                group = handle.get(parent)
-                if group is None:
-                    return []
-                return sorted(
-                    posixpath.join(parent, name)
-                    for name in group
-                    if name.startswith(prefix)
-                    and name.endswith(tail)
-                    and isinstance(group[name], h5py.Group)
-                )
-        except (OSError, KeyError):
-            return []
+        return _frame_nodes(self.path, template)
 
     def signals(
         self,
-        dataset_pattern: str = DEFAULT_THRESHOLD_PATTERN,
+        dataset_pattern: str = DEFAULT_CURVE_PATTERN,
         frame_id: Any = None,
     ) -> List[str]:
         """
@@ -338,18 +362,21 @@ class ThresholdStore:
             return []
 
 
-def write_lidar_frames(
+def write_cloud_frames(
     path: str,
     frames: Dict[Any, np.ndarray],
     columns: Sequence[str] = ("x", "y", "z"),
+    dataset_pattern: str = DEFAULT_CLOUD_PATTERN,
 ) -> str:
     """
-    Write decimated lidar frames to an HDF5 sidecar.
+    Write decimated cloud frames to an HDF5 sidecar.
 
     Args:
         path: Destination ``.h5`` path; parent directories are created.
         frames: Mapping of frame id to an (N, C) point array.
         columns: Column names describing the point arrays.
+        dataset_pattern: Where each frame lands, matching what the manifest
+            declares for reading it back.
 
     Returns:
         The path written.
@@ -358,11 +385,10 @@ def write_lidar_frames(
 
     with h5py.File(path, "w") as handle:
         handle.attrs["columns"] = [str(c) for c in columns]
-        group = handle.create_group("frames")
         for frame_id, points in frames.items():
             points = np.asarray(points, dtype=np.float32)
-            group.create_dataset(
-                str(frame_id),
+            handle.create_dataset(
+                _format_dataset(dataset_pattern, frame_id=frame_id),
                 data=points,
                 chunks=points.shape if points.size else None,
                 compression=_COMPRESSION if points.size else None,
@@ -371,12 +397,12 @@ def write_lidar_frames(
     return path
 
 
-def write_threshold_frames(
+def write_curve_frames(
     path: str,
     frames: Dict[Any, Dict[str, np.ndarray]],
 ) -> str:
     """
-    Write per-frame threshold curves to an HDF5 sidecar.
+    Write per-frame curves to an HDF5 sidecar.
 
     Args:
         path: Destination ``.h5`` path; parent directories are created.

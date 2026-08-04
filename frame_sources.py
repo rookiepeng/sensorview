@@ -3,17 +3,17 @@
 Bridges the session cache to the :mod:`dataio` stores, and defines which data
 gets re-read on which trigger.
 
-The split matters for performance. Radar is refiltered whenever a filter
-changes; lidar, threshold maps, and camera are display-only and only ever
-change when the frame changes. Dragging a filter slider therefore never touches
-the lidar or threshold path.
+The split matters for performance. The table is refiltered whenever a filter
+changes; the cloud, curves, and images are display-only and only ever change
+when the frame changes. Dragging a filter slider therefore never touches the
+cloud or curve path.
 
 Sidecars resolve from the *current log's stem*, cached per session alongside the
 frame index derived from that log's Parquet. When several logs are overlaid, the
 primary selected log owns the backdrop, maps, and video -- those are per-log
 data with no meaningful way to merge.
 
-Lidar frames are deliberately *not* copied into the session cache: the chunked
+Cloud frames are deliberately *not* copied into the session cache: the chunked
 HDF5 sidecar is already a frame-indexed cache, and duplicating decimated points
 per frame onto disk would buy nothing over a few-millisecond chunk read.
 
@@ -32,14 +32,14 @@ import numpy as np
 from app_config import CACHE_KEYS, VIDEO_CACHE_PATH
 
 from dataio.calibration import apply_transform
-from dataio.dense_store import LidarStore, ThresholdStore
+from dataio.dense_store import CloudStore, CurveStore
 from dataio.manifest import Manifest
 from dataio.video import VideoEncodeError, is_browser_playable, transcode_to_mp4
 
 from utils import cache_get, cache_set
 
-from viz.graph_data import get_lidar_scatter3d_data
-from viz.viz import get_threshold_plot
+from viz.graph_data import get_cloud_scatter3d_data
+from viz.viz import get_curve_plot
 
 
 def cache_manifest(manifest: Manifest, session_id: str) -> None:
@@ -133,33 +133,33 @@ def get_log_stem(session_id: str) -> str:
     return get_log_info(session_id).get("stem", "")
 
 
-def get_lidar_points(
+def get_cloud_points(
     manifest: Manifest, stem: str, frame_id: Any, apply_calibration: bool = True
 ) -> Optional[np.ndarray]:
     """
-    Read one frame of decimated lidar points, in the reference frame.
+    Read one frame of decimated cloud points, in the reference frame.
 
     Args:
         manifest: Dataset manifest.
         stem: Log stem.
         frame_id: Frame identifier.
-        apply_calibration: Whether to apply the lidar extrinsics. Needed for the
-            overlay to line up with radar; skip only for raw inspection.
+        apply_calibration: Whether to apply the cloud extrinsics. Needed for the
+            overlay to line up with the table; skip only for raw inspection.
 
     Returns:
-        (N, 3+) point array, or None when the log has no lidar or that frame is
+        (N, 3+) point array, or None when the log has no cloud or that frame is
         missing.
     """
-    if not manifest.has_lidar(stem):
+    if not manifest.has_cloud(stem):
         return None
 
-    store = LidarStore(manifest.lidar_path(stem), manifest.lidar_dataset_pattern())
+    store = CloudStore(manifest.cloud_path(stem), manifest.cloud_dataset_pattern())
     points = store.read_frame(frame_id)
     if points is None or len(points) == 0:
         return None
 
     if apply_calibration:
-        calibration = manifest.lidar_calibration()
+        calibration = manifest.cloud_calibration()
         if not calibration.is_identity:
             transformed = apply_transform(points[:, :3], calibration)
             if points.shape[1] > 3:
@@ -170,11 +170,11 @@ def get_lidar_points(
     return points
 
 
-def get_lidar_trace(
+def get_cloud_trace(
     manifest: Optional[Manifest], stem: str, frame_id: Any
 ) -> Optional[Dict[str, Any]]:
     """
-    Build the lidar backdrop trace for one frame.
+    Build the point-cloud backdrop trace for one frame.
 
     Args:
         manifest: Dataset manifest, or None.
@@ -182,21 +182,21 @@ def get_lidar_trace(
         frame_id: Frame identifier.
 
     Returns:
-        Scatter3d trace dictionary, or None when there is no lidar to draw.
+        Scatter3d trace dictionary, or None when there is no cloud to draw.
     """
     if manifest is None or not stem:
         return None
 
-    points = get_lidar_points(manifest, stem, frame_id)
+    points = get_cloud_points(manifest, stem, frame_id)
     if points is None:
         return None
 
-    return get_lidar_scatter3d_data(points, manifest.lidar_display())
+    return get_cloud_scatter3d_data(points, manifest.cloud_display())
 
 
-def playable_camera_file(source: str) -> Optional[str]:
+def playable_image_file(source: str) -> Optional[str]:
     """
-    Resolve a camera stream to a file the browser can actually play.
+    Resolve an image stream to a file the browser can actually play.
 
     A recorder's own container is served untouched when browsers understand it.
     Anything else is transcoded once into the video cache and served from there
@@ -241,13 +241,13 @@ def playable_camera_file(source: str) -> Optional[str]:
         return None
 
 
-def get_threshold_sources(
+def get_curve_sources(
     manifest: Optional[Manifest], stem: str
 ) -> List[Dict[str, str]]:
     """
-    List the threshold sidecars available for the current log.
+    List the curve sidecars available for the current log.
 
-    A log may record threshold maps from several sensors, each in its own file.
+    A log may record curves from several sensors, each in its own file.
     They are separate sources rather than merged series because their range
     bins do not line up -- one sensor's profile ends at 241 m and another's at
     262 m, so there is no shared axis to draw them against.
@@ -257,22 +257,22 @@ def get_threshold_sources(
         stem: Log stem.
 
     Returns:
-        List of ``{"id", "label"}`` dicts; empty when the log has no threshold
+        List of ``{"id", "label"}`` dicts; empty when the log has no curve
         sidecar.
     """
     if manifest is None or not stem:
         return []
     return [
         {"id": source["id"], "label": source["label"]}
-        for source in manifest.threshold_sources(stem)
+        for source in manifest.curve_sources(stem)
     ]
 
 
-def _threshold_store(
+def _curve_store(
     manifest: Manifest, stem: str, source_id: Optional[str] = None
-) -> Optional[ThresholdStore]:
+) -> Optional[CurveStore]:
     """
-    Open one of a log's threshold sidecars.
+    Open one of a log's curve sidecars.
 
     Args:
         manifest: Dataset manifest.
@@ -282,41 +282,41 @@ def _threshold_store(
     Returns:
         Store for that source, or None when it does not exist.
     """
-    path = manifest.threshold_path(stem, source_id)
+    path = manifest.curve_path(stem, source_id)
     if not path:
         return None
-    return ThresholdStore(path, sensor_id=source_id)
+    return CurveStore(path, sensor_id=source_id)
 
 
-def get_threshold_plots(
+def get_curve_plots(
     manifest: Optional[Manifest], stem: str, source_id: Optional[str] = None
 ) -> List[Dict[str, str]]:
     """
-    List the threshold plots available for the current log.
+    List the curve plots available for the current log.
 
     Args:
         manifest: Dataset manifest, or None.
         stem: Log stem.
-        source_id: Threshold source to inspect; defaults to the log's first.
+        source_id: Curve source to inspect; defaults to the log's first.
 
     Returns:
-        List of ``{"id", "label"}`` dicts; empty when the log has no threshold
+        List of ``{"id", "label"}`` dicts; empty when the log has no curve
         sidecar or the manifest declares no plots.
     """
-    if manifest is None or not manifest.has_threshold(stem):
+    if manifest is None or not manifest.has_curve(stem):
         return []
 
-    store = _threshold_store(manifest, stem, source_id)
+    store = _curve_store(manifest, stem, source_id)
     if store is None:
         return []
 
     # Plot definitions are declared once for the whole case, but which series a
     # given source actually recorded varies. Offering a plot whose series are
     # all missing would just show an empty frame, so check the file once here.
-    available = set(store.signals(manifest.threshold_dataset_pattern()))
+    available = set(store.signals(manifest.curve_dataset_pattern()))
 
     plots = []
-    for plot in manifest.threshold_plots():
+    for plot in manifest.curve_plots():
         usable = any(
             # A trace addressing a dataset directly cannot be checked by name;
             # keep it and let the read decide.
@@ -328,7 +328,7 @@ def get_threshold_plots(
     return plots
 
 
-def get_threshold_y_range(
+def get_curve_y_range(
     manifest: Optional[Manifest],
     stem: str,
     plot_id: str,
@@ -338,7 +338,7 @@ def get_threshold_y_range(
     source_id: Optional[str] = None,
 ) -> Optional[list]:
     """
-    Estimate a stable y range for one threshold plot.
+    Estimate a stable y range for one curve plot.
 
     Letting the axis autoscale per frame makes the curves jump while scrubbing,
     which hides exactly the thing these plots exist to show -- where the signal
@@ -354,15 +354,15 @@ def get_threshold_y_range(
         session_id: Session identifier, used as the cache scope.
         frame_ids: Frame ids to sample from, as derived from the Parquet data.
         max_frames: Maximum number of frames to sample.
-        source_id: Threshold source to sample; defaults to the log's first.
+        source_id: Curve source to sample; defaults to the log's first.
 
     Returns:
         ``[ymin, ymax]``, or None when nothing could be read.
     """
-    if manifest is None or not plot_id or not manifest.has_threshold(stem):
+    if manifest is None or not plot_id or not manifest.has_curve(stem):
         return None
 
-    plot = manifest.threshold_plot(plot_id)
+    plot = manifest.curve_plot(plot_id)
     if plot is None:
         return None
     if plot.get("y_range"):
@@ -371,7 +371,7 @@ def get_threshold_y_range(
     # Sources are scaled independently -- one sensor's levels say nothing about
     # another's -- so each gets its own estimate.
     cache_key = f"{stem}/{source_id or ''}/{plot_id}"
-    cached = cache_get(session_id, CACHE_KEYS["threshold_range"], cache_key)
+    cached = cache_get(session_id, CACHE_KEYS["curve_range"], cache_key)
     if cached is not None:
         return cached
 
@@ -385,7 +385,7 @@ def get_threshold_y_range(
     else:
         sampled = frame_ids
 
-    store = _threshold_store(manifest, stem, source_id)
+    store = _curve_store(manifest, stem, source_id)
     if store is None:
         return None
 
@@ -407,11 +407,11 @@ def get_threshold_y_range(
     # A little headroom so curves never sit flush against the frame.
     padding = (high - low) * 0.05 or 1.0
     y_range = [low - padding, high + padding]
-    cache_set(y_range, session_id, CACHE_KEYS["threshold_range"], cache_key)
+    cache_set(y_range, session_id, CACHE_KEYS["curve_range"], cache_key)
     return y_range
 
 
-def get_threshold_figure(
+def get_curve_figure(
     manifest: Optional[Manifest],
     stem: str,
     frame_id: Any,
@@ -420,7 +420,7 @@ def get_threshold_figure(
     source_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Build the 1D threshold figure for one (frame, plot).
+    Build the 1D curve figure for one (frame, plot).
 
     Args:
         manifest: Dataset manifest, or None.
@@ -428,21 +428,21 @@ def get_threshold_figure(
         frame_id: Frame identifier.
         plot_id: Plot identifier declared in the manifest.
         y_range: Optional [min, max] y clamp held constant across frames.
-        source_id: Threshold source to read; defaults to the log's first.
+        source_id: Curve source to read; defaults to the log's first.
 
     Returns:
         Figure dictionary; an empty placeholder figure when nothing is readable.
     """
-    if manifest is None or not plot_id or not manifest.has_threshold(stem):
-        return get_threshold_plot()
+    if manifest is None or not plot_id or not manifest.has_curve(stem):
+        return get_curve_plot()
 
-    plot = manifest.threshold_plot(plot_id)
+    plot = manifest.curve_plot(plot_id)
     if plot is None:
-        return get_threshold_plot()
+        return get_curve_plot()
 
-    store = _threshold_store(manifest, stem, source_id)
+    store = _curve_store(manifest, stem, source_id)
     if store is None:
-        return get_threshold_plot()
+        return get_curve_plot()
 
     # Every series carries its own x column, so each curve is drawn against its
     # own axis rather than a shared one.
@@ -456,7 +456,7 @@ def get_threshold_figure(
         if axis is not None:
             x_series[trace["name"]] = axis
 
-    return get_threshold_plot(
+    return get_curve_plot(
         series=series,
         x_series=x_series,
         traces=plot["traces"],

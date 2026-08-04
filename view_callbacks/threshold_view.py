@@ -28,10 +28,10 @@ from app_config import CACHE_KEYS
 from frame_sources import (
     get_log_stem,
     get_manifest,
-    get_threshold_figure,
-    get_threshold_plots,
-    get_threshold_sources,
-    get_threshold_y_range,
+    get_curve_figure,
+    get_curve_plots,
+    get_curve_sources,
+    get_curve_y_range,
 )
 
 from utils import cache_get
@@ -74,7 +74,7 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
             dict: Section visibility, source options, and selected source
         """
         manifest = get_manifest(session_id)
-        sources = get_threshold_sources(manifest, get_log_stem(session_id))
+        sources = get_curve_sources(manifest, get_log_stem(session_id))
 
         if not sources:
             return {
@@ -119,7 +119,7 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
         """
         manifest = get_manifest(session_id)
         plots = (
-            get_threshold_plots(manifest, get_log_stem(session_id), source_id)
+            get_curve_plots(manifest, get_log_stem(session_id), source_id)
             if source_id
             else []
         )
@@ -184,7 +184,7 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
 
         # Held constant across frames so the signal's position relative to its
         # threshold stays readable while scrubbing.
-        y_range = get_threshold_y_range(
+        y_range = get_curve_y_range(
             manifest,
             stem,
             plot_id,
@@ -194,7 +194,7 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
         )
 
         return {
-            "figure": get_threshold_figure(
+            "figure": get_curve_figure(
                 manifest,
                 stem,
                 frame_list[frame_idx],

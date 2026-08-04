@@ -547,10 +547,10 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         # Persist the axis selections back to the dataset. This goes through the
         # manifest rather than dumping `config` straight over info.json: config
         # is only the flat radar projection, so writing it verbatim would wipe
-        # the frames / lidar / threshold / camera blocks of a v2 manifest.
+        # the cloud / curve / image blocks of a v2 manifest.
         manifest = get_manifest(session_id)
         if manifest is not None:
-            manifest.update_radar_view(config)
+            manifest.update_table_view(config)
             manifest.save()
             cache_manifest(manifest, session_id)
 

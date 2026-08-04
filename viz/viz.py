@@ -180,7 +180,7 @@ def _plottable(values: np.ndarray) -> Any:
     """
     Make a numeric vector safe to serialize into a figure.
 
-    Threshold exports carry ``-inf`` for bins a threshold does not apply to, and
+    Curve exports carry ``-inf`` for bins a threshold does not apply to, and
     JSON has no encoding for it. Replacing those with null both keeps the payload
     valid and leaves a gap in the line, which is the honest way to draw "no
     value here".
@@ -200,7 +200,7 @@ def _plottable(values: np.ndarray) -> Any:
     return [float(value) if ok else None for value, ok in zip(values, finite)]
 
 
-def get_threshold_plot(
+def get_curve_plot(
     series: Optional[Dict[str, np.ndarray]] = None,
     x_series: Optional[Dict[str, np.ndarray]] = None,
     traces: Optional[List[Dict[str, Any]]] = None,
@@ -212,10 +212,10 @@ def get_threshold_plot(
     log_y: bool = False,
 ) -> Dict[str, Any]:
     """
-    Render one 1D threshold plot: a signal and the thresholds applied to it.
+    Render one 1D curve plot: a signal and the thresholds applied to it.
 
     Which curves appear together, and how each is styled, comes from the
-    dataset's ``info.json`` rather than being inferred -- a threshold file holds
+    dataset's ``info.json`` rather than being inferred -- a curve file holds
     many named series and only the author knows which belong on the same axes.
 
     Args:
@@ -257,7 +257,7 @@ def get_threshold_plot(
                 **layout,
                 "annotations": [
                     {
-                        "text": "No threshold data for this frame",
+                        "text": "No curve data for this frame",
                         "xref": "paper",
                         "yref": "paper",
                         "x": 0.5,

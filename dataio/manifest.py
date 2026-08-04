@@ -3,10 +3,10 @@
 The manifest describes a *case* -- a folder that may hold many logs -- and
 nothing about any individual log. It declares:
 
-- the radar column metadata (description / decimal / type) driving the filter UI
+- the table's column metadata (description / decimal / type) driving the filter UI
 - the filename suffixes that associate a log's sidecars with it
 - per-sensor calibration, so overlaid point clouds share a reference frame
-- fixed lidar backdrop styling and the 1D threshold plot definitions
+- fixed point-cloud backdrop styling and the 1D curve plot definitions
 - how the reference overlay is drawn -- a plain marker, or a box scaled to the
   thing it stands for (see :func:`normalize_reference_display`)
 
@@ -20,18 +20,18 @@ Two things it deliberately does **not** declare:
 
       MyCase/
       ├── info.json
-      ├── drive_01.parquet          radar point cloud
-      ├── drive_01.lidar.h5         lidar backdrop
-      ├── drive_01.threshold.h5     threshold maps
-      ├── drive_01.sensor_2.h5      threshold maps from a second sensor
-      ├── drive_01.mp4              camera
-      ├── drive_01.rear.mp4         second camera stream
+      ├── drive_01.parquet          table (the filterable point cloud)
+      ├── drive_01.cloud.h5         point-cloud backdrop
+      ├── drive_01.curve.h5         1D curves
+      ├── drive_01.sensor_2.h5      curves from a second sensor
+      ├── drive_01.mp4              image stream
+      ├── drive_01.rear.mp4         a second image stream
       └── drive_02.parquet          another log, same conventions
 
   Adding a log is dropping files in the folder; no manifest edit is needed.
 
 A v1 ``info.json`` (no ``manifest_version``) is still accepted and upgraded in
-memory to a radar-only v2 manifest, so existing datasets keep working untouched.
+memory to a table-only v2 manifest, so existing datasets keep working untouched.
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -48,8 +48,8 @@ from dataio.calibration import Calibration
 MANIFEST_VERSION = 2
 MANIFEST_NAME = "info.json"
 
-# Keys a v1 info.json carries at the top level; these move under "radar" in v2.
-_V1_RADAR_KEYS = (
+# Keys a v1 info.json carries at the top level; these move under "table" in v2.
+_V1_TABLE_KEYS = (
     "slider",
     "x_3d",
     "y_3d",
@@ -61,7 +61,7 @@ _V1_RADAR_KEYS = (
     "time_unit",
 )
 
-# Unit of the radar table's `Time` column, as seconds per stored unit.
+# Unit of the table's `Time` column, as seconds per stored unit.
 DEFAULT_TIME_UNIT = "s"
 TIME_UNIT_SCALES = {
     "s": 1.0,
@@ -81,16 +81,16 @@ TIME_UNIT_SCALES = {
     "nanoseconds": 1e-9,
 }
 
-# Default filename suffixes associating a log's sidecars with its radar table.
-DEFAULT_RADAR_SUFFIX = ".parquet"
-DEFAULT_LIDAR_SUFFIX = ".lidar.h5"
-DEFAULT_THRESHOLD_SUFFIX = ".threshold.h5"
+# Default filename suffixes associating a log's sidecars with its table.
+DEFAULT_TABLE_SUFFIX = ".parquet"
+DEFAULT_CLOUD_SUFFIX = ".cloud.h5"
+DEFAULT_CURVE_SUFFIX = ".curve.h5"
 # mp4 first: a stream present in both containers is served without a transcode.
-DEFAULT_CAMERA_SUFFIXES = (".mp4", ".avi")
-DEFAULT_CAMERA_SUFFIX = DEFAULT_CAMERA_SUFFIXES[0]
+DEFAULT_IMAGE_SUFFIXES = (".mp4", ".avi")
+DEFAULT_IMAGE_SUFFIX = DEFAULT_IMAGE_SUFFIXES[0]
 
-DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
-DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
+DEFAULT_CLOUD_PATTERN = "/frame_{frame_id}"
+DEFAULT_CURVE_PATTERN = "/frames/{frame_id}/{name}"
 
 # Fallback trace colors, used in order for traces that declare none.
 DEFAULT_TRACE_COLORS = (
@@ -102,14 +102,14 @@ DEFAULT_TRACE_COLORS = (
     "#4cd4e8",
 )
 
-# Fixed lidar backdrop styling. Lidar has no runtime UI controls by design, so
+# Fixed backdrop styling. The cloud has no runtime UI controls by design, so
 # these live in the manifest (or fall back to these defaults) rather than
 # being wired to dropdowns.
-DEFAULT_LIDAR_DISPLAY = {
+DEFAULT_CLOUD_DISPLAY = {
     "color": "#8d99ae",
     "size": 1.2,
     "opacity": 0.35,
-    "name": "Lidar",
+    "name": "Point Cloud",
 }
 
 # Reference marker styling. *Where* the reference sits is picked in the 3D view
@@ -217,20 +217,43 @@ def normalize_reference_display(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]
     return display
 
 
-def log_stem(file_name: str, radar_suffix: str = DEFAULT_RADAR_SUFFIX) -> str:
+def _suffix_source_id(suffix: str) -> str:
     """
-    Reduce a radar filename to the stem its sidecars are keyed on.
+    Name a source after the suffix that matched its whole filename.
+
+    ``os.path.splitext`` is no help here: it reads a leading dot as a hidden
+    filename, so it would call ``".sensor_1.h5"`` extensionless. Stripping that
+    dot first leaves the part that actually distinguishes one sidecar from
+    another.
 
     Args:
-        file_name: Radar file name or path.
-        radar_suffix: Radar file suffix to strip.
+        suffix: Filename suffix from the manifest, e.g. ``".sensor_1.h5"``.
 
     Returns:
-        Basename with the radar suffix removed. Legacy ``.csv``/``.pkl`` names
+        The identifying stem -- ``sensor_1`` here, ``curve`` for the default
+        ``".curve.h5"``. A bare extension like ``".h5"`` distinguishes
+        nothing, so it falls back to ``curve``.
+    """
+    body = suffix.lstrip(".")
+    if "." not in body:
+        return "curve"
+    return os.path.splitext(body)[0] or "curve"
+
+
+def log_stem(file_name: str, table_suffix: str = DEFAULT_TABLE_SUFFIX) -> str:
+    """
+    Reduce a table filename to the stem its sidecars are keyed on.
+
+    Args:
+        file_name: Table file name or path.
+        table_suffix: Table file suffix to strip.
+
+    Returns:
+        Basename with the table suffix removed. Legacy ``.csv``/``.pkl`` names
         also reduce correctly so v1 datasets share this code path.
     """
     base = os.path.basename(file_name)
-    for suffix in (radar_suffix, ".parquet", ".csv", ".pkl"):
+    for suffix in (table_suffix, ".parquet", ".csv", ".pkl"):
         if suffix and base.lower().endswith(suffix.lower()):
             return base[: -len(suffix)]
     return os.path.splitext(base)[0]
@@ -299,24 +322,24 @@ class Manifest:
         return self.raw.get("name") or os.path.basename(os.path.normpath(self.case_dir))
 
     @property
-    def radar(self) -> Dict[str, Any]:
-        """The ``radar`` block (always present after upgrade)."""
-        return self.raw.get("radar", {})
+    def table(self) -> Dict[str, Any]:
+        """The ``table`` block (always present after upgrade)."""
+        return self.raw.get("table", {})
 
     @property
-    def lidar(self) -> Optional[Dict[str, Any]]:
-        """The ``lidar`` block, or None when the dataset declares no lidar."""
-        return self.raw.get("lidar")
+    def cloud(self) -> Optional[Dict[str, Any]]:
+        """The ``cloud`` block, or None when the dataset declares no point cloud."""
+        return self.raw.get("cloud")
 
     @property
-    def threshold(self) -> Optional[Dict[str, Any]]:
-        """The ``threshold`` block, or None when the dataset declares no maps."""
-        return self.raw.get("threshold")
+    def curve(self) -> Optional[Dict[str, Any]]:
+        """The ``curve`` block, or None when the dataset declares no curves."""
+        return self.raw.get("curve")
 
     @property
-    def camera(self) -> Optional[Dict[str, Any]]:
-        """The ``camera`` block, or None when the dataset declares no camera."""
-        return self.raw.get("camera")
+    def image(self) -> Optional[Dict[str, Any]]:
+        """The ``image`` block, or None when the dataset declares no images."""
+        return self.raw.get("image")
 
     @property
     def reference(self) -> Optional[Dict[str, Any]]:
@@ -325,21 +348,21 @@ class Manifest:
 
     @property
     def frame_key(self) -> str:
-        """Column in the radar table used as the frame/slider key."""
-        return self.radar.get("slider", "Frame")
+        """Column in the table used as the frame/slider key."""
+        return self.table.get("slider", "Frame")
 
     @property
     def time_unit(self) -> str:
         """
-        Unit of the radar table's ``Time`` column.
+        Unit of the table's ``Time`` column.
 
-        Timestamps drive the capture rate and the camera seek, so the unit has
+        Timestamps drive the capture rate and the image seek, so the unit has
         to be known rather than guessed -- a log timestamped in milliseconds
         read as seconds yields a 0.02 Hz capture rate and a video that never
         moves. Declared rather than sniffed because the only honest signal is
         the exporter's intent.
         """
-        return str(self.radar.get("time_unit", DEFAULT_TIME_UNIT)).lower()
+        return str(self.table.get("time_unit", DEFAULT_TIME_UNIT)).lower()
 
     @property
     def time_scale(self) -> float:
@@ -357,21 +380,21 @@ class Manifest:
     # ------------------------------------------------------------------
 
     @property
-    def radar_suffix(self) -> str:
-        """Filename suffix identifying a radar table."""
-        return self.radar.get("suffix", DEFAULT_RADAR_SUFFIX)
+    def table_suffix(self) -> str:
+        """Filename suffix identifying a table."""
+        return self.table.get("suffix", DEFAULT_TABLE_SUFFIX)
 
     def stem_of(self, file_name: str) -> str:
         """
-        Reduce a radar filename to this dataset's log stem.
+        Reduce a table filename to this dataset's log stem.
 
         Args:
-            file_name: Radar file name or path.
+            file_name: Table file name or path.
 
         Returns:
             Stem used to locate that log's sidecars.
         """
-        return log_stem(file_name, self.radar_suffix)
+        return log_stem(file_name, self.table_suffix)
 
     def _sidecar_path(self, stem: str, suffix: str) -> str:
         """
@@ -387,40 +410,40 @@ class Manifest:
         return os.path.normpath(os.path.join(self.case_dir, f"{stem}{suffix}"))
 
     # ------------------------------------------------------------------
-    # Radar
+    # Table
     # ------------------------------------------------------------------
 
     @property
     def keys(self) -> Dict[str, Dict[str, Any]]:
-        """Radar column metadata driving the filter UI and hover text."""
-        return self.radar.get("keys", {})
+        """Column metadata driving the filter UI and hover text."""
+        return self.table.get("keys", {})
 
     # ------------------------------------------------------------------
-    # Lidar
+    # Cloud
     # ------------------------------------------------------------------
 
     @property
-    def lidar_suffix(self) -> str:
-        """Filename suffix identifying a lidar sidecar."""
-        return (self.lidar or {}).get("suffix", DEFAULT_LIDAR_SUFFIX)
+    def cloud_suffix(self) -> str:
+        """Filename suffix identifying a point-cloud sidecar."""
+        return (self.cloud or {}).get("suffix", DEFAULT_CLOUD_SUFFIX)
 
-    def lidar_path(self, stem: str) -> Optional[str]:
+    def cloud_path(self, stem: str) -> Optional[str]:
         """
-        Path to one log's lidar sidecar.
+        Path to one log's point-cloud sidecar.
 
         Args:
             stem: Log stem.
 
         Returns:
-            Absolute path, or None when the dataset declares no lidar.
+            Absolute path, or None when the dataset declares no cloud.
         """
-        if not self.lidar:
+        if not self.cloud:
             return None
-        return self._sidecar_path(stem, self.lidar_suffix)
+        return self._sidecar_path(stem, self.cloud_suffix)
 
-    def has_lidar(self, stem: str) -> bool:
+    def has_cloud(self, stem: str) -> bool:
         """
-        Whether a given log has a lidar backdrop on disk.
+        Whether a given log has a point-cloud backdrop on disk.
 
         Args:
             stem: Log stem.
@@ -428,124 +451,152 @@ class Manifest:
         Returns:
             True when the sidecar is declared and present.
         """
-        path = self.lidar_path(stem)
+        path = self.cloud_path(stem)
         return bool(path and os.path.exists(path))
 
-    def lidar_dataset_pattern(self) -> str:
-        """HDF5 dataset path pattern for a lidar frame."""
-        return (self.lidar or {}).get("dataset_pattern", DEFAULT_LIDAR_PATTERN)
+    def cloud_dataset_pattern(self) -> str:
+        """HDF5 dataset path pattern for one cloud frame."""
+        return (self.cloud or {}).get("dataset_pattern", DEFAULT_CLOUD_PATTERN)
 
-    def lidar_calibration(self) -> Calibration:
-        """Extrinsics for the lidar point cloud."""
-        return Calibration.from_dict((self.lidar or {}).get("calibration"))
+    def cloud_calibration(self) -> Calibration:
+        """Extrinsics for the point cloud."""
+        return Calibration.from_dict((self.cloud or {}).get("calibration"))
 
-    def lidar_display(self) -> Dict[str, Any]:
+    def cloud_display(self) -> Dict[str, Any]:
         """
-        Fixed styling for the lidar backdrop trace.
+        Fixed styling for the point-cloud backdrop trace.
 
         Returns:
             Dict with ``color``, ``size``, ``opacity`` and ``name``, merging
             manifest overrides over the module defaults.
         """
-        display = dict(DEFAULT_LIDAR_DISPLAY)
-        display.update((self.lidar or {}).get("display") or {})
+        display = dict(DEFAULT_CLOUD_DISPLAY)
+        display.update((self.cloud or {}).get("display") or {})
         return display
 
     # ------------------------------------------------------------------
-    # Threshold maps
+    # Curves
     # ------------------------------------------------------------------
 
     @property
-    def threshold_suffix(self) -> str:
-        """Filename suffix identifying a threshold sidecar."""
-        return (self.threshold or {}).get("suffix", DEFAULT_THRESHOLD_SUFFIX)
-
-    def threshold_dataset_pattern(self) -> str:
-        """HDF5 dataset path pattern for one threshold series."""
-        return (self.threshold or {}).get("dataset_pattern", DEFAULT_THRESHOLD_PATTERN)
-
-    def threshold_sources(self, stem: str) -> List[Dict[str, Any]]:
+    def curve_suffixes(self) -> List[str]:
         """
-        Discover a log's threshold sidecars on disk.
+        Filename suffixes identifying a curve sidecar, in listing order.
 
-        Sources are found rather than declared, the same way camera streams are:
-        ``<stem><suffix>`` is the log's default source and ``<stem>.<id><suffix>``
-        adds a named one. A dataset whose maps are split per sensor therefore
-        declares ``"suffix": ".h5"`` and drops ``<stem>.sensor_1.h5`` …
-        ``<stem>.sensor_5.h5`` in the folder -- no manifest edit per sensor.
+        ``suffix`` may be a single string -- generic like ``".h5"`` or specific
+        like the default ``".curve.h5"`` -- or a list naming each sidecar
+        outright. See :meth:`curve_sources` for how the two forms differ.
+        """
+        declared = (self.curve or {}).get("suffix", DEFAULT_CURVE_SUFFIX)
+        if isinstance(declared, str):
+            return [declared]
+        return [str(item) for item in declared] or [DEFAULT_CURVE_SUFFIX]
+
+    def curve_dataset_pattern(self) -> str:
+        """HDF5 dataset path pattern for one curve."""
+        return (self.curve or {}).get("dataset_pattern", DEFAULT_CURVE_PATTERN)
+
+    def curve_sources(self, stem: str) -> List[Dict[str, Any]]:
+        """
+        Discover a log's curve sidecars on disk.
+
+        Sources are found rather than declared, the same way image streams are.
+        ``suffix`` accepts either form:
+
+        - One generic suffix, ``".h5"``, matches ``<stem><suffix>`` as the log's
+          default source and ``<stem>.<id><suffix>`` as a named one. Dropping
+          ``<stem>.sensor_6.h5`` in the folder adds a sixth sensor with no
+          manifest edit.
+        - A list, ``[".sensor_1.h5", ".sensor_2.h5", …]``, names the sidecars
+          outright. Worth the typing when the folder holds ``.h5`` files that are
+          *not* curves, or when the picker should list sensors in a
+          particular order rather than alphabetically.
+
+        Either way the source id is whatever distinguishes the file: the text
+        between stem and suffix when the suffix is generic, and the suffix's own
+        stem when it names the file outright -- so ``".sensor_1.h5"`` yields
+        ``sensor_1`` and the default ``".curve.h5"`` yields ``curve``.
 
         Args:
             stem: Log stem.
 
         Returns:
             List of source dicts with ``id``, ``label``, and absolute ``file``,
-            sorted with the default source first.
+            in discovery order: declared-suffix order first, then filename order
+            within a suffix. A file matching more than one suffix is listed once,
+            under the first that claimed it.
         """
-        if not self.threshold or not stem:
+        if not self.curve or not stem:
             return []
 
-        suffix = self.threshold_suffix
         try:
-            entries = os.listdir(self.case_dir)
+            entries = sorted(os.listdir(self.case_dir))
         except OSError:
             return []
 
-        # A suffix as generic as ".h5" would otherwise swallow the lidar
-        # sidecar, which is a different kind of file entirely.
+        suffixes = self.curve_suffixes
+        declared = {suffix.lower() for suffix in suffixes}
+
+        # A suffix as generic as ".h5" would otherwise swallow the cloud
+        # sidecar, which is a different kind of file entirely. A suffix the
+        # dataset declared explicitly is never treated as someone else's.
         reserved = {
             other.lower()
-            for other in (self.lidar_suffix, self.radar_suffix)
-            if other.lower() != suffix.lower()
+            for other in (self.cloud_suffix, self.table_suffix)
+            if other.lower() not in declared
         }
 
-        sources = []
-        for name in entries:
-            lowered = name.lower()
-            if not name.startswith(stem) or not lowered.endswith(suffix.lower()):
-                continue
-            if any(lowered.endswith(other) for other in reserved):
-                continue
+        sources: Dict[str, Dict[str, Any]] = {}
+        for suffix in suffixes:
+            lowered_suffix = suffix.lower()
+            for name in entries:
+                lowered = name.lower()
+                if not name.startswith(stem) or not lowered.endswith(lowered_suffix):
+                    continue
+                if any(lowered.endswith(other) for other in reserved):
+                    continue
 
-            middle = name[len(stem) : -len(suffix)]
-            if middle == "":
-                source_id = "threshold"
-                label = "Threshold"
-            elif middle.startswith("."):
-                source_id = middle[1:]
-                label = source_id.replace("_", " ").title()
-            else:
-                # Belongs to a different log whose stem merely shares a prefix.
-                continue
+                middle = name[len(stem) : -len(suffix)]
+                if middle == "":
+                    # The suffix names the file on its own, so it is what tells
+                    # this source apart from its siblings.
+                    source_id = _suffix_source_id(suffix)
+                elif middle.startswith("."):
+                    source_id = middle[1:]
+                else:
+                    # Belongs to a different log whose stem merely shares a prefix.
+                    continue
 
-            sources.append(
-                {
-                    "id": source_id,
-                    "label": label,
-                    "file": os.path.join(self.case_dir, name),
-                }
-            )
+                sources.setdefault(
+                    source_id,
+                    {
+                        "id": source_id,
+                        "label": source_id.replace("_", " ").title(),
+                        "file": os.path.join(self.case_dir, name),
+                    },
+                )
 
-        return sorted(sources, key=lambda s: (s["id"] != "threshold", s["id"]))
+        return list(sources.values())
 
-    def threshold_path(
+    def curve_path(
         self, stem: str, source_id: Optional[str] = None
     ) -> Optional[str]:
         """
-        Path to one of a log's threshold sidecars.
+        Path to one of a log's curve sidecars.
 
         Args:
             stem: Log stem.
-            source_id: Source identifier from :meth:`threshold_sources`. Defaults
+            source_id: Source identifier from :meth:`curve_sources`. Defaults
                 to the log's first source.
 
         Returns:
-            Absolute path, or None when the dataset declares no threshold maps
+            Absolute path, or None when the dataset declares no curves
             or names a source this log does not have.
         """
-        if not self.threshold:
+        if not self.curve:
             return None
 
-        sources = self.threshold_sources(stem)
+        sources = self.curve_sources(stem)
         if not sources:
             return None
         if source_id is None:
@@ -554,9 +605,9 @@ class Manifest:
         match = next((s for s in sources if s["id"] == source_id), None)
         return match["file"] if match else None
 
-    def has_threshold(self, stem: str) -> bool:
+    def has_curve(self, stem: str) -> bool:
         """
-        Whether a given log has threshold maps on disk.
+        Whether a given log has curves on disk.
 
         Args:
             stem: Log stem.
@@ -564,13 +615,13 @@ class Manifest:
         Returns:
             True when at least one sidecar is declared and present.
         """
-        return bool(self.threshold_sources(stem))
+        return bool(self.curve_sources(stem))
 
-    def threshold_plots(self) -> List[Dict[str, Any]]:
+    def curve_plots(self) -> List[Dict[str, Any]]:
         """
-        Normalized threshold plot definitions from the manifest.
+        Normalized curve plot definitions from the manifest.
 
-        Threshold series are 1D and a single file holds many of them, so what
+        Curves are 1D and a single file holds many of them, so what
         goes on which plot -- and how each curve is drawn -- is declared rather
         than guessed. Each plot definition looks like::
 
@@ -595,10 +646,10 @@ class Manifest:
 
         Returns:
             List of plot definitions with defaults filled in. Empty when the
-            dataset declares no threshold plots.
+            dataset declares no curve plots.
         """
-        block = self.threshold or {}
-        default_pattern = block.get("dataset_pattern", DEFAULT_THRESHOLD_PATTERN)
+        block = self.curve or {}
+        default_pattern = block.get("dataset_pattern", DEFAULT_CURVE_PATTERN)
 
         plots = []
         for index, plot in enumerate(block.get("plots") or []):
@@ -650,9 +701,9 @@ class Manifest:
 
         return plots
 
-    def threshold_plot(self, plot_id: str) -> Optional[Dict[str, Any]]:
+    def curve_plot(self, plot_id: str) -> Optional[Dict[str, Any]]:
         """
-        Look up one normalized threshold plot definition.
+        Look up one normalized curve plot definition.
 
         Args:
             plot_id: Plot identifier.
@@ -660,34 +711,34 @@ class Manifest:
         Returns:
             The plot definition, or None when no plot has that id.
         """
-        return next((p for p in self.threshold_plots() if p["id"] == plot_id), None)
+        return next((p for p in self.curve_plots() if p["id"] == plot_id), None)
 
     # ------------------------------------------------------------------
-    # Camera
+    # Images
     # ------------------------------------------------------------------
 
     @property
-    def camera_suffixes(self) -> List[str]:
+    def image_suffixes(self) -> List[str]:
         """
-        Filename suffixes identifying a camera stream, in preference order.
+        Filename suffixes identifying an image stream, in preference order.
 
         ``suffix`` may be a single string or a list. The default accepts the
         recorder's own container alongside mp4, because a log is dropped in the
         folder as it was recorded -- an ``.avi`` no browser can play is
         transcoded on the way out rather than being ignored here.
         """
-        declared = (self.camera or {}).get("suffix", DEFAULT_CAMERA_SUFFIXES)
+        declared = (self.image or {}).get("suffix", DEFAULT_IMAGE_SUFFIXES)
         if isinstance(declared, str):
             return [declared]
-        return [str(item) for item in declared] or list(DEFAULT_CAMERA_SUFFIXES)
+        return [str(item) for item in declared] or list(DEFAULT_IMAGE_SUFFIXES)
 
-    def camera_streams(self, stem: str) -> List[Dict[str, Any]]:
+    def image_streams(self, stem: str) -> List[Dict[str, Any]]:
         """
-        Discover a log's camera streams on disk.
+        Discover a log's image streams on disk.
 
         Streams are found rather than declared: ``<stem>.mp4`` is the log's
         default stream, and ``<stem>.<id>.mp4`` adds a named one, so a second
-        camera is just another file in the folder.
+        second stream is just another file in the folder.
 
         Args:
             stem: Log stem.
@@ -698,7 +749,7 @@ class Manifest:
             several containers, the earliest declared suffix wins -- a log
             shipped as both mp4 and avi serves the mp4 and skips the transcode.
         """
-        if not self.camera or not stem:
+        if not self.image or not stem:
             return []
 
         try:
@@ -707,7 +758,7 @@ class Manifest:
             return []
 
         streams: Dict[str, Dict[str, Any]] = {}
-        for suffix in self.camera_suffixes:
+        for suffix in self.image_suffixes:
             lowered_suffix = suffix.lower()
             for name in entries:
                 if not name.startswith(stem) or not name.lower().endswith(
@@ -717,8 +768,8 @@ class Manifest:
 
                 middle = name[len(stem) : -len(suffix)]
                 if middle == "":
-                    stream_id = "camera"
-                    label = "Camera"
+                    stream_id = "image"
+                    label = "Image"
                 elif middle.startswith("."):
                     stream_id = middle[1:]
                     label = stream_id.replace("_", " ").title()
@@ -736,12 +787,12 @@ class Manifest:
                 )
 
         return sorted(
-            streams.values(), key=lambda s: (s["id"] != "camera", s["id"])
+            streams.values(), key=lambda s: (s["id"] != "image", s["id"])
         )
 
-    def has_camera(self, stem: str) -> bool:
+    def has_image(self, stem: str) -> bool:
         """
-        Whether a given log has at least one camera stream on disk.
+        Whether a given log has at least one image stream on disk.
 
         Args:
             stem: Log stem.
@@ -749,7 +800,7 @@ class Manifest:
         Returns:
             True when a stream file exists.
         """
-        return bool(self.camera_streams(stem))
+        return bool(self.image_streams(stem))
 
     # ------------------------------------------------------------------
     # Back-compat and persistence
@@ -766,7 +817,7 @@ class Manifest:
         Returns:
             Flat dictionary in v1 ``info.json`` form.
         """
-        config = {key: self.radar[key] for key in _V1_RADAR_KEYS if key in self.radar}
+        config = {key: self.table[key] for key in _V1_TABLE_KEYS if key in self.table}
         config.setdefault("keys", {})
         config.setdefault("slider", "Frame")
 
@@ -779,18 +830,18 @@ class Manifest:
 
         return config
 
-    def update_radar_view(self, values: Dict[str, Any]) -> None:
+    def update_table_view(self, values: Dict[str, Any]) -> None:
         """
-        Update the radar axis/slider selections held in the manifest.
+        Update the axis/slider selections held in the manifest.
 
         Args:
             values: Subset of ``slider``, ``x_3d``, ``y_3d``, ``z_3d``,
                 ``x_ref``, ``y_ref``, ``z_ref``. Unknown keys are ignored.
         """
-        radar = self.raw.setdefault("radar", {})
-        for key in _V1_RADAR_KEYS:
+        table = self.raw.setdefault("table", {})
+        for key in _V1_TABLE_KEYS:
             if key in values and key != "keys":
-                radar[key] = values[key]
+                table[key] = values[key]
 
     def save(self) -> str:
         """
@@ -799,8 +850,8 @@ class Manifest:
         Writing preserves the on-disk schema version: a v1 dataset stays a flat
         v1 file, a v2 dataset keeps every block it declared. This matters
         because the 3D view persists axis selections on every change -- dumping
-        the flat projection over a v2 file would destroy the lidar, threshold,
-        and camera blocks.
+        the flat projection over a v2 file would destroy the cloud, curve,
+        and image blocks.
 
         Returns:
             Path written.
@@ -817,8 +868,8 @@ def upgrade_to_v2(raw: Dict[str, Any]) -> Dict[str, Any]:
     """
     Normalize a decoded manifest to the v2 shape.
 
-    A v1 manifest keeps its radar column metadata but is nested under a
-    ``radar`` block; it declares no lidar, threshold, or camera sidecars.
+    A v1 manifest keeps its column metadata but is nested under a ``table``
+    block; it declares no cloud, curve, or image sidecars.
 
     Args:
         raw: Decoded manifest dictionary.
@@ -829,11 +880,11 @@ def upgrade_to_v2(raw: Dict[str, Any]) -> Dict[str, Any]:
     if raw.get("manifest_version"):
         return raw
 
-    radar = {key: raw[key] for key in _V1_RADAR_KEYS if key in raw}
+    table = {key: raw[key] for key in _V1_TABLE_KEYS if key in raw}
     upgraded = {
         "manifest_version": MANIFEST_VERSION,
         "name": raw.get("name"),
-        "radar": radar,
+        "table": table,
     }
 
     # The reference block sits at the top level in both schemas, so a v1

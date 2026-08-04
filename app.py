@@ -49,8 +49,8 @@ from view_callbacks.threshold_view import get_threshold_view_callbacks
 from frame_sources import (
     get_log_stem,
     get_manifest,
-    get_lidar_trace,
-    playable_camera_file,
+    get_cloud_trace,
+    playable_image_file,
 )
 
 from app_config import app
@@ -125,14 +125,14 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
     )
 
 
-@app.server.route("/api/lidar/<session>/<int:frame_idx>", methods=["GET"])
-def get_lidar_frame(session: str, frame_idx: int) -> Response:
+@app.server.route("/api/cloud/<session>/<int:frame_idx>", methods=["GET"])
+def get_cloud_frame(session: str, frame_idx: int) -> Response:
     """
-    Serve the lidar backdrop trace for one frame.
+    Serve the point-cloud backdrop trace for one frame.
 
-    Lidar is deliberately kept off the IndexedDB figure-buffer path that the
+    The cloud is deliberately kept off the IndexedDB figure-buffer path that the
     radar traces use. The buffer pre-fetches a window of frames ahead, and a
-    decimated lidar frame is orders of magnitude larger than a radar one --
+    decimated cloud frame is orders of magnitude larger than a table one --
     buffering it would balloon client storage for data that is pure backdrop.
     Instead the client fetches just the frame it is displaying, and caches it.
 
@@ -142,20 +142,20 @@ def get_lidar_frame(session: str, frame_idx: int) -> Response:
 
     Returns:
         JSON ``{"trace": <scatter3d trace>}``, or ``{"trace": null}`` when the
-        dataset has no lidar or that frame is missing.
+        dataset has no cloud or that frame is missing.
     """
     empty = Response(orjson.dumps({"trace": None}), mimetype="application/json")
 
     manifest = get_manifest(session)
     stem = get_log_stem(session)
-    if manifest is None or not stem or not manifest.has_lidar(stem):
+    if manifest is None or not stem or not manifest.has_cloud(stem):
         return empty
 
     frame_list = cache_get(session, CACHE_KEYS["frame_list"])
     if frame_list is None or frame_idx < 0 or frame_idx >= len(frame_list):
         return empty
 
-    trace = get_lidar_trace(manifest, stem, frame_list[frame_idx])
+    trace = get_cloud_trace(manifest, stem, frame_list[frame_idx])
     if trace is None:
         return empty
 
@@ -192,12 +192,12 @@ def get_camera_stream(session: str, stream_id: str):
         abort(404)
 
     stream = next(
-        (s for s in manifest.camera_streams(stem) if s["id"] == stream_id), None
+        (s for s in manifest.image_streams(stem) if s["id"] == stream_id), None
     )
     if stream is None:
         abort(404)
 
-    playable = playable_camera_file(stream["file"])
+    playable = playable_image_file(stream["file"])
     if playable is None:
         abort(404)
 
