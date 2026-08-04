@@ -78,11 +78,26 @@
       icon.className = "bi " + (collapsed ? iconClosed : iconOpen);
     }
     refitDuring(260);
+
+    /* The size a panel expands back to was agreed with a window that may since
+       have shrunk. Checked once the animation has landed rather than now, so
+       the check reads settled sizes and the animation still plays. */
+    window.setTimeout(function () {
+      fitToViewport();
+      refitPlots();
+    }, 280);
   }
 
   /* ── Splitters ──────────────────────────────────────────────────────── */
 
   var dragState = null;
+
+  /* Both properties, because these regions are flex items sized by basis but
+     still read by anything that measures `width`/`height`. */
+  function setPanelSize(panel, axis, size) {
+    panel.style.flexBasis = size + "px";
+    panel.style[axis === "y" ? "height" : "width"] = size + "px";
+  }
 
   /* The ceiling is whatever the 3D view can give up and still be usable, which
      is only knowable at grab time: the canvas is the flexible region, so its
@@ -125,10 +140,10 @@
     var next = dragState.startSize + (pos - dragState.start) * spec.grow;
     next = Math.min(Math.max(next, spec.min), dragState.max);
 
-    /* Both properties, because these regions are flex items sized by basis but
-       still read by anything that measures `width`/`height`. */
-    dragState.panel.style.flexBasis = next + "px";
-    dragState.panel.style[spec.axis === "y" ? "height" : "width"] = next + "px";
+    /* Kept as the size that was asked for, not just the size that was applied:
+       a window too narrow to honour it now may be wide enough for it later. */
+    dragState.panel.svSize = next;
+    setPanelSize(dragState.panel, spec.axis, next);
     refitPlots();
   }
 
@@ -148,10 +163,112 @@
   function onSplitterDouble(spec) {
     var panel = document.getElementById(spec.panel);
     if (!panel) return;
+    panel.svSize = null;
     panel.style.flexBasis = "";
     panel.style.width = "";
     panel.style.height = "";
     refitDuring(260);
+  }
+
+  /* ── Fitting the dragged sizes to the window ────────────────────────── */
+
+  /* A drag writes pixels onto a panel, and pixels do not shrink with the
+     window: narrow it far enough and the panels together outrun the stage,
+     leaving the canvas with nothing and the shell overflowing. Every window
+     change therefore replays the intended sizes and then takes back only what
+     the canvas needs, so a panel gives way while there is no room for it and
+     returns to its dragged size once the room comes back. */
+
+  function measure(element, axis) {
+    if (!element) return 0;
+    var rect = element.getBoundingClientRect();
+    return axis === "y" ? rect.height : rect.width;
+  }
+
+  /* A collapsed panel is already at its floor and the stylesheet owns its size,
+     so there is nothing here to give. */
+  function resizablePanels(axis) {
+    var entries = [];
+    Object.keys(SPLITTERS).forEach(function (id) {
+      var spec = SPLITTERS[id];
+      if (spec.axis !== axis) return;
+      var panel = document.getElementById(spec.panel);
+      if (!panel || panel.classList.contains("sv-collapsed")) return;
+      entries.push({ spec: spec, panel: panel });
+    });
+    return entries;
+  }
+
+  /* The fit reads back the sizes it writes, so it has to run with the panel
+     transitions off: an animating width measures as whatever frame it is on,
+     and the stage would be sized against a number still on its way. */
+  function fitToViewport() {
+    document.body.classList.add("sv-fitting");
+    try {
+      fitRegions();
+    } finally {
+      /* Commit the last write while the transition is still suppressed. */
+      void document.body.offsetWidth;
+      document.body.classList.remove("sv-fitting");
+    }
+  }
+
+  function fitRegions() {
+    /* A window that grew has to hand back what the last shrink took off. */
+    resizablePanels("x")
+      .concat(resizablePanels("y"))
+      .forEach(function (entry) {
+        if (entry.panel.svSize != null) {
+          setPanelSize(entry.panel, entry.spec.axis, entry.panel.svSize);
+        }
+      });
+
+    resizablePanels("y").forEach(function (entry) {
+      var max = Math.max(entry.spec.min, window.innerHeight - DOCK_MAX_MARGIN);
+      var height = measure(entry.panel, "y");
+      if (height <= max) return;
+      if (entry.panel.svSize == null) entry.panel.svSize = height;
+      setPanelSize(entry.panel, "y", max);
+    });
+
+    var upper = document.querySelector(".sv-upper");
+    if (!upper) return;
+
+    /* Measured from what the columns occupy rather than from the canvas
+       itself: once the canvas has been squeezed to nothing its own width no
+       longer says how much room is missing. */
+    var occupied = 0;
+    Object.keys(SPLITTERS).forEach(function (id) {
+      if (SPLITTERS[id].axis !== "x") return;
+      occupied +=
+        measure(document.getElementById(SPLITTERS[id].panel), "x") +
+        measure(document.getElementById(id), "x");
+    });
+
+    var deficit = CANVAS_MIN - (measure(upper, "x") - occupied);
+    if (deficit <= 0) return;
+
+    var columns = resizablePanels("x");
+    columns.forEach(function (entry) {
+      entry.size = measure(entry.panel, "x");
+      entry.slack = Math.max(0, entry.size - entry.spec.min);
+    });
+
+    /* Emptied one column at a time, widest slack first: the panel that was
+       dragged out has the most to give, and a panel still at its designed
+       width should not be shaved to spare it. */
+    columns.sort(function (a, b) {
+      return b.slack - a.slack;
+    });
+
+    var remaining = deficit;
+    columns.forEach(function (entry) {
+      if (remaining <= 0 || entry.slack <= 0) return;
+      var give = Math.min(entry.slack, remaining);
+      remaining -= give;
+      if (entry.panel.svSize == null) entry.panel.svSize = entry.size;
+      setPanelSize(entry.panel, "x", entry.size - give);
+    });
   }
 
   /* ── Theme ──────────────────────────────────────────────────────────── */
@@ -249,6 +366,23 @@
     document.addEventListener("pointermove", onPointerMove);
     document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("pointercancel", onPointerUp);
+
+    /* refitPlots dispatches this same event, so only a genuine change of the
+       window is acted on -- otherwise every refit would re-enter and refit
+       again for as long as the browser kept up. */
+    var viewport = { w: window.innerWidth, h: window.innerHeight };
+    /* A window can be too small for the designed sizes from the outset, not
+       only after a drag. */
+    fitToViewport();
+    window.addEventListener("resize", function () {
+      if (window.innerWidth === viewport.w && window.innerHeight === viewport.h) {
+        return;
+      }
+      viewport.w = window.innerWidth;
+      viewport.h = window.innerHeight;
+      fitToViewport();
+      refitPlots();
+    });
 
     /* Dash replaces the switch when the layout re-renders, so keep looking
        until it exists rather than binding once at load. */

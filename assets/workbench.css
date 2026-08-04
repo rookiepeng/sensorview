@@ -1170,8 +1170,13 @@ body {
     cursor: col-resize !important;
 }
 
+/* Same reasoning while the window itself is being resized: the fit measures
+   what the panels occupy, and an animating width measures as whatever frame it
+   happens to be on. */
 .sv-resizing .sv-rail,
-.sv-resizing .sv-inspector {
+.sv-resizing .sv-inspector,
+.sv-fitting .sv-rail,
+.sv-fitting .sv-inspector {
     transition: none;
 }
 

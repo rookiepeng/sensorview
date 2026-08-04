@@ -238,7 +238,11 @@ def get_curve_plot(
     """
     layout: Dict[str, Any] = {
         "title": {"text": title} if title else None,
-        "xaxis": {"title": {"text": x_label}},
+        # Once the legend wraps to several rows it claims the whole bottom
+        # margin, and the axis title -- left without a band of its own -- is
+        # drawn back over the tick labels. `automargin` makes the title reserve
+        # its own space above whatever the legend took.
+        "xaxis": {"title": {"text": x_label}, "automargin": True},
         "yaxis": {"title": {"text": y_label}, "type": "log" if log_y else "linear"},
         # The legend lives below the axis rather than above it: on top it
         # wraps over the traces it is meant to label whenever a plot declares
