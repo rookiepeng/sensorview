@@ -490,11 +490,17 @@ body {
     background: var(--sv-bg);
 }
 
+/* Plotly redraws its drawing surfaces a frame behind the pointer, and those
+   surfaces are absolutely positioned inside a relatively positioned canvas --
+   so mid-drag they still carry the old size and paint straight over the
+   inspector, which is in flow and therefore paints below them. Clipping keeps
+   the stale edge inside the stage until the refit lands. */
 .sv-canvas .dash-graph,
 .sv-canvas .js-plotly-plot,
 .sv-canvas .plot-container {
     height: 100% !important;
     width: 100% !important;
+    overflow: hidden !important;
 }
 
 /* View controls float over the plot: chrome docked above the canvas would cost
@@ -771,6 +777,7 @@ body {
 .sv-threshold-graph .plot-container {
     width: 100% !important;
     height: 100% !important;
+    overflow: hidden !important;
 }
 
 /* ── Bottom dock: the six analysis charts ────────────────────────────── */
@@ -936,6 +943,9 @@ body {
 .sv-pane-plot .plot-container {
     height: 100% !important;
     width: 100% !important;
+    /* Same clipping as the stage: the dock splitter shrinks the pane a frame
+       before Plotly catches up. */
+    overflow: hidden !important;
 }
 
 /* A pane whose view is switched off shows why, instead of an empty rectangle. */
