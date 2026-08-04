@@ -90,7 +90,7 @@ DEFAULT_IMAGE_SUFFIXES = (".mp4", ".avi")
 DEFAULT_IMAGE_SUFFIX = DEFAULT_IMAGE_SUFFIXES[0]
 
 DEFAULT_CLOUD_PATTERN = "/frame_{frame_id}"
-DEFAULT_CURVE_PATTERN = "/frames/{frame_id}/{name}"
+DEFAULT_CURVE_PATTERN = "/frame_{frame_id}/{name}"
 
 # Fallback trace colors, used in order for traces that declare none.
 DEFAULT_TRACE_COLORS = (
