@@ -58,13 +58,36 @@ _V1_RADAR_KEYS = (
     "y_ref",
     "z_ref",
     "keys",
+    "time_unit",
 )
+
+# Unit of the radar table's `Time` column, as seconds per stored unit.
+DEFAULT_TIME_UNIT = "s"
+TIME_UNIT_SCALES = {
+    "s": 1.0,
+    "sec": 1.0,
+    "second": 1.0,
+    "seconds": 1.0,
+    "ms": 1e-3,
+    "msec": 1e-3,
+    "millisecond": 1e-3,
+    "milliseconds": 1e-3,
+    "us": 1e-6,
+    "usec": 1e-6,
+    "microsecond": 1e-6,
+    "microseconds": 1e-6,
+    "ns": 1e-9,
+    "nanosecond": 1e-9,
+    "nanoseconds": 1e-9,
+}
 
 # Default filename suffixes associating a log's sidecars with its radar table.
 DEFAULT_RADAR_SUFFIX = ".parquet"
 DEFAULT_LIDAR_SUFFIX = ".lidar.h5"
 DEFAULT_THRESHOLD_SUFFIX = ".threshold.h5"
-DEFAULT_CAMERA_SUFFIX = ".mp4"
+# mp4 first: a stream present in both containers is served without a transcode.
+DEFAULT_CAMERA_SUFFIXES = (".mp4", ".avi")
+DEFAULT_CAMERA_SUFFIX = DEFAULT_CAMERA_SUFFIXES[0]
 
 DEFAULT_LIDAR_PATTERN = "/frames/{frame_id}"
 DEFAULT_THRESHOLD_PATTERN = "/frames/{frame_id}/{name}"
@@ -329,6 +352,30 @@ class Manifest:
     def frame_key(self) -> str:
         """Column in the radar table used as the frame/slider key."""
         return self.radar.get("slider", "Frame")
+
+    @property
+    def time_unit(self) -> str:
+        """
+        Unit of the radar table's ``Time`` column.
+
+        Timestamps drive the capture rate and the camera seek, so the unit has
+        to be known rather than guessed -- a log timestamped in milliseconds
+        read as seconds yields a 0.02 Hz capture rate and a video that never
+        moves. Declared rather than sniffed because the only honest signal is
+        the exporter's intent.
+        """
+        return str(self.radar.get("time_unit", DEFAULT_TIME_UNIT)).lower()
+
+    @property
+    def time_scale(self) -> float:
+        """
+        Factor converting the ``Time`` column to seconds.
+
+        Returns:
+            Seconds per stored unit; 1.0 for an unrecognised declaration, which
+            keeps a typo from silently rescaling the whole frame index.
+        """
+        return TIME_UNIT_SCALES.get(self.time_unit, 1.0)
 
     # ------------------------------------------------------------------
     # Logs
@@ -694,8 +741,23 @@ class Manifest:
 
     @property
     def camera_suffix(self) -> str:
-        """Filename suffix identifying a camera stream."""
-        return (self.camera or {}).get("suffix", DEFAULT_CAMERA_SUFFIX)
+        """Primary filename suffix identifying a camera stream."""
+        return self.camera_suffixes[0]
+
+    @property
+    def camera_suffixes(self) -> List[str]:
+        """
+        Filename suffixes identifying a camera stream, in preference order.
+
+        ``suffix`` may be a single string or a list. The default accepts the
+        recorder's own container alongside mp4, because a log is dropped in the
+        folder as it was recorded -- an ``.avi`` no browser can play is
+        transcoded on the way out rather than being ignored here.
+        """
+        declared = (self.camera or {}).get("suffix", DEFAULT_CAMERA_SUFFIXES)
+        if isinstance(declared, str):
+            return [declared]
+        return [str(item) for item in declared] or list(DEFAULT_CAMERA_SUFFIXES)
 
     def camera_streams(self, stem: str) -> List[Dict[str, Any]]:
         """
@@ -710,42 +772,50 @@ class Manifest:
 
         Returns:
             List of stream dicts with ``id``, ``label``, and absolute ``file``,
-            sorted with the default stream first.
+            sorted with the default stream first. When one stream is present in
+            several containers, the earliest declared suffix wins -- a log
+            shipped as both mp4 and avi serves the mp4 and skips the transcode.
         """
         if not self.camera or not stem:
             return []
 
-        suffix = self.camera_suffix
         try:
-            entries = os.listdir(self.case_dir)
+            entries = sorted(os.listdir(self.case_dir))
         except OSError:
             return []
 
-        streams = []
-        for name in entries:
-            if not name.startswith(stem) or not name.lower().endswith(suffix.lower()):
-                continue
+        streams: Dict[str, Dict[str, Any]] = {}
+        for suffix in self.camera_suffixes:
+            lowered_suffix = suffix.lower()
+            for name in entries:
+                if not name.startswith(stem) or not name.lower().endswith(
+                    lowered_suffix
+                ):
+                    continue
 
-            middle = name[len(stem) : -len(suffix)]
-            if middle == "":
-                stream_id = "camera"
-                label = "Camera"
-            elif middle.startswith("."):
-                stream_id = middle[1:]
-                label = stream_id.replace("_", " ").title()
-            else:
-                # Belongs to a different log whose stem merely shares a prefix.
-                continue
+                middle = name[len(stem) : -len(suffix)]
+                if middle == "":
+                    stream_id = "camera"
+                    label = "Camera"
+                elif middle.startswith("."):
+                    stream_id = middle[1:]
+                    label = stream_id.replace("_", " ").title()
+                else:
+                    # Belongs to a different log whose stem merely shares a prefix.
+                    continue
 
-            streams.append(
-                {
-                    "id": stream_id,
-                    "label": label,
-                    "file": os.path.join(self.case_dir, name),
-                }
-            )
+                streams.setdefault(
+                    stream_id,
+                    {
+                        "id": stream_id,
+                        "label": label,
+                        "file": os.path.join(self.case_dir, name),
+                    },
+                )
 
-        return sorted(streams, key=lambda s: (s["id"] != "camera", s["id"]))
+        return sorted(
+            streams.values(), key=lambda s: (s["id"] != "camera", s["id"])
+        )
 
     def has_camera(self, stem: str) -> bool:
         """

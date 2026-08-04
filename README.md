@@ -72,6 +72,10 @@ The reasoning behind the split:
 - **Camera is seeked client-side.** A native `<video>` element does the decoding
   and the frame slider drives `currentTime`, so scrubbing costs no server round
   trip. Video is encoded all-intra because browsers can only seek to keyframes.
+  A recording in a container no browser plays — a vendor `.avi` off a logger —
+  is transcoded to that same all-intra mp4 on first request and cached under
+  `cache/video`, keyed on the source's size and mtime. The case folder is never
+  written to.
 
 Because the display-only views never depend on filter state, dragging a filter
 slider re-renders radar alone — it never re-reads lidar, threshold series, or video.
@@ -177,6 +181,41 @@ The y axis is held constant across frames rather than autoscaling, so where the
 signal sits relative to its threshold stays readable while scrubbing. Ingest
 writes a starter config grouping series onto axes by name prefix
 (`doppler_signal` → the Doppler plot), which you then split and style.
+
+### Camera
+
+Streams are discovered from the files themselves: `<stem>.mp4` is a log's
+default stream and `<stem>.<id>.mp4` adds a named one. `suffix` accepts a list,
+and defaults to `[".mp4", ".avi"]` so a recording can be dropped in the folder
+in whatever container it came out of the logger in:
+
+```json
+"camera": {
+    "suffix": [".mp4", ".avi"],
+    "time_offset": 0.0
+}
+```
+
+Earlier suffixes win, so a stream shipped as both mp4 and avi serves the mp4 and
+skips the transcode. Some recorders stamp a private fourcc onto a stream that is
+really a standard codec — `DJLS` frames are plain JPEG-LS — which ffmpeg refuses
+until the decoder is named; those tags are mapped in `dataio/video.py`.
+
+The seek is keyed off the log's **wall-clock timestamps**, not the slider index.
+For a stream this project encoded the two agree exactly, since frame *i* was
+written at *i / fps*. For a recording made alongside the data they do not: a
+10 fps dashcam against a 20 Hz radar log shares wall clock and nothing else.
+`time_offset` shifts the clip for a camera that did not start rolling at frame 0.
+
+That makes the unit of the radar `Time` column load-bearing, so it is declared
+rather than guessed:
+
+```json
+"radar": { "slider": "Frame", "time_unit": "ms" }
+```
+
+Accepts `s` (default), `ms`, `us`, `ns`. A log timestamped in milliseconds and
+read as seconds derives a 0.02 Hz capture rate and a video that never moves.
 
 ### Reference Overlay
 

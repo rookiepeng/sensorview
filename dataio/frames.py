@@ -67,6 +67,7 @@ def compute_timestamps(
     frame_key: str,
     time_key: Optional[str] = None,
     fps: float = DEFAULT_FPS,
+    time_scale: float = 1.0,
 ) -> List[float]:
     """
     Build the per-frame timestamp vector.
@@ -78,6 +79,9 @@ def compute_timestamps(
         time_key: Optional wall-clock time column. When present its per-frame
             minimum is used, rebased so the first frame sits at t=0.
         fps: Fallback rate used when no usable time column exists.
+        time_scale: Seconds per unit of the time column, from the manifest's
+            ``time_unit``. Applied after rebasing so a millisecond epoch does
+            not lose precision to float subtraction.
 
     Returns:
         List of timestamps in seconds, aligned index-wise with ``frame_ids``.
@@ -87,7 +91,7 @@ def compute_timestamps(
         stamps = [float(per_frame.get(frame_id, np.nan)) for frame_id in frame_ids]
         if stamps and not any(np.isnan(stamps)):
             base = stamps[0]
-            return [round(value - base, 6) for value in stamps]
+            return [round((value - base) * time_scale, 6) for value in stamps]
 
     return [round(index / fps, 6) for index in range(len(frame_ids))]
 
@@ -126,6 +130,7 @@ def build_frame_index(
     frame_key: str,
     time_key: Optional[str] = DEFAULT_TIME_KEY,
     fps: Optional[float] = None,
+    time_scale: float = 1.0,
 ) -> Tuple[np.ndarray, List[float], float]:
     """
     Derive the complete frame index from a radar table in one pass.
@@ -136,6 +141,8 @@ def build_frame_index(
         time_key: Wall-clock time column to look for; None skips the lookup.
         fps: Explicit capture rate. When None it is inferred from the derived
             timestamps.
+        time_scale: Seconds per unit of the time column; see
+            :func:`compute_timestamps`.
 
     Returns:
         Tuple of (frame ids, timestamps, fps).
@@ -143,7 +150,7 @@ def build_frame_index(
     frame_ids = unique_frame_ids(data, frame_key)
     resolved_time_key = find_time_key(data, time_key) if time_key else None
     timestamps = compute_timestamps(
-        data, frame_ids, frame_key, resolved_time_key, fps or DEFAULT_FPS
+        data, frame_ids, frame_key, resolved_time_key, fps or DEFAULT_FPS, time_scale
     )
     effective_fps = fps if fps is not None else derive_fps(timestamps)
     return frame_ids, timestamps, effective_fps

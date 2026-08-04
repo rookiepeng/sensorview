@@ -46,7 +46,12 @@ from view_callbacks.violin_view import get_violin_view_callbacks
 from view_callbacks.camera_view import get_camera_view_callbacks
 from view_callbacks.threshold_view import get_threshold_view_callbacks
 
-from frame_sources import get_log_stem, get_manifest, get_lidar_trace
+from frame_sources import (
+    get_log_stem,
+    get_manifest,
+    get_lidar_trace,
+    playable_camera_file,
+)
 
 from app_config import app
 from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
@@ -176,6 +181,10 @@ def get_camera_stream(session: str, stream_id: str):
         The mp4 file response. ``conditional=True`` enables HTTP Range
         requests, which is what makes ``currentTime`` seeking work at all --
         without it the browser must download the whole clip before it can seek.
+
+        A recording in a container browsers cannot play is transcoded on first
+        request and served from the video cache, so this can block for a few
+        seconds once per log.
     """
     manifest = get_manifest(session)
     stem = get_log_stem(session)
@@ -188,7 +197,11 @@ def get_camera_stream(session: str, stream_id: str):
     if stream is None:
         abort(404)
 
-    return send_file(stream["file"], mimetype="video/mp4", conditional=True)
+    playable = playable_camera_file(stream["file"])
+    if playable is None:
+        abort(404)
+
+    return send_file(playable, mimetype="video/mp4", conditional=True)
 
 
 # Initialize worker
