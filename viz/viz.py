@@ -243,11 +243,16 @@ def get_curve_plot(
         # The legend lives below the axis rather than above it: on top it
         # wraps over the traces it is meant to label whenever a plot declares
         # more than a handful, which the threshold plots regularly do.
-        "margin": {"l": 55, "r": 12, "b": 76, "t": 12},
+        "margin": {"l": 52, "r": 14, "b": 68, "t": 10},
         "legend": {
             "orientation": "h",
-            "yanchor": "top",
-            "y": -0.22,
+            # Anchored to the bottom of the figure, not to the plot area: a
+            # paper-relative offset is a fraction of the plot's height, so the
+            # taller the dock was dragged the further the legend drifted from
+            # the axis, leaving a band of empty space between the two.
+            "yref": "container",
+            "yanchor": "bottom",
+            "y": 0,
             "xanchor": "left",
             "x": 0,
             "font": {"size": 10},
@@ -255,6 +260,9 @@ def get_curve_plot(
             "tracegroupgap": 2,
         },
         "hovermode": "x unified",
+        # Every trace reports into one box, so a full-size hover label covers
+        # the curves it is describing.
+        "hoverlabel": {"font": {"size": 10.5}, "namelength": -1},
         "uirevision": "no_change",
     }
     if x_range:
@@ -311,6 +319,11 @@ def get_curve_plot(
                     "color": trace.get("color"),
                     "size": trace.get("size", 6),
                     "symbol": trace.get("symbol", "circle"),
+                    # An "-open" symbol is drawn by its outline alone, and an
+                    # outline of width zero is not drawn at all. Filled symbols
+                    # get the same colour they already have, so this costs them
+                    # nothing.
+                    "line": {"color": trace.get("color"), "width": 1.6},
                 },
                 "hovertemplate": "%{y:.2f}<extra>"
                 + str(trace.get("label", trace["name"]))

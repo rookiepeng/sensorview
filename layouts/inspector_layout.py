@@ -62,15 +62,17 @@ def _camera_section():
             html.Div(
                 [
                     html.Div(
-                        dbc.InputGroup(
-                            [
-                                dbc.InputGroupText("Stream"),
-                                dbc.Select(id="camera-stream-picker"),
-                            ],
-                            size="sm",
+                        html.Div(
+                            dbc.InputGroup(
+                                [
+                                    dbc.InputGroupText("Stream"),
+                                    dbc.Select(id="camera-stream-picker"),
+                                ],
+                                size="sm",
+                            ),
+                            id="camera-stream-picker-col",
                         ),
-                        id="camera-stream-picker-col",
-                        className="mb-2",
+                        className="sv-subsection-controls",
                     ),
                     html.Video(
                         id="camera-video",
@@ -127,30 +129,35 @@ def _threshold_section():
             ),
             html.Div(
                 [
-                    # A log may carry one sidecar per sensor. Their range bins
-                    # differ, so they are picked between rather than drawn
-                    # together.
+                    # Both selectors share one row, and each still hides on its
+                    # own when there is only one thing to pick.
                     html.Div(
-                        dbc.InputGroup(
-                            [
-                                dbc.InputGroupText("Sensor"),
-                                dbc.Select(id="threshold-source-picker"),
-                            ],
-                            size="sm",
-                        ),
-                        id="threshold-source-picker-col",
-                        className="mb-2",
-                    ),
-                    html.Div(
-                        dbc.InputGroup(
-                            [
-                                dbc.InputGroupText("Plot"),
-                                dbc.Select(id="threshold-plot-picker"),
-                            ],
-                            size="sm",
-                        ),
-                        id="threshold-plot-picker-col",
-                        className="mb-2",
+                        [
+                            # A log may carry one sidecar per sensor. Their
+                            # range bins differ, so they are picked between
+                            # rather than drawn together.
+                            html.Div(
+                                dbc.InputGroup(
+                                    [
+                                        dbc.InputGroupText("Sensor"),
+                                        dbc.Select(id="threshold-source-picker"),
+                                    ],
+                                    size="sm",
+                                ),
+                                id="threshold-source-picker-col",
+                            ),
+                            html.Div(
+                                dbc.InputGroup(
+                                    [
+                                        dbc.InputGroupText("Plot"),
+                                        dbc.Select(id="threshold-plot-picker"),
+                                    ],
+                                    size="sm",
+                                ),
+                                id="threshold-plot-picker-col",
+                            ),
+                        ],
+                        className="sv-subsection-controls",
                     ),
                     # A responsive Graph sets its own height:100% inline, so the
                     # size has to be pinned on the wrapper.
@@ -171,7 +178,7 @@ def _threshold_section():
             ),
         ],
         id="subview-threshold-section",
-        className="sv-subsection",
+        className="sv-subsection sv-subsection--grow",
     )
 
 
