@@ -60,7 +60,6 @@ from app_config import SPECIAL_FOLDERS, RADAR_FILE_EXTENSIONS
 from layouts.app_layout import get_app_layout
 from layouts.analysis_dock_layout import DOCK_VIEWS, EMPTY_SLOT
 
-
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = APP_TITLE
