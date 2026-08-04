@@ -31,37 +31,60 @@ def _camera_section():
     Build the camera portion of the dock.
 
     Returns:
-        html.Div: Stream selector and the video element.
+        html.Div: Stream selector and the video element, behind a header with
+        its own minimize toggle so it can give up space to the curve section.
     """
     return html.Div(
         [
             dcc.Store(id="camera-config"),
             dcc.Store(id="camera-seek-ack"),
-            html.Span(
-                [html.I(className="bi bi-camera-video me-2"), "Image"],
-                className="sv-section-label",
+            html.Div(
+                [
+                    html.Span(
+                        [html.I(className="bi bi-camera-video me-2"), "Image"],
+                        className="sv-section-label",
+                    ),
+                    dbc.Button(
+                        html.I(className="bi bi-dash-lg"),
+                        id="camera-section-toggle",
+                        color="transparent",
+                        n_clicks=0,
+                        className="sv-icon-btn sv-icon-btn-sm",
+                    ),
+                ],
+                className="sv-subsection-head",
+            ),
+            dbc.Tooltip(
+                "Minimize / restore the image",
+                target="camera-section-toggle",
+                placement="left",
             ),
             html.Div(
-                dbc.InputGroup(
-                    [
-                        dbc.InputGroupText("Stream"),
-                        dbc.Select(id="camera-stream-picker"),
-                    ],
-                    size="sm",
-                ),
-                id="camera-stream-picker-col",
-                className="mb-2",
-            ),
-            html.Video(
-                id="camera-video",
-                # Playback is driven entirely by the frame slider, so the
-                # element never plays on its own: no controls, no autoplay,
-                # muted so browsers never block the load.
-                controls=False,
-                autoPlay=False,
-                muted=True,
-                preload="auto",
-                className="sv-video",
+                [
+                    html.Div(
+                        dbc.InputGroup(
+                            [
+                                dbc.InputGroupText("Stream"),
+                                dbc.Select(id="camera-stream-picker"),
+                            ],
+                            size="sm",
+                        ),
+                        id="camera-stream-picker-col",
+                        className="mb-2",
+                    ),
+                    html.Video(
+                        id="camera-video",
+                        # Playback is driven entirely by the frame slider, so the
+                        # element never plays on its own: no controls, no autoplay,
+                        # muted so browsers never block the load.
+                        controls=False,
+                        autoPlay=False,
+                        muted=True,
+                        preload="auto",
+                        className="sv-video",
+                    ),
+                ],
+                className="sv-subsection-body",
             ),
         ],
         id="subview-camera-section",
@@ -74,56 +97,83 @@ def _threshold_section():
     Build the threshold portion of the dock.
 
     Returns:
-        html.Div: Source and plot selectors, and the 1D threshold figure.
+        html.Div: Source and plot selectors, and the 1D threshold figure,
+        behind a header with its own minimize toggle. This section grows to
+        fill whatever height the image section does not need, so the plot
+        gets more room when the image is minimized.
     """
     return html.Div(
         [
-            html.Span(
-                [html.I(className="bi bi-graph-up me-2"), "Curve"],
-                className="sv-section-label",
-            ),
-            # A log may carry one sidecar per sensor. Their range bins differ,
-            # so they are picked between rather than drawn together.
             html.Div(
-                dbc.InputGroup(
-                    [
-                        dbc.InputGroupText("Sensor"),
-                        dbc.Select(id="threshold-source-picker"),
-                    ],
-                    size="sm",
-                ),
-                id="threshold-source-picker-col",
-                className="mb-2",
+                [
+                    html.Span(
+                        [html.I(className="bi bi-graph-up me-2"), "Curve"],
+                        className="sv-section-label",
+                    ),
+                    dbc.Button(
+                        html.I(className="bi bi-dash-lg"),
+                        id="threshold-section-toggle",
+                        color="transparent",
+                        n_clicks=0,
+                        className="sv-icon-btn sv-icon-btn-sm",
+                    ),
+                ],
+                className="sv-subsection-head",
+            ),
+            dbc.Tooltip(
+                "Minimize / restore the curve",
+                target="threshold-section-toggle",
+                placement="left",
             ),
             html.Div(
-                dbc.InputGroup(
-                    [
-                        dbc.InputGroupText("Plot"),
-                        dbc.Select(id="threshold-plot-picker"),
-                    ],
-                    size="sm",
-                ),
-                id="threshold-plot-picker-col",
-                className="mb-2",
-            ),
-            # A responsive Graph sets its own height:100% inline, so the size
-            # has to be pinned on the wrapper.
-            html.Div(
-                dcc.Graph(
-                    id="threshold-plot",
-                    responsive=True,
-                    config={"displaylogo": False, "displayModeBar": False},
-                    figure={
-                        "data": [{"type": "scatter", "x": [], "y": []}],
-                        "layout": {"uirevision": "no_change"},
-                    },
-                ),
-                className="sv-threshold-graph",
+                [
+                    # A log may carry one sidecar per sensor. Their range bins
+                    # differ, so they are picked between rather than drawn
+                    # together.
+                    html.Div(
+                        dbc.InputGroup(
+                            [
+                                dbc.InputGroupText("Sensor"),
+                                dbc.Select(id="threshold-source-picker"),
+                            ],
+                            size="sm",
+                        ),
+                        id="threshold-source-picker-col",
+                        className="mb-2",
+                    ),
+                    html.Div(
+                        dbc.InputGroup(
+                            [
+                                dbc.InputGroupText("Plot"),
+                                dbc.Select(id="threshold-plot-picker"),
+                            ],
+                            size="sm",
+                        ),
+                        id="threshold-plot-picker-col",
+                        className="mb-2",
+                    ),
+                    # A responsive Graph sets its own height:100% inline, so the
+                    # size has to be pinned on the wrapper.
+                    html.Div(
+                        dcc.Graph(
+                            id="threshold-plot",
+                            responsive=True,
+                            config={"displaylogo": False, "displayModeBar": False},
+                            figure={
+                                "data": [{"type": "scatter", "x": [], "y": []}],
+                                "layout": {"uirevision": "no_change"},
+                            },
+                        ),
+                        className="sv-threshold-graph",
+                    ),
+                ],
+                className="sv-subsection-body",
             ),
         ],
         id="subview-threshold-section",
         className="sv-subsection",
     )
+
 
 
 def get_inspector_layout():

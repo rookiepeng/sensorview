@@ -682,6 +682,8 @@ class Manifest:
                         "dash": trace.get("dash", "solid"),
                         "width": trace.get("width", 2),
                         "mode": trace.get("mode", "lines"),
+                        "size": trace.get("size", 6),
+                        "symbol": trace.get("symbol", "circle"),
                     }
                 )
 

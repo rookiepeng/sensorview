@@ -240,8 +240,20 @@ def get_curve_plot(
         "title": {"text": title} if title else None,
         "xaxis": {"title": {"text": x_label}},
         "yaxis": {"title": {"text": y_label}, "type": "log" if log_y else "linear"},
-        "margin": {"l": 55, "r": 12, "b": 40, "t": 30},
-        "legend": {"orientation": "h", "yanchor": "bottom", "y": 1.0, "x": 0},
+        # The legend lives below the axis rather than above it: on top it
+        # wraps over the traces it is meant to label whenever a plot declares
+        # more than a handful, which the threshold plots regularly do.
+        "margin": {"l": 55, "r": 12, "b": 76, "t": 12},
+        "legend": {
+            "orientation": "h",
+            "yanchor": "top",
+            "y": -0.22,
+            "xanchor": "left",
+            "x": 0,
+            "font": {"size": 10},
+            "itemwidth": 30,
+            "tracegroupgap": 2,
+        },
         "hovermode": "x unified",
         "uirevision": "no_change",
     }
@@ -294,6 +306,11 @@ def get_curve_plot(
                     "color": trace.get("color"),
                     "dash": trace.get("dash", "solid"),
                     "width": trace.get("width", 2),
+                },
+                "marker": {
+                    "color": trace.get("color"),
+                    "size": trace.get("size", 6),
+                    "symbol": trace.get("symbol", "circle"),
                 },
                 "hovertemplate": "%{y:.2f}<extra>"
                 + str(trace.get("label", trace["name"]))

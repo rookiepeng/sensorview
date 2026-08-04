@@ -200,6 +200,20 @@
           "bi-layout-sidebar-inset-reverse",
           "bi-camera-video"
         );
+      } else if (event.target.closest("#camera-section-toggle")) {
+        togglePanel(
+          "subview-camera-section",
+          "camera-section-toggle",
+          "bi-dash-lg",
+          "bi-plus-lg"
+        );
+      } else if (event.target.closest("#threshold-section-toggle")) {
+        togglePanel(
+          "subview-threshold-section",
+          "threshold-section-toggle",
+          "bi-dash-lg",
+          "bi-plus-lg"
+        );
       } else if (event.target.closest("#dock-toggle")) {
         togglePanel(
           "analysis-dock",

@@ -282,6 +282,18 @@ body {
     font-size: 0.95rem;
 }
 
+/* Per-subsection minimize buttons sit inline with a section label, not a
+   full panel head, so they stay out of the label's way. */
+.sv-icon-btn-sm {
+    height: 22px;
+    min-width: 22px;
+    padding: 0;
+}
+
+.sv-icon-btn-sm .bi {
+    font-size: 0.8rem;
+}
+
 /* An icon-only menu toggle does not need a caret next to the icon. */
 .sv-icon-btn.dropdown-toggle::after {
     display: none;
@@ -641,12 +653,60 @@ body {
     overflow-y: auto;
     overflow-x: hidden;
     padding: 10px 12px 14px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sv-subsection {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .sv-subsection + .sv-subsection {
     margin-top: 14px;
     padding-top: 14px;
     border-top: 1px solid var(--sv-border);
+}
+
+/* The curve section takes whatever height the image section does not use,
+   so minimizing the image (or the video simply being shorter) hands the
+   plot more room instead of leaving it empty. */
+#subview-threshold-section {
+    flex: 1 1 auto;
+}
+
+.sv-subsection-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.sv-subsection-head .sv-section-label {
+    margin-bottom: 0;
+}
+
+.sv-subsection-body {
+    min-height: 0;
+}
+
+#subview-threshold-section .sv-subsection-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+/* A minimized subsection keeps just its header; the toggle button's icon
+   swaps to reflect the state. */
+.sv-subsection.sv-collapsed {
+    flex: 0 0 auto;
+}
+
+.sv-subsection.sv-collapsed .sv-subsection-body {
+    display: none;
 }
 
 .sv-video {
@@ -661,7 +721,8 @@ body {
 
 .sv-threshold-graph {
     width: 100%;
-    height: 230px;
+    flex: 1 1 auto;
+    min-height: 280px;
 }
 
 .sv-threshold-graph > .dash-graph,
