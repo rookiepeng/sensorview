@@ -226,6 +226,19 @@ body {
     flex: 0 0 auto;
 }
 
+/* The switch's own form-check markup centers the track on the label text
+   baseline, not on its box -- pull it back in line with the icon buttons. */
+.sv-topbar-actions .form-check {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    margin: 0;
+}
+
+.sv-topbar-actions .form-check-input {
+    margin-top: 0;
+}
+
 /* Icon buttons: quiet until touched. */
 .sv-icon-btn,
 .sv-topbar-actions .dropdown > button.btn {
@@ -276,7 +289,7 @@ body {
 .sv-combine-panel {
     position: absolute;
     top: calc(var(--sv-topbar-h) - 2px);
-    right: 10px;
+    left: 10px;
     width: min(560px, 90vw);
     z-index: 30;
 }
