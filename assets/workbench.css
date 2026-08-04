@@ -670,6 +670,7 @@ body {
 /* Header: one picker per slot, each half the width so it reads as that pane's
    title rather than as a toolbar. */
 .sv-dock-head {
+    position: relative;
     flex: 0 0 var(--sv-dock-tabs-h);
     display: flex;
     align-items: center;
@@ -677,6 +678,9 @@ body {
     border-bottom: 1px solid var(--sv-border);
 }
 
+/* Each picker is exactly half the head's width so its divider lines up with
+   the pane divider below -- the actions strip is pulled out of flow (see
+   .sv-dock-actions) so it cannot skew that 50/50 split. */
 .sv-slot-picker {
     flex: 1 1 50%;
     min-width: 0;
@@ -687,6 +691,7 @@ body {
 
 .sv-slot-picker + .sv-slot-picker {
     border-left: 1px solid var(--sv-border);
+    padding-right: 86px;
 }
 
 .sv-slot-picker .input-group {
@@ -694,11 +699,15 @@ body {
 }
 
 .sv-dock-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
     display: flex;
     align-items: center;
     gap: 2px;
     height: 100%;
     padding: 0 6px;
+    background: var(--sv-surface-2);
     border-left: 1px solid var(--sv-border);
 }
 
