@@ -654,6 +654,44 @@ body {
     padding: 0;
 }
 
+/* Restore chips for minimized sections, parked next to the panel's own
+   toggle. */
+.sv-panel-chips {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    margin-right: 2px;
+}
+
+/* Each chip is present only while its section is minimized -- and never for a
+   section this log has nothing to fill, which its callback hides outright.
+   Tinted rather than bare, so it reads as something stowed away rather than as
+   another piece of the title bar. */
+.sv-panel-chip {
+    display: none;
+    background: var(--sv-accent-soft);
+    color: var(--sv-accent);
+}
+
+.sv-panel-chip:hover,
+.sv-panel-chip:focus-visible {
+    background: var(--sv-accent-soft);
+    border-color: var(--sv-accent);
+    color: var(--sv-accent);
+}
+
+.sv-inspector:has(#subview-camera-section.sv-collapsed:not([style*="none"]))
+    #camera-restore,
+.sv-inspector:has(#subview-threshold-section.sv-collapsed:not([style*="none"]))
+    #threshold-restore {
+    display: inline-flex;
+}
+
+.sv-inspector.sv-collapsed .sv-panel-chips {
+    display: none;
+}
+
 .sv-inspector-body {
     flex: 1 1 auto;
     overflow-y: auto;
@@ -740,14 +778,20 @@ body {
     display: none;
 }
 
-/* A minimized subsection keeps just its header; the toggle button's icon
-   swaps to reflect the state. */
+/* A minimized subsection gives up its row entirely rather than keeping a
+   header: the header plus the divider above it cost as much vertical space as
+   a line of controls, and the section is restored from a chip in the panel
+   bar (see .sv-panel-chip), which was empty anyway. */
 .sv-subsection.sv-collapsed {
-    flex: 0 0 auto;
+    display: none;
 }
 
-.sv-subsection.sv-collapsed > .sv-subsection-body {
-    display: none;
+/* The divider belongs to the pair, not to the section below it, so it goes
+   with a minimized neighbour -- an adjacent-sibling rule still matches across
+   a display:none element. */
+.sv-subsection.sv-collapsed + .sv-subsection {
+    padding-top: 0;
+    border-top: 0;
 }
 
 .sv-video {

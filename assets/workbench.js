@@ -311,25 +311,36 @@
           "bi-funnel"
         );
       } else if (event.target.closest("#inspector-toggle")) {
+        /* Collapsed, the strip shows the panel's own icon -- the same way the
+           filter rail falls back to its funnel. */
         togglePanel(
           "subview-panel",
           "inspector-toggle",
           "bi-layout-sidebar-inset-reverse",
-          "bi-camera-video"
+          "bi-eye"
         );
-      } else if (event.target.closest("#camera-section-toggle")) {
+        /* A minimized section is not on screen, so its own toggle only ever
+           shows the one state and the way back is the chip in the panel bar.
+           Both buttons drive the same section. */
+      } else if (
+        event.target.closest("#camera-section-toggle") ||
+        event.target.closest("#camera-restore")
+      ) {
         togglePanel(
           "subview-camera-section",
           "camera-section-toggle",
           "bi-dash-lg",
-          "bi-plus-lg"
+          "bi-dash-lg"
         );
-      } else if (event.target.closest("#threshold-section-toggle")) {
+      } else if (
+        event.target.closest("#threshold-section-toggle") ||
+        event.target.closest("#threshold-restore")
+      ) {
         togglePanel(
           "subview-threshold-section",
           "threshold-section-toggle",
           "bi-dash-lg",
-          "bi-plus-lg"
+          "bi-dash-lg"
         );
       } else if (event.target.closest("#dock-toggle")) {
         togglePanel(
