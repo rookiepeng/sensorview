@@ -21,6 +21,7 @@ Copyright (C) 2019 - PRESENT
 from typing import List, Optional
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -29,21 +30,36 @@ import tempfile
 # to be transcoded before it reaches the client.
 BROWSER_PLAYABLE_EXTENSIONS = (".mp4", ".m4v", ".webm", ".ogv")
 
+# ffmpeg's progress line, e.g. "frame=  246 fps=0.0 q=-1.0 Lsize=N/A ...".
+_FRAME_STAT = re.compile(r"frame=\s*(\d+)")
+
+# Counting frames only demuxes, so it is quick even for a long recording. The
+# cap is there so a damaged file cannot wedge the callback that asks for it.
+_PROBE_TIMEOUT = 120.0
+
 # A windowed build (PyInstaller ``console=False``) has no console attached, so
 # it hands the child an invalid stdin handle and Windows opens a console window
 # for it. Absent on other platforms, where the flag is simply zero.
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
 
-def _run_ffmpeg(command: List[str]) -> subprocess.CompletedProcess:
+def _run_ffmpeg(
+    command: List[str], timeout: Optional[float] = None
+) -> subprocess.CompletedProcess:
     """
     Run an ffmpeg command and capture its output.
 
     Args:
         command: Full argument list, ffmpeg executable first.
+        timeout: Seconds to wait before killing the child. None waits forever,
+            which is what a transcode wants; a caller on a request path should
+            set one.
 
     Returns:
         The completed process; callers check ``returncode`` themselves.
+
+    Raises:
+        subprocess.TimeoutExpired: If ``timeout`` elapses first.
     """
     return subprocess.run(
         command,
@@ -52,6 +68,7 @@ def _run_ffmpeg(command: List[str]) -> subprocess.CompletedProcess:
         check=False,
         stdin=subprocess.DEVNULL,
         creationflags=_NO_WINDOW,
+        timeout=timeout,
     )
 
 
@@ -92,6 +109,49 @@ def find_ffmpeg() -> Optional[str]:
         pass
 
     return shutil.which("ffmpeg")
+
+
+def probe_frame_count(path: str) -> Optional[int]:
+    """
+    Count the video frames in a recording.
+
+    Counted by demuxing with ``-c copy`` rather than decoding: one packet per
+    frame is all that is needed, so this costs milliseconds on a clip that would
+    take seconds to decode, and works for a codec no decoder is available for.
+    Container metadata is not trusted instead -- AVI and Matroska routinely
+    declare no frame count at all.
+
+    Args:
+        path: Path to any video file.
+
+    Returns:
+        Frame count of the file's first video stream, or None when ffmpeg is
+        unavailable, the file has no video stream, or the count cannot be read.
+    """
+    ffmpeg = find_ffmpeg()
+    if not ffmpeg or not os.path.exists(path):
+        return None
+
+    try:
+        result = _run_ffmpeg(
+            [ffmpeg, "-hide_banner", "-i", path]
+            + ["-map", "0:v:0", "-c", "copy", "-f", "null", "-"],
+            timeout=_PROBE_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return None
+
+    if result.returncode != 0:
+        return None
+
+    # The progress report is written repeatedly as it goes; the final one holds
+    # the total. It goes to stderr alongside the stream info.
+    matches = _FRAME_STAT.findall(result.stderr or "")
+    if not matches:
+        return None
+
+    count = int(matches[-1])
+    return count or None
 
 
 def _x264_all_intra_args(keyframe_interval: int, crf: int) -> List[str]:

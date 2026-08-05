@@ -277,21 +277,31 @@ Earlier suffixes win, so a stream shipped as both mp4 and avi serves the mp4 and
 skips the transcode. The transcode leaves decoder selection to ffmpeg, so a
 recording stamped with a private fourcc ffmpeg cannot map is not playable.
 
-The seek is keyed off the log's **wall-clock timestamps**, not the slider index.
-For a stream this project encoded the two agree exactly, since frame *i* was
-written at *i / fps*. For a recording made alongside the data they do not: a
-10 fps dashcam against a 20 Hz radar log shares wall clock and nothing else.
-`time_offset` shifts the clip for a camera that did not start rolling at frame 0.
+The seek maps **frame count to frame count**. The recording and the log are
+assumed to start and stop at around the same moment, so slider frame *i* of *N*
+lands on video frame `round(i / (N - 1) × (M - 1))` of *M* — the closest real
+frame, whatever rate the camera ran at. A 10 fps dashcam against a 20 Hz radar
+log advances one video frame every second slider step, rather than being
+interpolated to a position between two frames.
 
-That makes the unit of the table's `Time` column load-bearing, so it is declared
-rather than guessed:
+Both counts are measured, never declared: *M* by counting the file's frames with
+ffmpeg, *N* from the log's own Parquet. Frame duration comes from the video
+element's `duration`. No declared rate enters the mapping, so nothing in the
+manifest configures it — an `image.seek` key from an earlier version is obsolete
+and ignored. `time_offset` still shifts the clip for a camera that did not start
+rolling with the data.
+
+If the frame count cannot be read — no ffmpeg available, or a file it cannot
+demux — the video is left alone instead of being seeked to a guessed position.
+
+The unit of the table's `Time` column is declared rather than guessed:
 
 ```json
 "table": { "slider": "Frame", "time_unit": "ms" }
 ```
 
-Accepts `s` (default), `ms`, `us`, `ns`. A log timestamped in milliseconds and
-read as seconds derives a 0.02 Hz capture rate and a video that never moves.
+Accepts `s` (default), `ms`, `us`, `ns`. It scales the timestamps behind the
+`Time` column; the camera seek does not depend on it.
 
 ### Reference Overlay
 

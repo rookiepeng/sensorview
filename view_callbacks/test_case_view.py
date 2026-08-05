@@ -243,14 +243,13 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
     ) -> np.ndarray:
         """Setup data caching for frames and visibility."""
         # The frame index is derived from the data itself, never declared in the
-        # manifest, so it can never drift out of sync with the log. The capture
-        # rate falls out of those same timestamps. Only the *unit* of those
-        # timestamps comes from the manifest.
-        frame_list, timestamps, fps = build_frame_index(
+        # manifest, so it can never drift out of sync with the log. Only the
+        # *unit* of those timestamps comes from the manifest.
+        frame_list, timestamps, _ = build_frame_index(
             data, config["slider"], time_scale=time_scale
         )
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
-        cache_log_info(session_id, stem, timestamps, fps)
+        cache_log_info(session_id, stem, timestamps)
 
         # Create and cache visibility table
         visible_table = pd.DataFrame({"_IDS_": data.index, "_VIS_": "visible"})

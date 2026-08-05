@@ -1159,8 +1159,11 @@ class Manifest:
         """
         payload = self.legacy_config() if self.source_version == 1 else self.raw
 
+        # newline="\n" rather than the platform default: the 3D view saves on
+        # every axis change, and letting Windows translate would rewrite every
+        # line of the user's manifest as a side effect of moving a picker.
         path = os.path.join(self.case_dir, MANIFEST_NAME)
-        with open(path, "w", encoding="utf-8") as write_file:
+        with open(path, "w", encoding="utf-8", newline="\n") as write_file:
             json.dump(payload, write_file, indent=4)
         return path
 

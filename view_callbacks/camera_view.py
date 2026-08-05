@@ -4,15 +4,25 @@ Drives the mp4 camera panel. The frame slider stays the single source of truth
 for time: the video element never plays on its own, it is seeked to the frame
 the rest of the app is showing.
 
-Seeking is keyed off the log's own per-frame timestamps. For a stream this
-project encoded, frame *i* is slider index *i* and the timestamp is *i / fps*,
-so this agrees with the index mapping it replaces. For a recording that arrived
-alongside the data it is the only thing that works: a 10 fps dashcam against a
-20 Hz radar log shares wall-clock time with it and nothing else. The index
-mapping remains the fallback for logs with no usable time column.
+Seeking maps frame count to frame count, and is the only mapping there is. The
+recording and the log are assumed to start and stop at around the same moment,
+so slider frame *i* of *N* lands on video frame *round(i / (N - 1) * (M - 1))*
+of *M* -- the closest real frame, whatever rate the camera ran at relative to
+the data. A 10 fps dashcam against a 20 Hz radar log therefore advances one
+video frame every second slider step instead of being interpolated between two.
+
+Both counts are measured: *M* by ffmpeg from the file (see
+``probe_frame_count``), *N* from the log's own Parquet. Frame duration comes
+from the video element's ``duration``. No declared rate enters the mapping
+anywhere, which is why the manifest needs nothing to describe it -- an earlier
+``image.seek`` key is obsolete and ignored.
+
+When *M* cannot be read -- no ffmpeg, or a file it cannot demux -- the video is
+left where it is rather than seeked to a guessed position.
 
 Half a frame is added so the seek lands mid-frame, where float rounding cannot
-spill onto a neighbour.
+spill onto a neighbour. ``time_offset`` from the manifest shifts the whole clip,
+for a recording that did not start rolling with the data after all.
 
 Usage:
     from view_callbacks.camera_view import get_camera_view_callbacks
@@ -27,7 +37,7 @@ from typing import Any, Dict
 import dash
 from dash.dependencies import Input, Output, State
 
-from frame_sources import get_log_info, get_manifest
+from frame_sources import get_log_info, get_manifest, image_stream_frame_count
 
 HIDDEN = {"display": "none"}
 
@@ -161,14 +171,16 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         log_info = get_log_info(session_id)
         streams = manifest.image_streams(log_info.get("stem", "")) if manifest else []
 
-        if not any(s["id"] == stream_id for s in streams):
+        selected = next((s for s in streams if s["id"] == stream_id), None)
+        if selected is None:
             return {"src": None, "config": None}
 
-        # Timestamps and rate both come from the log's own Parquet, so the seek
-        # maths follows the data rather than a declared rate. `offset` shifts the
-        # clip against the data for a recording that did not start rolling at
-        # radar frame 0.
-        #
+        # Both counts are measured, never declared. A null video count means the
+        # probe failed, and the clientside callback leaves the video alone
+        # rather than guessing at a position.
+        video_frames = image_stream_frame_count(selected.get("file", ""))
+        data_frames = len(log_info.get("timestamps") or [])
+
         # The load counter is appended as a cache-busting query string: two
         # different logs can share the same session id and stream id (both
         # named "image"), and a browser never reloads a <video src> that comes
@@ -178,8 +190,8 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
             "src": src,
             "config": {
                 "src": src,
-                "fps": log_info.get("fps") or 10.0,
-                "timestamps": log_info.get("timestamps") or [],
+                "video_frames": video_frames,
+                "data_frames": data_frames,
                 "offset": float((manifest.image or {}).get("time_offset", 0.0)),
             },
         }
@@ -198,21 +210,42 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
                 return no_update;
             }
 
-            const fps = config.fps > 0 ? config.fps : 10;
-            const stamps = config.timestamps || [];
-            // Wall clock is the only thing a recording and the data reliably
-            // share; index/fps is the fallback for logs with no time column,
-            // where it is exactly what the timestamps would have been anyway.
-            const base = (frame_index >= 0 && frame_index < stamps.length)
-                ? stamps[frame_index]
-                : frame_index / fps;
-            // Aim at the middle of the target frame: landing exactly on a
-            // boundary can round onto the neighbouring frame.
-            const target = Math.max(0, base + 0.5 / fps + (config.offset || 0));
+            const videoFrames = config.video_frames || 0;
+            const dataFrames = config.data_frames || 0;
+            // Nothing to map between: the probe could not read the file. Leave
+            // the video where it is rather than guessing at a position.
+            if (videoFrames < 1 || dataFrames < 1) {
+                return no_update;
+            }
+
+            // Deferred until metadata has landed, because the mapping needs the
+            // element's own duration to turn a frame number into a time.
+            const computeTarget = function() {
+                const duration = video.duration;
+                if (!isFinite(duration) || duration <= 0) {
+                    return null;
+                }
+                // Both recordings cover the same stretch of time, so the
+                // fraction of the way through the log is the fraction of the
+                // way through the video. Mapping count to count rather than
+                // second to second means a camera that ran at a different rate
+                // than the data still lands on the nearest real frame instead
+                // of somewhere between two.
+                const span = dataFrames > 1 ? dataFrames - 1 : 1;
+                const ratio = Math.min(1, Math.max(0, frame_index / span));
+                const k = Math.round(ratio * (videoFrames - 1));
+                // Aim at the middle of that frame: landing exactly on a
+                // boundary can round onto the neighbouring frame.
+                return (k + 0.5) * duration / videoFrames;
+            };
 
             const seek = function() {
+                const target = computeTarget();
+                if (target === null) {
+                    return;
+                }
                 try {
-                    video.currentTime = target;
+                    video.currentTime = Math.max(0, target + (config.offset || 0));
                 } catch (err) {
                     /* Element not seekable yet; the loadedmetadata handler
                        below retries once metadata arrives. */
@@ -221,10 +254,10 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
 
             if (video.readyState >= 1) {
                 seek();
-            } else {
-                video.addEventListener('loadedmetadata', seek, { once: true });
+                return video.currentTime;
             }
-            return target;
+            video.addEventListener('loadedmetadata', seek, { once: true });
+            return null;
         }
         """,
         Output("camera-seek-ack", "data"),

@@ -35,12 +35,21 @@ from dataio.calibration import apply_transform
 from dataio.dense_store import CloudStore, CurveStore
 from dataio.manifest import Manifest
 from dataio.reference import ReferenceStore
-from dataio.video import VideoEncodeError, is_browser_playable, transcode_to_mp4
+from dataio.video import (
+    VideoEncodeError,
+    is_browser_playable,
+    probe_frame_count,
+    transcode_to_mp4,
+)
 
 from utils import cache_get, cache_set
 
 from viz.graph_data import get_cloud_scatter3d_data
 from viz.viz import get_curve_plot
+
+# Video frame counts, keyed on (path, size, mtime). Probing shells out to
+# ffmpeg, and the answer only changes when the file does.
+_FRAME_COUNTS: Dict[Any, Optional[int]] = {}
 
 
 def cache_manifest(manifest: Manifest, session_id: str) -> None:
@@ -85,20 +94,20 @@ def get_manifest(session_id: str) -> Optional[Manifest]:
     )
 
 
-def cache_log_info(
-    session_id: str, stem: str, timestamps: List[float], fps: float
-) -> None:
+def cache_log_info(session_id: str, stem: str, timestamps: List[float]) -> None:
     """
     Store the current log's identity and derived frame index.
+
+    The capture rate is deliberately not kept: nothing reads it now that the
+    camera seek maps frame counts rather than working in seconds.
 
     Args:
         session_id: Session identifier.
         stem: Log stem that sidecars are keyed on.
         timestamps: Per-frame timestamps derived from the Parquet data.
-        fps: Capture rate derived from those timestamps.
     """
     cache_set(
-        {"stem": stem, "timestamps": timestamps, "fps": fps},
+        {"stem": stem, "timestamps": timestamps},
         session_id,
         CACHE_KEYS["log_info"],
     )
@@ -112,12 +121,12 @@ def get_log_info(session_id: str) -> Dict[str, Any]:
         session_id: Session identifier.
 
     Returns:
-        Dict with ``stem``, ``timestamps``, and ``fps``; empty values when
-        nothing is cached yet.
+        Dict with ``stem`` and ``timestamps``; empty values when nothing is
+        cached yet.
     """
     cached = cache_get(session_id, CACHE_KEYS["log_info"])
     if not cached:
-        return {"stem": "", "timestamps": [], "fps": 0.0}
+        return {"stem": "", "timestamps": []}
     return cached
 
 
@@ -359,6 +368,37 @@ def playable_image_file(source: str) -> Optional[str]:
         return transcode_to_mp4(source, cached)
     except (VideoEncodeError, FileNotFoundError, OSError):
         return None
+
+
+def image_stream_frame_count(source: str) -> Optional[int]:
+    """
+    Count the frames in an image stream, memoized per file revision.
+
+    The count is read off the *source* rather than the transcoded copy: the
+    transcode is frame-for-frame, and probing the source avoids forcing one to
+    happen just to answer this while the stream picker is rendering.
+
+    Args:
+        source: Path to the stream file as discovered in the case folder.
+
+    Returns:
+        Frame count, or None when it cannot be determined.
+    """
+    if not source:
+        return None
+
+    try:
+        stat = os.stat(source)
+    except OSError:
+        return None
+
+    # Keyed on the file's revision, so replacing a recording re-probes it. Held
+    # in the process rather than the session cache because it is a property of
+    # the file, shared by every session that opens the same case folder.
+    key = (os.path.abspath(source), stat.st_size, int(stat.st_mtime))
+    if key not in _FRAME_COUNTS:
+        _FRAME_COUNTS[key] = probe_frame_count(source)
+    return _FRAME_COUNTS[key]
 
 
 def get_curve_sources(
