@@ -276,9 +276,8 @@ in whatever container it came out of the logger in:
 ```
 
 Earlier suffixes win, so a stream shipped as both mp4 and avi serves the mp4 and
-skips the transcode. Some recorders stamp a private fourcc onto a stream that is
-really a standard codec — `DJLS` frames are plain JPEG-LS — which ffmpeg refuses
-until the decoder is named; those tags are mapped in `dataio/video.py`.
+skips the transcode. The transcode leaves decoder selection to ffmpeg, so a
+recording stamped with a private fourcc ffmpeg cannot map is not playable.
 
 The seek is keyed off the log's **wall-clock timestamps**, not the slider index.
 For a stream this project encoded the two agree exactly, since frame *i* was
