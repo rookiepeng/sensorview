@@ -112,7 +112,7 @@ a single `frame_id`:
 | Data | Format | Filterable | Updates on |
 |---|---|---|---|
 | Table (`table`) | Parquet (tidy table) | **Yes** — full filter pipeline | filter changes + frame changes |
-| Cloud (`cloud`) | HDF5, decimated at ingest | No — fixed backdrop | frame changes only |
+| Cloud (`cloud`) | HDF5, pre-decimated | No — fixed backdrop | frame changes only |
 | Curves (`curve`) | HDF5, one (N, 2) pair per frame | No | frame changes only |
 | Images (`image`) | mp4, all-intra | No | frame changes only |
 
@@ -125,8 +125,9 @@ The reasoning behind the split:
   queries them by column, so Parquet's columnar machinery would be pure
   overhead; a chunked HDF5 dataset per frame reads as one contiguous block and
   is equally native in MATLAB (`h5read`).
-- **Cloud decimation happens once at ingest.** Since the backdrop has no runtime
-  controls, no full-resolution data is kept on the read path.
+- **Cloud decimation happens before the data gets here.** Since the backdrop has
+  no runtime controls, the sidecar is expected to hold display-ready points and
+  no full-resolution data is kept on the read path.
 - **Images are seeked client-side.** A native `<video>` element does the decoding
   and the frame slider drives `currentTime`, so scrubbing costs no server round
   trip. Video is encoded all-intra because browsers can only seek to keyframes.
@@ -178,8 +179,7 @@ calibration, and cloud styling. Two things it deliberately does **not** contain:
 
 - **The frame index.** Frame ids, timestamps, and capture rate are derived from
   the table Parquet at load time, so a manifest can never drift out of sync with
-  the data. The same derivation runs at ingest, which is what guarantees the
-  rate a video was *encoded* at matches the rate it is *seeked* at.
+  the data — including the rate a camera stream is *seeked* at.
 - **Per-log file lists.** Sidecars resolve from the selected log's basename, and
   image streams are discovered from the files themselves.
 
@@ -222,8 +222,8 @@ plot definition therefore carries only a label.
 
 A trace's `name` fills the `{name}` placeholder in the plot's dataset pattern;
 an explicit `"dataset"` overrides that. The pattern also sets where a frame's
-series live — `/frame_{frame_id}/{name}` by default, which is both what ingest
-writes and what a MATLAB struct array reads back as. A nested
+series live — `/frame_{frame_id}/{name}` by default, which is what a MATLAB
+struct array reads back as. A nested
 `/frames/{frame_id}/{name}` resolves too, for an older export. Optional
 per-plot keys: `y_range` (pins the axis instead of estimating it), `x.range`,
 and `log_y`. Any number of plots can be declared — the panel gets a selector
@@ -257,9 +257,7 @@ Non-finite values (`-inf` for bins a threshold does not apply to) are drawn as
 gaps in the line rather than being clamped or dropped.
 
 The y axis is held constant across frames rather than autoscaling, so where the
-signal sits relative to its threshold stays readable while scrubbing. Ingest
-writes a starter config putting every series on one plot, which you then split
-and style.
+signal sits relative to its threshold stays readable while scrubbing.
 
 ### Images (`image`)
 
@@ -395,37 +393,6 @@ frame the sidecar has no row for draws no reference, rather than stranding it at
 its last known pose. Overlay mode draws none either — every frame at once leaves
 no single pose to show.
 
-### Ingestion
-
-Convert a recording into the layout above:
-
-```bash
-python -m dataio.ingest ./data/Example --out ./data/Example_v2
-```
-
-Every table in the source folder becomes a log. Each log's raw sidecars are
-discovered by basename, mirroring the output convention:
-
-```
-raw/MyCase/
-├── drive_01.csv          → drive_01.parquet
-├── drive_01/             → drive_01.mp4          (per-frame images)
-├── drive_01.rear/        → drive_01.rear.mp4
-├── drive_01.cloud/       → drive_01.cloud.h5     (<frame_id>.npy)
-└── drive_01.curve/       → drive_01.curve.h5 (<series>/<frame_id>.npy, each (N, 2))
-```
-
-A single recording's sidecars can also be passed explicitly:
-
-```bash
-python -m dataio.ingest ./data/RawCase --out ./data/MyCase --cloud ./raw/cloud --curve ./raw/curve
-```
-
-Key options: `--voxel-size` / `--max-points` / `--coord-decimals` control cloud
-decimation, `--fps` overrides the capture rate (inferred from timestamps by
-default), and `--keyframe-interval` controls image GOP length (1 = all-intra,
-keeping every seek frame-exact).
-
 ## Installation
 
 1. Clone the repository:
@@ -453,8 +420,8 @@ pip install -r requirements.txt
 
 Existing `.csv` and `.pkl` tables are still offered in the file picker and load
 without conversion, as does a v1 `info.json` with its keys at the top level.
-Running `dataio.ingest` over such a folder gets you the Parquet layout, the
-sidecar conventions, and the performance that comes with them.
+Converting a table to Parquet and adopting the sidecar conventions above is
+worth doing for the performance, but is left to whatever produces the data.
 
 ### Minimal `info.json`
 
@@ -606,16 +573,13 @@ A modular callback system, one module per view:
 
 - `manifest`: `info.json` v2 parsing, v1 upgrade, basename sidecar resolution,
   curve plot definitions, non-destructive persistence
-- `frames`: frame ids, timestamps, and capture rate derived from the Parquet
-  data — shared by the ingest pipeline and the running app
+- `frames`: frame ids, timestamps, and capture rate derived from the Parquet data
 - `radar_store`: Parquet table loading with projection/predicate pushdown
 - `reference`: per-frame reference pose from a Parquet sidecar, with the
   configurable column mapping
-- `dense_store`: HDF5 readers/writers for cloud points and 1D curves
-- `decimate`: ingest-time voxel + budget point cloud decimation
+- `dense_store`: HDF5 readers for cloud points and 1D curves
 - `calibration`: extrinsics → 4×4 transform for cross-sensor alignment
-- `video`: mp4 encoding and on-demand transcoding of foreign containers
-- `ingest`: pipeline orchestration and CLI
+- `video`: on-demand transcoding of foreign containers
 
 ## License
 

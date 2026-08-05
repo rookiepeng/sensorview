@@ -358,7 +358,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
 
         // Point-cloud backdrop. Appended after the opacity/hover loops above so the
         // decay-opacity ramp applied to radar trace groups never touches it —
-        // cloud has no decay and no controls, its styling is fixed at ingest.
+        // cloud has no decay and no controls, its styling is fixed.
         const cloudTrace = await getCloudTrace(session, slider_arg);
         if (cloudTrace) {
           fig.data = [...fig.data, cloudTrace];

@@ -32,17 +32,7 @@ switching, multi-stream images, config-driven 1D curve plots with per-trace
 styling, and frame index derivation from Parquet.
 
 The curve block in info.json is hand-authored (colors, dash styles, two plots
-on two different x axes) to show what the config can express. The ingest
-pipeline emits a plainer starter config that you then edit.
-
-Regenerating
-------------
-The raw source is in ../_raw/multilog. To rebuild this dataset:
-
-    python -m dataio.ingest ./data/_raw/multilog --out ./data/MultiLog
-
-Note that re-running ingest overwrites info.json with the auto-generated
-starter curve config, discarding the hand-authored styling above.
+on two different x axes) to show what the config can express.
 
 Migrated 2026-08-04: sidecars renamed to the current conventions
 (*.lidar.h5 -> *.cloud.h5, *.threshold.h5 -> *.curve.h5) and every curve
