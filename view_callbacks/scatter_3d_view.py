@@ -32,7 +32,7 @@ from utils import filter_all
 from utils import cache_set, cache_get
 from utils import load_data
 
-from frame_sources import cache_manifest, get_manifest
+from frame_sources import cache_manifest, get_log_stem, get_manifest
 
 from process_frame import process_overlay_frame
 from process_frame import process_single_frame
@@ -410,6 +410,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "x_ref_picker_3d": Input("x-ref-picker-3d", "value"),
             "y_ref_picker_3d": Input("y-ref-picker-3d", "value"),
             "z_ref_picker_3d": Input("z-ref-picker-3d", "value"),
+            "yaw_ref_picker_3d": Input("yaw-ref-picker-3d", "value"),
+            "pitch_ref_picker_3d": Input("pitch-ref-picker-3d", "value"),
+            "roll_ref_picker_3d": Input("roll-ref-picker-3d", "value"),
             "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
             "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
@@ -446,6 +449,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         x_ref_picker_3d: str,
         y_ref_picker_3d: str,
         z_ref_picker_3d: str,
+        yaw_ref_picker_3d: str,
+        pitch_ref_picker_3d: str,
+        roll_ref_picker_3d: str,
         # Trigger inputs
         unused_vistable_trigger: int,
         unused_left_hide_trigger: int,
@@ -486,9 +492,12 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             x_picker_3d: X-axis column name.
             y_picker_3d: Y-axis column name.
             z_picker_3d: Z-axis column name.
-            x_ref_picker_3d: Reference line X-column name.
-            y_ref_picker_3d: Reference line Y-column name.
-            z_ref_picker_3d: Reference line Z-column name.
+            x_ref_picker_3d: Reference X-column name.
+            y_ref_picker_3d: Reference Y-column name.
+            z_ref_picker_3d: Reference Z-column name.
+            yaw_ref_picker_3d: Reference yaw column name (sidecar only).
+            pitch_ref_picker_3d: Reference pitch column name (sidecar only).
+            roll_ref_picker_3d: Reference roll column name (sidecar only).
             unused_vistable_trigger: Visibility trigger (unused).
             unused_left_hide_trigger: Left panel trigger (unused).
             unused_right_hide_trigger: Right panel trigger (unused).
@@ -539,20 +548,46 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         config["x_3d"] = x_picker_3d
         config["y_3d"] = y_picker_3d
         config["z_3d"] = z_picker_3d
-        config["x_ref"] = x_ref_picker_3d
-        config["y_ref"] = y_ref_picker_3d
-        config["z_ref"] = z_ref_picker_3d
-        cache_set(config, session_id, CACHE_KEYS["config"])
+
+        # The six reference pickers map one of two different things, depending on
+        # what this log carries: the columns of its pose sidecar, or -- with no
+        # sidecar -- three of its own table columns. They are the same pickers
+        # because they answer the same question; what changes is where the answer
+        # is written, and a sidecar's mapping must never land in the table's
+        # x_ref/y_ref/z_ref, where it would name columns the table does not have.
+        manifest = get_manifest(session_id)
+        stem = get_log_stem(session_id)
+        maps_sidecar = manifest is not None and manifest.has_reference_pose(stem)
+
+        if maps_sidecar:
+            pose_columns = {
+                "x": x_ref_picker_3d,
+                "y": y_ref_picker_3d,
+                "z": z_ref_picker_3d,
+                "yaw": yaw_ref_picker_3d,
+                "pitch": pitch_ref_picker_3d,
+                "roll": roll_ref_picker_3d,
+            }
+        else:
+            config["x_ref"] = x_ref_picker_3d
+            config["y_ref"] = y_ref_picker_3d
+            config["z_ref"] = z_ref_picker_3d
 
         # Persist the axis selections back to the dataset. This goes through the
         # manifest rather than dumping `config` straight over info.json: config
         # is only the flat radar projection, so writing it verbatim would wipe
         # the cloud / curve / image blocks of a v2 manifest.
-        manifest = get_manifest(session_id)
         if manifest is not None:
             manifest.update_table_view(config)
+            if maps_sidecar:
+                manifest.update_reference_columns(pose_columns)
+                # The renderer reads the reference block off the cached config,
+                # so it has to carry the mapping the manifest just took.
+                config["reference"] = manifest.reference
             manifest.save()
             cache_manifest(manifest, session_id)
+
+        cache_set(config, session_id, CACHE_KEYS["config"])
 
         if overlay_enable:
             fig = process_overlay_frame(

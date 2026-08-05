@@ -509,6 +509,17 @@ body {
     margin-bottom: 4px;
 }
 
+/* Names the file a section's columns came from. Case is left alone -- a
+   filename is not a label -- and a long stem wraps rather than running out past
+   the panel that holds it. */
+.sv-source-note {
+    display: block;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-faint);
+    overflow-wrap: anywhere;
+    margin-bottom: 4px;
+}
+
 .sv-field {
     margin-bottom: 12px;
 }

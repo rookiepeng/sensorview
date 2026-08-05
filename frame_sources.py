@@ -4,9 +4,9 @@ Bridges the session cache to the :mod:`dataio` stores, and defines which data
 gets re-read on which trigger.
 
 The split matters for performance. The table is refiltered whenever a filter
-changes; the cloud, curves, and images are display-only and only ever change
-when the frame changes. Dragging a filter slider therefore never touches the
-cloud or curve path.
+changes; the cloud, curves, images, and reference pose are display-only and only
+ever change when the frame changes. Dragging a filter slider therefore never
+touches the cloud or curve path.
 
 Sidecars resolve from the *current log's stem*, cached per session alongside the
 frame index derived from that log's Parquet. When several logs are overlaid, the
@@ -34,6 +34,7 @@ from app_config import CACHE_KEYS, VIDEO_CACHE_PATH
 from dataio.calibration import apply_transform
 from dataio.dense_store import CloudStore, CurveStore
 from dataio.manifest import Manifest
+from dataio.reference import ReferenceStore
 from dataio.video import VideoEncodeError, is_browser_playable, transcode_to_mp4
 
 from utils import cache_get, cache_set
@@ -192,6 +193,114 @@ def get_cloud_trace(
         return None
 
     return get_cloud_scatter3d_data(points, manifest.cloud_display())
+
+
+def get_reference_store(
+    manifest: Optional[Manifest], stem: str
+) -> Optional[ReferenceStore]:
+    """
+    Open the current log's reference-pose sidecar.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stem: Log stem.
+
+    Returns:
+        Store for the sidecar, or None when the log has none or the file
+        carries no column the pose can be built from.
+    """
+    if manifest is None or not stem or not manifest.has_reference_pose(stem):
+        return None
+
+    store = ReferenceStore.open(
+        manifest.reference_path(stem),
+        manifest.reference_columns(),
+        frame_key=manifest.frame_key,
+    )
+    if store is None or not store.is_usable:
+        return None
+    return store
+
+
+def get_reference_mapping(
+    manifest: Optional[Manifest], stem: str
+) -> Optional[Dict[str, Any]]:
+    """
+    Describe a log's reference sidecar for the view's column pickers.
+
+    Unlike :func:`get_reference_store` this answers for a sidecar that is
+    present but not yet mapped to anything usable -- which is exactly the state
+    the pickers exist to get the user out of.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stem: Log stem.
+
+    Returns:
+        ``{"file", "columns", "mapping"}`` -- the sidecar's name, its column
+        names, and the column currently feeding each pose field -- or None when
+        the log has no sidecar.
+    """
+    if manifest is None or not stem or not manifest.has_reference_pose(stem):
+        return None
+
+    path = manifest.reference_path(stem)
+    store = ReferenceStore.open(
+        path, manifest.reference_columns(), frame_key=manifest.frame_key
+    )
+    if store is None:
+        return None
+
+    return {
+        "file": os.path.basename(path or ""),
+        "columns": store.available_columns,
+        "mapping": store.resolved_columns,
+    }
+
+
+def get_reference_pose(
+    manifest: Optional[Manifest], stem: str, frame_id: Any
+) -> Optional[Dict[str, float]]:
+    """
+    Read the reference pose for one frame.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stem: Log stem.
+        frame_id: Frame identifier.
+
+    Returns:
+        Pose dict with ``x``/``y``/``z`` in meters and ``yaw``/``pitch``/``roll``
+        in radians, or None when the log has no sidecar or no row for that frame.
+    """
+    store = get_reference_store(manifest, stem)
+    if store is None:
+        return None
+    return store.pose(frame_id)
+
+
+def get_reference_bounds(
+    manifest: Optional[Manifest], stem: str
+) -> Optional[Dict[str, Any]]:
+    """
+    Position extent of the reference across the whole log.
+
+    The 3D scene fixes its axis ranges from the table's filters, so a reference
+    that travels outside them has to be accounted for before the figure is built
+    or it is simply clipped.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stem: Log stem.
+
+    Returns:
+        ``{"x": (min, max), "y": ..., "z": ...}``, or None when the log has no
+        sidecar.
+    """
+    store = get_reference_store(manifest, stem)
+    if store is None:
+        return None
+    return store.bounds()
 
 
 def playable_image_file(source: str) -> Optional[str]:

@@ -36,6 +36,13 @@ from utils import load_data
 from utils import load_image
 from utils import prepare_figure_kwargs
 
+from frame_sources import (
+    get_log_stem,
+    get_manifest,
+    get_reference_bounds,
+    get_reference_pose,
+)
+
 from viz.viz import get_animation_data
 from viz.graph_data import get_reference_traces
 from viz.graph_data import get_scatter3d_data
@@ -153,6 +160,9 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             frame_group = None
             use_cached_frames = True
 
+        manifest = get_manifest(session_id)
+        stem = get_log_stem(session_id)
+
         # prepare figure key word arguments
         fig_kwargs = prepare_figure_kwargs(
             config,
@@ -161,6 +171,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             c_key,
             False,
             frame_list,
+            ref_bounds=get_reference_bounds(manifest, stem),
         )
 
         # Move loop-invariant operations outside the loop
@@ -174,6 +185,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         fig_kwargs["image"] = None
         base_layout = get_scatter3d_layout(**fig_kwargs)
         has_ref = fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None
+        ref_from_sidecar = bool(fig_kwargs.get("ref_from_sidecar"))
 
         for slider_arg, frame_idx in enumerate(frame_list):
             # --- Cooperative cancellation check ---
@@ -229,7 +241,19 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             fig = result["scatter_data"]
             hover_strings = result["hover_strings"]
 
-            if has_ref:
+            if ref_from_sidecar:
+                pose = get_reference_pose(manifest, stem, frame_idx)
+                ref_fig = (
+                    get_reference_traces(
+                        data_frame=filterd_frame,
+                        name=fig_kwargs.get("ref_name", None),
+                        display=fig_kwargs.get("ref_display"),
+                        pose=pose,
+                    )
+                    if pose is not None
+                    else []
+                )
+            elif has_ref:
                 ref_fig = get_reference_traces(
                     data_frame=filterd_frame,
                     x_key=fig_kwargs["x_ref"],
@@ -371,6 +395,9 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         if frame_list is None:
             raise PreventUpdate
 
+        export_manifest = get_manifest(session_id)
+        export_stem = get_log_stem(session_id)
+
         fig_kwargs = prepare_figure_kwargs(
             config,
             num_keys,
@@ -378,7 +405,16 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             c_key,
             bool(size_vary),
             frame_list,
+            ref_bounds=get_reference_bounds(export_manifest, export_stem),
         )
+
+        if fig_kwargs.get("ref_from_sidecar"):
+            # The export is a standalone HTML file with every frame baked in, so
+            # the poses have to travel with it rather than be looked up per frame.
+            fig_kwargs["ref_poses"] = {
+                frame_id: get_reference_pose(export_manifest, export_stem, frame_id)
+                for frame_id in frame_list
+            }
 
         if darkmode:
             fig_kwargs["template"] = "plotly_dark"

@@ -10,7 +10,7 @@ filters.
 ## Screenshots
 
 The workbench on the bundled `data/Example` case: the 3D point cloud with its
-decimated backdrop and host-vehicle box, the camera frame and range profile for
+decimated backdrop and host-vehicle mesh, the camera frame and range profile for
 the same instant in the inspector, and two statistical views in the dock.
 
 <img src="./assets/screenshot.png" alt="SensorView workbench, dark theme" width="900"/>
@@ -159,6 +159,7 @@ data/MyCase/
 ├── drive_01.sensor_2.h5     # a second, named curve source
 ├── drive_01.mp4             # `image` — a video stream
 ├── drive_01.rear.mp4        # a second, named image stream
+├── drive_01.reference.parquet  # `reference` — per-frame host pose
 ├── drive_02.parquet         # the next log, same conventions
 └── drive_02.mp4
 ```
@@ -300,30 +301,100 @@ read as seconds derives a 0.02 Hz capture rate and a video that never moves.
 `x_ref` / `y_ref` / `z_ref` mark a moving origin in the 3D view — usually the
 host vehicle. By default it draws as a white dot, which says where that origin
 is but nothing about how big it is. A `reference` block trades the dot for a
-box, so you can see which detections land on the vehicle and which are past it:
+**mesh you declare yourself**, so you can see which detections land on the
+vehicle and which are past it:
 
 ```json
 "reference": {
-    "shape": "box",
+    "shape": "mesh",
     "name": "Host Vehicle",
     "color": "#4c9ffe",
-    "opacity": 0.35,
-    "dimensions": [1.9, 4.7, 1.5],
-    "offset": [0.0, 1.35, 0.75]
+    "opacity": 0.25,
+    "vertices": [
+        [-0.97, 0.0, 0.0], [-0.62, 4.2, 0.0], [0.62, 4.2, 0.0], [0.97, 0.0, 0.0],
+        [-0.97, 0.0, 1.5], [-0.62, 4.2, 1.5], [0.62, 4.2, 1.5], [0.97, 0.0, 1.5]
+    ],
+    "faces": [
+        [0, 1, 2], [0, 2, 3], [4, 5, 6], [4, 6, 7], [0, 3, 7], [0, 7, 4],
+        [1, 2, 6], [1, 6, 5], [0, 1, 5], [0, 5, 4], [3, 2, 6], [3, 6, 7]
+    ],
+    "edges": [
+        [0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4],
+        [0, 4], [1, 5], [2, 6], [3, 7]
+    ],
+    "edge_color": "#7fc4ff"
 }
 ```
 
-`dimensions` is the full extent along the plot's **x, y and z axes** rather than
-length/width/height, because which physical quantity each axis carries is
-chosen in the view, not by the manifest. `offset` shifts the box center off the
-reference point, for when the reference columns mark a sensor or the rear axle
-instead of the middle of the vehicle. The 3D scene makes room for whatever the
-box adds beyond the data, so it is never clipped by the axis ranges.
+`vertices` are in **meters relative to the reference point**, on the plot's x, y
+and z axes — which physical quantity each axis carries is chosen in the view,
+not by the manifest, so the mesh is authored in the frame the view will draw it
+in. `faces` are vertex-index triangles. Nothing is generated from a size and an
+offset: the shape is stated outright, which is also how you say which end is the
+front — the example above narrows toward `+y`, so the nose is legible from any
+angle and stays legible as the mesh turns with a pose.
 
-Optional: `edges` (default `true`) draws the wireframe, with `edge_color` and
-`edge_width`. With `"shape": "marker"` — or no block at all — the block instead
-styles the dot through `color`, `size`, `symbol`, `line_color`, and
-`line_width`. The block is read from both v1 and v2 manifests.
+`edges` draws the wireframe: a list of vertex-index pairs draws exactly those
+(usually what you want — a silhouette without the triangulation showing),
+`true` derives them from `faces` including every diagonal, `false` draws none.
+`edge_color` and `edge_width` style them.
+
+A mesh with no usable triangles falls back to the marker, as does an unknown
+`shape` — a dot in the right place beats nothing at all. The 3D scene makes room
+for whatever the mesh adds beyond the data, so it is never clipped by the axis
+ranges.
+
+With `"shape": "marker"` — or no block at all — the block instead styles the dot
+through `color`, `size`, `symbol`, `line_color`, and `line_width`. The block is
+read from both v1 and v2 manifests.
+
+#### Reference pose sidecar (`<stem>.reference.parquet`)
+
+Table columns carry a position and nothing else, so a mesh placed from them sits
+square to the axes however the vehicle is actually pointing. Drop a
+`<stem>.reference.parquet` beside the log and the reference comes from there
+instead — **one row per frame**, positions in **meters**, angles in **radians**:
+
+| frame | x | y | z | yaw | pitch | roll |
+|-------|---|---|---|-----|-------|------|
+
+The frame column holds the same frame ids as the table, which is what pairs a
+pose with a frame. Angles are rotations about the plot's **x, y and z axes**
+(roll, pitch, yaw respectively, applied ZYX) — the same reasoning as `vertices`:
+which physical quantity each axis carries is chosen in the view. The whole mesh
+turns with the pose, about the reference point its vertices are relative to.
+
+Column names are the exporter's, so the mapping is configured. Either declare it
+in the manifest:
+
+```json
+"reference": {
+    "suffix": ".reference.parquet",
+    "columns": {
+        "frame": "frame_id",
+        "x": "ref_lat_m",
+        "y": "ref_long_m",
+        "z": "ref_height_m",
+        "yaw": "ref_yaw_rad",
+        "pitch": "ref_pitch_rad",
+        "roll": "ref_roll_rad"
+    },
+    "shape": "mesh"
+}
+```
+
+…or set it in the 3D view: with a sidecar present, the reference pickers behind
+the sliders button list *its* columns and gain yaw / pitch / roll, and what you
+choose is written back to the block above. A field left unmapped falls back to a
+column named after it (`x`, `yaw`, …), so a self-describing file needs no
+configuration at all, and an unmapped angle is simply zero. `frame` falls back
+to the table's own frame column.
+
+A sidecar supersedes `x_ref` / `y_ref` / `z_ref` outright rather than drawing
+alongside them, and the axis ranges widen to cover wherever the pose travels. A
+frame the sidecar has no row for draws no reference, rather than stranding it at
+its last known pose. Overlay mode draws none either — every frame at once leaves
+no single pose to show.
 
 ### Ingestion
 
@@ -421,7 +492,8 @@ default 3D axes, and the metadata for each column:
 - **slider**: integer column used as the temporal axis for the frame slider
 - **x_3d, y_3d, z_3d**: default columns for the 3D axes
 - **x_ref, y_ref, z_ref**: reference-point columns; `"None"` (the string)
-  disables an axis
+  disables an axis. Superseded by a `<stem>.reference.parquet` sidecar when the
+  log has one
 - **time_unit**: unit of the `Time` column — `s` (default), `ms`, `us`, `ns`
 - **keys**: one entry per column
   - **description**: label shown in pickers, filters, and axis titles
@@ -538,6 +610,8 @@ A modular callback system, one module per view:
 - `frames`: frame ids, timestamps, and capture rate derived from the Parquet
   data — shared by the ingest pipeline and the running app
 - `radar_store`: Parquet table loading with projection/predicate pushdown
+- `reference`: per-frame reference pose from a Parquet sidecar, with the
+  configurable column mapping
 - `dense_store`: HDF5 readers/writers for cloud points and 1D curves
 - `decimate`: ingest-time voxel + budget point cloud decimation
 - `calibration`: extrinsics → 4×4 transform for cross-sensor alignment

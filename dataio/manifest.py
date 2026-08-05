@@ -7,8 +7,8 @@ nothing about any individual log. It declares:
 - the filename suffixes that associate a log's sidecars with it
 - per-sensor calibration, so overlaid point clouds share a reference frame
 - fixed point-cloud backdrop styling and the 1D curve plot definitions
-- how the reference overlay is drawn -- a plain marker, or a box scaled to the
-  thing it stands for (see :func:`normalize_reference_display`)
+- how the reference overlay is drawn -- a plain marker, or a mesh the dataset
+  declares vertex by vertex (see :func:`normalize_reference_display`)
 
 Two things it deliberately does **not** declare:
 
@@ -26,6 +26,7 @@ Two things it deliberately does **not** declare:
       ├── drive_01.sensor_2.h5      curves from a second sensor
       ├── drive_01.mp4              image stream
       ├── drive_01.rear.mp4         a second image stream
+      ├── drive_01.reference.parquet  per-frame reference pose
       └── drive_02.parquet          another log, same conventions
 
   Adding a log is dropping files in the folder; no manifest edit is needed.
@@ -85,6 +86,7 @@ TIME_UNIT_SCALES = {
 DEFAULT_TABLE_SUFFIX = ".parquet"
 DEFAULT_CLOUD_SUFFIX = ".cloud.h5"
 DEFAULT_CURVE_SUFFIX = ".curve.h5"
+DEFAULT_REFERENCE_SUFFIX = ".reference.parquet"
 # mp4 first: a stream present in both containers is served without a transcode.
 DEFAULT_IMAGE_SUFFIXES = (".mp4", ".avi")
 DEFAULT_IMAGE_SUFFIX = DEFAULT_IMAGE_SUFFIXES[0]
@@ -118,7 +120,7 @@ DEFAULT_CLOUD_DISPLAY = {
 # reproduce the plain white dot this was before the block existed, which is why
 # a manifest that says nothing about the reference draws exactly as it always
 # did.
-REFERENCE_SHAPES = ("marker", "box")
+REFERENCE_SHAPES = ("marker", "mesh")
 
 DEFAULT_REFERENCE_DISPLAY = {
     "name": "Host Vehicle",
@@ -132,18 +134,39 @@ DEFAULT_REFERENCE_DISPLAY = {
     "line_width": 2,
 }
 
-# Box-only defaults. A solid box at full opacity would bury every detection
-# inside it, so the box is translucent where the dot is not -- hence a separate
+# Pose fields a reference sidecar can supply, mapped to the column names that
+# carry them. All None: an unmapped field falls back to a column named after the
+# field itself, so a sidecar that already calls its columns `x`/`yaw`/... needs
+# no mapping. `frame` falls back to the table's own frame column.
+DEFAULT_REFERENCE_COLUMNS = {
+    "frame": None,
+    "x": None,
+    "y": None,
+    "z": None,
+    "yaw": None,
+    "pitch": None,
+    "roll": None,
+}
+
+# Keys of the `reference` block that describe *where the data comes from* rather
+# than how it is drawn, and so are not part of the display dict.
+_REFERENCE_SOURCE_KEYS = ("suffix", "columns")
+
+# Mesh-only defaults. A solid body at full opacity would bury every detection
+# inside it, so a mesh is translucent where the dot is not -- hence a separate
 # table rather than one flat set of defaults.
-DEFAULT_REFERENCE_BOX = {
+#
+# The geometry itself is the dataset's to state: `vertices` in meters relative to
+# the reference point, `faces` as vertex-index triangles. Nothing here generates
+# a shape, so a mesh can be as plain as a box or as specific as a vehicle
+# silhouette whose nose is obvious from any angle -- and which end is the front
+# is answered by the shape, not by a setting.
+DEFAULT_REFERENCE_MESH = {
     "opacity": 0.35,
-    # Full extent along the plot's x, y and z axes, in data units. Dimensions
-    # are per-axis rather than length/width/height because which physical
-    # quantity each axis carries is the user's choice, not the manifest's.
-    "dimensions": [1.9, 4.7, 1.5],
-    # Box center relative to the reference point. The reference column usually
-    # marks a sensor or the rear axle, not the middle of the vehicle.
-    "offset": [0.0, 0.0, 0.0],
+    "vertices": [],
+    "faces": [],
+    # True derives the wireframe from `faces`; a list of vertex-index pairs
+    # draws exactly those edges; False draws none.
     "edges": True,
     # None means "follow `color`".
     "edge_color": None,
@@ -182,6 +205,148 @@ def _vec3(value: Any, fallback: List[float]) -> List[float]:
         return list(fallback)
 
 
+def _mesh_vertices(raw: Any) -> List[List[float]]:
+    """
+    Coerce a manifest ``vertices`` list to xyz triples.
+
+    Args:
+        raw: Raw value from the manifest.
+
+    Returns:
+        List of ``[x, y, z]`` floats. Entries that are not a usable triple are
+        dropped rather than raising -- but dropping one renumbers everything
+        after it, so :func:`_mesh_faces` is given the count and discards any
+        triangle pointing past it.
+    """
+    if not isinstance(raw, (list, tuple)):
+        return []
+
+    vertices = []
+    for entry in raw:
+        vertex = _vec3(entry, [])
+        if len(vertex) == 3:
+            vertices.append(vertex)
+    return vertices
+
+
+def _mesh_faces(raw: Any, vertex_count: int) -> List[List[int]]:
+    """
+    Coerce a manifest ``faces`` list to vertex-index triangles.
+
+    Args:
+        raw: Raw value from the manifest.
+        vertex_count: Number of vertices the indices may address.
+
+    Returns:
+        List of ``[i, j, k]`` indices, with out-of-range and malformed triangles
+        dropped: Plotly renders an out-of-range index as a hole rather than an
+        error, which is harder to diagnose than a missing face.
+    """
+    if not isinstance(raw, (list, tuple)):
+        return []
+
+    faces = []
+    for entry in raw:
+        if not isinstance(entry, (list, tuple)) or len(entry) != 3:
+            continue
+        try:
+            triangle = [int(index) for index in entry]
+        except (TypeError, ValueError):
+            continue
+        if all(0 <= index < vertex_count for index in triangle):
+            faces.append(triangle)
+    return faces
+
+
+def _mesh_edges(raw: Any, faces: List[List[int]], vertex_count: int) -> List[List[int]]:
+    """
+    Resolve a manifest ``edges`` declaration to vertex-index pairs.
+
+    Args:
+        raw: ``True`` to derive the wireframe from the faces, a list of index
+            pairs to draw exactly those, anything falsy to draw none.
+        faces: Normalized triangles, used for the derived form.
+        vertex_count: Number of vertices the indices may address.
+
+    Returns:
+        List of ``[start, end]`` pairs. Deriving from faces outlines every
+        triangle, diagonals included -- a mesh that wants only its silhouette
+        lists the edges it wants.
+    """
+    if not raw:
+        return []
+
+    if raw is True:
+        seen = set()
+        edges = []
+        for triangle in faces:
+            for position in range(3):
+                pair = (triangle[position], triangle[(position + 1) % 3])
+                key = frozenset(pair)
+                if key not in seen:
+                    seen.add(key)
+                    edges.append(list(pair))
+        return edges
+
+    if not isinstance(raw, (list, tuple)):
+        return []
+
+    edges = []
+    for entry in raw:
+        if not isinstance(entry, (list, tuple)) or len(entry) != 2:
+            continue
+        try:
+            pair = [int(index) for index in entry]
+        except (TypeError, ValueError):
+            continue
+        if all(0 <= index < vertex_count for index in pair):
+            edges.append(pair)
+    return edges
+
+
+def _mesh_extent(vertices: List[List[float]]) -> List[List[float]]:
+    """
+    Bounding box of a mesh, per axis.
+
+    The 3D scene fixes its axis ranges, so whatever the mesh adds beyond the
+    data has to be made room for or it is simply clipped away.
+
+    Args:
+        vertices: Mesh vertices relative to the reference point.
+
+    Returns:
+        ``[[xmin, xmax], [ymin, ymax], [zmin, zmax]]``.
+    """
+    if not vertices:
+        return [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0]]
+
+    return [
+        [
+            min(vertex[axis] for vertex in vertices),
+            max(vertex[axis] for vertex in vertices),
+        ]
+        for axis in range(3)
+    ]
+
+
+def _mesh_radius(vertices: List[List[float]]) -> float:
+    """
+    Distance from the reference point to the furthest vertex.
+
+    A mesh that turns with a pose reaches further along an axis than its own
+    extent on that axis, and this bounds it whatever the orientation.
+
+    Args:
+        vertices: Mesh vertices relative to the reference point.
+
+    Returns:
+        The largest vertex norm; 0.0 for an empty mesh.
+    """
+    if not vertices:
+        return 0.0
+    return max(sum(component**2 for component in vertex) ** 0.5 for vertex in vertices)
+
+
 def normalize_reference_display(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """
     Fill in a manifest ``reference`` block.
@@ -192,7 +357,8 @@ def normalize_reference_display(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]
     Returns:
         Dict carrying every key the renderer reads. An unknown ``shape`` falls
         back to ``marker`` rather than raising: a typo in a cosmetic field
-        should not cost the user their reference point.
+        should not cost the user their reference point. So does a ``mesh`` with
+        no drawable geometry -- a dot in the right place beats nothing at all.
     """
     raw = raw or {}
 
@@ -201,20 +367,87 @@ def normalize_reference_display(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]
     if shape not in REFERENCE_SHAPES:
         shape = DEFAULT_REFERENCE_DISPLAY["shape"]
 
-    if shape == "box":
-        display.update(DEFAULT_REFERENCE_BOX)
+    if shape == "mesh":
+        display.update(DEFAULT_REFERENCE_MESH)
 
-    display.update({key: value for key, value in raw.items() if key != "shape"})
+    display.update(
+        {
+            key: value
+            for key, value in raw.items()
+            if key != "shape" and key not in _REFERENCE_SOURCE_KEYS
+        }
+    )
     display["shape"] = shape
 
-    if shape == "box":
-        dimensions = _vec3(display["dimensions"], DEFAULT_REFERENCE_BOX["dimensions"])
-        display["dimensions"] = [abs(size) for size in dimensions]
-        display["offset"] = _vec3(display["offset"], DEFAULT_REFERENCE_BOX["offset"])
-        display["edges"] = bool(display["edges"])
+    if shape == "mesh":
+        vertices = _mesh_vertices(display["vertices"])
+        faces = _mesh_faces(display["faces"], len(vertices))
+        if not faces:
+            # Vertices with no face enclose nothing, and a mesh trace with no
+            # triangles is an invisible reference. Say so by falling back.
+            return normalize_reference_display(
+                {**raw, "shape": DEFAULT_REFERENCE_DISPLAY["shape"]}
+            )
+
+        display["vertices"] = vertices
+        display["faces"] = faces
+        display["edges"] = _mesh_edges(display["edges"], faces, len(vertices))
         display["edge_color"] = display["edge_color"] or display["color"]
+        display["extent"] = _mesh_extent(vertices)
+        display["radius"] = _mesh_radius(vertices)
 
     return display
+
+
+def table_sidecar_suffixes(case_dir: str) -> List[str]:
+    """
+    Suffixes a case uses for sidecars that share the table's file extension.
+
+    The file picker lists tables by extension, which was unambiguous while every
+    sidecar was an ``.h5`` or an ``.mp4``. The reference pose is Parquet like the
+    table, so it has to be named out or it shows up in the picker as a log --
+    one that has none of the columns the manifest describes.
+
+    Args:
+        case_dir: Case directory, read for a manifest declaring custom suffixes.
+
+    Returns:
+        Lowercased suffixes to exclude. Falls back to the defaults when the case
+        has no readable manifest, since the picker must still not offer them.
+    """
+    suffixes = [DEFAULT_REFERENCE_SUFFIX]
+    try:
+        manifest = Manifest.load(case_dir)
+    except ManifestError:
+        pass
+    else:
+        suffixes.append(manifest.reference_suffix)
+
+    return sorted({suffix.lower() for suffix in suffixes if suffix})
+
+
+def normalize_reference_columns(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Fill in a manifest ``reference.columns`` block.
+
+    Args:
+        raw: The mapping as authored, or None when the dataset declares none.
+
+    Returns:
+        Dict with an entry for every field in :data:`DEFAULT_REFERENCE_COLUMNS`.
+        ``"None"`` -- what the view's pickers emit for an unset dropdown -- and
+        the empty string both normalize to ``None``, so an unmapped field is one
+        thing downstream rather than three.
+    """
+    columns = dict(DEFAULT_REFERENCE_COLUMNS)
+    for field, value in (raw or {}).items():
+        if field not in columns:
+            continue
+        if value is None or value == "" or value == "None":
+            columns[field] = None
+        else:
+            columns[field] = str(value)
+    return columns
 
 
 def _suffix_source_id(suffix: str) -> str:
@@ -714,6 +947,72 @@ class Manifest:
             The plot definition, or None when no plot has that id.
         """
         return next((p for p in self.curve_plots() if p["id"] == plot_id), None)
+
+    # ------------------------------------------------------------------
+    # Reference pose
+    # ------------------------------------------------------------------
+
+    @property
+    def reference_suffix(self) -> str:
+        """Filename suffix identifying a reference-pose sidecar."""
+        return (self.reference or {}).get("suffix", DEFAULT_REFERENCE_SUFFIX)
+
+    def reference_path(self, stem: str) -> Optional[str]:
+        """
+        Path to one log's reference-pose sidecar.
+
+        Resolved from the suffix alone, with no ``reference`` block required:
+        dropping ``<stem>.reference.parquet`` beside a log is enough to give it
+        a pose, the same way dropping an ``.mp4`` gives it a video.
+
+        Args:
+            stem: Log stem.
+
+        Returns:
+            Absolute path (which may not exist), or None without a stem.
+        """
+        if not stem:
+            return None
+        return self._sidecar_path(stem, self.reference_suffix)
+
+    def has_reference_pose(self, stem: str) -> bool:
+        """
+        Whether a given log has a reference-pose sidecar on disk.
+
+        Args:
+            stem: Log stem.
+
+        Returns:
+            True when the sidecar is present.
+        """
+        path = self.reference_path(stem)
+        return bool(path and os.path.exists(path))
+
+    def reference_columns(self) -> Dict[str, Any]:
+        """
+        Mapping of pose field -> sidecar column name.
+
+        Returns:
+            Normalized mapping; see :func:`normalize_reference_columns`.
+        """
+        return normalize_reference_columns((self.reference or {}).get("columns"))
+
+    def update_reference_columns(self, values: Dict[str, Any]) -> None:
+        """
+        Update the pose column mapping held in the manifest.
+
+        The 3D view's reference pickers are the mapping's editor, so their
+        selections land here and are persisted with the rest of the manifest.
+
+        Args:
+            values: Subset of the fields in :data:`DEFAULT_REFERENCE_COLUMNS`.
+                Unknown keys are ignored.
+        """
+        reference = self.raw.setdefault("reference", {})
+        columns = reference.setdefault("columns", {})
+        for field in DEFAULT_REFERENCE_COLUMNS:
+            if field in values:
+                columns[field] = values[field]
 
     # ------------------------------------------------------------------
     # Images

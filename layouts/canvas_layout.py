@@ -101,6 +101,14 @@ def _axis_config_panel():
         ("y-ref-picker-3d", "y ref", "Reference column for the y axis"),
         ("z-ref-picker-3d", "z ref", "Reference column for the z axis"),
     ]
+    # Orientation only exists in a reference sidecar -- a table column carries a
+    # position and nothing else -- so this row appears only for a log that has
+    # one, and its columns come from that file rather than from the table.
+    pose_refs = [
+        ("yaw-ref-picker-3d", "yaw", "Reference column for yaw, in radians"),
+        ("pitch-ref-picker-3d", "pitch", "Reference column for pitch, in radians"),
+        ("roll-ref-picker-3d", "roll", "Reference column for roll, in radians"),
+    ]
 
     return dbc.Collapse(
         html.Div(
@@ -118,9 +126,20 @@ def _axis_config_panel():
                     className="sv-pane-controls mb-2",
                 ),
                 html.Span("Reference", className="sv-section-label"),
+                html.Span(
+                    "",
+                    id="ref-source-note",
+                    className="sv-source-note",
+                ),
                 html.Div(
                     [_select(cid, label, tip) for cid, label, tip in refs],
                     className="sv-pane-controls mb-0",
+                ),
+                html.Div(
+                    [_select(cid, label, tip) for cid, label, tip in pose_refs],
+                    id="ref-pose-controls",
+                    className="sv-pane-controls mb-0 mt-2",
+                    style={"display": "none"},
                 ),
             ],
             className="sv-canvas-popover-inner",

@@ -547,6 +547,8 @@ def get_animation_data(
         decay: Number of trailing frames to show with decreasing opacity.
         **kwargs: Additional parameters:
             - keys_dict: Dictionary of column descriptions
+            - ref_poses: Frame id -> reference pose, from the log's reference
+              sidecar. Supersedes the x/y/z ref columns when present.
             - Other parameters passed to get_scatter3d_layout
 
     Returns:
@@ -605,7 +607,18 @@ def get_animation_data(
             fig[0]["marker"]["colorscale"] = colormap
 
         # Add reference data if needed
-        if x_ref is not None and y_ref is not None:
+        ref_pose = (frame_kwargs.get("ref_poses") or {}).get(frame_idx)
+        if ref_pose is not None:
+            fig = (
+                get_reference_traces(
+                    data_frame=filtered_df,
+                    name=frame_kwargs.get("ref_name", "Host Vehicle"),
+                    display=frame_kwargs.get("ref_display"),
+                    pose=ref_pose,
+                )
+                + fig
+            )
+        elif x_ref is not None and y_ref is not None:
             fig = (
                 get_reference_traces(
                     data_frame=filtered_df,

@@ -23,7 +23,13 @@ from utils import load_data
 from utils import load_image
 from utils import prepare_figure_kwargs
 
-from frame_sources import get_cloud_trace, get_log_stem, get_manifest
+from frame_sources import (
+    get_cloud_trace,
+    get_log_stem,
+    get_manifest,
+    get_reference_bounds,
+    get_reference_pose,
+)
 
 from viz.viz import get_scatter3d
 from viz.graph_data import get_reference_traces
@@ -88,6 +94,9 @@ def process_single_frame(
     if frame_list is None:
         frame_list = []
 
+    manifest = get_manifest(session_id)
+    stem = get_log_stem(session_id)
+
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
         config,
@@ -97,10 +106,8 @@ def process_single_frame(
         bool(size_vary),
         frame_list,
         frame_idx,
+        ref_bounds=get_reference_bounds(manifest, stem),
     )
-
-    manifest = get_manifest(session_id)
-    stem = get_log_stem(session_id)
 
     # Logs with an mp4 camera stream render it in the camera card, seeked
     # client-side; only legacy per-frame JPG datasets get the inline overlay.
@@ -191,7 +198,22 @@ def process_single_frame(
             else:
                 break
 
-    if fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
+    if fig_kwargs.get("ref_from_sidecar"):
+        # The pose is per frame, so it is read from the sidecar rather than from
+        # the filtered frame -- filtering out every detection does not move the
+        # host vehicle.
+        pose = get_reference_pose(manifest, stem, frame_list[frame_idx])
+        fig_ref = (
+            get_reference_traces(
+                data_frame=filterd_frame,
+                name=fig_kwargs.get("ref_name", None),
+                display=fig_kwargs.get("ref_display"),
+                pose=pose,
+            )
+            if pose is not None
+            else []
+        )
+    elif fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
         fig_ref = get_reference_traces(
             data_frame=filterd_frame,
             x_key=fig_kwargs["x_ref"],
@@ -264,7 +286,10 @@ def process_overlay_frame(
     if frame_list is None:
         frame_list = []
 
-    # prepare figure key word arguments
+    # prepare figure key word arguments. Overlaying every frame at once leaves
+    # no single frame for a per-frame pose to belong to, so the sidecar draws
+    # nothing here -- but it still owns the reference, so the table's ref
+    # columns stay suppressed rather than standing in for it.
     fig_kwargs = prepare_figure_kwargs(
         config,
         num_keys,
@@ -273,6 +298,9 @@ def process_overlay_frame(
         bool(size_vary),
         frame_list,
         frame_idx,
+        ref_bounds=get_reference_bounds(
+            get_manifest(session_id), get_log_stem(session_id)
+        ),
     )
 
     # overlay all the frames

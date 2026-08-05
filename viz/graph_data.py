@@ -15,60 +15,10 @@ from typing import List, Dict, Tuple, Union, Any, Optional
 import numpy as np
 import pandas as pd
 
+from dataio.calibration import rotation_matrix
+
 
 REF_HOVER = "Lateral: %{x:.2f} m<br>Longitudinal: %{y:.2f} m<br>"
-
-# Unit-cube corners, in the vertex order Plotly's mesh3d cube triangulation
-# below is written against. Corners 0-3 are the bottom face, 4-7 the top.
-_BOX_CORNERS = (
-    (-1, -1, -1),
-    (-1, +1, -1),
-    (+1, +1, -1),
-    (+1, -1, -1),
-    (-1, -1, +1),
-    (-1, +1, +1),
-    (+1, +1, +1),
-    (+1, -1, +1),
-)
-
-# The 6 faces, each as its four corners in cyclic order.
-_BOX_QUADS = (
-    (0, 1, 2, 3),  # z low
-    (4, 5, 6, 7),  # z high
-    (0, 3, 7, 4),  # y low
-    (1, 2, 6, 5),  # y high
-    (0, 1, 5, 4),  # x low
-    (3, 2, 6, 7),  # x high
-)
-
-# Two triangles per face, fanned from its first corner. Derived rather than
-# tabulated: a quad only tiles when its triangles meet along the diagonal, and
-# an index table transposed by one digit still looks plausible -- it fails as a
-# face that overlaps itself on one half and is missing on the other.
-_BOX_FACES = tuple(
-    triangle
-    for corner_a, corner_b, corner_c, corner_d in _BOX_QUADS
-    for triangle in (
-        (corner_a, corner_b, corner_c),
-        (corner_a, corner_c, corner_d),
-    )
-)
-
-# The 12 edges, as corner pairs: bottom face, top face, then the uprights.
-_BOX_EDGES = (
-    (0, 1),
-    (1, 2),
-    (2, 3),
-    (3, 0),
-    (4, 5),
-    (5, 6),
-    (6, 7),
-    (7, 4),
-    (0, 4),
-    (1, 5),
-    (2, 6),
-    (3, 7),
-)
 
 
 def _ref_point(
@@ -96,6 +46,111 @@ def _ref_point(
     )
 
 
+def _pose_point(pose: Dict[str, float]) -> Tuple[float, float, float]:
+    """
+    Read the position out of a reference pose.
+
+    Args:
+        pose: Pose dict from the reference sidecar.
+
+    Returns:
+        ``(x, y, z)`` in meters; a field the sidecar does not carry reads 0.
+    """
+    return (
+        float(pose.get("x", 0.0)),
+        float(pose.get("y", 0.0)),
+        float(pose.get("z", 0.0)),
+    )
+
+
+def _place_vertices(
+    vertices: List[List[float]],
+    origin: Tuple[float, float, float],
+    rotation: Optional[np.ndarray],
+) -> List[List[float]]:
+    """
+    Put a mesh's vertices where the reference is.
+
+    Args:
+        vertices: Mesh vertices in the reference's own frame, in meters.
+        origin: Reference position in plot coordinates.
+        rotation: Pose rotation, or None for an unrotated placement.
+
+    Returns:
+        Vertices in plot coordinates.
+    """
+    if rotation is None:
+        return [
+            [vertex[axis] + origin[axis] for axis in range(3)] for vertex in vertices
+        ]
+
+    return (np.asarray(vertices) @ rotation.T + np.asarray(origin)).tolist()
+
+
+def _edge_trace(
+    vertices: List[List[float]],
+    edges: List[List[int]],
+    color: str,
+    width: float,
+    name: Optional[str],
+) -> Dict[str, Any]:
+    """
+    Draw a mesh's edges as one polyline trace.
+
+    Args:
+        vertices: Placed mesh vertices.
+        edges: Vertex-index pairs to draw.
+        color: Line color.
+        width: Line width.
+        name: Label the trace shares with the rest of the reference.
+
+    Returns:
+        Scatter3d line trace, with a None between segments to lift the pen --
+        so the whole wireframe costs one trace instead of one per edge.
+    """
+    path: List[Optional[List[float]]] = []
+    for start, end in edges:
+        path.extend([vertices[start], vertices[end], None])
+
+    return {
+        "type": "scatter3d",
+        "x": [None if point is None else point[0] for point in path],
+        "y": [None if point is None else point[1] for point in path],
+        "z": [None if point is None else point[2] for point in path],
+        "mode": "lines",
+        "line": {"color": color, "width": width},
+        "hovertemplate": REF_HOVER,
+        "name": name,
+        # The outline is part of the mesh, not a second thing to toggle.
+        "showlegend": False,
+        "legendgroup": "reference",
+    }
+
+
+def _pose_rotation(pose: Optional[Dict[str, float]]) -> Optional[np.ndarray]:
+    """
+    Build the rotation matrix for a reference pose.
+
+    Args:
+        pose: Pose dict from the reference sidecar, or None.
+
+    Returns:
+        3x3 rotation matrix, or None when the pose is absent or level -- an
+        unrotated mesh is placed by translation alone, which is both cheaper and
+        exactly what the table-column path has always produced.
+    """
+    if pose is None:
+        return None
+
+    yaw = float(pose.get("yaw", 0.0) or 0.0)
+    pitch = float(pose.get("pitch", 0.0) or 0.0)
+    roll = float(pose.get("roll", 0.0) or 0.0)
+    if yaw == 0.0 and pitch == 0.0 and roll == 0.0:
+        return None
+
+    return rotation_matrix(roll, pitch, yaw)
+
+
 def get_ref_scatter3d_data(
     data_frame: pd.DataFrame,
     x_key: str,
@@ -103,6 +158,7 @@ def get_ref_scatter3d_data(
     z_key: Optional[str] = None,
     name: Optional[str] = "Origin",
     display: Optional[Dict[str, Any]] = None,
+    pose: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     """
     Generate reference data for a 3D scatter plot.
@@ -115,15 +171,20 @@ def get_ref_scatter3d_data(
         name: Optional label for the reference point in the plot.
         display: Optional manifest styling (``color``, ``size``, ``opacity``,
             ``symbol``, ``line_color``, ``line_width``).
+        pose: Pose from the reference sidecar. When given it places the marker
+            outright and the frame and column names are not read at all.
 
     Returns:
         Dictionary containing plot data with coordinates, styling, and hover information.
     """
-    if data_frame.empty:
+    if pose is None and data_frame.empty:
         return {"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}
 
     display = display or {}
-    x_val, y_val, z_val = _ref_point(data_frame, x_key, y_key, z_key)
+    if pose is not None:
+        x_val, y_val, z_val = _pose_point(pose)
+    else:
+        x_val, y_val, z_val = _ref_point(data_frame, x_key, y_key, z_key)
 
     # Create marker configuration once
     marker_config = {
@@ -152,24 +213,33 @@ def get_ref_scatter3d_data(
     return fig_data
 
 
-def get_ref_box3d_data(
+def get_ref_mesh3d_data(
     data_frame: pd.DataFrame,
     x_key: str,
     y_key: str,
     z_key: Optional[str] = None,
     name: Optional[str] = "Origin",
     display: Optional[Dict[str, Any]] = None,
+    pose: Optional[Dict[str, float]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Draw the reference as a box scaled to the thing it stands for.
+    Draw the reference as the mesh the dataset declared for it.
 
-    A dot marks a position; a box also carries extent, which is what makes a
-    host vehicle legible against its own returns -- you can see which
-    detections fall on the body and which are past it.
+    A dot marks a position; a body also carries extent, which is what makes a
+    host vehicle legible against its own returns -- you can see which detections
+    fall on it and which are past it.
 
-    The box is axis-aligned. Its dimensions are given per plot axis rather than
-    as length/width/height because the 3D view's axes are user-assigned
-    columns, so the manifest cannot know which one runs along the vehicle.
+    The geometry comes from the manifest whole: ``vertices`` in meters relative
+    to the reference point, ``faces`` as vertex-index triangles. Nothing is
+    generated here, so the shape is free to be a plain box or a silhouette whose
+    nose is obvious from any angle -- which end is the front is answered by the
+    mesh rather than by a setting, and there is no way for a generated shape to
+    disagree with what the dataset meant.
+
+    The vertices sit in the reference's own frame. Without a pose they are
+    placed as authored, which is all a position from table columns supports. A
+    ``pose`` from the reference sidecar also carries orientation, and then the
+    whole mesh turns with it.
 
     Args:
         data_frame: DataFrame containing the source data.
@@ -177,39 +247,43 @@ def get_ref_box3d_data(
         y_key: Column name for y-axis coordinates.
         z_key: Optional column name for z-axis coordinates.
         name: Optional label for the reference in the plot.
-        display: Manifest styling, normalized by
+        display: Manifest styling and geometry, normalized by
             :func:`dataio.manifest.normalize_reference_display`.
+        pose: Pose from the reference sidecar, carrying position in meters and
+            yaw/pitch/roll in radians.
 
     Returns:
-        The mesh trace, followed by the wireframe trace when edges are on.
-        Empty when there is no frame to place the box against.
+        The mesh trace, followed by the wireframe trace when the manifest asks
+        for edges. Empty when there is no frame to place the mesh against, or no
+        geometry to place.
     """
-    if data_frame.empty:
+    if pose is None and data_frame.empty:
         return []
 
     display = display or {}
-    x_val, y_val, z_val = _ref_point(data_frame, x_key, y_key, z_key)
+    faces = display.get("faces") or []
+    if not faces:
+        return []
 
-    dimensions = display.get("dimensions", [1.9, 4.7, 1.5])
-    offset = display.get("offset", [0.0, 0.0, 0.0])
-    center = (x_val + offset[0], y_val + offset[1], z_val + offset[2])
-    half = [size / 2.0 for size in dimensions]
+    if pose is not None:
+        origin = _pose_point(pose)
+    else:
+        origin = _ref_point(data_frame, x_key, y_key, z_key)
 
-    corners = [
-        [center[axis] + signs[axis] * half[axis] for axis in range(3)]
-        for signs in _BOX_CORNERS
-    ]
+    vertices = _place_vertices(
+        display.get("vertices") or [], origin, _pose_rotation(pose)
+    )
 
     color = display.get("color", "#ffffff")
     traces: List[Dict[str, Any]] = [
         {
             "type": "mesh3d",
-            "x": [corner[0] for corner in corners],
-            "y": [corner[1] for corner in corners],
-            "z": [corner[2] for corner in corners],
-            "i": [face[0] for face in _BOX_FACES],
-            "j": [face[1] for face in _BOX_FACES],
-            "k": [face[2] for face in _BOX_FACES],
+            "x": [vertex[0] for vertex in vertices],
+            "y": [vertex[1] for vertex in vertices],
+            "z": [vertex[2] for vertex in vertices],
+            "i": [face[0] for face in faces],
+            "j": [face[1] for face in faces],
+            "k": [face[2] for face in faces],
             "color": color,
             "opacity": display.get("opacity", 0.35),
             "flatshading": True,
@@ -220,30 +294,16 @@ def get_ref_box3d_data(
         }
     ]
 
-    if display.get("edges", True):
-        # One trace for all 12 edges: a None between segments lifts the pen, so
-        # the wireframe costs one trace instead of twelve.
-        path: List[Optional[List[float]]] = []
-        for start, end in _BOX_EDGES:
-            path.extend([corners[start], corners[end], None])
-
+    edges = display.get("edges") or []
+    if edges:
         traces.append(
-            {
-                "type": "scatter3d",
-                "x": [None if point is None else point[0] for point in path],
-                "y": [None if point is None else point[1] for point in path],
-                "z": [None if point is None else point[2] for point in path],
-                "mode": "lines",
-                "line": {
-                    "color": display.get("edge_color", color),
-                    "width": display.get("edge_width", 2),
-                },
-                "hovertemplate": REF_HOVER,
-                "name": name,
-                # The outline is part of the box, not a second thing to toggle.
-                "showlegend": False,
-                "legendgroup": "reference",
-            }
+            _edge_trace(
+                vertices,
+                edges,
+                display.get("edge_color") or color,
+                display.get("edge_width", 2),
+                name,
+            )
         )
 
     return traces
@@ -251,11 +311,12 @@ def get_ref_box3d_data(
 
 def get_reference_traces(
     data_frame: pd.DataFrame,
-    x_key: str,
-    y_key: str,
+    x_key: Optional[str] = None,
+    y_key: Optional[str] = None,
     z_key: Optional[str] = None,
     name: Optional[str] = "Origin",
     display: Optional[Dict[str, Any]] = None,
+    pose: Optional[Dict[str, float]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Build the reference overlay in whichever shape the manifest asked for.
@@ -269,16 +330,20 @@ def get_reference_traces(
         display: Manifest styling, normalized by
             :func:`dataio.manifest.normalize_reference_display`. Absent or
             shapeless, the reference stays the plain marker it has always been.
+        pose: Pose read from the log's reference sidecar. When given it is the
+            source of position and orientation, and the column names are unused.
 
     Returns:
         List of traces to append to the figure.
     """
     display = display or {}
 
-    if display.get("shape") == "box":
-        return get_ref_box3d_data(data_frame, x_key, y_key, z_key, name, display)
+    if display.get("shape") == "mesh":
+        return get_ref_mesh3d_data(data_frame, x_key, y_key, z_key, name, display, pose)
 
-    return [get_ref_scatter3d_data(data_frame, x_key, y_key, z_key, name, display)]
+    return [
+        get_ref_scatter3d_data(data_frame, x_key, y_key, z_key, name, display, pose)
+    ]
 
 
 def get_cloud_scatter3d_data(
