@@ -539,19 +539,21 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
     @app.callback(
         output={"state": Output("collapse-add", "is_open")},
         inputs={"click": Input("button-add", "n_clicks")},
-        state={
-            "open_state": State("collapse-add", "is_open"),
-            "add_file_value": State("file-add", "value"),
-        },
+        state={"open_state": State("collapse-add", "is_open")},
     )
-    def add_data(click: int, open_state: bool, add_file_value: str) -> dict:
+    def add_data(click: int, open_state: bool) -> dict:
         """
         Toggle the state of the add data collapse element.
+
+        The panel closes whether or not logs are picked: it floats over the
+        canvas, so refusing to close it while a selection stands would leave no
+        way to get it off the screen. What is combined stays visible instead
+        through the trigger button, which is lit while the selection is not
+        empty (see the clientside callback in ``app.py``).
 
         Args:
             click (int): Number of button clicks
             open_state (bool): Current state of the collapse element
-            add_file_value (str): Value of the file add input
 
         Returns:
             dict: Contains:
@@ -563,10 +565,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         if click == 0:
             raise PreventUpdate
 
-        if open_state is True and not add_file_value:
-            return {"state": False}
-
-        return {"state": True}
+        return {"state": not open_state}
 
     # The six analysis enable switches are no longer reset here. They are driven
     # by the active dock tab (see the clientside gate in app.py), which already

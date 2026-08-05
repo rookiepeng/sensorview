@@ -574,6 +574,19 @@ app.clientside_callback(
     prevent_initial_call=True,
 )
 
+# The picker panel is the only place the combined logs are named, and it closes
+# on demand, so the button that opens it carries the fact that some are in play.
+app.clientside_callback(
+    """
+    function(add_file) {
+        var combining = Array.isArray(add_file) && add_file.length > 0;
+        return "sv-icon-btn" + (combining ? " active" : "");
+    }
+    """,
+    Output("button-add", "className"),
+    Input("file-add", "value"),
+)
+
 # Slot assignment is the enable switch for a view, and the slot layout.
 #
 # These six figures are expensive, so only the two on screen are live: a view

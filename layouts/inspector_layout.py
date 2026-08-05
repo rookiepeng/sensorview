@@ -33,6 +33,8 @@ def _camera_section():
     Returns:
         html.Div: Stream selector and the video element, behind a header with
         its own minimize toggle so it can give up space to the curve section.
+        Minimizing takes the header with it; the way back is the chip in the
+        panel bar.
     """
     return html.Div(
         [
@@ -55,7 +57,7 @@ def _camera_section():
                 className="sv-subsection-head",
             ),
             dbc.Tooltip(
-                "Minimize / restore the image",
+                "Minimize the image",
                 target="camera-section-toggle",
                 placement="left",
             ),
@@ -123,7 +125,7 @@ def _threshold_section():
                 className="sv-subsection-head",
             ),
             dbc.Tooltip(
-                "Minimize / restore the curve",
+                "Minimize the curve",
                 target="threshold-section-toggle",
                 placement="left",
             ),
@@ -199,6 +201,28 @@ def get_inspector_layout():
                         [html.I(className="bi bi-eye"), "Inspector"],
                         className="sv-panel-title",
                     ),
+                    # A minimized section gives up its header row entirely, so
+                    # the chip that brings it back has to live somewhere else.
+                    # It goes here, in bar space the title was not using.
+                    html.Span(
+                        [
+                            dbc.Button(
+                                html.I(className="bi bi-camera-video"),
+                                id="camera-restore",
+                                color="transparent",
+                                n_clicks=0,
+                                className="sv-icon-btn sv-icon-btn-sm sv-panel-chip",
+                            ),
+                            dbc.Button(
+                                html.I(className="bi bi-graph-up"),
+                                id="threshold-restore",
+                                color="transparent",
+                                n_clicks=0,
+                                className="sv-icon-btn sv-icon-btn-sm sv-panel-chip",
+                            ),
+                        ],
+                        className="sv-panel-chips",
+                    ),
                     dbc.Button(
                         html.I(className="bi bi-layout-sidebar-inset-reverse"),
                         id="inspector-toggle",
@@ -214,6 +238,8 @@ def get_inspector_layout():
                 target="inspector-toggle",
                 placement="left",
             ),
+            dbc.Tooltip("Restore the image", target="camera-restore"),
+            dbc.Tooltip("Restore the curve", target="threshold-restore"),
             html.Div(
                 [_camera_section(), _threshold_section()],
                 className="sv-inspector-body",
