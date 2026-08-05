@@ -2,49 +2,107 @@
 
 <img src="./assets/sensorview_logo.svg" alt="logo" width="200"/>
 
-A Flask/Dash-based web application for sensor data visualization and analysis with advanced caching and interactive features.
+A Flask/Dash workbench for exploring multi-sensor logs. A 3D point cloud, the
+camera frame and 1D curves that go with it, and six statistical views — all
+describing the same instant, all driven by one frame slider and one set of
+filters.
 
 ## Screenshots
 
-## Features
+The workbench on the bundled `data/Example` case: the 3D point cloud with its
+decimated backdrop and host-vehicle box, the camera frame and range profile for
+the same instant in the inspector, and two statistical views in the dock.
 
-### Core Visualization Modes
+<img src="./assets/screenshot.png" alt="SensorView workbench, dark theme" width="900"/>
 
-#### 3D Visualization and Filtering
+<details>
+<summary>Light theme</summary>
 
-- Interactive 3D scatter plots for data visualization
-- Advanced filtering and color mapping options
-- Decay effects for temporal data analysis
+<img src="./assets/screenshot_light.png" alt="SensorView workbench, light theme" width="900"/>
 
-<img src="./assets/3d.gif" alt="3d" width="600"/>
+</details>
 
-#### 2D Visualization and Filtering
+## The Workbench
 
-- Dual-panel 2D scatter plots (left and right views)
-- Synchronized data filtering across multiple views
-- Interactive data exploration tools
+Everything is sized against the viewport rather than flowing down a page.
+Nothing scrolls except panel interiors, so no view is ever more than a click
+from visible — which is the point, since all of them describe the same frame.
 
-<img src="./assets/2d.gif" alt="2d" width="600"/>
+| Region | Holds |
+|---|---|
+| **Top bar** | Dataset breadcrumb (it *is* the file picker), combine-logs, theme toggle, export menu |
+| **Left rail** | Display options and the per-column filters built from the manifest |
+| **Canvas** | The 3D point cloud — the only region that grows |
+| **Inspector** | The camera stream and the curve plot for the current frame |
+| **Transport** | Frame scrubbing, playback, buffering progress |
+| **Analysis dock** | Two slots, each showing any one of the six statistical views |
 
-#### Statistical Visualization
+The rail, inspector, and dock each have a splitter on their inner edge; whatever
+they give up, the canvas takes. All of it — collapse, drag, theme — runs
+clientside (`assets/workbench.js`), because none of it is anything the server
+knows about.
 
-- Heatmap visualization for correlation analysis
-- Histogram analysis with customizable binning
-- Parallel categories (parcats) for categorical data
-- Violin plots for distribution analysis
+### 3D Canvas
 
-<img src="./assets/stat.gif" alt="stat" width="600"/>
+Interactive 3D scatter with color mapping, a decay slider that fades previous
+frames in behind the current one, and an overlay mode that draws every frame at
+once. View settings float over the plot rather than docking above it: they are
+touched a handful of times a session and would otherwise cost their height on
+every frame. Axis and reference-column mapping live behind the sliders button.
 
-### Advanced Features
+### Filter Rail
 
-- **Efficient Data Processing**: WebWorker-based caching system for smooth performance
-- **Multiple File Support**: Load and compare multiple datasets simultaneously
-- **Session Management**: Isolated data sessions for concurrent users
-- **Interactive Controls**: Frame navigation, playback controls, and data updates
-- **Dark/Light Mode**: Theme switching for different viewing preferences
-- **Data Buffering**: IndexedDB-based client-side caching for large datasets
-- **Configuration Persistence**: JSON-based configuration management
-- **Test Case Management**: Organized data file and test case selection
+Filters are generated per column from the manifest — a range slider for each
+numerical key, a multi-select for each categorical one. Every view reads the
+same filtered table, so a filter change moves all of them together. Points can
+be relabelled *hidden* by clicking them on the plot or lassoing them in a 2D
+view, then filtered on that label.
+
+### Inspector
+
+The camera stream and the curve plot for the current frame, docked on the right
+rather than floating over the canvas they accompany. Each section has its own
+minimize toggle and restores from a chip in the panel bar; the curve section
+grows into whatever height the image gives up. The inspector hides itself
+entirely when a log has neither sidecar, and each section hides independently,
+so the canvas reclaims the full width.
+
+### Analysis Dock
+
+Two side-by-side slots over a drag-resizable panel that collapses to its own
+header. Each slot shows one of six views:
+
+- **2D Scatter A / B** — two independent x/y/color mappings, with lasso and box
+  selection wired to the visibility label
+- **Histogram** — one column binned, normalized as density or probability,
+  optionally split by a category
+- **Violin** — distribution by category
+- **Parallel Categories** — categorical relationships
+- **Heatmap** — 2D density
+
+Slot assignment *is* the enable switch. These figures are expensive, so a view
+in a slot is live, everything else is idle, and a collapsed dock computes
+nothing at all.
+
+### Transport and Buffering
+
+The frame slider is the single source of truth for time: the video element never
+plays on its own, it is seeked to the frame the rest of the app is showing.
+Playback runs the same path. Server-side and browser-side buffering progress
+ride as two hairlines on the transport's top edge — visible when looked for,
+costing no extra height either way.
+
+### Other
+
+- **Multiple File Support**: combine additional logs from the top bar and
+  compare them in one view
+- **Session Isolation**: each browser session gets its own cache namespace
+- **Data Buffering**: a WebWorker pre-fetches frames into IndexedDB so scrubbing
+  does not wait on the server
+- **Dark/Light Theme**: chrome and Plotly templates switch together; the choice
+  persists in `localStorage`
+- **Export**: current plot as PNG or HTML, all frames as an HTML video, or the
+  filtered data itself for the current frame or all frames
 
 ## Data Architecture
 
@@ -267,15 +325,6 @@ Optional: `edges` (default `true`) draws the wireframe, with `edge_color` and
 styles the dot through `color`, `size`, `symbol`, `line_color`, and
 `line_width`. The block is read from both v1 and v2 manifests.
 
-### Subview Panel
-
-The image stream and curve plot live in a floating panel over the 3D view rather
-than stacked below it — all three show the same instant, so scrolling between
-them defeats the purpose. The panel is draggable by its header, minimizes to a
-title bar, resizes from its bottom-right corner, and stays clamped inside the
-viewport. It hides itself entirely when a log has neither an image stream nor
-curve data, and each half hides independently.
-
 ### Ingestion
 
 Convert a recording into the layout above:
@@ -307,38 +356,6 @@ decimation, `--fps` overrides the capture rate (inferred from timestamps by
 default), and `--keyframe-interval` controls image GOP length (1 = all-intra,
 keeping every seek frame-exact).
 
-## Architecture
-
-### Server Components
-
-- **Flask/Dash Server**: Main application server with REST API endpoints
-- **REST API**: `/api/data/<session>/<start_index>` endpoint for streaming buffered frame data to the client
-- **WebWorker Integration**: Client-side data management and processing
-- **Cache Management**: Multi-level caching — server-side `diskcache` FanoutCache for session/frame data, client-side IndexedDB via WebWorker
-- **Session Isolation**: Independent data sessions for multiple users
-
-### Client Components
-
-- **Interactive UI**: Modal dialogs for configuration and file selection
-- **Dynamic Updates**: Automatic data refresh and visualization updates
-- **IndexedDB Storage**: Browser-based data persistence and buffering
-
-## Dependencies
-
-### Python Modules
-
-See `requirements.txt` for complete list:
-
-- **dash**, **dash-bootstrap-components**, **dash-daq**: Web framework and interactive UI components
-- **polars**, **pandas**, **numpy**, **pyarrow**: Data manipulation and Parquet I/O
-- **h5py**: HDF5 sidecars for point clouds and 1D curves
-- **imageio-ffmpeg**: Ingest-time only; bundles a static ffmpeg for image mp4 encoding
-- **diskcache**: Server-side FanoutCache for session and frame data
-- **orjson**: High-performance JSON serialization for API responses
-- **kaleido**: Static image export for plots
-- **flaskwebgui**: Desktop application wrapper
-- **waitress**: Production WSGI server (optional)
-
 ## Installation
 
 1. Clone the repository:
@@ -356,185 +373,176 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Data Preparation
+### Preparing Data
 
-1. **Data Format**: Save data as `.pkl` (pickle) or `.csv` files
-2. **Directory Structure**: Organize data under `./data` directory
-3. **Configuration**: Create `info.json` in each test case directory
+1. Put each case in its own folder under `./data` (or point the app at any
+   other directory from the open dialog).
+2. Give the case an `info.json` — the manifest described above.
+3. Drop the logs in: `<stem>.parquet` plus whatever sidecars exist for it.
+   Anything missing simply does not appear.
 
-### Directory Structure Example
+Existing `.csv` and `.pkl` tables are still offered in the file picker and load
+without conversion, as does a v1 `info.json` with its keys at the top level.
+Running `dataio.ingest` over such a folder gets you the Parquet layout, the
+sidecar conventions, and the performance that comes with them.
 
-```
-./data/
-├── Example/
-│   ├── info.json          # Required: Column specifications
-│   ├── sensor_data.csv    # Data files
-│   ├── test_results.pkl   # Alternative format
-│   └── subfolder/         # Nested data organization
-│       └── more_data.csv
-└── Another_Test/
-    ├── info.json
-    └── dataset.pkl
-```
+### Minimal `info.json`
 
-### Configuration File (info.json)
-
-Specify data column mappings, visualization settings, and metadata:
+The table block is the only required one — it names the frame column, the
+default 3D axes, and the metadata for each column:
 
 ```json
 {
-  "slider": "Frame",
-  "x_3d": "Latitude",
-  "y_3d": "Longitude",
-  "z_3d": "Height",
-  "x_ref": "Host_Latitude",
-  "y_ref": "Host_Longitude",
-  "z_ref": "None",
-  "keys": {
-    "Height": {
-      "description": "Height (m)",
-      "decimal": 2,
-      "type": "numerical"
-    },
-    "Longitude": {
-      "description": "Longitude (m)",
-      "decimal": 2,
-      "type": "numerical"
-    },
-    "Latitude": {
-      "description": "Latitude (m)",
-      "decimal": 2,
-      "type": "numerical"
-    },
-    "Time": {
-      "description": "Time (s)",
-      "decimal": 2,
-      "type": "numerical"
-    },
-    "Sensor": {
-      "description": "Sensor",
-      "type": "categorical"
-    },
-    "Frame": {
-      "description": "Frame",
-      "decimal": 0,
-      "type": "numerical"
-    },
-    "Host_Latitude": {
-      "description": "Ref Latitude (m)",
-      "decimal": 2,
-      "type": "numerical"
-    },
-    "Host_Longitude": {
-      "description": "Ref Longitude (m)",
-      "decimal": 2,
-      "type": "numerical"
+  "manifest_version": 2,
+  "table": {
+    "slider": "Frame",
+    "x_3d": "Latitude",
+    "y_3d": "Longitude",
+    "z_3d": "Height",
+    "x_ref": "Host_Latitude",
+    "y_ref": "Host_Longitude",
+    "z_ref": "None",
+    "keys": {
+      "Latitude":       { "description": "Latitude (m)",     "decimal": 2, "type": "numerical" },
+      "Longitude":      { "description": "Longitude (m)",    "decimal": 2, "type": "numerical" },
+      "Height":         { "description": "Height (m)",       "decimal": 2, "type": "numerical" },
+      "Time":           { "description": "Time (s)",         "decimal": 2, "type": "numerical" },
+      "Frame":          { "description": "Frame",            "decimal": 0, "type": "numerical" },
+      "Sensor":         { "description": "Sensor",                         "type": "categorical" },
+      "Host_Latitude":  { "description": "Ref Latitude (m)", "decimal": 2, "type": "numerical" },
+      "Host_Longitude": { "description": "Ref Longitude (m)","decimal": 2, "type": "numerical" }
     }
   }
 }
 ```
 
-**Configuration Parameters:**
+**Parameters:**
 
-- **slider**: Column to use for frame navigation/time slider
-- **x_3d, y_3d, z_3d**: Default columns for 3D visualization axes
-- **x_ref, y_ref, z_ref**: Reference point columns for 3D visualization; set to `"None"` (string) to disable a reference axis
-- **keys**: Column definitions with metadata:
-  - **description**: Human-readable column description
-  - **decimal**: Number of decimal places for numerical display
-  - **type**: Data type ("numerical" or "categorical")
+- **slider**: integer column used as the temporal axis for the frame slider
+- **x_3d, y_3d, z_3d**: default columns for the 3D axes
+- **x_ref, y_ref, z_ref**: reference-point columns; `"None"` (the string)
+  disables an axis
+- **time_unit**: unit of the `Time` column — `s` (default), `ms`, `us`, `ns`
+- **keys**: one entry per column
+  - **description**: label shown in pickers, filters, and axis titles
+  - **decimal**: decimal places for numerical display
+  - **type**: `"numerical"` (range filter) or `"categorical"` (multi-select)
+
+`cloud`, `curve`, `image`, and `reference` are all optional; see the sections
+above for what each accepts. `data/Example` is a working two-log case that
+exercises all of them.
 
 ### Running the Application
 
-#### Development Mode
+#### Desktop app
 
 ```bash
 python app.py
 ```
 
-Set `DEBUG = True` in app.py for development with hot reload.
+Launches through FlaskWebGUI on port 8521 in its own window.
 
-#### Production Mode (Desktop App)
+#### Development
 
-```bash
-python app.py
-```
+Set `DEBUG = True` at the bottom of `app.py` for the Dash dev server with hot
+reload.
 
-The application will launch as a desktop application using FlaskWebGUI on port 8521.
+#### Server
 
-#### Server Mode
-
-Uncomment the Waitress server lines in app.py for production deployment:
+Uncomment the Waitress lines in `app.py` for a deployment:
 
 ```python
 from waitress import serve
 serve(app.server, listen="*:8000")
 ```
 
-### Application Features
+## Architecture
 
-#### Configuration Modal
+### Server Components
 
-- **Data Path Selection**: Choose root directory for data files
-- **Test Case Selection**: Pick from available test cases
-- **File Selection**: Select specific data files to analyze
-- **Settings Persistence**: Automatic configuration saving
+- **Flask/Dash Server**: main application server with REST API endpoints
+- **REST API**: `/api/data/<session>/<start_index>` streams buffered frame data
+  to the client, `/api/cloud/<session>/<frame>` serves the decimated backdrop,
+  and `/api/camera/<session>/<stream>` serves (and, if needed, transcodes) a
+  log's video
+- **Background Callbacks**: 3D frames are pre-computed off the request thread
+  through a `diskcache` job manager, with cooperative cancellation when a newer
+  request supersedes an in-flight one
+- **Cache Management**: multi-level — server-side `diskcache` FanoutCache for
+  session/frame data, client-side IndexedDB via WebWorker
+- **Session Isolation**: independent data sessions for multiple users
 
-#### Visualization Controls
+### Client Components
 
-- **Frame Navigation**: Manual frame selection or automatic playback
-- **View Customization**: Toggle between different visualization modes
-- **Color Mapping**: Customizable color schemes and mappings
-- **Filtering**: Interactive data filtering and selection
-- **Multi-file Comparison**: Load multiple files for comparative analysis
+- **Workbench chrome** (`assets/workbench.js`): panel collapse, splitter drags,
+  theme persistence, and the Plotly re-fit that follows any layout change
+- **WebWorker** (`assets/worker.js`): pulls frames from the REST API and stores
+  them in IndexedDB ahead of the slider
+- **Clientside callbacks** (`assets/client_side.js`): worker startup, figure
+  swapping from the local buffer, and a bounded in-memory cache of cloud
+  backdrops so revisiting a frame costs nothing
 
-#### Data Management
+## Dependencies
 
-- **Automatic Caching**: Server and client-side data buffering
-- **Session Management**: Isolated data sessions
-- **Dynamic Updates**: Automatic data refresh and synchronization
-- **Performance Optimization**: IndexedDB storage for large datasets
+### Python Modules
+
+See `requirements.txt` for the complete list:
+
+- **dash**, **dash-bootstrap-components**, **dash-daq**: web framework and interactive UI components
+- **polars**, **pandas**, **numpy**, **pyarrow**: data manipulation and Parquet I/O
+- **h5py**: HDF5 sidecars for point clouds and 1D curves
+- **imageio-ffmpeg**: bundles a static ffmpeg for image mp4 encoding and transcoding
+- **diskcache**: server-side FanoutCache for session and frame data
+- **orjson**: high-performance JSON serialization for API responses
+- **kaleido**: static image export for plots
+- **flaskwebgui**: desktop application wrapper
+- **waitress**: production WSGI server (optional)
 
 ## Development
 
+### Layout Package (`layouts/`)
+
+One module per region of the shell:
+
+- `app_layout`: the shell itself — which region owns what, and the stores the
+  views coordinate through
+- `topbar_layout`: brand, dataset breadcrumb, combine-logs, theme, export
+- `filter_panel_layout`: the collapsible left rail
+- `canvas_layout`: the 3D stage, its floating controls, and the transport
+- `inspector_layout`: the camera and curve sections of the right dock
+- `analysis_dock_layout`: the two-slot bottom dock and the six panes it hosts
+- `modal_layout`: the open-dataset dialog and the load-failure dialog
+
 ### Callback Architecture
 
-The application uses a modular callback system with separate modules for different views:
+A modular callback system, one module per view:
 
-- `test_case_view`: Test case management
-- `control_view`: Playback and navigation controls
+- `test_case_view`: dataset selection, loading, and the filter rail it builds
+- `control_view`: playback and navigation controls
 - `scatter_3d_view`: 3D visualization callbacks
-- `scatter_3d_view_background`: Background callback for pre-computing and buffering 3D frame data
-- `scatter_2d_left_view` & `scatter_2d_right_view`: 2D visualization panels
-- `heatmap_view`: Statistical heatmap visualization
-- `histogram_view`: Distribution analysis
-- `parcats_view`: Parallel categories visualization
-- `violin_view`: Violin plot analysis
+- `scatter_3d_view_background`: background callback pre-computing and buffering
+  3D frame data
+- `scatter_2d_left_view` & `scatter_2d_right_view`: the two 2D scatter panes
+- `heatmap_view`: statistical heatmap visualization
+- `histogram_view`: distribution analysis
+- `parcats_view`: parallel categories visualization
+- `violin_view`: violin plot analysis
 - `camera_view`: mp4 stream selection, clientside frame-exact seeking, and
-  subview panel visibility
-- `threshold_view`: Per-frame 1D curve plot rendering
+  inspector visibility
+- `threshold_view`: per-frame 1D curve plot rendering
 
 ### Data IO Package (`dataio/`)
 
 - `manifest`: `info.json` v2 parsing, v1 upgrade, basename sidecar resolution,
   curve plot definitions, non-destructive persistence
-- `frames`: Frame ids, timestamps, and capture rate derived from the Parquet
+- `frames`: frame ids, timestamps, and capture rate derived from the Parquet
   data — shared by the ingest pipeline and the running app
 - `radar_store`: Parquet table loading with projection/predicate pushdown
 - `dense_store`: HDF5 readers/writers for cloud points and 1D curves
-- `decimate`: Ingest-time voxel + budget point cloud decimation
-- `calibration`: Extrinsics → 4×4 transform for cross-sensor alignment
-- `video`: Camera mp4 encoding
-- `ingest`: Pipeline orchestration and CLI
-
-### Client-side Functions
-
-The application includes several client-side callback functions for:
-
-- WebWorker initialization and management
-- IndexedDB data storage and retrieval
-- Dynamic figure updates and buffering
-- Performance optimization
+- `decimate`: ingest-time voxel + budget point cloud decimation
+- `calibration`: extrinsics → 4×4 transform for cross-sensor alignment
+- `video`: mp4 encoding and on-demand transcoding of foreign containers
+- `ingest`: pipeline orchestration and CLI
 
 ## License
 
