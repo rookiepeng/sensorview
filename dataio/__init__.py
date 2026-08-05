@@ -7,6 +7,7 @@ storage format that suits it:
 - Cloud             -> HDF5, decimated at ingest time (display-only backdrop)
 - Curves            -> HDF5, one (N, 2) pair per (frame, series) (display-only)
 - Images            -> mp4, seeked client-side
+- Reference pose    -> Parquet, one row per frame (display-only)
 
 All stores join on ``frame_id``, which is derived from the table Parquet rather
 than declared anywhere. Logs share a case folder and are associated by basename
@@ -24,6 +25,7 @@ from dataio.calibration import Calibration, apply_transform
 from dataio.frames import build_frame_index, derive_fps, unique_frame_ids
 from dataio.radar_store import load_radar, scan_radar, write_radar
 from dataio.dense_store import CloudStore, CurveStore
+from dataio.reference import ReferenceStore
 
 __all__ = [
     "Manifest",
@@ -39,4 +41,5 @@ __all__ = [
     "write_radar",
     "CloudStore",
     "CurveStore",
+    "ReferenceStore",
 ]

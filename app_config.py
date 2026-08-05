@@ -112,10 +112,18 @@ DROPDOWN_OPTIONS_3D_XYZ = [
     Output("z-picker-3d", "options"),
 ]
 
+# The reference pickers map six pose fields. Which columns they list depends on
+# where the reference comes from: a log with a `.reference.parquet` sidecar maps
+# that file's columns (and shows all six), while a log without one maps its own
+# table columns for position and hides the orientation three -- table columns
+# carry no orientation.
 DROPDOWN_OPTIONS_3D_XYZ_REF = [
     Output("x-ref-picker-3d", "options"),
     Output("y-ref-picker-3d", "options"),
     Output("z-ref-picker-3d", "options"),
+    Output("yaw-ref-picker-3d", "options"),
+    Output("pitch-ref-picker-3d", "options"),
+    Output("roll-ref-picker-3d", "options"),
 ]
 
 # values for dropdown components with all the keys
@@ -144,7 +152,13 @@ DROPDOWN_VALUES_3D_XYZ_REF = [
     Output("x-ref-picker-3d", "value"),
     Output("y-ref-picker-3d", "value"),
     Output("z-ref-picker-3d", "value"),
+    Output("yaw-ref-picker-3d", "value"),
+    Output("pitch-ref-picker-3d", "value"),
+    Output("roll-ref-picker-3d", "value"),
 ]
+
+# Pose fields the reference pickers map, in picker order.
+REFERENCE_POSE_ORDER = ("x", "y", "z", "yaw", "pitch", "roll")
 
 DROPDOWN_VALUES_ALL_STATE = [
     State("c-picker-3d", "value"),

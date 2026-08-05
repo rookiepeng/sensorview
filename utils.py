@@ -107,6 +107,8 @@ def prepare_figure_kwargs(
     # Animation parameters
     frame_list: Union[List[float], "np.ndarray"],
     slider_arg: int = 0,
+    # Reference sidecar
+    ref_bounds: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Prepare keyword arguments for creating a 3D scatter plot figure.
@@ -119,6 +121,10 @@ def prepare_figure_kwargs(
         size_vary: Whether to vary marker sizes based on groups.
         frame_list: List or array of frame values for animation.
         slider_arg: Current slider position index. Defaults to 0.
+        ref_bounds: Position extent of the log's reference sidecar, as
+            ``{"x": (min, max), ...}``. Its presence means the sidecar owns the
+            reference: the table's ref columns are dropped, and the axis ranges
+            make room for wherever the reference travels.
 
     Returns:
         Dictionary containing all necessary keyword arguments for plotting.
@@ -177,16 +183,20 @@ def prepare_figure_kwargs(
         }
     )
 
-    # Setup reference points
-    x_ref = normalize_ref_value(config.get("x_ref"))
-    y_ref = normalize_ref_value(config.get("y_ref"))
-    z_ref = normalize_ref_value(config.get("z_ref"))
+    # Setup reference points. A pose sidecar supersedes the table's ref columns
+    # outright rather than being drawn alongside them: they describe the same
+    # reference, and the sidecar is the one that also carries orientation.
+    from_sidecar = ref_bounds is not None
+    x_ref = None if from_sidecar else normalize_ref_value(config.get("x_ref"))
+    y_ref = None if from_sidecar else normalize_ref_value(config.get("y_ref"))
+    z_ref = None if from_sidecar else normalize_ref_value(config.get("z_ref"))
 
     fig_kwargs.update(
         {
             "x_ref": x_ref,
             "y_ref": y_ref,
             "z_ref": z_ref,
+            "ref_from_sidecar": from_sidecar,
         }
     )
 
@@ -199,18 +209,33 @@ def prepare_figure_kwargs(
         }
     )
 
-    # A box reference occupies space a dot does not, and the 3D scene fixes its
-    # axes (autorange is off), so whatever the box adds beyond the data has to
-    # be made room for here or it is simply clipped away.
-    if ref_display["shape"] == "box" and x_ref and y_ref:
-        for axis, range_key in enumerate(("x_range", "y_range", "z_range")):
-            half = ref_display["dimensions"][axis] / 2.0
-            offset = ref_display["offset"][axis]
+    has_reference = from_sidecar or bool(x_ref and y_ref)
+
+    # A reference read from a sidecar is not a column of the table, so nothing
+    # above has accounted for where it goes. Widen the ranges to cover its whole
+    # path -- fixed axes mean a reference that leaves the data's extent would
+    # otherwise vanish partway through playback.
+    if from_sidecar:
+        for axis, range_key in zip(("x", "y", "z"), ("x_range", "y_range", "z_range")):
+            extent = ref_bounds.get(axis)
+            if not extent:
+                continue
             low, high = fig_kwargs[range_key]
-            fig_kwargs[range_key] = [
-                min(low, low + offset - half),
-                max(high, high + offset + half),
-            ]
+            fig_kwargs[range_key] = [min(low, extent[0]), max(high, extent[1])]
+
+    # A mesh reference occupies space a dot does not, and the 3D scene fixes its
+    # axes (autorange is off), so whatever the mesh adds beyond the data has to
+    # be made room for here or it is simply clipped away.
+    if ref_display["shape"] == "mesh" and has_reference:
+        # A mesh that turns reaches further along an axis than its own extent on
+        # that axis, so budget for the worst case: the distance to its furthest
+        # vertex, which bounds every orientation.
+        radius = ref_display.get("radius", 0.0)
+        extent = ref_display.get("extent") or [[0.0, 0.0]] * 3
+        for axis, range_key in enumerate(("x_range", "y_range", "z_range")):
+            near, far = (-radius, radius) if from_sidecar else extent[axis]
+            low, high = fig_kwargs[range_key]
+            fig_kwargs[range_key] = [min(low, low + near), max(high, high + far)]
 
     # Setup color range
     if fig_kwargs["c_type"] == KEY_TYPES["NUM"]:

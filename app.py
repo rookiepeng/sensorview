@@ -57,6 +57,8 @@ from app_config import app
 from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
 from app_config import SPECIAL_FOLDERS, RADAR_FILE_EXTENSIONS
 
+from dataio.manifest import table_sidecar_suffixes
+
 from layouts.app_layout import get_app_layout
 from layouts.analysis_dock_layout import DOCK_VIEWS, EMPTY_SLOT
 
@@ -391,11 +393,17 @@ def on_case_change(
         }
 
     case_dir = os.path.join(data_path, case_val)
+    # Sidecars that are Parquet in their own right are not logs, however much
+    # they look like one to a listing that goes by extension.
+    sidecar_suffixes = tuple(table_sidecar_suffixes(case_dir))
     data_files = []
     for dirpath, dirnames, files in os.walk(case_dir):
         dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
         for name in files:
-            if name.lower().endswith(RADAR_FILE_EXTENSIONS):
+            lowered = name.lower()
+            if lowered.endswith(RADAR_FILE_EXTENSIONS) and not lowered.endswith(
+                sidecar_suffixes
+            ):
                 data_files.append(
                     {
                         "label": os.path.join(dirpath[len(case_dir) :], name),

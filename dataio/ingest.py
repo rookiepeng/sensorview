@@ -45,6 +45,7 @@ from dataio.frames import build_frame_index
 from dataio.manifest import (
     DEFAULT_IMAGE_SUFFIX,
     DEFAULT_CLOUD_SUFFIX,
+    DEFAULT_REFERENCE_SUFFIX,
     DEFAULT_TABLE_SUFFIX,
     DEFAULT_CURVE_SUFFIX,
     MANIFEST_NAME,
@@ -78,6 +79,9 @@ def _discover_table_files(case_dir: str) -> List[str]:
 
     Returns:
         Sorted list of ``.csv``/``.pkl``/``.parquet`` paths at the top level.
+        A reference-pose sidecar is Parquet too but is not a log, so it is not
+        listed as one -- which matters when the source is a folder this pipeline
+        already produced.
     """
     if not os.path.isdir(case_dir):
         return []
@@ -85,6 +89,7 @@ def _discover_table_files(case_dir: str) -> List[str]:
         os.path.join(case_dir, name)
         for name in sorted(os.listdir(case_dir))
         if name.lower().endswith(_RADAR_INPUT_EXTENSIONS)
+        and not name.lower().endswith(DEFAULT_REFERENCE_SUFFIX)
     ]
 
 

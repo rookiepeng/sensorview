@@ -17,6 +17,29 @@ from typing import Any, Dict, Optional, Sequence
 import numpy as np
 
 
+def rotation_matrix(roll: float, pitch: float, yaw: float) -> np.ndarray:
+    """
+    Build a rotation matrix from roll/pitch/yaw in radians.
+
+    Args:
+        roll: Rotation about x, in radians.
+        pitch: Rotation about y, in radians.
+        yaw: Rotation about z, in radians.
+
+    Returns:
+        3x3 rotation matrix (ZYX intrinsic: Rz(yaw) @ Ry(pitch) @ Rx(roll)).
+    """
+    c_r, s_r = np.cos(roll), np.sin(roll)
+    c_p, s_p = np.cos(pitch), np.sin(pitch)
+    c_y, s_y = np.cos(yaw), np.sin(yaw)
+
+    rot_x = np.array([[1, 0, 0], [0, c_r, -s_r], [0, s_r, c_r]])
+    rot_y = np.array([[c_p, 0, s_p], [0, 1, 0], [-s_p, 0, c_p]])
+    rot_z = np.array([[c_y, -s_y, 0], [s_y, c_y, 0], [0, 0, 1]])
+
+    return rot_z @ rot_y @ rot_x
+
+
 class Calibration:
     """A sensor's extrinsic mounting transform relative to the vehicle frame."""
 
@@ -72,16 +95,7 @@ class Calibration:
             3x3 rotation matrix (ZYX intrinsic: Rz(yaw) @ Ry(pitch) @ Rx(roll)).
         """
         roll, pitch, yaw = np.deg2rad(self.rotation_rpy_deg)
-
-        c_r, s_r = np.cos(roll), np.sin(roll)
-        c_p, s_p = np.cos(pitch), np.sin(pitch)
-        c_y, s_y = np.cos(yaw), np.sin(yaw)
-
-        rot_x = np.array([[1, 0, 0], [0, c_r, -s_r], [0, s_r, c_r]])
-        rot_y = np.array([[c_p, 0, s_p], [0, 1, 0], [-s_p, 0, c_p]])
-        rot_z = np.array([[c_y, -s_y, 0], [s_y, c_y, 0], [0, 0, 1]])
-
-        return rot_z @ rot_y @ rot_x
+        return rotation_matrix(roll, pitch, yaw)
 
 
 def apply_transform(points: np.ndarray, calibration: Calibration) -> np.ndarray:
