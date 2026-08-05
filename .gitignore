@@ -46,4 +46,4 @@ data/*
 !data/ExampleCSV/
 /temp
 config.json
-.claude/launch.json
+/.claude
