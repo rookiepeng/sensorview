@@ -29,20 +29,6 @@ import tempfile
 # to be transcoded before it reaches the client.
 BROWSER_PLAYABLE_EXTENSIONS = (".mp4", ".m4v", ".webm", ".ogv")
 
-# AVI stores a codec fourcc, and ffmpeg maps the ones it knows to a decoder.
-# Vendor recorders sometimes stamp their own tag onto a stream that is really a
-# standard codec -- ``DJLS`` frames are plain JPEG-LS (each one starts with the
-# SOI + SOF55 marker pair) -- which ffmpeg refuses with "no decoder found for:
-# none". Naming the decoder explicitly is all that is needed to read them.
-FORCED_DECODERS = {
-    "DJLS": "jpegls",
-    "MJLS": "jpegls",
-}
-
-# How much of an AVI header to read when sniffing the stream's fourcc. The
-# `hdrl` list is the first thing after the RIFF header, so this is generous.
-_HEADER_PROBE_BYTES = 65536
-
 # A windowed build (PyInstaller ``console=False``) has no console attached, so
 # it hands the child an invalid stdin handle and Windows opens a console window
 # for it. Absent on other platforms, where the flag is simply zero.
@@ -88,67 +74,6 @@ def is_browser_playable(path: str) -> bool:
         True when the file needs no transcode.
     """
     return os.path.splitext(path)[1].lower() in BROWSER_PLAYABLE_EXTENSIONS
-
-
-def _fourcc(raw: bytes) -> Optional[str]:
-    """
-    Decode a four-byte codec tag.
-
-    Args:
-        raw: Four bytes from an AVI header.
-
-    Returns:
-        The tag as text, or None when it is empty or not ASCII (an all-zero
-        handler is how AVI spells "unset").
-    """
-    try:
-        return raw.decode("ascii").strip("\x00 ") or None
-    except UnicodeDecodeError:
-        return None
-
-
-def avi_video_fourcc(path: str) -> Optional[str]:
-    """
-    Read the video codec fourcc out of an AVI header.
-
-    Sniffs the header rather than walking the full RIFF tree: the goal is only
-    to recognise a tag ffmpeg cannot map, and every stream header sits in the
-    first few kilobytes.
-
-    A stream header's ``fccHandler`` is frequently left zeroed, with the real
-    tag carried in the following format chunk's ``biCompression``. Both are
-    read, format chunk first, because that is the one recorders actually fill
-    in.
-
-    Args:
-        path: Path to an AVI file.
-
-    Returns:
-        The four-character codec tag (e.g. ``"DJLS"``), or None when the file is
-        unreadable or declares no video stream.
-    """
-    try:
-        with open(path, "rb") as handle:
-            header = handle.read(_HEADER_PROBE_BYTES)
-    except OSError:
-        return None
-
-    # Each stream is described by a `strh` chunk whose payload opens with the
-    # stream type; its `strf` companion follows within the same `strl` list.
-    offset = header.find(b"strh")
-    while offset != -1:
-        payload = offset + 8
-        if header[payload : payload + 4] == b"vids":
-            strf = header.find(b"strf", payload)
-            if strf != -1:
-                # BITMAPINFOHEADER.biCompression sits 16 bytes into the payload.
-                tag = _fourcc(header[strf + 24 : strf + 28])
-                if tag:
-                    return tag
-            return _fourcc(header[payload + 4 : payload + 8])
-        offset = header.find(b"strh", offset + 4)
-
-    return None
 
 
 def find_ffmpeg() -> Optional[str]:
@@ -245,38 +170,27 @@ def transcode_to_mp4(
     out_dir = os.path.dirname(os.path.abspath(out_path))
     os.makedirs(out_dir, exist_ok=True)
 
-    # First attempt lets ffmpeg pick the decoder. A vendor fourcc it cannot map
-    # gets a second attempt with the decoder named explicitly, which is the
-    # whole difference between "unplayable" and "plays fine".
-    attempts: List[List[str]] = [[]]
-    if source.lower().endswith(".avi"):
-        forced = FORCED_DECODERS.get((avi_video_fourcc(source) or "").upper())
-        if forced:
-            attempts.insert(0, ["-vcodec", forced])
-
     handle, staging = tempfile.mkstemp(suffix=".mp4", dir=out_dir)
     os.close(handle)
 
-    last_error = ""
     try:
-        for decoder_args in attempts:
-            command = (
-                [ffmpeg, "-y", "-loglevel", "error"]
-                + decoder_args
-                + ["-i", source, "-map", "0:v:0", "-an", "-sn"]
-                + _x264_all_intra_args(keyframe_interval, crf)
-                + [staging]
-            )
-            result = _run_ffmpeg(command)
-            if result.returncode == 0 and os.path.getsize(staging) > 0:
-                os.replace(staging, out_path)
-                return out_path
-            last_error = result.stderr.strip()
+        command = (
+            [ffmpeg, "-y", "-loglevel", "error", "-i", source]
+            + ["-map", "0:v:0", "-an", "-sn"]
+            + _x264_all_intra_args(keyframe_interval, crf)
+            + [staging]
+        )
+        result = _run_ffmpeg(command)
+        if result.returncode == 0 and os.path.getsize(staging) > 0:
+            os.replace(staging, out_path)
+            return out_path
     finally:
         if os.path.exists(staging):
             os.remove(staging)
 
-    raise VideoEncodeError(f"ffmpeg could not transcode {source}: {last_error}")
+    raise VideoEncodeError(
+        f"ffmpeg could not transcode {source}: {result.stderr.strip()}"
+    )
 
 
 def encode_images_to_mp4(
