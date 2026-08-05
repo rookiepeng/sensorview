@@ -18,7 +18,7 @@ import pandas as pd
 
 import plotly.io as pio
 
-from .graph_data import get_scatter3d_data, get_ref_scatter3d_data
+from .graph_data import get_scatter3d_data, get_reference_traces
 from .graph_layout import get_scatter3d_layout
 
 
@@ -65,15 +65,14 @@ def get_scatter3d(
     else:
         if z_ref == "None":
             z_ref = None
-        data = fig_dict["scatter_data"] + [
-            get_ref_scatter3d_data(
-                data_frame=data_frame,
-                x_key=x_ref,
-                y_key=y_ref,
-                z_key=z_ref,
-                name=ref_name,
-            )
-        ]
+        data = fig_dict["scatter_data"] + get_reference_traces(
+            data_frame=data_frame,
+            x_key=x_ref,
+            y_key=y_ref,
+            z_key=z_ref,
+            name=ref_name,
+            display=kwargs.get("ref_display"),
+        )
 
     if fig_dict["hover_strings"]:
         for idx, hover_str in enumerate(fig_dict["hover_strings"]):
@@ -175,6 +174,171 @@ def get_heatmap(
             "yaxis": {"title": {"text": y_label}},
         },
     }
+
+
+def _plottable(values: np.ndarray) -> Any:
+    """
+    Make a numeric vector safe to serialize into a figure.
+
+    Curve exports carry ``-inf`` for bins a threshold does not apply to, and
+    JSON has no encoding for it. Replacing those with null both keeps the payload
+    valid and leaves a gap in the line, which is the honest way to draw "no
+    value here".
+
+    Args:
+        values: Numeric vector.
+
+    Returns:
+        The array untouched when every value is finite -- the common case, and
+        the one the fast numpy serialization path handles -- otherwise a list
+        with the non-finite entries replaced by None.
+    """
+    values = np.asarray(values, dtype=float).reshape(-1)
+    finite = np.isfinite(values)
+    if finite.all():
+        return values
+    return [float(value) if ok else None for value, ok in zip(values, finite)]
+
+
+def get_curve_plot(
+    series: Optional[Dict[str, np.ndarray]] = None,
+    x_series: Optional[Dict[str, np.ndarray]] = None,
+    traces: Optional[List[Dict[str, Any]]] = None,
+    x_label: str = "",
+    y_label: str = "",
+    title: Optional[str] = None,
+    x_range: Optional[List[float]] = None,
+    y_range: Optional[List[float]] = None,
+    log_y: bool = False,
+) -> Dict[str, Any]:
+    """
+    Render one 1D curve plot: a signal and the thresholds applied to it.
+
+    Which curves appear together, and how each is styled, comes from the
+    dataset's ``info.json`` rather than being inferred -- a curve file holds
+    many named series and only the author knows which belong on the same axes.
+
+    Args:
+        series: Mapping of trace name to its 1D values for this frame.
+        x_series: Per-trace x vectors -- every curve carries its own axis, since
+            range bins differ between sensors and between frames. Falls back to
+            sample index when absent or mismatched in length.
+        traces: Normalized trace definitions (``name``, ``label``, ``color``,
+            ``dash``, ``width``, ``mode``) in draw order.
+        x_label: X-axis title.
+        y_label: Y-axis title.
+        title: Optional figure title.
+        x_range: Optional [min, max] x clamp.
+        y_range: Optional [min, max] y clamp. Pinning this keeps levels
+            comparable while scrubbing.
+        log_y: Whether to use a logarithmic y-axis.
+
+    Returns:
+        Dictionary containing figure data and layout.
+    """
+    layout: Dict[str, Any] = {
+        "title": {"text": title} if title else None,
+        # Once the legend wraps to several rows it claims the whole bottom
+        # margin, and the axis title -- left without a band of its own -- is
+        # drawn back over the tick labels. `automargin` makes the title reserve
+        # its own space above whatever the legend took.
+        "xaxis": {"title": {"text": x_label}, "automargin": True},
+        "yaxis": {"title": {"text": y_label}, "type": "log" if log_y else "linear"},
+        # The legend lives below the axis rather than above it: on top it
+        # wraps over the traces it is meant to label whenever a plot declares
+        # more than a handful, which the threshold plots regularly do.
+        "margin": {"l": 52, "r": 14, "b": 68, "t": 10},
+        "legend": {
+            "orientation": "h",
+            # Anchored to the bottom of the figure, not to the plot area: a
+            # paper-relative offset is a fraction of the plot's height, so the
+            # taller the dock was dragged the further the legend drifted from
+            # the axis, leaving a band of empty space between the two.
+            "yref": "container",
+            "yanchor": "bottom",
+            "y": 0,
+            "xanchor": "left",
+            "x": 0,
+            "font": {"size": 10},
+            "itemwidth": 30,
+            "tracegroupgap": 2,
+        },
+        "hovermode": "x unified",
+        # Every trace reports into one box, so a full-size hover label covers
+        # the curves it is describing.
+        "hoverlabel": {"font": {"size": 10.5}, "namelength": -1},
+        "uirevision": "no_change",
+    }
+    if x_range:
+        layout["xaxis"]["range"] = list(x_range)
+    if y_range:
+        layout["yaxis"]["range"] = list(y_range)
+
+    if not series or not traces:
+        return {
+            "data": [{"type": "scatter", "x": [], "y": []}],
+            "layout": {
+                **layout,
+                "annotations": [
+                    {
+                        "text": "No curve data for this frame",
+                        "xref": "paper",
+                        "yref": "paper",
+                        "x": 0.5,
+                        "y": 0.5,
+                        "showarrow": False,
+                    }
+                ],
+            },
+        }
+
+    figure_data = []
+    for trace in traces:
+        values = series.get(trace["name"])
+        if values is None or np.size(values) == 0:
+            continue
+
+        values = np.asarray(values).reshape(-1)
+        own_axis = (x_series or {}).get(trace["name"])
+        if own_axis is not None and len(own_axis) == len(values):
+            axis = np.asarray(own_axis)
+        else:
+            # An x-axis that does not line up is worse than none: fall back to
+            # sample index so the curve still reads correctly.
+            axis = np.arange(len(values))
+
+        figure_data.append(
+            {
+                "type": "scattergl",
+                "x": _plottable(axis),
+                "y": _plottable(values),
+                "mode": trace.get("mode", "lines"),
+                "name": trace.get("label", trace["name"]),
+                "line": {
+                    "color": trace.get("color"),
+                    "dash": trace.get("dash", "solid"),
+                    "width": trace.get("width", 2),
+                },
+                "marker": {
+                    "color": trace.get("color"),
+                    "size": trace.get("size", 6),
+                    "symbol": trace.get("symbol", "circle"),
+                    # An "-open" symbol is drawn by its outline alone, and an
+                    # outline of width zero is not drawn at all. Filled symbols
+                    # get the same colour they already have, so this costs them
+                    # nothing.
+                    "line": {"color": trace.get("color"), "width": 1.6},
+                },
+                "hovertemplate": "%{y:.2f}<extra>"
+                + str(trace.get("label", trace["name"]))
+                + "</extra>",
+            }
+        )
+
+    if not figure_data:
+        figure_data = [{"type": "scatter", "x": [], "y": []}]
+
+    return {"data": figure_data, "layout": layout}
 
 
 def get_scatter2d(
@@ -442,16 +606,17 @@ def get_animation_data(
 
         # Add reference data if needed
         if x_ref is not None and y_ref is not None:
-            ref_data = [
-                get_ref_scatter3d_data(
+            fig = (
+                get_reference_traces(
                     data_frame=filtered_df,
                     x_key=x_ref,
                     y_key=y_ref,
                     z_key=z_ref,
-                    name="Host Vehicle",
+                    name=frame_kwargs.get("ref_name", "Host Vehicle"),
+                    display=frame_kwargs.get("ref_display"),
                 )
-            ]
-            fig = ref_data + fig
+                + fig
+            )
 
         return {
             "data": fig,

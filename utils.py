@@ -11,17 +11,18 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-import os
 from typing import Dict, List, Optional, Any, Tuple, Union
 
 import json
 import base64
 import pandas as pd
-import polars as pl
 import numpy as np
 
 from app_config import EXPIRATION, KEY_TYPES
 from app_config import frame_cache
+
+from dataio.manifest import normalize_reference_display
+from dataio.radar_store import load_radar
 
 
 def load_config(json_file: str) -> Dict[str, Any]:
@@ -52,7 +53,10 @@ def save_config(json_dict: Dict[str, Any], json_file: str) -> None:
 
 def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
     """
-    Load data from multiple files into a pandas DataFrame.
+    Load radar point cloud data from multiple files into a pandas DataFrame.
+
+    Thin wrapper over :func:`dataio.radar_store.load_radar`, which owns format
+    handling (Parquet, plus legacy CSV/pickle) and non-finite normalization.
 
     Args:
         file_list: List of file specifications in JSON string format.
@@ -64,45 +68,7 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
     Raises:
         ValueError: If an unsupported file type is encountered.
     """
-    if file is not None and file not in file_list:
-        file_list.append(file)
-
-    data_list = []
-    for _, f_dict in enumerate(file_list):
-        file_dict = json.loads(f_dict)
-
-        if file_dict["name"].endswith(".pkl"):
-            new_data = pd.read_pickle(
-                os.path.join(file_dict["path"], file_dict["name"])
-            )
-            # new_data = new_data.reset_index(drop=True)
-
-        elif file_dict["name"].endswith(".csv"):
-            # Polars only recognizes "inf"/"-inf" as float tokens out of the
-            # box; a bare "nan" makes it fall back to inferring the whole
-            # column as a string, so list it (and common variants) as a
-            # null value to keep numeric columns numeric.
-            new_data = pl.read_csv(
-                os.path.join(file_dict["path"], file_dict["name"]),
-                null_values=["nan", "NaN", "NAN", "null", "NULL"],
-            ).to_pandas()
-        else:
-            raise ValueError(f"Unsupported file type: {file_dict['name']}")
-
-        data_list.append(new_data)
-
-    data = pd.concat(data_list)
-    data = data.reset_index(drop=True)
-
-    # Normalize +/-Inf to NaN so downstream min/max, filtering, and
-    # plotting code only has to deal with one "missing" representation.
-    numeric_cols = data.select_dtypes(include=[np.number]).columns
-    if len(numeric_cols) > 0:
-        data[numeric_cols] = data[numeric_cols].replace(
-            [np.inf, -np.inf], np.nan
-        )
-
-    return data
+    return load_radar(file_list, file)
 
 
 def load_image(img_path: str) -> Optional[str]:
@@ -174,10 +140,15 @@ def prepare_figure_kwargs(
             return [min(base_range[0], ref_range[0]), max(base_range[1], ref_range[1])]
         return base_range
 
+    # How the reference is drawn comes from the dataset manifest; where it sits
+    # comes from the ref pickers below.
+    ref_display = normalize_reference_display(config.get("reference"))
+
     # Initialize figure kwargs with basic settings
     fig_kwargs = {
         "image": None,
-        "ref_name": "Host Vehicle",
+        "ref_name": ref_display["name"],
+        "ref_display": ref_display,
         "size_vary": size_vary,
     }
 
@@ -228,6 +199,19 @@ def prepare_figure_kwargs(
         }
     )
 
+    # A box reference occupies space a dot does not, and the 3D scene fixes its
+    # axes (autorange is off), so whatever the box adds beyond the data has to
+    # be made room for here or it is simply clipped away.
+    if ref_display["shape"] == "box" and x_ref and y_ref:
+        for axis, range_key in enumerate(("x_range", "y_range", "z_range")):
+            half = ref_display["dimensions"][axis] / 2.0
+            offset = ref_display["offset"][axis]
+            low, high = fig_kwargs[range_key]
+            fig_kwargs[range_key] = [
+                min(low, low + offset - half),
+                max(high, high + offset + half),
+            ]
+
     # Setup color range
     if fig_kwargs["c_type"] == KEY_TYPES["NUM"]:
         c_idx = num_keys.index(c_key)
@@ -271,24 +255,6 @@ def cache_expire() -> None:
     frame_cache.expire()
 
 
-# def redis_set(data, id_str, key_major, key_minor=None):
-#     """
-#     Set data in Redis.
-
-#     Parameters:
-#     - data (any): The data to be stored in Redis.
-#     - id_str (str): A unique identifier string.
-#     - key_major (str): The major Redis key.
-#     - key_minor (str, optional): The minor Redis key. Defaults to None.
-#     """
-#     if key_minor is None:
-#         key_str = key_major + id_str
-#     else:
-#         key_str = key_major + id_str + key_minor
-
-#     redis_instance.set(key_str, pickle.dumps(data), ex=EXPIRATION)
-
-
 def cache_get(
     id_str: str, key_major: str, key_minor: Optional[str] = None
 ) -> Optional[Any]:
@@ -310,31 +276,6 @@ def cache_get(
 
     val = frame_cache.get(key_str, default=None, retry=True)
     return val
-
-
-# def redis_get(id_str, key_major, key_minor=None):
-#     """
-#     Get data from Redis.
-
-#     Parameters:
-#     - id_str (str): A unique identifier string.
-#     - key_major (str): The major Redis key.
-#     - key_minor (str, optional): The minor Redis key. Defaults to None.
-
-#     Returns:
-#     - any: The retrieved data, or None if not found.
-#     """
-#     if key_minor is None:
-#         key_str = key_major + id_str
-#     else:
-#         key_str = key_major + id_str + key_minor
-
-#     val = redis_instance.get(key_str)
-
-#     if val is not None:
-#         return pickle.loads(val)
-
-#     return None
 
 
 def filter_all(
