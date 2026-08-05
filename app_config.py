@@ -208,7 +208,7 @@ REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", APP_TITLE)
 # excluded by extension rather than by folder.
 SPECIAL_FOLDERS = ["images"]
 
-# Radar point cloud formats offered in the file picker. Parquet is the format
-# the ingest pipeline produces; CSV and pickle stay supported so pre-existing
-# datasets load without conversion.
+# Radar point cloud formats offered in the file picker. Parquet is the preferred
+# format; CSV and pickle stay supported so pre-existing datasets load without
+# conversion.
 RADAR_FILE_EXTENSIONS = (".parquet", ".csv", ".pkl")

@@ -244,8 +244,8 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         """Setup data caching for frames and visibility."""
         # The frame index is derived from the data itself, never declared in the
         # manifest, so it can never drift out of sync with the log. The capture
-        # rate falls out of the same timestamps the ingest encoded video at.
-        # Only the *unit* of those timestamps comes from the manifest.
+        # rate falls out of those same timestamps. Only the *unit* of those
+        # timestamps comes from the manifest.
         frame_list, timestamps, fps = build_frame_index(
             data, config["slider"], time_scale=time_scale
         )

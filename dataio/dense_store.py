@@ -15,18 +15,13 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Tuple
 
 import os
 import posixpath
 
 import h5py
 import numpy as np
-
-# Chunked + compressed: one frame is one chunk, so reading a frame touches one
-# contiguous compressed block instead of striding the whole dataset.
-_COMPRESSION = "gzip"
-_COMPRESSION_OPTS = 4
 
 DEFAULT_CLOUD_PATTERN = "/frame_{frame_id}"
 DEFAULT_CURVE_PATTERN = "/frame_{frame_id}/{name}"
@@ -363,77 +358,3 @@ class CurveStore:
         except (OSError, KeyError):
             return []
 
-
-def write_cloud_frames(
-    path: str,
-    frames: Dict[Any, np.ndarray],
-    columns: Sequence[str] = ("x", "y", "z"),
-    dataset_pattern: str = DEFAULT_CLOUD_PATTERN,
-) -> str:
-    """
-    Write decimated cloud frames to an HDF5 sidecar.
-
-    Args:
-        path: Destination ``.h5`` path; parent directories are created.
-        frames: Mapping of frame id to an (N, C) point array.
-        columns: Column names describing the point arrays.
-        dataset_pattern: Where each frame lands, matching what the manifest
-            declares for reading it back.
-
-    Returns:
-        The path written.
-    """
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-
-    with h5py.File(path, "w") as handle:
-        handle.attrs["columns"] = [str(c) for c in columns]
-        for frame_id, points in frames.items():
-            points = np.asarray(points, dtype=np.float32)
-            handle.create_dataset(
-                _format_dataset(dataset_pattern, frame_id=frame_id),
-                data=points,
-                chunks=points.shape if points.size else None,
-                compression=_COMPRESSION if points.size else None,
-                compression_opts=_COMPRESSION_OPTS if points.size else None,
-            )
-    return path
-
-
-def write_curve_frames(
-    path: str,
-    frames: Dict[Any, Dict[str, np.ndarray]],
-    dataset_pattern: str = DEFAULT_CURVE_PATTERN,
-) -> str:
-    """
-    Write per-frame curves to an HDF5 sidecar.
-
-    Args:
-        path: Destination ``.h5`` path; parent directories are created.
-        frames: Mapping of frame id to ``{series_name: (N, 2) array}``, each
-            curve carrying its own x column. A 1D array is accepted and paired
-            with its sample index, so a caller with no meaningful axis need not
-            invent one.
-        dataset_pattern: Where each curve lands, matching what the manifest
-            declares for reading it back.
-
-    Returns:
-        The path written.
-    """
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-
-    with h5py.File(path, "w") as handle:
-        for frame_id, series in frames.items():
-            for name, values in series.items():
-                values = np.asarray(values, dtype=np.float32)
-                if values.ndim == 1:
-                    values = np.column_stack(
-                        [np.arange(values.size, dtype=np.float32), values]
-                    )
-                handle.create_dataset(
-                    _format_dataset(dataset_pattern, frame_id=frame_id, name=name),
-                    data=values,
-                    chunks=values.shape if values.size else None,
-                    compression=_COMPRESSION if values.size else None,
-                    compression_opts=_COMPRESSION_OPTS if values.size else None,
-                )
-    return path

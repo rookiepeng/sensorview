@@ -1,13 +1,15 @@
 """SensorView Data IO Package
 
-Storage layer for the multi-sensor data architecture. Each data shape gets the
+Read layer for the multi-sensor data architecture. Each data shape gets the
 storage format that suits it:
 
 - Table             -> Parquet (columnar, filtered/queried by the app)
-- Cloud             -> HDF5, decimated at ingest time (display-only backdrop)
+- Cloud             -> HDF5, pre-decimated (display-only backdrop)
 - Curves            -> HDF5, one (N, 2) pair per (frame, series) (display-only)
 - Images            -> mp4, seeked client-side
 - Reference pose    -> Parquet, one row per frame (display-only)
+
+Datasets are authored externally; nothing here writes them.
 
 All stores join on ``frame_id``, which is derived from the table Parquet rather
 than declared anywhere. Logs share a case folder and are associated by basename
@@ -23,7 +25,7 @@ Copyright (C) 2019 - PRESENT
 from dataio.manifest import Manifest, ManifestError, log_stem
 from dataio.calibration import Calibration, apply_transform
 from dataio.frames import build_frame_index, derive_fps, unique_frame_ids
-from dataio.radar_store import load_radar, scan_radar, write_radar
+from dataio.radar_store import load_radar, scan_radar
 from dataio.dense_store import CloudStore, CurveStore
 from dataio.reference import ReferenceStore
 
@@ -38,7 +40,6 @@ __all__ = [
     "unique_frame_ids",
     "load_radar",
     "scan_radar",
-    "write_radar",
     "CloudStore",
     "CurveStore",
     "ReferenceStore",

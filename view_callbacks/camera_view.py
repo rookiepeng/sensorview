@@ -164,10 +164,10 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         if not any(s["id"] == stream_id for s in streams):
             return {"src": None, "config": None}
 
-        # Timestamps and rate both come from the log's own Parquet, computed by
-        # the same code the ingest used to encode the video -- so the seek maths
-        # and the encode can't disagree. `offset` shifts the clip against the
-        # data for a recording that did not start rolling at radar frame 0.
+        # Timestamps and rate both come from the log's own Parquet, so the seek
+        # maths follows the data rather than a declared rate. `offset` shifts the
+        # clip against the data for a recording that did not start rolling at
+        # radar frame 0.
         #
         # The load counter is appended as a cache-busting query string: two
         # different logs can share the same session id and stream id (both

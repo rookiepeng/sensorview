@@ -13,5 +13,5 @@ orjson
 waitress
 flaskwebgui
 typing-extensions
-# Ingest-time only: bundles a static ffmpeg used to encode camera mp4 streams.
+# Bundles a static ffmpeg, used to transcode camera streams a browser cannot play.
 imageio-ffmpeg

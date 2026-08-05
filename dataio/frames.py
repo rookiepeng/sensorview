@@ -5,9 +5,8 @@ always derived from the Parquet table rather than declared in ``info.json``.
 That removes a whole class of drift: a manifest cannot go stale against the data
 it describes, and re-exporting a log needs no manifest edit.
 
-Both the ingest pipeline and the running app import from here, so the capture
-rate used to *encode* a camera stream and the rate used to *seek* it are
-computed by the same code from the same source.
+The capture rate is derived here too, from the same timestamps, so seeking a
+camera stream uses a rate computed from the data rather than a declared one.
 
 Author: Zhengyu Peng
 License: GPL-3.0

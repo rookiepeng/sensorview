@@ -243,21 +243,3 @@ def load_radar(
 
     data = data.reset_index(drop=True)
     return _normalize_non_finite(data)
-
-
-def write_radar(data: pd.DataFrame, path: str, compression: str = "zstd") -> str:
-    """
-    Write a radar point cloud table to Parquet.
-
-    Args:
-        data: DataFrame to write.
-        path: Destination ``.parquet`` path; parent directories are created.
-        compression: Parquet codec. ``zstd`` gives the best size/speed tradeoff
-            here and is readable by MATLAB's ``parquetread``.
-
-    Returns:
-        The path written.
-    """
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    pl.from_pandas(data).write_parquet(path, compression=compression)
-    return path
