@@ -2,7 +2,8 @@
 
 The left rail: display options and the dynamic per-column filters. Previously
 this lived inside the 3D card and took a quarter of the plot's width; as a rail
-it can be collapsed to a 44px strip, handing that space straight to the canvas.
+it can be collapsed away entirely -- leaving only its toggle floating in the
+top-left corner -- handing that space straight to the canvas.
 
 The rail collapses clientside (``assets/workbench.js``) -- it changes nothing
 the server knows about, so a callback round trip would only add latency.

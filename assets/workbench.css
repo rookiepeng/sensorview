@@ -19,7 +19,6 @@
     --sv-topbar-h: 46px;
     --sv-transport-h: 46px;
     --sv-rail-w: 288px;
-    --sv-rail-collapsed-w: 44px;
     --sv-inspector-w: 380px;
     --sv-dock-h: 50vh;
     --sv-dock-tabs-h: 38px;
@@ -395,15 +394,64 @@ body {
     height: 44px;
 }
 
-/* Same reasoning as the dock: a collapsed panel has no width to give. */
+/* Same reasoning as the dock: a collapsed panel has no width to give, so its
+   handle takes no width either. */
 .sv-rail.sv-collapsed + .sv-splitter,
 .sv-splitter:has(+ .sv-inspector.sv-collapsed) {
     visibility: hidden;
+    flex-basis: 0;
 }
 
-/* ── Left rail: filters ───────────────────────────────────────────────────
-   Collapses to a 44px strip rather than to nothing, so the way back is always
-   on screen. */
+/* ── Collapsed side panels ────────────────────────────────────────────────
+   A collapsed rail keeps no strip at all: it hands every pixel to the canvas
+   and leaves only its toggle, floating in the corner it collapsed into, so the
+   way back stays on screen without costing a column. */
+.sv-rail.sv-collapsed,
+.sv-inspector.sv-collapsed {
+    position: relative;
+    flex-basis: 0 !important;
+    width: 0 !important;
+    border: 0;
+    overflow: visible;
+}
+
+/* Same chrome as the canvas tool cluster -- it is floating over the plot now,
+   so it reads as one of the overlays rather than as a panel header. */
+.sv-rail.sv-collapsed .sv-panel-head,
+.sv-inspector.sv-collapsed .sv-panel-head {
+    position: absolute;
+    top: 10px;
+    z-index: 6;
+    flex: none;
+    height: auto;
+    padding: 2px;
+    background: color-mix(in srgb, var(--sv-surface) 88%, transparent);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+}
+
+.sv-rail.sv-collapsed .sv-panel-head {
+    left: 12px;
+}
+
+.sv-inspector.sv-collapsed .sv-panel-head {
+    right: 12px;
+}
+
+/* Both corners are already spoken for: the tool cluster starts where the left
+   icon lands, and Plotly's mode bar sits where the right one does. Each steps
+   aside only while the icon is actually there. */
+.sv-upper:has(.sv-rail.sv-collapsed) .sv-canvas-tools {
+    left: 58px;
+}
+
+.sv-stage:has(.sv-inspector.sv-collapsed) .sv-canvas .modebar {
+    right: 46px;
+}
+
+/* ── Left rail: filters ─────────────────────────────────────────────────── */
 .sv-rail {
     flex: 0 0 var(--sv-rail-w);
     width: var(--sv-rail-w);
@@ -415,19 +463,9 @@ body {
     transition: flex-basis var(--sv-ease), width var(--sv-ease);
 }
 
-.sv-rail.sv-collapsed {
-    flex-basis: var(--sv-rail-collapsed-w) !important;
-    width: var(--sv-rail-collapsed-w) !important;
-}
-
 .sv-rail.sv-collapsed .sv-rail-body,
 .sv-rail.sv-collapsed .sv-panel-title {
     display: none;
-}
-
-.sv-rail.sv-collapsed .sv-panel-head {
-    justify-content: center;
-    padding: 0;
 }
 
 .sv-rail-body {
@@ -639,19 +677,9 @@ body {
     transition: flex-basis var(--sv-ease), width var(--sv-ease);
 }
 
-.sv-inspector.sv-collapsed {
-    flex-basis: var(--sv-rail-collapsed-w) !important;
-    width: var(--sv-rail-collapsed-w) !important;
-}
-
 .sv-inspector.sv-collapsed .sv-inspector-body,
 .sv-inspector.sv-collapsed .sv-panel-title {
     display: none;
-}
-
-.sv-inspector.sv-collapsed .sv-panel-head {
-    justify-content: center;
-    padding: 0;
 }
 
 /* Restore chips for minimized sections, parked next to the panel's own
