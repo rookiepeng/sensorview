@@ -206,18 +206,27 @@ def playable_image_file(source: str) -> Optional[str]:
     The cache key includes the source's size and mtime, so replacing a log's
     recording invalidates its transcode without anyone having to clear a cache.
 
+    The path returned is absolute. Both the data path and the video cache are
+    configured relative (``./data``, ``./cache/video``), and ``flask.send_file``
+    resolves a relative path against ``app.root_path`` rather than the working
+    directory. Run from source those are the same folder and a relative path
+    happens to work; in a PyInstaller build ``root_path`` is the bundle
+    directory while the data sits beside the executable, so the same relative
+    path resolves into the bundle, the stat fails, and the camera panel gets an
+    error instead of a video.
+
     Args:
         source: Path to the stream file as discovered in the case folder.
 
     Returns:
-        Path to a playable file, or None when the source is missing or cannot be
-        transcoded.
+        Absolute path to a playable file, or None when the source is missing or
+        cannot be transcoded.
     """
     if not source or not os.path.exists(source):
         return None
 
     if is_browser_playable(source):
-        return source
+        return os.path.abspath(source)
 
     try:
         stat = os.stat(source)
@@ -227,9 +236,11 @@ def playable_image_file(source: str) -> Optional[str]:
     fingerprint = hashlib.sha1(
         f"{os.path.abspath(source)}|{stat.st_size}|{int(stat.st_mtime)}".encode()
     ).hexdigest()[:16]
-    cached = os.path.join(
-        VIDEO_CACHE_PATH,
-        f"{os.path.splitext(os.path.basename(source))[0]}.{fingerprint}.mp4",
+    cached = os.path.abspath(
+        os.path.join(
+            VIDEO_CACHE_PATH,
+            f"{os.path.splitext(os.path.basename(source))[0]}.{fingerprint}.mp4",
+        )
     )
 
     if os.path.exists(cached) and os.path.getsize(cached) > 0:

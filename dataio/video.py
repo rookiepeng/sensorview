@@ -43,6 +43,31 @@ FORCED_DECODERS = {
 # `hdrl` list is the first thing after the RIFF header, so this is generous.
 _HEADER_PROBE_BYTES = 65536
 
+# A windowed build (PyInstaller ``console=False``) has no console attached, so
+# it hands the child an invalid stdin handle and Windows opens a console window
+# for it. Absent on other platforms, where the flag is simply zero.
+_NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+
+
+def _run_ffmpeg(command: List[str]) -> subprocess.CompletedProcess:
+    """
+    Run an ffmpeg command and capture its output.
+
+    Args:
+        command: Full argument list, ffmpeg executable first.
+
+    Returns:
+        The completed process; callers check ``returncode`` themselves.
+    """
+    return subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        check=False,
+        stdin=subprocess.DEVNULL,
+        creationflags=_NO_WINDOW,
+    )
+
 
 class VideoEncodeError(Exception):
     """Raised when no ffmpeg is available or the encode fails."""
@@ -242,9 +267,7 @@ def transcode_to_mp4(
                 + _x264_all_intra_args(keyframe_interval, crf)
                 + [staging]
             )
-            result = subprocess.run(
-                command, capture_output=True, text=True, check=False
-            )
+            result = _run_ffmpeg(command)
             if result.returncode == 0 and os.path.getsize(staging) > 0:
                 os.replace(staging, out_path)
                 return out_path
@@ -320,9 +343,7 @@ def encode_images_to_mp4(
             + [out_path]
         )
 
-        result = subprocess.run(
-            command, capture_output=True, text=True, check=False
-        )
+        result = _run_ffmpeg(command)
 
     if result.returncode != 0:
         raise VideoEncodeError(
