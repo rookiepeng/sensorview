@@ -148,8 +148,7 @@
     },
     "image": {
         "format": "mp4",
-        "suffix": ".mp4",
-        "seek": "index"
+        "suffix": ".mp4"
     },
     "reference": {
         "shape": "mesh",
