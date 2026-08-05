@@ -7,7 +7,10 @@ a = Analysis(['app.py'],
              pathex=['./radarviz'],
              binaries=[],
              datas=[('./assets', 'assets'), ('./assets/fonts/bootstrap-icons.woff', "assets/fonts"), ('./assets/fonts/bootstrap-icons.woff2', "assets/fonts"), ("./view_callbacks", "view_callbacks")],
-             hiddenimports=['numpy.core.multiarray', 'numpy.core.numeric', 'dash.backends._flask', 'dash.backends'],
+             # imageio_ffmpeg is imported lazily inside dataio.video.find_ffmpeg;
+             # naming it here guarantees PyInstaller's hook runs and bundles the
+             # static ffmpeg binary that transcodes non-mp4 recordings.
+             hiddenimports=['numpy.core.multiarray', 'numpy.core.numeric', 'dash.backends._flask', 'dash.backends', 'imageio_ffmpeg'],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],
