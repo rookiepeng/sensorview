@@ -1,10 +1,10 @@
-"""Heatmap Card Layout Module
+"""Heatmap Pane Layout Module
 
-Layout for heatmap visualization card with enable switch, axis selectors,
-plot area with loading overlay, and export button.
+The heatmap pane in the analysis dock: a 2D density contour of two numeric
+columns, with an optional log color scale for long-tailed counts.
 
 Usage:
-    from layouts.heatmap_card_layout import get_heatmap_card
+    from layouts.heatmap_card_layout import get_heatmap_pane_layout
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -17,168 +17,60 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 from layouts.layout_constants import colorscales
+from layouts.pane_common import icon_button, labelled_select, pane
 
 
-def get_heatmap_card():
+def get_heatmap_pane_layout():
     """
-    Creates a Dash Bootstrap Card layout for a heatmap visualization with controls.
-
-    The card includes:
-        - A header with a label and an enable switch.
-        - Dropdown selectors for x and y axes with tooltips.
-        - A collapsible section containing a loading spinner, a heatmap graph, 
-          an export button, and corresponding tooltips.
-
-    Args:
-        None
+    Build the heatmap pane.
 
     Returns:
-        dbc.Card: A Dash Bootstrap Card component containing the heatmap controls and visualization.
+        html.Div: The pane.
     """
-    return dbc.Card(
-        [
-            dbc.CardBody(
-                [
-                    dbc.Row(
-                        [
-                            dbc.Col(dbc.Label("Heatmap")),
-                            dbc.Col(
-                                dbc.Checklist(
-                                    options=[{"label": "Enable", "value": True}],
-                                    value=[],
-                                    id="heat-switch",
-                                    switch=True,
-                                    style={"float": "right"},
-                                )
-                            ),
-                        ]
-                    ),
-                    html.Hr(),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("x"),
-                                        dbc.Select(
-                                            id="x-picker-heatmap",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select x axis",
-                                target="x-picker-heatmap",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("y"),
-                                        dbc.Select(
-                                            id="y-picker-heatmap",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select y axis",
-                                target="y-picker-heatmap",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("cmap"),
-                                        dbc.Select(
-                                            id="colormap-heatmap",
-                                            options=[
-                                                {"value": x, "label": x}
-                                                for x in colorscales
-                                            ],
-                                            value="Jet",
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select colormap",
-                                target="colormap-heatmap",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.Checklist(
-                                    options=[{"label": "Log color", "value": True}],
-                                    value=[],
-                                    id="heatmap-log-scale",
-                                    switch=True,
-                                    className="mb-0 d-flex align-items-center",
-                                    inline=True,
-                                ),
-                                width="auto",
-                                className="d-flex align-items-center",
-                            ),
-                            dbc.Tooltip(
-                                "Use log scale for color axis",
-                                target="heatmap-log-scale",
-                                placement="top",
-                            ),
-                        ],
-                        class_name="mb-3",
-                    ),
-                    dcc.Loading(
-                        id="loading_heat",
-                        children=[
-                            dbc.Collapse(
-                                html.Div(
-                                    [
-                                        dcc.Graph(
-                                            id="heatmap",
-                                            config={"displaylogo": False},
-                                            figure={
-                                                "data": [
-                                                    {
-                                                        "type": "histogram2dcontour",
-                                                        "x": [],
-                                                    }
-                                                ]
-                                            },
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    dbc.Button(
-                                                        html.I(
-                                                            className="bi bi-camera-fill"
-                                                        ),
-                                                        id="export-heatmap",
-                                                        n_clicks=0,
-                                                        style={"float": "right"},
-                                                    )
-                                                ),
-                                            ],
-                                            class_name="mt-2",
-                                        ),
-                                        dbc.Tooltip(
-                                            "Export the current figure",
-                                            target="export-heatmap",
-                                            placement="top",
-                                        ),
-                                    ]
-                                ),
-                                is_open=False,
-                                id="collapse-heatmap",
-                            )
-                        ],
-                        type="default",
-                    ),
-                ]
-            )
-        ],
-        className="shadow-sm",
+    controls = [
+        labelled_select("x-picker-heatmap", "x", "Column plotted on the x axis"),
+        labelled_select("y-picker-heatmap", "y", "Column plotted on the y axis"),
+        labelled_select(
+            "colormap-heatmap",
+            "map",
+            "Colormap applied to the density",
+            options=[{"value": x, "label": x} for x in colorscales],
+            value="Jet",
+        ),
+        html.Div(
+            [
+                dbc.Checklist(
+                    options=[{"label": "Log color", "value": True}],
+                    value=[],
+                    id="heatmap-log-scale",
+                    switch=True,
+                    inline=True,
+                    className="d-flex align-items-center",
+                ),
+                dbc.Tooltip(
+                    "Use a log scale for the color axis",
+                    target="heatmap-log-scale",
+                    placement="top",
+                ),
+            ],
+            className="d-flex align-items-center ms-1",
+        ),
+        icon_button(
+            "export-heatmap",
+            "bi-camera-fill",
+            "Export this figure",
+            class_name="ms-auto",
+        ),
+    ]
+
+    graph = dcc.Graph(
+        id="heatmap",
+        responsive=True,
+        config={"displaylogo": False},
+        figure={"data": [{"type": "histogram2dcontour", "x": []}]},
+        style={"height": "100%", "width": "100%"},
+    )
+
+    return pane(
+        controls, graph, collapse_id="collapse-heatmap", loading_id="loading_heat"
     )

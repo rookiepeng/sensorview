@@ -11,6 +11,7 @@ Author: Zhengyu Peng
 License: GPL-3.0
 """
 
+import json
 import os
 
 import pandas as pd
@@ -35,8 +36,17 @@ from app_config import DROPDOWN_VALUES_3D_XYZ, DROPDOWN_VALUES_3D_XYZ_REF
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES, THEME
 
-from utils import load_config, cache_set, cache_get
+from dataio.frames import build_frame_index
+from dataio.manifest import Manifest, ManifestError
+
+from frame_sources import cache_log_info, cache_manifest
+
+from utils import cache_set, cache_get
 from utils import load_data
+
+
+# The overlay's geometry lives in the stylesheet; callbacks only toggle display.
+HIDE_LOADING = {"display": "none"}
 
 
 def get_test_case_view_callbacks(app: dash.Dash) -> None:
@@ -91,11 +101,12 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         # Use round-robin assignment for default values
         default_values = [keys[x % len(keys)] for x in range(length)]
 
-        # Override with config values if provided
+        # Override with config values if provided. A manifest choice the loaded
+        # log has no column for is ignored, so the round-robin default stands.
         if config and config_keys:
             for i, config_key in enumerate(config_keys):
-                if i < len(default_values) and config_key in config:
-                    default_values[i] = config.get(config_key, default_values[i])
+                if i < len(default_values) and config.get(config_key) in keys:
+                    default_values[i] = config[config_key]
 
         return default_values
 
@@ -182,12 +193,22 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         return new_dropdown, new_slider, cat_values, num_values
 
     def _setup_data_cache(
-        data: pd.DataFrame, config: dict, session_id: str
+        data: pd.DataFrame,
+        config: dict,
+        session_id: str,
+        stem: str,
+        time_scale: float = 1.0,
     ) -> np.ndarray:
         """Setup data caching for frames and visibility."""
-        # Cache frame list
-        frame_list = np.sort(data[config["slider"]].unique())
+        # The frame index is derived from the data itself, never declared in the
+        # manifest, so it can never drift out of sync with the log. The capture
+        # rate falls out of the same timestamps the ingest encoded video at.
+        # Only the *unit* of those timestamps comes from the manifest.
+        frame_list, timestamps, fps = build_frame_index(
+            data, config["slider"], time_scale=time_scale
+        )
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
+        cache_log_info(session_id, stem, timestamps, fps)
 
         # Create and cache visibility table
         visible_table = pd.DataFrame({"_IDS_": data.index, "_VIS_": "visible"})
@@ -276,12 +297,22 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         # Initialize figure index
         cache_set(-1, session_id, CACHE_KEYS["figure_idx"])
 
-        # Load and validate configuration
-        config_path = os.path.join(data_path, case, "info.json")
-        if not os.path.exists(config_path):
+        # Load the dataset manifest. A v1 info.json is upgraded in memory, so
+        # both old and new datasets take this same path.
+        case_dir = os.path.join(data_path, case)
+        if not os.path.exists(os.path.join(case_dir, "info.json")):
             raise PreventUpdate
 
-        config = load_config(config_path)
+        try:
+            manifest = Manifest.load(case_dir)
+        except ManifestError as exc:
+            raise PreventUpdate from exc
+
+        cache_manifest(manifest, session_id)
+
+        # Existing filter / 3D / 2D / stats callbacks read the flat v1 config
+        # shape; project the manifest down so they keep working unchanged.
+        config = manifest.legacy_config()
         cache_set(config, session_id, CACHE_KEYS["config"])
 
         # Extract keys by type
@@ -294,17 +325,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             new_data = load_data(add_file_value, file)
         except Exception as exc:
             set_progress(
-                [
-                    {
-                        "position": "fixed",
-                        "top": 0,
-                        "left": 0,
-                        "width": "100%",
-                        "height": "100%",
-                        "backgroundColor": "rgba(0, 0, 0, 0.9)",
-                        "display": "none",
-                    }
-                ]
+                [HIDE_LOADING]
             )
             return {
                 "key_dict": dash.no_update,
@@ -329,7 +350,19 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
                 "error_modal_open": True,
                 "error_message": str(exc),
             }
-        frame_list = _setup_data_cache(new_data, config, session_id)
+        # A manifest describes a whole case, so it can name columns a given log
+        # never exported. Drop those now rather than offering a filter, an axis,
+        # or a color scale that resolves to a missing column later.
+        num_keys = [key for key in num_keys if key in new_data.columns]
+        cat_keys = [key for key in cat_keys if key in new_data.columns]
+        all_keys = num_keys + cat_keys
+
+        # Sidecars are keyed on the primary log's basename. With several logs
+        # overlaid, the primary one owns the backdrop, maps, and video.
+        stem = manifest.stem_of(json.loads(file)["name"])
+        frame_list = _setup_data_cache(
+            new_data, config, session_id, stem, manifest.time_scale
+        )
 
         # Create filter components
         new_dropdown, new_slider, cat_values, num_values = _create_filter_components(
@@ -392,17 +425,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
 
         # Hide loading indicator
         set_progress(
-            [
-                {
-                    "position": "fixed",
-                    "top": 0,
-                    "left": 0,
-                    "width": "100%",
-                    "height": "100%",
-                    "backgroundColor": "rgba(0, 0, 0, 0.9)",
-                    "display": "none",
-                }
-            ]
+            [HIDE_LOADING]
         )
 
         return {
@@ -516,19 +539,21 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
     @app.callback(
         output={"state": Output("collapse-add", "is_open")},
         inputs={"click": Input("button-add", "n_clicks")},
-        state={
-            "open_state": State("collapse-add", "is_open"),
-            "add_file_value": State("file-add", "value"),
-        },
+        state={"open_state": State("collapse-add", "is_open")},
     )
-    def add_data(click: int, open_state: bool, add_file_value: str) -> dict:
+    def add_data(click: int, open_state: bool) -> dict:
         """
         Toggle the state of the add data collapse element.
+
+        The panel closes whether or not logs are picked: it floats over the
+        canvas, so refusing to close it while a selection stands would leave no
+        way to get it off the screen. What is combined stays visible instead
+        through the trigger button, which is lit while the selection is not
+        empty (see the clientside callback in ``app.py``).
 
         Args:
             click (int): Number of button clicks
             open_state (bool): Current state of the collapse element
-            add_file_value (str): Value of the file add input
 
         Returns:
             dict: Contains:
@@ -540,61 +565,12 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         if click == 0:
             raise PreventUpdate
 
-        if open_state is True and not add_file_value:
-            return {"state": False}
+        return {"state": not open_state}
 
-        return {"state": True}
-
-    @app.callback(
-        output={
-            "left_switch": Output("left-switch", "value"),
-            "right_switch": Output("right-switch", "value"),
-            "hist_switch": Output("histogram-switch", "value"),
-            "violin_switch": Output("violin-switch", "value"),
-            "parallel_switch": Output("parallel-switch", "value"),
-            "heat_switch": Output("heat-switch", "value"),
-        },
-        inputs={"unused_file_loaded": Input("file-loaded-trigger", "data")},
-        state={
-            "file": State("current-file", "data"),
-            "case": State("test-case", "value"),
-        },
-    )
-    def reset_switch_state(unused_file_loaded: int, file: str, case: str) -> dict:
-        """
-        Reset the state of all switch components when a new file is loaded.
-
-        Args:
-            unused_file_loaded (int): File load trigger count
-            file (str): Selected file value
-            case (str): Selected test case value
-
-        Returns:
-            dict: Contains empty lists for all switches:
-                - left_switch (list)
-                - right_switch (list)
-                - hist_switch (list)
-                - violin_switch (list)
-                - parallel_switch (list)
-                - heat_switch (list)
-
-        Raises:
-            PreventUpdate: If either file or case is None
-        """
-        if file is None:
-            raise PreventUpdate
-
-        if case is None:
-            raise PreventUpdate
-
-        return {
-            "left_switch": [],
-            "right_switch": [],
-            "hist_switch": [],
-            "violin_switch": [],
-            "parallel_switch": [],
-            "heat_switch": [],
-        }
+    # The six analysis enable switches are no longer reset here. They are driven
+    # by the active dock tab (see the clientside gate in app.py), which already
+    # re-fires on `file-loaded-trigger` -- so a newly loaded log refreshes the
+    # view being looked at instead of switching it off.
 
     @app.callback(
         output={"is_open": Output("error-modal", "is_open")},

@@ -4,6 +4,7 @@ dash-daq
 dash-bootstrap-components
 polars
 pyarrow
+h5py
 numpy
 pandas
 kaleido
@@ -12,3 +13,5 @@ orjson
 waitress
 flaskwebgui
 typing-extensions
+# Ingest-time only: bundles a static ffmpeg used to encode camera mp4 streams.
+imageio-ffmpeg

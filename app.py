@@ -23,7 +23,7 @@ from multiprocessing import freeze_support
 from flaskwebgui import FlaskUI
 
 import orjson
-from flask import Response
+from flask import Response, abort, send_file
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -43,13 +43,22 @@ from view_callbacks.heatmap_view import get_heatmap_view_callbacks
 from view_callbacks.histogram_view import get_histogram_view_callbacks
 from view_callbacks.parcats_view import get_parcats_view_callbacks
 from view_callbacks.violin_view import get_violin_view_callbacks
+from view_callbacks.camera_view import get_camera_view_callbacks
+from view_callbacks.threshold_view import get_threshold_view_callbacks
+
+from frame_sources import (
+    get_log_stem,
+    get_manifest,
+    get_cloud_trace,
+    playable_image_file,
+)
 
 from app_config import app
 from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
-from app_config import SPECIAL_FOLDERS
+from app_config import SPECIAL_FOLDERS, RADAR_FILE_EXTENSIONS
 
 from layouts.app_layout import get_app_layout
-
+from layouts.analysis_dock_layout import DOCK_VIEWS, EMPTY_SLOT
 
 app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
@@ -113,6 +122,85 @@ def get_data_by_index(session: str, start_index_str: str) -> Response:
     return Response(
         orjson.dumps(buffer, option=_orjson_opts), mimetype="application/json"
     )
+
+
+@app.server.route("/api/cloud/<session>/<int:frame_idx>", methods=["GET"])
+def get_cloud_frame(session: str, frame_idx: int) -> Response:
+    """
+    Serve the point-cloud backdrop trace for one frame.
+
+    The cloud is deliberately kept off the IndexedDB figure-buffer path that the
+    radar traces use. The buffer pre-fetches a window of frames ahead, and a
+    decimated cloud frame is orders of magnitude larger than a table one --
+    buffering it would balloon client storage for data that is pure backdrop.
+    Instead the client fetches just the frame it is displaying, and caches it.
+
+    Args:
+        session: Session identifier used to look up the manifest and frame list.
+        frame_idx: Slider position (an index into the frame list, not a frame id).
+
+    Returns:
+        JSON ``{"trace": <scatter3d trace>}``, or ``{"trace": null}`` when the
+        dataset has no cloud or that frame is missing.
+    """
+    empty = Response(orjson.dumps({"trace": None}), mimetype="application/json")
+
+    manifest = get_manifest(session)
+    stem = get_log_stem(session)
+    if manifest is None or not stem or not manifest.has_cloud(stem):
+        return empty
+
+    frame_list = cache_get(session, CACHE_KEYS["frame_list"])
+    if frame_list is None or frame_idx < 0 or frame_idx >= len(frame_list):
+        return empty
+
+    trace = get_cloud_trace(manifest, stem, frame_list[frame_idx])
+    if trace is None:
+        return empty
+
+    return Response(
+        orjson.dumps({"trace": trace}, option=orjson.OPT_SERIALIZE_NUMPY),
+        mimetype="application/json",
+    )
+
+
+@app.server.route("/api/camera/<session>/<stream_id>", methods=["GET"])
+def get_camera_stream(session: str, stream_id: str):
+    """
+    Serve a camera mp4 for the browser's video element.
+
+    The file path comes from the session's manifest, never from the URL, so a
+    caller cannot walk outside the dataset directory by crafting ``stream_id``.
+
+    Args:
+        session: Session identifier used to look up the manifest.
+        stream_id: Camera stream identifier declared in the manifest.
+
+    Returns:
+        The mp4 file response. ``conditional=True`` enables HTTP Range
+        requests, which is what makes ``currentTime`` seeking work at all --
+        without it the browser must download the whole clip before it can seek.
+
+        A recording in a container browsers cannot play is transcoded on first
+        request and served from the video cache, so this can block for a few
+        seconds once per log.
+    """
+    manifest = get_manifest(session)
+    stem = get_log_stem(session)
+    if manifest is None or not stem:
+        abort(404)
+
+    stream = next(
+        (s for s in manifest.image_streams(stem) if s["id"] == stream_id), None
+    )
+    if stream is None:
+        abort(404)
+
+    playable = playable_image_file(stream["file"])
+    if playable is None:
+        abort(404)
+
+    return send_file(playable, mimetype="video/mp4", conditional=True)
 
 
 # Initialize worker
@@ -307,20 +395,7 @@ def on_case_change(
     for dirpath, dirnames, files in os.walk(case_dir):
         dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
         for name in files:
-            if name.lower().endswith(".csv"):
-                data_files.append(
-                    {
-                        "label": os.path.join(dirpath[len(case_dir) :], name),
-                        "value": json.dumps(
-                            {
-                                "path": dirpath,
-                                "name": name,
-                                "label": os.path.join(dirpath[len(case_dir) :], name),
-                            }
-                        ),
-                    }
-                )
-            elif name.lower().endswith(".pkl"):
+            if name.lower().endswith(RADAR_FILE_EXTENSIONS):
                 data_files.append(
                     {
                         "label": os.path.join(dirpath[len(case_dir) :], name),
@@ -490,21 +565,157 @@ app.clientside_callback(
 app.clientside_callback(
     """
     function(current_file, add_file) {
-        
-        return {
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "rgba(0, 0, 0, 0.9)",
-                };
+        return {display: "flex"};
     }
     """,
     Output("loading-view", "style", allow_duplicate=True),
     Input("current-file", "data"),
     Input("file-add", "value"),
     prevent_initial_call=True,
+)
+
+# The picker panel is the only place the combined logs are named, and it closes
+# on demand, so the button that opens it carries the fact that some are in play.
+app.clientside_callback(
+    """
+    function(add_file) {
+        var combining = Array.isArray(add_file) && add_file.length > 0;
+        return "sv-icon-btn" + (combining ? " active" : "");
+    }
+    """,
+    Output("button-add", "className"),
+    Input("file-add", "value"),
+)
+
+# Slot assignment is the enable switch for a view, and the slot layout.
+#
+# These six figures are expensive, so only the two on screen are live: a view
+# placed in a slot gets its switch turned on and a class that orders it left or
+# right, everything else goes off and stays hidden, and a collapsed dock turns
+# all of them off. Re-firing on `file-loaded-trigger` means a newly loaded log
+# refreshes the visible charts rather than blanking them.
+app.clientside_callback(
+    f"""
+    function(slot_a, slot_b, dock_state, unused_file_loaded) {{
+        const keys = {[key for key, _, _ in DOCK_VIEWS]};
+        const live = (dock_state || {{}}).open === true;
+        const a = live ? slot_a : null;
+        const b = live ? slot_b : null;
+        // The divider between the slots only exists when both are filled.
+        const paired = keys.indexOf(a) >= 0 && keys.indexOf(b) >= 0;
+        const classes = keys.map(function (key) {{
+            if (key === a) return "sv-dock-pane sv-slot-a";
+            if (key === b) {{
+                return "sv-dock-pane sv-slot-b" + (paired ? " sv-slot-paired" : "");
+            }}
+            return "sv-dock-pane";
+        }});
+        const switches = keys.map(function (key) {{
+            return key === a || key === b ? [true] : [];
+        }});
+        return classes.concat(switches);
+    }}
+    """,
+    [Output(f"dock-pane-{key}", "className") for key, _, _ in DOCK_VIEWS]
+    + [Output(switch_id, "value") for _, switch_id, _ in DOCK_VIEWS],
+    Input("dock-slot-a", "value"),
+    Input("dock-slot-b", "value"),
+    Input("dock-state", "data"),
+    Input("file-loaded-trigger", "data"),
+)
+
+# A view can only be in one slot -- its component ids exist once. Picking a view
+# the other slot already holds therefore swaps the two rather than failing: the
+# store remembers the last accepted pair, which is how this knows which of the
+# two selects the user just changed.
+app.clientside_callback(
+    f"""
+    function(slot_a, slot_b, previous) {{
+        const empty = "{EMPTY_SLOT}";
+        const prev = previous || {{}};
+        if (slot_a && slot_a === slot_b && slot_a !== empty) {{
+            if (slot_a !== prev.a) {{
+                slot_b = prev.a || empty;
+            }} else {{
+                slot_a = prev.b || empty;
+            }}
+        }}
+        return [slot_a, slot_b, {{a: slot_a, b: slot_b}}];
+    }}
+    """,
+    Output("dock-slot-a", "value"),
+    Output("dock-slot-b", "value"),
+    Output("dock-slots", "data"),
+    Input("dock-slot-a", "value"),
+    Input("dock-slot-b", "value"),
+    State("dock-slots", "data"),
+)
+
+app.clientside_callback(
+    """
+    function(n_clicks, slot_a, slot_b) {
+        if (!n_clicks) {
+            return [window.dash_clientside.no_update,
+                    window.dash_clientside.no_update];
+        }
+        return [slot_b, slot_a];
+    }
+    """,
+    Output("dock-slot-a", "value", allow_duplicate=True),
+    Output("dock-slot-b", "value", allow_duplicate=True),
+    Input("dock-swap", "n_clicks"),
+    State("dock-slot-a", "value"),
+    State("dock-slot-b", "value"),
+    prevent_initial_call=True,
+)
+
+# The dock's open state has to reach the server-side gate above, and the collapse
+# itself is clientside, so the toggle button updates a store that both read.
+app.clientside_callback(
+    """
+    function(n_clicks, state) {
+        if (!n_clicks) {
+            return window.dash_clientside.no_update;
+        }
+        return {open: !((state || {}).open === true)};
+    }
+    """,
+    Output("dock-state", "data"),
+    Input("dock-toggle", "n_clicks"),
+    State("dock-state", "data"),
+)
+
+# Mirror the hidden path/case/file fields into the top bar breadcrumb.
+app.clientside_callback(
+    """
+    function(case_name, log_file) {
+        const empty = "sv-crumb sv-crumb-file sv-crumb-empty";
+        const named = "sv-crumb sv-crumb-file";
+        return [
+            case_name || "No test case",
+            log_file || "select a log …",
+            log_file ? named : empty,
+        ];
+    }
+    """,
+    Output("crumb-case", "children"),
+    Output("crumb-file", "children"),
+    Output("crumb-file", "className"),
+    Input("test-case", "value"),
+    Input("log-file", "value"),
+)
+
+# Frame counter beside the transport slider.
+app.clientside_callback(
+    """
+    function(value, max_value) {
+        return [String(value || 0), " / " + String(max_value || 0)];
+    }
+    """,
+    Output("frame-current", "children"),
+    Output("frame-total", "children"),
+    Input("slider-frame", "value"),
+    Input("slider-frame", "max"),
 )
 
 get_test_case_view_callbacks(app)
@@ -517,6 +728,8 @@ get_heatmap_view_callbacks(app)
 get_histogram_view_callbacks(app)
 get_parcats_view_callbacks(app)
 get_violin_view_callbacks(app)
+get_camera_view_callbacks(app)
+get_threshold_view_callbacks(app)
 
 
 if __name__ == "__main__":

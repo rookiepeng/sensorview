@@ -1,10 +1,10 @@
-"""Violin Card Layout Module
+"""Violin Pane Layout Module
 
-Layout for violin plot visualization card with enable switch, axis selectors,
-plot area with loading overlay, and export button.
+The violin pane in the analysis dock: the distribution of a numeric column
+across the levels of a categorical one.
 
 Usage:
-    from layouts.violin_card_layout import get_violin_card_layout
+    from layouts.violin_card_layout import get_violin_pane_layout
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -12,143 +12,36 @@ Copyright (C) 2019 - PRESENT
 """
 
 from dash import dcc
-from dash import html
 
-import dash_bootstrap_components as dbc
+from layouts.pane_common import icon_button, labelled_select, pane
 
 
-def get_violin_card_layout():
+def get_violin_pane_layout():
     """
-    Creates and returns a Dash Bootstrap Card layout for a violin plot visualization panel.
-
-    The layout includes:
-        - A header with a label and an enable switch.
-        - Selectors for x, y, and color axes, each with tooltips.
-        - A loading spinner that wraps a collapsible area containing:
-            - A violin plot graph.
-            - An export button with tooltip.
-
-    Args:
-        None
+    Build the violin pane.
 
     Returns:
-        dbc.Card: A Dash Bootstrap Card component containing the violin plot
-        controls and visualization.
+        html.Div: The pane.
     """
-    return dbc.Card(
-        [
-            dbc.CardBody(
-                [
-                    dbc.Row(
-                        [
-                            dbc.Col(dbc.Label("Violin")),
-                            dbc.Col(
-                                dbc.Checklist(
-                                    options=[{"label": "Enable", "value": True}],
-                                    value=[],
-                                    id="violin-switch",
-                                    switch=True,
-                                    style={"float": "right"},
-                                )
-                            ),
-                        ]
-                    ),
-                    html.Hr(),
-                    dbc.Row(
-                        [
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("x"),
-                                        dbc.Select(
-                                            id="x-picker-violin",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select x axis",
-                                target="x-picker-violin",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("y"),
-                                        dbc.Select(
-                                            id="y-picker-violin",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select y axis",
-                                target="y-picker-violin",
-                                placement="top",
-                            ),
-                            dbc.Col(
-                                dbc.InputGroup(
-                                    [
-                                        dbc.InputGroupText("c"),
-                                        dbc.Select(
-                                            id="c-picker-violin",
-                                            disabled=False,
-                                        ),
-                                    ],
-                                    size="sm",
-                                )
-                            ),
-                            dbc.Tooltip(
-                                "Select color axis",
-                                target="c-picker-violin",
-                                placement="top",
-                            ),
-                        ],
-                        class_name="mb-3",
-                    ),
-                    dcc.Loading(
-                        id="loading_violin",
-                        children=[
-                            dbc.Collapse(
-                                html.Div(
-                                    [
-                                        dcc.Graph(
-                                            id="violin", config={"displaylogo": False}
-                                        ),
-                                        dbc.Row(
-                                            [
-                                                dbc.Col(
-                                                    dbc.Button(
-                                                        html.I(
-                                                            className="bi bi-camera-fill"
-                                                        ),
-                                                        id="export-violin",
-                                                        n_clicks=0,
-                                                        style={"float": "right"},
-                                                    )
-                                                ),
-                                            ],
-                                            class_name="mt-2",
-                                        ),
-                                        dbc.Tooltip(
-                                            "Export the current figure",
-                                            target="export-violin",
-                                            placement="top",
-                                        ),
-                                    ]
-                                ),
-                                is_open=False,
-                                id="collapse-violin",
-                            )
-                        ],
-                        type="default",
-                    ),
-                ]
-            )
-        ],
-        className="shadow-sm",
+    controls = [
+        labelled_select("x-picker-violin", "x", "Categorical column to group by"),
+        labelled_select("y-picker-violin", "y", "Numeric column to describe"),
+        labelled_select("c-picker-violin", "c", "Column the violins are split by"),
+        icon_button(
+            "export-violin",
+            "bi-camera-fill",
+            "Export this figure",
+            class_name="ms-auto",
+        ),
+    ]
+
+    graph = dcc.Graph(
+        id="violin",
+        responsive=True,
+        config={"displaylogo": False},
+        style={"height": "100%", "width": "100%"},
+    )
+
+    return pane(
+        controls, graph, collapse_id="collapse-violin", loading_id="loading_violin"
     )

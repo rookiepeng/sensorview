@@ -43,5 +43,7 @@ images/
 
 data/*
 !data/Example/
+!data/ExampleCSV/
 /temp
 config.json
+.claude/launch.json

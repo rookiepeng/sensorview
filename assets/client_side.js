@@ -1,3 +1,39 @@
+// Point-cloud backdrop frames, keyed "<session>/<frame index>". The cloud is display-only
+// and identical every time a frame is revisited, so an in-memory cache makes
+// scrubbing back over visited frames free. Bounded so long sessions cannot grow
+// it without limit.
+const CLOUD_CACHE = new Map();
+const CLOUD_CACHE_LIMIT = 240;
+
+async function getCloudTrace(session, frameIndex) {
+  if (session == null || frameIndex == null) {
+    return null;
+  }
+
+  const key = `${session}/${frameIndex}`;
+  if (CLOUD_CACHE.has(key)) {
+    return CLOUD_CACHE.get(key);
+  }
+
+  let trace = null;
+  try {
+    const response = await fetch(`/api/cloud/${session}/${frameIndex}`);
+    if (response.ok) {
+      trace = (await response.json()).trace ?? null;
+    }
+  } catch (error) {
+    // A missing backdrop must never block the radar figure from rendering.
+    console.warn(`Cloud frame ${frameIndex} unavailable:`, error);
+    return null;
+  }
+
+  if (CLOUD_CACHE.size >= CLOUD_CACHE_LIMIT) {
+    CLOUD_CACHE.delete(CLOUD_CACHE.keys().next().value);
+  }
+  CLOUD_CACHE.set(key, trace);
+  return trace;
+}
+
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   clientside_callback: {
     initWorker: function (n_clicks) {
@@ -319,6 +355,14 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         }
 
         fig.data = [...fig.data, ...allData[0].data.ref_fig];
+
+        // Point-cloud backdrop. Appended after the opacity/hover loops above so the
+        // decay-opacity ramp applied to radar trace groups never touches it —
+        // cloud has no decay and no controls, its styling is fixed at ingest.
+        const cloudTrace = await getCloudTrace(session, slider_arg);
+        if (cloudTrace) {
+          fig.data = [...fig.data, cloudTrace];
+        }
 
         const c_type = key_dict[c_picker]?.type || "numerical";
         if (c_type === "numerical") {

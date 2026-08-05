@@ -1,0 +1,1231 @@
+/*
+ * SensorView workbench shell.
+ *
+ * The app owns the viewport: nothing outside a panel ever scrolls. Regions are
+ * sized by flex so the 3D canvas absorbs every pixel the docks are not using,
+ * and collapsing a dock hands its space straight back to the canvas.
+ *
+ * Loaded after dbc.min.css (Dash serves assets alphabetically), so the
+ * Bootstrap variable overrides below win without !important.
+ *
+ * Author: Zhengyu Peng
+ * License: GPL-3.0
+ */
+
+/* ── Design tokens ────────────────────────────────────────────────────────
+   Dark is the working theme: near-black surfaces so the only bright thing on
+   screen is the data. Light is a full peer, not an afterthought. */
+:root {
+    --sv-topbar-h: 46px;
+    --sv-transport-h: 46px;
+    --sv-rail-w: 288px;
+    --sv-rail-collapsed-w: 44px;
+    --sv-inspector-w: 380px;
+    --sv-dock-h: 50vh;
+    --sv-dock-tabs-h: 38px;
+    --sv-radius: 6px;
+    --sv-gap: 10px;
+    --sv-font-sm: 0.78rem;
+    --sv-font-xs: 0.72rem;
+    --sv-ease: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-bs-theme="dark"] {
+    --sv-bg: #0a0c0f;
+    --sv-surface: #111419;
+    --sv-surface-2: #171b22;
+    --sv-surface-3: #1e232b;
+    --sv-border: #242a33;
+    --sv-border-strong: #333b47;
+    --sv-text: #dfe4ea;
+    --sv-text-dim: #8a929e;
+    --sv-text-faint: #5d656f;
+    --sv-accent: #4c9ffe;
+    --sv-accent-soft: rgba(76, 159, 254, 0.16);
+    --sv-warn: #f0a020;
+    --sv-danger: #e5484d;
+    --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
+
+    /* Bootstrap's own surfaces, so dbc controls inherit the console palette. */
+    --bs-body-bg: var(--sv-bg);
+    --bs-body-color: var(--sv-text);
+    --bs-border-color: var(--sv-border);
+    --bs-secondary-bg: var(--sv-surface-2);
+    --bs-tertiary-bg: var(--sv-surface-3);
+    --bs-secondary-color: var(--sv-text-dim);
+    --bs-emphasis-color: #fff;
+    --bs-primary: var(--sv-accent);
+    --bs-primary-rgb: 76, 159, 254;
+    --bs-link-color: var(--sv-accent);
+    --bs-link-hover-color: #7bb8ff;
+}
+
+[data-bs-theme="light"] {
+    --sv-bg: #eceef1;
+    --sv-surface: #ffffff;
+    --sv-surface-2: #f6f7f9;
+    --sv-surface-3: #eceef1;
+    --sv-border: #dfe3e8;
+    --sv-border-strong: #c6ccd4;
+    --sv-text: #12161c;
+    --sv-text-dim: #5e6773;
+    --sv-text-faint: #8d959f;
+    --sv-accent: #0b64d0;
+    --sv-accent-soft: rgba(11, 100, 208, 0.12);
+    --sv-warn: #b46b00;
+    --sv-danger: #c53030;
+    --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
+
+    --bs-body-bg: var(--sv-bg);
+    --bs-body-color: var(--sv-text);
+    --bs-border-color: var(--sv-border);
+    --bs-secondary-bg: var(--sv-surface-2);
+    --bs-tertiary-bg: var(--sv-surface-3);
+    --bs-secondary-color: var(--sv-text-dim);
+    --bs-primary: var(--sv-accent);
+    --bs-primary-rgb: 11, 100, 208;
+    --bs-link-color: var(--sv-accent);
+}
+
+/* ── Page frame ───────────────────────────────────────────────────────────
+   Dash nests the layout two divs deep; both need full height or the shell
+   collapses to its content. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: var(--sv-bg);
+    color: var(--sv-text);
+    font-size: 0.875rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+#react-entry-point,
+#_dash-app-content,
+#react-entry-point > div {
+    height: 100%;
+}
+
+.sv-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────────
+   One line: identity, what is loaded, global actions. Everything that used to
+   live in the 150px header is either here or one click behind the breadcrumb. */
+.sv-topbar {
+    flex: 0 0 var(--sv-topbar-h);
+    display: flex;
+    align-items: center;
+    gap: var(--sv-gap);
+    padding: 0 10px;
+    background: var(--sv-surface);
+    border-bottom: 1px solid var(--sv-border);
+    position: relative;
+    z-index: 20;
+}
+
+.sv-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 10px;
+    border-right: 1px solid var(--sv-border);
+    height: 100%;
+    flex: 0 0 auto;
+}
+
+.sv-brand img {
+    height: 22px;
+    width: auto;
+}
+
+.sv-brand-name {
+    font-size: 0.9rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+.sv-brand-version {
+    font-size: 0.62rem;
+    color: var(--sv-text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* Breadcrumb doubles as the data picker: reading and changing the loaded log
+   are the same control, so there is nothing to hunt for. */
+.sv-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    max-width: 46vw;
+    padding: 4px 10px;
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    color: var(--sv-text);
+    font-size: var(--sv-font-sm);
+    line-height: 1.3;
+    cursor: pointer;
+    transition: border-color var(--sv-ease), background var(--sv-ease);
+}
+
+.sv-breadcrumb:hover {
+    background: var(--sv-surface-3);
+    border-color: var(--sv-border-strong);
+    color: var(--sv-text);
+}
+
+.sv-breadcrumb .bi {
+    color: var(--sv-text-dim);
+    font-size: 0.8rem;
+}
+
+.sv-crumb {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sv-crumb-case {
+    color: var(--sv-text-dim);
+    flex: 0 1 auto;
+}
+
+.sv-crumb-file {
+    font-weight: 600;
+    flex: 1 1 auto;
+}
+
+.sv-crumb-sep {
+    color: var(--sv-text-faint);
+    flex: 0 0 auto;
+}
+
+.sv-crumb-empty {
+    color: var(--sv-text-faint);
+    font-style: italic;
+}
+
+.sv-topbar-spacer {
+    flex: 1 1 auto;
+}
+
+.sv-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+/* The switch's own form-check markup centers the track on the label text
+   baseline, not on its box -- pull it back in line with the icon buttons. */
+.sv-topbar-actions .form-check {
+    display: flex;
+    align-items: center;
+    height: 30px;
+    margin: 0;
+}
+
+.sv-topbar-actions .form-check-input {
+    margin-top: 0;
+    margin-right: 8px;
+}
+
+/* Icon buttons: quiet until touched. */
+.sv-icon-btn,
+.sv-topbar-actions .dropdown > button.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    min-width: 30px;
+    padding: 0 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--sv-radius);
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+    line-height: 1;
+    box-shadow: none;
+    transition: background var(--sv-ease), color var(--sv-ease),
+        border-color var(--sv-ease);
+}
+
+.sv-icon-btn:hover,
+.sv-icon-btn:focus-visible,
+.sv-topbar-actions .dropdown > button.btn:hover {
+    background: var(--sv-surface-3);
+    border-color: var(--sv-border);
+    color: var(--sv-text);
+}
+
+.sv-icon-btn.active,
+.sv-icon-btn[aria-pressed="true"] {
+    background: var(--sv-accent-soft);
+    border-color: transparent;
+    color: var(--sv-accent);
+}
+
+.sv-icon-btn .bi {
+    font-size: 0.95rem;
+}
+
+/* Per-subsection minimize buttons sit inline with a section label, not a
+   full panel head, so they stay out of the label's way. */
+.sv-icon-btn-sm {
+    height: 22px;
+    min-width: 22px;
+    padding: 0;
+}
+
+.sv-icon-btn-sm .bi {
+    font-size: 0.8rem;
+}
+
+/* An icon-only menu toggle does not need a caret next to the icon. */
+.sv-icon-btn.dropdown-toggle::after {
+    display: none;
+}
+
+/* The combine-logs picker drops out of the top bar instead of pushing the
+   layout down. */
+.sv-combine-panel {
+    position: absolute;
+    top: calc(var(--sv-topbar-h) - 2px);
+    left: 10px;
+    width: min(560px, 90vw);
+    z-index: 30;
+}
+
+.sv-combine-inner {
+    background: var(--sv-surface);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    box-shadow: var(--sv-shadow);
+    padding: 10px 12px 12px;
+}
+
+.sv-combine-inner .sv-section-label {
+    margin-bottom: 6px;
+}
+
+/* ── Body: rail | (canvas + inspector) / transport, then the dock ─────── */
+.sv-workspace {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sv-upper {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.sv-center {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+.sv-stage {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+    min-width: 0;
+}
+
+/* ── Splitters ───────────────────────────────────────────────────────────
+   One handle for both axes: a 5px band between two regions, with a centered
+   grip so it reads as draggable before the pointer reaches it. The drag
+   itself is clientside (workbench.js), which writes an inline size onto the
+   region -- hence the !important on every collapsed rule, since a collapse
+   has to beat whatever the last drag left behind. */
+.sv-splitter {
+    flex: 0 0 5px;
+    position: relative;
+    background: var(--sv-border);
+    z-index: 5;
+}
+
+.sv-splitter::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 2px;
+    background: var(--sv-border-strong);
+}
+
+.sv-splitter:hover {
+    background: var(--sv-accent);
+}
+
+.sv-splitter-row {
+    cursor: row-resize;
+}
+
+.sv-splitter-row::after {
+    width: 44px;
+    height: 3px;
+}
+
+.sv-splitter-col {
+    cursor: col-resize;
+}
+
+.sv-splitter-col::after {
+    width: 3px;
+    height: 44px;
+}
+
+/* Same reasoning as the dock: a collapsed panel has no width to give. */
+.sv-rail.sv-collapsed + .sv-splitter,
+.sv-splitter:has(+ .sv-inspector.sv-collapsed) {
+    visibility: hidden;
+}
+
+/* ── Left rail: filters ───────────────────────────────────────────────────
+   Collapses to a 44px strip rather than to nothing, so the way back is always
+   on screen. */
+.sv-rail {
+    flex: 0 0 var(--sv-rail-w);
+    width: var(--sv-rail-w);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--sv-surface);
+    border-right: 1px solid var(--sv-border);
+    transition: flex-basis var(--sv-ease), width var(--sv-ease);
+}
+
+.sv-rail.sv-collapsed {
+    flex-basis: var(--sv-rail-collapsed-w) !important;
+    width: var(--sv-rail-collapsed-w) !important;
+}
+
+.sv-rail.sv-collapsed .sv-rail-body,
+.sv-rail.sv-collapsed .sv-panel-title {
+    display: none;
+}
+
+.sv-rail.sv-collapsed .sv-panel-head {
+    justify-content: center;
+    padding: 0;
+}
+
+.sv-rail-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 12px 18px;
+}
+
+/* ── Shared panel chrome ─────────────────────────────────────────────── */
+.sv-panel-head {
+    flex: 0 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 0 6px 0 12px;
+    background: var(--sv-surface-2);
+    border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--sv-font-xs);
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+}
+
+.sv-section-label {
+    display: block;
+    font-size: var(--sv-font-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sv-text-faint);
+    margin-bottom: 4px;
+}
+
+.sv-field {
+    margin-bottom: 12px;
+}
+
+.sv-divider {
+    height: 1px;
+    background: var(--sv-border);
+    margin: 14px 0;
+}
+
+/* ── Canvas: the 3D view owns everything left over ───────────────────── */
+.sv-canvas {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    background: var(--sv-bg);
+}
+
+/* Plotly redraws its drawing surfaces a frame behind the pointer, and those
+   surfaces are absolutely positioned inside a relatively positioned canvas --
+   so mid-drag they still carry the old size and paint straight over the
+   inspector, which is in flow and therefore paints below them. Clipping keeps
+   the stale edge inside the stage until the refit lands. */
+.sv-canvas .dash-graph,
+.sv-canvas .js-plotly-plot,
+.sv-canvas .plot-container {
+    height: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+}
+
+/* View controls float over the plot: chrome docked above the canvas would cost
+   the same pixels on every frame for settings touched once a session. */
+.sv-canvas-tools {
+    position: absolute;
+    top: 10px;
+    left: 12px;
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+    background: color-mix(in srgb, var(--sv-surface) 88%, transparent);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+}
+
+.sv-canvas-tools .input-group {
+    width: 190px;
+}
+
+.sv-canvas-popover {
+    position: absolute;
+    top: 52px;
+    left: 12px;
+    z-index: 7;
+    width: min(620px, calc(100% - 24px));
+}
+
+.sv-canvas-popover-inner {
+    background: color-mix(in srgb, var(--sv-surface) 94%, transparent);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--sv-shadow);
+    padding: 12px;
+}
+
+/* ── Transport bar ───────────────────────────────────────────────────── */
+.sv-transport {
+    position: relative;
+    flex: 0 0 var(--sv-transport-h);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    height: var(--sv-transport-h);
+    background: var(--sv-surface);
+    border-top: 1px solid var(--sv-border);
+}
+
+/* Buffer state reads as two hairlines pinned to the top edge of the bar --
+   present when you look for it, invisible when you don't. */
+.sv-buffer-stack {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    pointer-events: none;
+}
+
+.sv-buffer-stack .progress {
+    height: 2px;
+    background: transparent;
+    border-radius: 0;
+}
+
+.sv-transport-buttons .btn {
+    width: 34px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-color: var(--sv-border);
+    background: var(--sv-surface-2);
+    color: var(--sv-text);
+}
+
+.sv-transport-buttons .btn:hover {
+    background: var(--sv-surface-3);
+    color: var(--sv-text);
+}
+
+.sv-transport-buttons .btn-primary,
+.sv-transport-buttons .btn-primary:hover {
+    background: var(--sv-accent);
+    border-color: var(--sv-accent);
+    color: #fff;
+}
+
+.sv-transport-buttons .btn-danger,
+.sv-transport-buttons .btn-danger:hover {
+    background: var(--sv-danger);
+    border-color: var(--sv-danger);
+    color: #fff;
+}
+
+.sv-transport-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.sv-transport-slider .rc-slider {
+    margin: 0;
+}
+
+.sv-frame-readout {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    font-size: var(--sv-font-sm);
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+}
+
+.sv-frame-readout b {
+    color: var(--sv-text);
+    font-weight: 650;
+}
+
+/* ── Inspector: camera + threshold, docked right ─────────────────────── */
+.sv-inspector {
+    flex: 0 0 var(--sv-inspector-w);
+    width: var(--sv-inspector-w);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--sv-surface);
+    border-left: 1px solid var(--sv-border);
+    transition: flex-basis var(--sv-ease), width var(--sv-ease);
+}
+
+.sv-inspector.sv-collapsed {
+    flex-basis: var(--sv-rail-collapsed-w) !important;
+    width: var(--sv-rail-collapsed-w) !important;
+}
+
+.sv-inspector.sv-collapsed .sv-inspector-body,
+.sv-inspector.sv-collapsed .sv-panel-title {
+    display: none;
+}
+
+.sv-inspector.sv-collapsed .sv-panel-head {
+    justify-content: center;
+    padding: 0;
+}
+
+/* Restore chips for minimized sections, parked next to the panel's own
+   toggle. */
+.sv-panel-chips {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+    margin-right: 2px;
+}
+
+/* Each chip is present only while its section is minimized -- and never for a
+   section this log has nothing to fill, which its callback hides outright.
+   Tinted rather than bare, so it reads as something stowed away rather than as
+   another piece of the title bar. */
+.sv-panel-chip {
+    display: none;
+    background: var(--sv-accent-soft);
+    color: var(--sv-accent);
+}
+
+.sv-panel-chip:hover,
+.sv-panel-chip:focus-visible {
+    background: var(--sv-accent-soft);
+    border-color: var(--sv-accent);
+    color: var(--sv-accent);
+}
+
+.sv-inspector:has(#subview-camera-section.sv-collapsed:not([style*="none"]))
+    #camera-restore,
+.sv-inspector:has(#subview-threshold-section.sv-collapsed:not([style*="none"]))
+    #threshold-restore {
+    display: inline-flex;
+}
+
+.sv-inspector.sv-collapsed .sv-panel-chips {
+    display: none;
+}
+
+.sv-inspector-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+}
+
+/* Sections are sized by their content and never shrink into one another: the
+   video keeps its aspect ratio whatever box it is given, so a shrunk section
+   would not shrink the picture, it would just let it spill over the section
+   below. When the sum no longer fits, the body scrolls instead. */
+.sv-subsection {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    min-height: 0;
+}
+
+.sv-subsection + .sv-subsection {
+    padding-top: 10px;
+    border-top: 1px solid var(--sv-border);
+}
+
+/* A section the log has nothing to fill (no video, no curves) is hidden by
+   its callback, and its divider has to go with it -- an adjacent-sibling rule
+   still matches across a display:none neighbour. */
+#subview-camera-section[style*="none"] + .sv-subsection {
+    padding-top: 0;
+    border-top: 0;
+}
+
+/* The curve section takes whatever height the image section does not use,
+   so minimizing the image (or the video simply being shorter) hands the
+   plot more room instead of leaving it empty. Selected by class, not by id:
+   an id here would outrank the collapsed rules below and pin the section
+   open. */
+.sv-subsection--grow {
+    flex: 1 1 auto;
+}
+
+.sv-subsection--grow > .sv-subsection-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.sv-subsection-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.sv-subsection-head .sv-section-label {
+    margin-bottom: 0;
+}
+
+.sv-subsection-body {
+    min-height: 0;
+}
+
+/* Selectors share a row and wrap only when the dock is genuinely too narrow
+   for two, so they cost one line between them instead of one line each. */
+.sv-subsection-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.sv-subsection-controls > * {
+    flex: 1 1 150px;
+    min-width: 0;
+}
+
+/* With one stream, or one plot, every selector in the row is hidden and the
+   row itself is nothing but its own margin. */
+.sv-subsection-controls:not(:has(> :not([style*="none"]))) {
+    display: none;
+}
+
+/* A minimized subsection gives up its row entirely rather than keeping a
+   header: the header plus the divider above it cost as much vertical space as
+   a line of controls, and the section is restored from a chip in the panel
+   bar (see .sv-panel-chip), which was empty anyway. */
+.sv-subsection.sv-collapsed {
+    display: none;
+}
+
+/* The divider belongs to the pair, not to the section below it, so it goes
+   with a minimized neighbour -- an adjacent-sibling rule still matches across
+   a display:none element. */
+.sv-subsection.sv-collapsed + .sv-subsection {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.sv-video {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    /* However wide the dock is dragged, the picture stops taking height from
+       the curve at some point. */
+    max-height: 30vh;
+    object-fit: contain;
+    background: #000;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    display: block;
+}
+
+.sv-threshold-graph {
+    width: 100%;
+    flex: 1 1 auto;
+    /* Enough for the axis, a legend that has wrapped to several rows in a
+       narrow dock, and a readable trace; past that the plot takes whatever
+       the dock has spare. */
+    min-height: 220px;
+}
+
+.sv-threshold-graph > .dash-graph,
+.sv-threshold-graph .js-plotly-plot,
+.sv-threshold-graph .plot-container {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+/* ── Bottom dock: the six analysis charts ────────────────────────────── */
+.sv-dock-wrap {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* A collapsed dock cannot be resized, so its handle would be a lie. */
+.sv-dock-wrap:has(.sv-dock.sv-collapsed) .sv-splitter {
+    visibility: hidden;
+}
+
+.sv-dock {
+    position: relative;
+    flex: 0 0 var(--sv-dock-h);
+    height: var(--sv-dock-h);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--sv-surface);
+    border-top: 1px solid var(--sv-border);
+}
+
+.sv-dock.sv-collapsed {
+    flex-basis: var(--sv-dock-tabs-h) !important;
+    height: var(--sv-dock-tabs-h) !important;
+}
+
+.sv-dock.sv-collapsed .sv-dock-grid {
+    display: none;
+}
+
+/* Header: one picker per slot, each half the width so it reads as that pane's
+   title rather than as a toolbar. */
+.sv-dock-head {
+    position: relative;
+    flex: 0 0 var(--sv-dock-tabs-h);
+    display: flex;
+    align-items: center;
+    background: var(--sv-surface-2);
+    border-bottom: 1px solid var(--sv-border);
+}
+
+/* Each picker is exactly half the head's width so its divider lines up with
+   the pane divider below -- the actions strip is pulled out of flow (see
+   .sv-dock-actions) so it cannot skew that 50/50 split. */
+.sv-slot-picker {
+    flex: 1 1 50%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+}
+
+.sv-slot-picker + .sv-slot-picker {
+    border-left: 1px solid var(--sv-border);
+    padding-right: 86px;
+}
+
+.sv-slot-picker .input-group {
+    max-width: 330px;
+}
+
+.sv-dock-actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+    padding: 0 6px;
+    background: var(--sv-surface-2);
+    border-left: 1px solid var(--sv-border);
+}
+
+/* Two slots, filled by the gate in app.py. Every pane lives here permanently --
+   ids are unique, so a pane cannot move -- and `order` puts the two chosen ones
+   in the order they were picked regardless of their position in the markup. */
+.sv-dock-grid {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.sv-dock-pane {
+    display: none;
+    flex: 1 1 50%;
+    min-width: 0;
+}
+
+.sv-dock-pane.sv-slot-a,
+.sv-dock-pane.sv-slot-b {
+    display: block;
+}
+
+.sv-dock-pane.sv-slot-a {
+    order: 1;
+}
+
+/* An empty slot leaves its partner as the only flex item, which then takes the
+   whole dock -- that is how a single view goes full width. */
+.sv-dock-pane.sv-slot-b {
+    order: 2;
+}
+
+/* The divider belongs to the pair, not to slot B: hidden siblings still count
+   as children, so `:only-child` cannot tell a lone pane from a paired one. The
+   gate marks the pairing instead. */
+.sv-dock-pane.sv-slot-paired {
+    border-left: 1px solid var(--sv-border);
+}
+
+/* Each pane is a control strip over a graph that takes the rest. */
+.sv-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding: 8px 12px 10px;
+}
+
+.sv-pane-controls {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.sv-pane-controls .input-group {
+    width: auto;
+    flex: 0 1 auto;
+}
+
+/* Panes are half-width by default now, so the strip has to fit the busiest one
+   (the 2D scatters: four selects, a scope toggle, three buttons) in ~800px on a
+   single row -- a second row would cost a fifth of the plot's height. The basis
+   is sized for that case and grows into a wider dock, capped so a full-width
+   slot does not stretch a column name across 300px. */
+.sv-pane-controls .sv-grow {
+    flex: 1 1 128px;
+    min-width: 104px;
+    max-width: 260px;
+}
+
+/* dcc.Loading wraps the plot, and the collapse that gates it sits between the
+   two, so the height has to be handed down the whole chain. */
+.sv-pane-plot {
+    flex: 1 1 auto;
+    min-height: 0;
+    position: relative;
+}
+
+.sv-pane-plot > div,
+.sv-pane-plot .collapse.show,
+.sv-pane-plot .dash-graph,
+.sv-pane-plot .js-plotly-plot,
+.sv-pane-plot .plot-container {
+    height: 100% !important;
+    width: 100% !important;
+    /* Same clipping as the stage: the dock splitter shrinks the pane a frame
+       before Plotly catches up. */
+    overflow: hidden !important;
+}
+
+/* A pane whose view is switched off shows why, instead of an empty rectangle. */
+.sv-pane-idle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 100%;
+    color: var(--sv-text-faint);
+    font-size: var(--sv-font-sm);
+}
+
+.sv-pane-idle .bi {
+    font-size: 1.6rem;
+    opacity: 0.5;
+}
+
+/* ── Control density ─────────────────────────────────────────────────────
+   dbc defaults are sized for forms; these are instrument controls used dozens
+   of times a session, so they are tightened globally rather than per call. */
+.sv-shell .input-group-sm > .input-group-text,
+.sv-shell .input-group-sm > .form-select,
+.sv-shell .input-group-sm > .form-control {
+    font-size: var(--sv-font-xs);
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+.sv-shell .input-group-text {
+    background: var(--sv-surface-3);
+    border-color: var(--sv-border);
+    color: var(--sv-text-dim);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.sv-shell .form-select,
+.sv-shell .form-control {
+    background-color: var(--sv-surface-2);
+    border-color: var(--sv-border);
+    color: var(--sv-text);
+}
+
+.sv-shell .form-select:focus,
+.sv-shell .form-control:focus {
+    border-color: var(--sv-accent);
+    box-shadow: 0 0 0 2px var(--sv-accent-soft);
+    background-color: var(--sv-surface-2);
+    color: var(--sv-text);
+}
+
+.sv-shell .form-check-input:checked {
+    background-color: var(--sv-accent);
+    border-color: var(--sv-accent);
+}
+
+.sv-shell .form-switch .form-check-input {
+    background-color: var(--sv-surface-3);
+    border-color: var(--sv-border-strong);
+}
+
+.sv-shell .form-switch .form-check-input:checked {
+    background-color: var(--sv-accent);
+}
+
+.sv-shell .form-check-label {
+    font-size: var(--sv-font-sm);
+    color: var(--sv-text);
+}
+
+/* React-Select (dcc.Dropdown) does not read Bootstrap variables. */
+.sv-shell .Select-control,
+.sv-shell .select-control,
+.sv-shell .Select__control {
+    background: var(--sv-surface-2);
+    border-color: var(--sv-border);
+    min-height: 30px;
+}
+
+.sv-shell .rc-slider-rail {
+    background: var(--sv-surface-3);
+}
+
+.sv-shell .rc-slider-track {
+    background: var(--sv-accent);
+}
+
+.sv-shell .rc-slider-handle {
+    border-color: var(--sv-accent);
+    background: var(--sv-surface);
+    opacity: 1;
+}
+
+.sv-shell .rc-slider-handle:hover,
+.sv-shell .rc-slider-handle-dragging {
+    border-color: var(--sv-accent);
+    box-shadow: 0 0 0 4px var(--sv-accent-soft) !important;
+}
+
+/* RangeSlider direct-entry boxes. */
+.dash-range-slider-input,
+.dash-range-slider-min-input,
+.dash-range-slider-max-input {
+    width: 52px !important;
+    font-size: var(--sv-font-xs) !important;
+    padding: 2px 4px !important;
+    height: 24px !important;
+}
+
+.sv-shell .dropdown-menu {
+    background: var(--sv-surface);
+    border-color: var(--sv-border);
+    box-shadow: var(--sv-shadow);
+    font-size: var(--sv-font-sm);
+}
+
+.sv-shell .dropdown-item {
+    color: var(--sv-text);
+}
+
+.sv-shell .dropdown-item:hover,
+.sv-shell .dropdown-item:focus {
+    background: var(--sv-surface-3);
+    color: var(--sv-text);
+}
+
+.tooltip-inner {
+    font-size: var(--sv-font-xs);
+    background: var(--sv-surface-3);
+    color: var(--sv-text);
+    border: 1px solid var(--sv-border);
+}
+
+.tooltip .tooltip-arrow::before {
+    display: none;
+}
+
+/* ── Modal ───────────────────────────────────────────────────────────── */
+.modal-content {
+    background: var(--sv-surface);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    box-shadow: var(--sv-shadow);
+}
+
+.modal-header,
+.modal-footer {
+    border-color: var(--sv-border);
+}
+
+.sv-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 1rem;
+    font-weight: 650;
+}
+
+/* ── Loading overlay ─────────────────────────────────────────────────── */
+#loading-view {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: color-mix(in srgb, var(--sv-bg) 82%, transparent);
+    backdrop-filter: blur(3px);
+}
+
+.sv-loading-label {
+    font-size: var(--sv-font-sm);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sv-text-dim);
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--sv-border-strong);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--sv-text-faint);
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sv-border-strong) transparent;
+}
+
+/* Suppress hover/selection noise while a splitter is being dragged, and keep
+   the drag cursor even when the pointer outruns the handle. The collapse
+   animation on the side panels would lag every frame of a drag, so it is off
+   for the duration. */
+.sv-resizing,
+.sv-resizing * {
+    user-select: none !important;
+}
+
+.sv-resizing-row,
+.sv-resizing-row * {
+    cursor: row-resize !important;
+}
+
+.sv-resizing-col,
+.sv-resizing-col * {
+    cursor: col-resize !important;
+}
+
+/* Same reasoning while the window itself is being resized: the fit measures
+   what the panels occupy, and an animating width measures as whatever frame it
+   happens to be on. */
+.sv-resizing .sv-rail,
+.sv-resizing .sv-inspector,
+.sv-fitting .sv-rail,
+.sv-fitting .sv-inspector {
+    transition: none;
+}
+
+/* Dash's own loading spinner overlay should not paint a white box on dark. */
+.dash-spinner,
+._dash-loading-callback {
+    color: var(--sv-accent);
+}

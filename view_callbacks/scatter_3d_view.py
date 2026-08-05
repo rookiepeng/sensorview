@@ -32,6 +32,8 @@ from utils import filter_all
 from utils import cache_set, cache_get
 from utils import load_data
 
+from frame_sources import cache_manifest, get_manifest
+
 from process_frame import process_overlay_frame
 from process_frame import process_single_frame
 
@@ -84,47 +86,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         return {"is_open": not is_open}
 
-    @app.callback(
-        output={
-            "sidebar_style": Output("filter-sidebar-col", "style"),
-        },
-        inputs={
-            "n_clicks": Input("toggle-sidebar-button", "n_clicks"),
-        },
-        state={
-            "sidebar_style": State("filter-sidebar-col", "style"),
-        },
-    )
-    def toggle_sidebar(n_clicks: int, sidebar_style: dict) -> dict:
-        """
-        Toggle the visibility of the filter sidebar and adjust the main view width.
-        """
-        if n_clicks == 0:
-            raise PreventUpdate
-
-        if (sidebar_style or {}).get("width", "280px") == "0":
-            # Show sidebar
-            new_style = {
-                "width": "25%",
-                "flexShrink": 0,
-                "alignSelf": "flex-start",
-                "overflowY": "auto",
-                "overflowX": "hidden",
-                "maxHeight": "100vh",
-                "transition": "width 0.35s ease, opacity 0.35s ease",
-                "opacity": 1,
-            }
-        else:
-            # Hide sidebar
-            new_style = {
-                "width": "0",
-                "flexShrink": 0,
-                "overflow": "hidden",
-                "maxHeight": "0",
-                "transition": "width 0.35s ease, opacity 0.35s ease, max-height 0.35s ease",
-                "opacity": 0,
-            }
-        return {"sidebar_style": new_style}
+    # Collapsing the filter rail is handled clientside (assets/workbench.js).
+    # It changes nothing the server knows about, so a round trip per click would
+    # only add latency to a purely visual change.
 
     @app.callback(
         output={
@@ -579,11 +543,16 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         config["y_ref"] = y_ref_picker_3d
         config["z_ref"] = z_ref_picker_3d
         cache_set(config, session_id, CACHE_KEYS["config"])
-        # save the config to os.path.join(data_path, case, "info.json"
-        with open(
-            os.path.join(data_path, case, "info.json"), "w", encoding="utf-8"
-        ) as f:
-            json.dump(config, f, indent=4)
+
+        # Persist the axis selections back to the dataset. This goes through the
+        # manifest rather than dumping `config` straight over info.json: config
+        # is only the flat radar projection, so writing it verbatim would wipe
+        # the cloud / curve / image blocks of a v2 manifest.
+        manifest = get_manifest(session_id)
+        if manifest is not None:
+            manifest.update_table_view(config)
+            manifest.save()
+            cache_manifest(manifest, session_id)
 
         if overlay_enable:
             fig = process_overlay_frame(
