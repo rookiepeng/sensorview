@@ -2,10 +2,12 @@
 
 <img src="./assets/sensorview_logo.svg" alt="logo" width="200"/>
 
-A Flask/Dash workbench for exploring multi-sensor logs. A 3D point cloud, the
-camera frame and 1D curves that go with it, and six statistical views — all
-describing the same instant, all driven by one frame slider and one set of
-filters.
+A Flask/Dash workbench for exploring multi-sensor logs. Its core purpose is
+data analysis across three axes: **filtering** the frame table down to the
+data that matters, **multi-dimensional inspection** of the same instant
+through a 3D point cloud, camera frame, and 1D curves side by side, and
+**statistical analysis** via six linked views — all driven by one frame
+slider and one set of filters.
 
 ## Screenshots
 
