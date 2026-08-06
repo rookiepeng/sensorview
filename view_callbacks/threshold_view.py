@@ -26,6 +26,8 @@ from dash.exceptions import PreventUpdate
 from app_config import CACHE_KEYS
 
 from frame_sources import (
+    get_frame_positions,
+    get_frame_stem,
     get_log_stem,
     get_manifest,
     get_curve_figure,
@@ -180,16 +182,21 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
         if frame_idx is None or frame_idx >= len(frame_list):
             raise PreventUpdate
 
-        stem = get_log_stem(session_id)
+        # Curves belong to the log that recorded this frame, which with logs
+        # combined is not necessarily the primary one.
+        stem = get_frame_stem(session_id, frame_idx)
 
         # Held constant across frames so the signal's position relative to its
-        # threshold stays readable while scrubbing.
+        # threshold stays readable while scrubbing. Sampled only from the frames
+        # this log owns -- the other logs' ids are not in its sidecar, and
+        # spending the sample budget on frames that read back empty would leave
+        # the range estimated from a handful of the log's own.
         y_range = get_curve_y_range(
             manifest,
             stem,
             plot_id,
             session_id,
-            frame_ids=frame_list,
+            frame_ids=[frame_list[idx] for idx in get_frame_positions(session_id, stem)],
             source_id=source_id,
         )
 

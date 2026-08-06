@@ -511,8 +511,8 @@ serve(app.server, listen="*:8000")
 - **Flask/Dash Server**: main application server with REST API endpoints
 - **REST API**: `/api/data/<session>/<start_index>` streams buffered frame data
   to the client, `/api/cloud/<session>/<frame>` serves the decimated backdrop,
-  and `/api/camera/<session>/<stream>` serves (and, if needed, transcodes) a
-  log's video
+  and `/api/camera/<session>/<log>/<stream>` serves (and, if needed, transcodes)
+  one log's video
 - **Background Callbacks**: 3D frames are pre-computed off the request thread
   through a `diskcache` job manager, with cooperative cancellation when a newer
   request supersedes an in-flight one
