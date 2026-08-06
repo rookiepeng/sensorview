@@ -40,34 +40,32 @@ from visible — which is the point, since all of them describe the same frame.
 | **Analysis dock** | Two slots, each showing any one of the six statistical views |
 
 The rail, inspector, and dock each have a splitter on their inner edge; whatever
-they give up, the canvas takes. All of it — collapse, drag, theme — runs
-clientside (`assets/workbench.js`), because none of it is anything the server
-knows about.
+they give up, the canvas takes. Collapse, drag, and theme all run clientside
+(`assets/workbench.js`) — none of it is anything the server knows about.
 
 ### 3D Canvas
 
 Interactive 3D scatter with color mapping, a decay slider that fades previous
 frames in behind the current one, and an overlay mode that draws every frame at
-once. View settings float over the plot rather than docking above it: they are
-touched a handful of times a session and would otherwise cost their height on
-every frame. Axis and reference-column mapping live behind the sliders button.
+once. View settings float over the plot instead of docking above it, since
+they're touched only a few times a session. Axis and reference-column mapping
+live behind the sliders button.
 
 ### Filter Rail
 
 Filters are generated per column from the manifest — a range slider for each
 numerical key, a multi-select for each categorical one. Every view reads the
 same filtered table, so a filter change moves all of them together. Points can
-be relabelled *hidden* by clicking them on the plot or lassoing them in a 2D
-view, then filtered on that label.
+be relabelled *hidden* by clicking or lassoing them, then filtered on that
+label.
 
 ### Inspector
 
-The camera stream and the curve plot for the current frame, docked on the right
-rather than floating over the canvas they accompany. Each section has its own
-minimize toggle and restores from a chip in the panel bar; the curve section
-grows into whatever height the image gives up. The inspector hides itself
-entirely when a log has neither sidecar, and each section hides independently,
-so the canvas reclaims the full width.
+The camera stream and curve plot for the current frame, docked on the right.
+Each section has its own minimize toggle and restores from a chip in the panel
+bar; the curve section grows into whatever height the image gives up. Sections
+hide independently, and the whole inspector hides when a log has neither
+sidecar, so the canvas reclaims the width.
 
 ### Analysis Dock
 
@@ -82,17 +80,16 @@ header. Each slot shows one of six views:
 - **Parallel Categories** — categorical relationships
 - **Heatmap** — 2D density
 
-Slot assignment *is* the enable switch. These figures are expensive, so a view
-in a slot is live, everything else is idle, and a collapsed dock computes
-nothing at all.
+Slot assignment is the enable switch: a view in a slot is live, everything else
+is idle, and a collapsed dock computes nothing.
 
 ### Transport and Buffering
 
-The frame slider is the single source of truth for time: the video element never
-plays on its own, it is seeked to the frame the rest of the app is showing.
-Playback runs the same path. Server-side and browser-side buffering progress
-ride as two hairlines on the transport's top edge — visible when looked for,
-costing no extra height either way.
+The frame slider is the single source of truth for time: the video element
+never plays on its own, it's seeked to whatever frame the rest of the app
+shows, and playback runs the same path. Server- and browser-side buffering
+progress ride as two hairlines on the transport's top edge, visible when
+looked for.
 
 ### Other
 
@@ -123,36 +120,31 @@ a single **frame id**:
 
 The reasoning behind the split:
 
-- **The table is the only queried dataset**, so it stays columnar. Parquet gives
+- **The table is the only queried dataset**, so it stays columnar: Parquet gives
   compression plus projection/predicate pushdown, and MATLAB reads it natively
-  via `parquetread`/`parquetwrite` (Feather/Arrow IPC has no such support).
-- **The cloud and curves are display-only** frame-indexed blobs. Nobody
-  queries them by column, so Parquet's columnar machinery would be pure
-  overhead; a chunked HDF5 dataset per frame reads as one contiguous block and
-  is equally native in MATLAB (`h5read`).
-- **Cloud decimation happens before the data gets here.** Since the backdrop has
-  no runtime controls, the sidecar is expected to hold display-ready points and
-  no full-resolution data is kept on the read path.
-- **Images are seeked client-side.** A native `<video>` element does the decoding
-  and the frame slider drives `currentTime`, so scrubbing costs no server round
-  trip. Video is encoded all-intra because browsers can only seek to keyframes.
-  A recording in a container no browser plays — a vendor `.avi` off a logger —
-  is transcoded to that same all-intra mp4 on first request and cached under
-  `cache/video`, keyed on the source's size and mtime. The case folder is never
-  written to.
-- **The reference pose is per frame, not per detection.** Carrying six more
-  columns on every one of a log's 300k rows to say where one vehicle was in 400
-  frames is a waste, and table columns cannot express orientation at all.
+  (`parquetread`/`parquetwrite`).
+- **Cloud and curves are display-only**, frame-indexed blobs — nobody queries
+  them by column, so a chunked HDF5 dataset per frame (equally native in
+  MATLAB via `h5read`) beats Parquet's columnar overhead.
+- **Clouds arrive pre-decimated**; the backdrop has no runtime controls, so no
+  full-resolution data is kept on the read path.
+- **Images are seeked client-side** via a native `<video>` element and
+  `currentTime`, so scrubbing costs no server round trip. All-intra encoding
+  lets the browser seek to any frame; a container it can't play (a vendor
+  `.avi` off a logger) is transcoded once, on first request, and cached under
+  `cache/video`.
+- **Reference pose is per frame, not per detection** — six extra columns on
+  every one of a log's 300k rows to say where one vehicle was would be
+  wasteful, and table columns can't express orientation anyway.
 
 Because the display-only views never depend on filter state, dragging a filter
 slider re-renders the table alone — it never re-reads the cloud, curves, pose, or
 video.
 
-**SensorView reads these files; it does not write them.** There is no ingest
-command: producing the layout is the job of whatever exports the data. What
-follows is the complete specification of what to produce, and
-`data/NuScenes/build_nuscenes_case.py` is a working converter that produces all
-of it from a real dataset.
+**SensorView reads these files; it does not write them.** Producing the layout
+is the job of whatever exports the data — what follows is the complete
+specification, and `data/NuScenes/build_nuscenes_case.py` is a working
+converter for a real dataset.
 
 ---
 
