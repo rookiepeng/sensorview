@@ -37,9 +37,10 @@ from utils import load_image
 from utils import prepare_figure_kwargs
 
 from frame_sources import (
-    get_log_stem,
+    get_combined_reference_bounds,
+    get_frame_stem,
+    get_log_stems,
     get_manifest,
-    get_reference_bounds,
     get_reference_pose,
 )
 
@@ -161,7 +162,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             use_cached_frames = True
 
         manifest = get_manifest(session_id)
-        stem = get_log_stem(session_id)
 
         # prepare figure key word arguments
         fig_kwargs = prepare_figure_kwargs(
@@ -171,15 +171,16 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             c_key,
             False,
             frame_list,
-            ref_bounds=get_reference_bounds(manifest, stem),
+            # Axis ranges are fixed for the whole buffer, so they have to cover
+            # every combined log's reference rather than just the primary one's.
+            ref_bounds=get_combined_reference_bounds(
+                manifest, get_log_stems(session_id)
+            ),
         )
 
         # Move loop-invariant operations outside the loop
         file_dict = json.loads(file_list[0])
-        img_dir = os.path.join(
-            file_dict["path"],
-            file_dict["name"][0:-4],
-        )
+        img_root = file_dict["path"]
 
         # Pre-compute base layout (only image changes per frame)
         fig_kwargs["image"] = None
@@ -200,8 +201,13 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                 )
                 return {"dummy": 0}
 
+            # Sidecars belong to the log that recorded this frame, which with
+            # logs combined is not necessarily the primary one.
+            stem = get_frame_stem(session_id, slider_arg)
+
             img_path = os.path.join(
-                img_dir,
+                img_root,
+                stem or file_dict["name"][0:-4],
                 str(frame_list[slider_arg]) + ".jpg",
             )
 
@@ -396,7 +402,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         export_manifest = get_manifest(session_id)
-        export_stem = get_log_stem(session_id)
+        export_stems = get_log_stems(session_id)
 
         fig_kwargs = prepare_figure_kwargs(
             config,
@@ -405,15 +411,17 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             c_key,
             bool(size_vary),
             frame_list,
-            ref_bounds=get_reference_bounds(export_manifest, export_stem),
+            ref_bounds=get_combined_reference_bounds(export_manifest, export_stems),
         )
 
         if fig_kwargs.get("ref_from_sidecar"):
             # The export is a standalone HTML file with every frame baked in, so
             # the poses have to travel with it rather than be looked up per frame.
             fig_kwargs["ref_poses"] = {
-                frame_id: get_reference_pose(export_manifest, export_stem, frame_id)
-                for frame_id in frame_list
+                frame_id: get_reference_pose(
+                    export_manifest, get_frame_stem(session_id, slider_arg), frame_id
+                )
+                for slider_arg, frame_id in enumerate(frame_list)
             }
 
         if darkmode:
@@ -440,10 +448,12 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         img_list = []
 
         file_dict = json.loads(file_list[0])
-        for _, f_val in enumerate(frame_list):
+        for slider_arg, f_val in enumerate(frame_list):
             img_list.append(
                 os.path.join(
-                    file_dict["path"], file_dict["name"][0:-4], str(f_val) + ".jpg"
+                    file_dict["path"],
+                    get_frame_stem(session_id, slider_arg) or file_dict["name"][0:-4],
+                    str(f_val) + ".jpg",
                 )
             )
 

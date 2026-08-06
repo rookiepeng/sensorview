@@ -8,10 +8,13 @@ changes; the cloud, curves, images, and reference pose are display-only and only
 ever change when the frame changes. Dragging a filter slider therefore never
 touches the cloud or curve path.
 
-Sidecars resolve from the *current log's stem*, cached per session alongside the
-frame index derived from that log's Parquet. When several logs are overlaid, the
-primary selected log owns the backdrop, maps, and video -- those are per-log
-data with no meaningful way to merge.
+Sidecars resolve from the *stem of the log a frame came from*, cached per
+session alongside the frame index derived from the loaded Parquet. Combining
+logs concatenates their rows, so the slider walks one log's frames and then the
+next; resolving every frame against the primary log's stem would leave the whole
+second half with no cloud, no pose, no curves, and the wrong video. The primary
+log still owns anything that is not per-frame -- which streams and curve sources
+the pickers offer -- because those are chosen once per load.
 
 Cloud frames are deliberately *not* copied into the session cache: the chunked
 HDF5 sidecar is already a frame-indexed cache, and duplicating decimated points
@@ -94,20 +97,32 @@ def get_manifest(session_id: str) -> Optional[Manifest]:
     )
 
 
-def cache_log_info(session_id: str, stem: str, timestamps: List[float]) -> None:
+def cache_log_info(
+    session_id: str,
+    stem: str,
+    timestamps: List[float],
+    frame_stems: Optional[List[str]] = None,
+) -> None:
     """
-    Store the current log's identity and derived frame index.
+    Store the loaded logs' identity and derived frame index.
 
     The capture rate is deliberately not kept: nothing reads it now that the
     camera seek maps frame counts rather than working in seconds.
 
     Args:
         session_id: Session identifier.
-        stem: Log stem that sidecars are keyed on.
+        stem: Primary log's stem -- the one that owns per-load choices.
         timestamps: Per-frame timestamps derived from the Parquet data.
+        frame_stems: Owning log stem per slider position, aligned index-wise
+            with the frame list. Defaults to the primary stem throughout, which
+            is what a single loaded log means.
     """
     cache_set(
-        {"stem": stem, "timestamps": timestamps},
+        {
+            "stem": stem,
+            "timestamps": timestamps,
+            "frame_stems": list(frame_stems) if frame_stems else [],
+        },
         session_id,
         CACHE_KEYS["log_info"],
     )
@@ -115,24 +130,25 @@ def cache_log_info(session_id: str, stem: str, timestamps: List[float]) -> None:
 
 def get_log_info(session_id: str) -> Dict[str, Any]:
     """
-    Retrieve the current log's identity and derived frame index.
+    Retrieve the loaded logs' identity and derived frame index.
 
     Args:
         session_id: Session identifier.
 
     Returns:
-        Dict with ``stem`` and ``timestamps``; empty values when nothing is
-        cached yet.
+        Dict with ``stem``, ``timestamps``, and ``frame_stems``; empty values
+        when nothing is cached yet.
     """
     cached = cache_get(session_id, CACHE_KEYS["log_info"])
     if not cached:
-        return {"stem": "", "timestamps": []}
+        return {"stem": "", "timestamps": [], "frame_stems": []}
+    cached.setdefault("frame_stems", [])
     return cached
 
 
 def get_log_stem(session_id: str) -> str:
     """
-    Retrieve the current log's stem.
+    Retrieve the primary log's stem.
 
     Args:
         session_id: Session identifier.
@@ -141,6 +157,63 @@ def get_log_stem(session_id: str) -> str:
         Log stem, or an empty string when nothing is cached yet.
     """
     return get_log_info(session_id).get("stem", "")
+
+
+def get_frame_stem(session_id: str, frame_idx: int) -> str:
+    """
+    Retrieve the stem of the log one slider position belongs to.
+
+    Args:
+        session_id: Session identifier.
+        frame_idx: Slider position (an index into the frame list, not a frame
+            id).
+
+    Returns:
+        The owning log's stem, falling back to the primary log's when no
+        per-frame mapping is cached -- which is the single-log case.
+    """
+    info = get_log_info(session_id)
+    frame_stems = info.get("frame_stems") or []
+    if frame_idx is not None and 0 <= frame_idx < len(frame_stems):
+        return frame_stems[frame_idx]
+    return info.get("stem", "")
+
+
+def get_log_stems(session_id: str) -> List[str]:
+    """
+    List every loaded log's stem, in slider order.
+
+    Args:
+        session_id: Session identifier.
+
+    Returns:
+        De-duplicated stems, the primary log's first when nothing is combined.
+    """
+    info = get_log_info(session_id)
+    stems: List[str] = []
+    for stem in list(info.get("frame_stems") or []) + [info.get("stem", "")]:
+        if stem and stem not in stems:
+            stems.append(stem)
+    return stems
+
+
+def get_frame_positions(session_id: str, stem: str) -> List[int]:
+    """
+    List the slider positions one log owns.
+
+    Args:
+        session_id: Session identifier.
+        stem: Log stem.
+
+    Returns:
+        Slider positions in ascending order. When no per-frame mapping is
+        cached the log owns every position, so the whole range is returned.
+    """
+    frame_stems = get_log_info(session_id).get("frame_stems") or []
+    if not frame_stems:
+        frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+        return list(range(len(frame_list))) if frame_list is not None else []
+    return [idx for idx, owner in enumerate(frame_stems) if owner == stem]
 
 
 def get_cloud_points(
@@ -310,6 +383,40 @@ def get_reference_bounds(
     if store is None:
         return None
     return store.bounds()
+
+
+def get_combined_reference_bounds(
+    manifest: Optional[Manifest], stems: List[str]
+) -> Optional[Dict[str, Any]]:
+    """
+    Position extent of the reference across every loaded log.
+
+    The 3D scene's axis ranges are fixed once for the whole session, so with
+    logs combined they have to cover wherever *any* of the references travels
+    or the second log's reference is clipped the moment the slider reaches it.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stems: Log stems in play.
+
+    Returns:
+        ``{"x": (min, max), "y": ..., "z": ...}`` spanning every log's sidecar,
+        or None when no log has one.
+    """
+    merged: Dict[str, Any] = {}
+    for stem in stems:
+        bounds = get_reference_bounds(manifest, stem)
+        if bounds is None:
+            continue
+        for axis, extent in bounds.items():
+            if not extent:
+                continue
+            if axis not in merged:
+                merged[axis] = tuple(extent)
+            else:
+                low, high = merged[axis]
+                merged[axis] = (min(low, extent[0]), max(high, extent[1]))
+    return merged or None
 
 
 def playable_image_file(source: str) -> Optional[str]:

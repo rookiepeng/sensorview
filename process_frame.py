@@ -25,9 +25,10 @@ from utils import prepare_figure_kwargs
 
 from frame_sources import (
     get_cloud_trace,
-    get_log_stem,
+    get_combined_reference_bounds,
+    get_frame_stem,
+    get_log_stems,
     get_manifest,
-    get_reference_bounds,
     get_reference_pose,
 )
 
@@ -95,7 +96,9 @@ def process_single_frame(
         frame_list = []
 
     manifest = get_manifest(session_id)
-    stem = get_log_stem(session_id)
+    # Sidecars belong to the log that recorded this frame, which with logs
+    # combined is not necessarily the primary one.
+    stem = get_frame_stem(session_id, frame_idx)
 
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
@@ -106,7 +109,9 @@ def process_single_frame(
         bool(size_vary),
         frame_list,
         frame_idx,
-        ref_bounds=get_reference_bounds(manifest, stem),
+        # Axis ranges are fixed for the whole session, so they have to cover
+        # every combined log's reference rather than just this frame's.
+        ref_bounds=get_combined_reference_bounds(manifest, get_log_stems(session_id)),
     )
 
     # Logs with an mp4 camera stream render it in the camera card, seeked
@@ -117,7 +122,7 @@ def process_single_frame(
         file_dict = json.loads(file)
         img_path = os.path.join(
             file_dict["path"],
-            file_dict["name"][0:-4],
+            stem or file_dict["name"][0:-4],
             str(frame_list[frame_idx]) + ".jpg",
         )
         fig_kwargs["image"] = load_image(img_path)
@@ -298,8 +303,8 @@ def process_overlay_frame(
         bool(size_vary),
         frame_list,
         frame_idx,
-        ref_bounds=get_reference_bounds(
-            get_manifest(session_id), get_log_stem(session_id)
+        ref_bounds=get_combined_reference_bounds(
+            get_manifest(session_id), get_log_stems(session_id)
         ),
     )
 

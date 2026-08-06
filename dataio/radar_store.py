@@ -79,6 +79,48 @@ def resolve_paths(
     return paths
 
 
+def frame_ids_by_file(
+    file_list: Optional[Iterable[FileSpec]],
+    file: Optional[FileSpec] = None,
+    frame_key: str = "Frame",
+) -> List[tuple]:
+    """
+    List each selected file's own frame ids, without loading the tables.
+
+    Combining logs concatenates their rows, which loses track of which log a
+    given frame came from -- and every sidecar (cloud, curves, video, pose) is
+    keyed on its log's stem, so that has to be recoverable. Only the frame
+    column is read, so this stays cheap even when several logs are in play.
+
+    Args:
+        file_list: Additional selected files (may be None or empty).
+        file: Primary selected file, appended when not already present.
+        frame_key: Frame column name.
+
+    Returns:
+        List of ``(path, frame_ids)`` in :func:`resolve_paths` order, so the
+        primary log comes last. A file without the frame column contributes an
+        empty list rather than raising -- it simply owns no frames.
+    """
+    owners: List[tuple] = []
+    for path in resolve_paths(file_list, file):
+        try:
+            if path.lower().endswith(".parquet"):
+                ids = (
+                    pl.scan_parquet(path)
+                    .select(pl.col(frame_key).unique())
+                    .collect()
+                    .to_series()
+                )
+            else:
+                ids = _read_one(path)[frame_key].unique()
+        except (pl.exceptions.PolarsError, KeyError, ValueError, OSError):
+            owners.append((path, []))
+            continue
+        owners.append((path, ids.to_list()))
+    return owners
+
+
 def _scalarize_list_columns(frame: pl.DataFrame) -> pl.DataFrame:
     """
     Collapse Parquet list columns down to plain scalar columns.

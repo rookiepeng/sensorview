@@ -39,6 +39,7 @@ from app_config import CACHE_KEYS, KEY_TYPES, THEME
 
 from dataio.frames import build_frame_index
 from dataio.manifest import Manifest, ManifestError
+from dataio.radar_store import frame_ids_by_file
 
 from frame_sources import cache_log_info, cache_manifest, get_reference_mapping
 
@@ -234,12 +235,43 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
 
         return new_dropdown, new_slider, cat_values, num_values
 
+    def _frame_owners(
+        manifest: Manifest, add_file_value: list, file: str
+    ) -> dict[str, str]:
+        """
+        Map each frame id to the stem of the log that recorded it.
+
+        Combining logs concatenates their rows, so a frame id is the only thing
+        left tying a slider position back to the log whose sidecars hold its
+        cloud, pose, curves, and video. The primary log is resolved last and so
+        wins any id two logs happen to share.
+
+        Args:
+            manifest: Dataset manifest.
+            add_file_value: Additional combined files, as the picker emits them.
+            file: Primary selected file.
+
+        Returns:
+            ``{str(frame_id): stem}``. Keyed on the string form because the ids
+            come back from Polars as Python scalars but are compared against
+            NumPy ones derived from the loaded table.
+        """
+        owners: dict[str, str] = {}
+        for path, frame_ids in frame_ids_by_file(
+            add_file_value, file, manifest.frame_key
+        ):
+            stem = manifest.stem_of(os.path.basename(path))
+            for frame_id in frame_ids:
+                owners[str(frame_id)] = stem
+        return owners
+
     def _setup_data_cache(
         data: pd.DataFrame,
         config: dict,
         session_id: str,
         stem: str,
         time_scale: float = 1.0,
+        frame_owners: dict[str, str] | None = None,
     ) -> np.ndarray:
         """Setup data caching for frames and visibility."""
         # The frame index is derived from the data itself, never declared in the
@@ -249,7 +281,12 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             data, config["slider"], time_scale=time_scale
         )
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
-        cache_log_info(session_id, stem, timestamps)
+        # Which log each slider position belongs to, so per-frame sidecars
+        # resolve against the log that actually recorded that frame.
+        frame_stems = [
+            (frame_owners or {}).get(str(frame_id), stem) for frame_id in frame_list
+        ]
+        cache_log_info(session_id, stem, timestamps, frame_stems)
 
         # Create and cache visibility table
         visible_table = pd.DataFrame({"_IDS_": data.index, "_VIS_": "visible"})
@@ -402,11 +439,18 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         cat_keys = [key for key in cat_keys if key in new_data.columns]
         all_keys = num_keys + cat_keys
 
-        # Sidecars are keyed on the primary log's basename. With several logs
-        # overlaid, the primary one owns the backdrop, maps, and video.
+        # Sidecars are keyed on a log's basename. The primary log owns the
+        # per-load choices -- which streams and curve sources the pickers offer
+        # -- while per-frame data resolves against whichever log recorded that
+        # frame, so combining logs keeps each one's cloud, pose, and curves.
         stem = manifest.stem_of(json.loads(file)["name"])
         frame_list = _setup_data_cache(
-            new_data, config, session_id, stem, manifest.time_scale
+            new_data,
+            config,
+            session_id,
+            stem,
+            manifest.time_scale,
+            _frame_owners(manifest, add_file_value, file),
         )
 
         # Create filter components

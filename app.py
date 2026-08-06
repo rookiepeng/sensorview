@@ -47,7 +47,8 @@ from view_callbacks.camera_view import get_camera_view_callbacks
 from view_callbacks.threshold_view import get_threshold_view_callbacks
 
 from frame_sources import (
-    get_log_stem,
+    get_frame_stem,
+    get_log_stems,
     get_manifest,
     get_cloud_trace,
     playable_image_file,
@@ -148,7 +149,9 @@ def get_cloud_frame(session: str, frame_idx: int) -> Response:
     empty = Response(orjson.dumps({"trace": None}), mimetype="application/json")
 
     manifest = get_manifest(session)
-    stem = get_log_stem(session)
+    # With logs combined the backdrop comes from whichever log recorded this
+    # frame, so the stem is resolved per frame rather than per session.
+    stem = get_frame_stem(session, frame_idx)
     if manifest is None or not stem or not manifest.has_cloud(stem):
         return empty
 
@@ -166,16 +169,23 @@ def get_cloud_frame(session: str, frame_idx: int) -> Response:
     )
 
 
-@app.server.route("/api/camera/<session>/<stream_id>", methods=["GET"])
-def get_camera_stream(session: str, stream_id: str):
+@app.server.route("/api/camera/<session>/<stem>/<stream_id>", methods=["GET"])
+def get_camera_stream(session: str, stem: str, stream_id: str):
     """
     Serve a camera mp4 for the browser's video element.
 
-    The file path comes from the session's manifest, never from the URL, so a
-    caller cannot walk outside the dataset directory by crafting ``stream_id``.
+    Each combined log has its own recording, so which one is served is part of
+    the URL -- the video element swaps source as the slider crosses from one
+    log into the next.
+
+    The file path still comes from the session's manifest, never from the URL:
+    ``stem`` only selects among the logs this session actually loaded, and
+    ``stream_id`` among the streams found beside that log, so neither can walk
+    outside the dataset directory.
 
     Args:
         session: Session identifier used to look up the manifest.
+        stem: Log stem, which must be one of the session's loaded logs.
         stream_id: Camera stream identifier declared in the manifest.
 
     Returns:
@@ -188,8 +198,7 @@ def get_camera_stream(session: str, stream_id: str):
         seconds once per log.
     """
     manifest = get_manifest(session)
-    stem = get_log_stem(session)
-    if manifest is None or not stem:
+    if manifest is None or stem not in get_log_stems(session):
         abort(404)
 
     stream = next(
