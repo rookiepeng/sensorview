@@ -96,6 +96,32 @@ def load_image(img_path: str) -> Optional[str]:
     return img
 
 
+def clamp_frame_index(
+    frame_list: Union[List[float], "np.ndarray"], slider_arg: Optional[int]
+) -> Optional[int]:
+    """
+    Bring a slider position inside the current frame list.
+
+    Loading a dataset replaces the frame list and resets the slider, but those
+    are two separate callbacks firing off the same trigger, so for one round the
+    old position is read against the new list. A shorter dataset would index off
+    the end; clamping shows its last frame until the reset lands.
+
+    Args:
+        frame_list: Frame ids of the loaded dataset, in slider order.
+        slider_arg: Slider position, possibly stale or None.
+
+    Returns:
+        A position that is a valid index into ``frame_list``, or None when the
+        dataset has no frames to point at.
+    """
+    if frame_list is None or len(frame_list) == 0:
+        return None
+    if slider_arg is None:
+        return 0
+    return min(max(int(slider_arg), 0), len(frame_list) - 1)
+
+
 def prepare_figure_kwargs(
     config: Dict[str, Any],
     # Data parameters
@@ -244,10 +270,14 @@ def prepare_figure_kwargs(
     else:
         fig_kwargs["c_range"] = [0, 0]
 
-    # Setup plot name/title
+    # Setup plot name/title. The position is clamped again here so a title is
+    # never the thing that raises -- callers hand this whatever the slider held.
     slider_label = keys_dict[config["slider"]]["description"]
+    frame_pos = clamp_frame_index(frame_list, slider_arg)
     fig_kwargs["name"] = (
-        f"Index: {slider_arg} ({slider_label}: {frame_list[slider_arg]})"
+        f"Index: {slider_arg}"
+        if frame_pos is None
+        else f"Index: {frame_pos} ({slider_label}: {frame_list[frame_pos]})"
     )
 
     return fig_kwargs

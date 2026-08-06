@@ -582,17 +582,10 @@ app.clientside_callback(
     State("interval-component", "disabled"),
 )
 
-app.clientside_callback(
-    """
-    function(current_file, add_file) {
-        return {display: "flex"};
-    }
-    """,
-    Output("loading-view", "style", allow_duplicate=True),
-    Input("current-file", "data"),
-    Input("file-add", "value"),
-    prevent_initial_call=True,
-)
+# The loading overlay is raised and lowered by the `running` state of the load
+# callback itself (view_callbacks/test_case_view.py). Raising it from here too
+# meant two owners for one prop, and the one that could only ever raise it won
+# whenever the load bailed out before reaching its own hide.
 
 # The picker panel is the only place the combined logs are named, and it closes
 # on demand, so the button that opens it carries the fact that some are in play.

@@ -49,6 +49,7 @@ from utils import load_data
 
 # The overlay's geometry lives in the stylesheet; callbacks only toggle display.
 HIDE_LOADING = {"display": "none"}
+SHOW_LOADING = {"display": "flex"}
 
 
 def get_test_case_view_callbacks(app: dash.Dash) -> None:
@@ -337,13 +338,22 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "session_id": State("session-id", "data"),
             "all_state": DROPDOWN_VALUES_ALL_STATE,
         },
-        progress=[
-            Output("loading-view", "style"),
+        # The overlay is tied to the job's lifetime rather than being raised by
+        # one callback and lowered by another: every way out of this function --
+        # returning, PreventUpdate, or an unhandled exception -- ends the job,
+        # and Dash lowers it then. Hiding it from inside the body meant an early
+        # exit left it up over a live app with no way to dismiss it.
+        running=[
+            (Output("loading-view", "style"), SHOW_LOADING, HIDE_LOADING),
         ],
         manager=background_callback_manager,
+        # Nothing is selected on the first render, so the initial call could only
+        # ever bail out -- and now that the overlay follows the job, running it
+        # would flash a full-screen spinner over the empty app while the worker
+        # process spawns just to raise.
+        prevent_initial_call=True,
     )
     def file_select_changed(
-        set_progress,
         file: str,
         add_file_value: list,
         data_path: str,
@@ -356,7 +366,6 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         Callback when a file selection is changed.
 
         Args:
-            set_progress: Function to set the progress visual indicators
             file (str): Selected file value
             add_file_value (list): List containing additional file values
             data_path (str): Path to data directory
@@ -404,9 +413,6 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         try:
             new_data = load_data(add_file_value, file)
         except Exception as exc:
-            set_progress(
-                [HIDE_LOADING]
-            )
             return {
                 "key_dict": dash.no_update,
                 "file_load_trigger": dash.no_update,
@@ -508,11 +514,6 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
 
         # Dimension picker settings
         dim_picker_val = [cat_keys[0]] if cat_keys else [None]
-
-        # Hide loading indicator
-        set_progress(
-            [HIDE_LOADING]
-        )
 
         return {
             "key_dict": keys_dict,

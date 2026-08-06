@@ -28,6 +28,7 @@ import plotly.graph_objs as go
 
 from app_config import CACHE_KEYS, KEY_TYPES
 
+from utils import clamp_frame_index
 from utils import filter_all
 from utils import cache_set, cache_get
 from utils import load_data
@@ -868,10 +869,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         num_values = filter_kwargs["num_values"]
 
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
-        if frame_list is None:
+        frame_pos = clamp_frame_index(frame_list, slider_arg)
+        if frame_pos is None:
             raise PreventUpdate
         data = cache_get(
-            session_id, CACHE_KEYS["frame_data"], str(frame_list[slider_arg])
+            session_id, CACHE_KEYS["frame_data"], str(frame_list[frame_pos])
         )
         if data is None:
             raise PreventUpdate
