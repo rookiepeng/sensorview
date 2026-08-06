@@ -56,7 +56,7 @@ from frame_sources import (
 
 from app_config import app
 from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
-from app_config import SPECIAL_FOLDERS, RADAR_FILE_EXTENSIONS
+from app_config import RADAR_FILE_EXTENSIONS
 
 from dataio.manifest import table_sidecar_suffixes
 
@@ -409,8 +409,7 @@ def on_case_change(
     # they look like one to a listing that goes by extension.
     sidecar_suffixes = tuple(table_sidecar_suffixes(case_dir))
     data_files = []
-    for dirpath, dirnames, files in os.walk(case_dir):
-        dirnames[:] = [d for d in dirnames if d not in SPECIAL_FOLDERS]
+    for dirpath, _, files in os.walk(case_dir):
         for name in files:
             lowered = name.lower()
             if lowered.endswith(RADAR_FILE_EXTENSIONS) and not lowered.endswith(

@@ -2,7 +2,7 @@
 
 Core visualization module providing high-level plotting functions including 3D/2D
 scatter plots with color mapping, heatmaps, animated plots with decay effects,
-reference point overlays, and image integration.
+and reference point overlays.
 
 Key functions: get_scatter3d(), get_scatter2d(), get_heatmap(), get_animation_data()
 
@@ -12,7 +12,6 @@ Copyright (C) 2019 - PRESENT
 """
 
 from typing import List, Dict, Any, Optional
-import base64
 import numpy as np
 import pandas as pd
 
@@ -498,24 +497,6 @@ def frame_args(duration: int) -> Dict[str, Any]:
     }
 
 
-def process_image(img_path: str) -> Optional[str]:
-    """
-    Process and encode an image file to base64 format.
-
-    Args:
-        img_path: Path to the image file.
-
-    Returns:
-        Base64 encoded image string with data URI scheme prefix, or None if processing fails.
-    """
-    try:
-        with open(img_path, "rb") as img_file:
-            encoded = base64.b64encode(img_file.read()).decode()
-            return f"data:image/jpeg;base64,{encoded}"
-    except (FileNotFoundError, NotADirectoryError, IOError):
-        return None
-
-
 def get_animation_data(
     data_frame: pd.DataFrame,
     x_key: str,
@@ -525,7 +506,7 @@ def get_animation_data(
     y_ref: Optional[str] = None,
     z_ref: Optional[str] = None,
     frame_key: str = "Frame",
-    img_list: Optional[List[str]] = None,
+    frame_images: Optional[Dict[Any, str]] = None,
     colormap: Optional[str] = None,
     decay: int = 0,
     dark_mode: bool = True,
@@ -542,7 +523,9 @@ def get_animation_data(
         x_ref: Optional column name for reference x coordinates.
         y_ref: Optional column name for reference y coordinates.
         frame_key: Column name containing frame indices.
-        img_list: Optional list of image paths for each frame.
+        frame_images: Frame id -> camera still as a data URI, extracted from
+            the log's recording. Keyed by frame id rather than by position
+            because filtering can drop whole frames from this animation.
         colormap: Optional custom colormap name.
         decay: Number of trailing frames to show with decreasing opacity.
         **kwargs: Additional parameters:
@@ -572,17 +555,14 @@ def get_animation_data(
         **kwargs,
     }
 
-    def create_frame_data(frame_idx: int, current_idx: int) -> Dict[str, Any]:
+    def create_frame_data(frame_idx: int) -> Dict[str, Any]:
         """Helper function to create single frame data"""
         filtered_df = data_frame[data_frame[frame_key] == frame_idx].reset_index()
 
         # Update frame-specific kwargs
         frame_kwargs = base_kwargs.copy()
         frame_kwargs["name"] = f"Frame: {frame_idx}"
-
-        # Process image if available
-        if img_list and current_idx < len(img_list):
-            frame_kwargs["image"] = process_image(img_list[current_idx])
+        frame_kwargs["image"] = (frame_images or {}).get(frame_idx)
 
         # Get scatter data
         fig_dict = get_scatter3d_data(
@@ -640,7 +620,7 @@ def get_animation_data(
     # Generate frames with decay
     ani_frames = []
     for idx, frame_idx in enumerate(frame_list[decay:], decay):
-        current_frame = create_frame_data(frame_idx, idx)
+        current_frame = create_frame_data(frame_idx)
 
         # Handle decay frames
         if decay > 0:
@@ -697,10 +677,12 @@ def get_animation_data(
         }
     ]
 
-    # Create final layout
+    # Create final layout. The figure opens on the first animated frame, so it
+    # opens on that frame's still too -- otherwise the thumbnail only appears
+    # once playback has moved off frame one.
     layout_kwargs = kwargs.copy()
-    if img_list:
-        layout_kwargs["image"] = process_image(img_list[0])
+    if ani_frames:
+        layout_kwargs["image"] = (frame_images or {}).get(frame_list[decay])
 
     figure_layout = get_scatter3d_layout(**layout_kwargs)
 

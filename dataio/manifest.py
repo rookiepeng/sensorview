@@ -482,11 +482,12 @@ def log_stem(file_name: str, table_suffix: str = DEFAULT_TABLE_SUFFIX) -> str:
         table_suffix: Table file suffix to strip.
 
     Returns:
-        Basename with the table suffix removed. Legacy ``.csv``/``.pkl`` names
-        also reduce correctly so v1 datasets share this code path.
+        Basename with the table suffix removed. A dataset declaring a custom
+        suffix still reduces against the default one, so a plain ``.parquet``
+        log in the same folder is not left with its extension attached.
     """
     base = os.path.basename(file_name)
-    for suffix in (table_suffix, ".parquet", ".csv", ".pkl"):
+    for suffix in (table_suffix, ".parquet"):
         if suffix and base.lower().endswith(suffix.lower()):
             return base[: -len(suffix)]
     return os.path.splitext(base)[0]

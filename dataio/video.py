@@ -1,8 +1,12 @@
-"""Camera Video Transcoding
+"""Camera Video Transcoding and Frame Extraction
 
 Recordings that arrive as something a browser cannot play -- a vendor ``.avi``
 straight off a logger -- are transcoded on demand rather than being rejected, so
 a log can be dropped in the case folder as it was recorded.
+
+Individual frames are also pulled out of a recording here, for the standalone
+HTML export: that file has to carry its pictures inside it, so there is nothing
+left for a ``<video>`` element to seek (see :func:`extract_frames`).
 
 The camera panel is a browser ``<video>`` element seeked by ``currentTime``, so
 the encoder settings matter for correctness, not just size: browsers can only
@@ -18,8 +22,9 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-from typing import List, Optional
+from typing import Dict, Iterable, List, Optional
 
+import glob
 import os
 import re
 import shutil
@@ -36,6 +41,16 @@ _FRAME_STAT = re.compile(r"frame=\s*(\d+)")
 # Counting frames only demuxes, so it is quick even for a long recording. The
 # cap is there so a damaged file cannot wedge the callback that asks for it.
 _PROBE_TIMEOUT = 120.0
+
+# Extraction decodes, so it is slower than a probe, but it still runs once per
+# export rather than per frame.
+_EXTRACT_TIMEOUT = 900.0
+
+# Most frames one extraction will ask for. The whole point is to inline the
+# pictures in a single HTML file, and a few hundred already makes that file
+# large; the cap also keeps the select expression inside the command-line
+# length limit.
+MAX_EXTRACT_FRAMES = 2000
 
 # A windowed build (PyInstaller ``console=False``) has no console attached, so
 # it hands the child an invalid stdin handle and Windows opens a console window
@@ -152,6 +167,87 @@ def probe_frame_count(path: str) -> Optional[int]:
 
     count = int(matches[-1])
     return count or None
+
+
+def extract_frames(
+    source: str,
+    frame_indices: Iterable[int],
+    out_dir: str,
+    max_width: int = 640,
+    quality: int = 4,
+) -> Dict[int, str]:
+    """
+    Pull individual frames out of a recording as JPEG files.
+
+    Every requested frame comes out of **one** ffmpeg run: a ``select``
+    expression naming each index, rather than one seek-and-grab per frame. A
+    hundred-frame export is one decode pass instead of a hundred process
+    spawns, which is the difference between seconds and minutes.
+
+    Frames are downscaled by default. The export draws them as a thumbnail in
+    the corner of the plot and every one is base64-inlined into a single HTML
+    file, so full-resolution stills would multiply that file's size for detail
+    nothing renders.
+
+    Args:
+        source: Any video ffmpeg can read -- the recording as it sits in the
+            case folder, not a browser-playable transcode of it.
+        frame_indices: 0-based video frame numbers to extract. Order does not
+            matter and duplicates are collapsed.
+        out_dir: Directory to write the JPEGs into; created if absent.
+        max_width: Width to fit within, preserving aspect. Frames narrower than
+            this are left alone rather than upscaled. 0 keeps full resolution.
+        quality: ffmpeg ``-q:v`` factor; lower is better quality and larger.
+
+    Returns:
+        Mapping of frame index -> written JPEG path, covering as many of the
+        requested frames as ffmpeg actually produced. Empty when ffmpeg is
+        unavailable, the source is missing, or the run fails -- callers treat
+        images as optional decoration, so a failure costs the pictures and not
+        the export.
+    """
+    ffmpeg = find_ffmpeg()
+    if not ffmpeg or not source or not os.path.exists(source):
+        return {}
+
+    wanted = sorted({int(index) for index in frame_indices if index is not None})
+    wanted = [index for index in wanted if index >= 0][:MAX_EXTRACT_FRAMES]
+    if not wanted:
+        return {}
+
+    os.makedirs(out_dir, exist_ok=True)
+
+    # Commas inside the expression have to be escaped or the filtergraph parser
+    # reads them as the end of the `select` filter.
+    selection = "+".join(f"eq(n\\,{index})" for index in wanted)
+    filters = f"select={selection}"
+    if max_width > 0:
+        # -2 keeps the aspect ratio and rounds to an even height; min() means a
+        # source narrower than the cap is passed through rather than blown up.
+        filters += f",scale='min({max_width},iw)':-2"
+
+    pattern = os.path.join(out_dir, "%06d.jpg")
+    try:
+        result = _run_ffmpeg(
+            [ffmpeg, "-y", "-loglevel", "error", "-i", source]
+            + ["-map", "0:v:0", "-an", "-sn", "-vf", filters]
+            # Without this ffmpeg re-times the surviving frames to a constant
+            # rate, duplicating and dropping to fill the gaps the select left.
+            + ["-vsync", "0", "-q:v", str(quality), pattern],
+            timeout=_EXTRACT_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return {}
+
+    if result.returncode != 0:
+        return {}
+
+    # Output is numbered over the frames that survived the filter, in ascending
+    # source order -- so the n-th file is the n-th requested index. A short run
+    # (a requested index past the end of the stream) truncates the tail rather
+    # than shifting the mapping.
+    produced = sorted(glob.glob(os.path.join(out_dir, "*.jpg")))
+    return dict(zip(wanted, produced))
 
 
 def _x264_all_intra_args(keyframe_interval: int, crf: int) -> List[str]:

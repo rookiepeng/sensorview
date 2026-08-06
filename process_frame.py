@@ -12,8 +12,6 @@ Copyright (C) 2019 - PRESENT
 """
 
 from typing import Dict, List, Tuple, Any
-import json
-import os
 
 import numpy as np
 
@@ -23,7 +21,6 @@ from utils import clamp_frame_index
 from utils import filter_all
 from utils import cache_get
 from utils import load_data
-from utils import load_image
 from utils import prepare_figure_kwargs
 
 from frame_sources import (
@@ -53,7 +50,6 @@ def process_single_frame(
     size_vary: str,
     decay: int,
     session_id: str,
-    file: str,
     frame_idx: int = 0,
     load_hover: bool = False,
 ) -> Dict[str, Any]:
@@ -70,7 +66,6 @@ def process_single_frame(
         size_vary: String indicating whether to vary marker sizes.
         decay: Number of previous frames to include with decreasing opacity.
         session_id: Unique session identifier for cache access.
-        file: JSON string containing file path and name information.
         frame_idx: Index of the current frame to process. Defaults to 0.
         load_hover: Whether to include hover text in the plot data. Defaults to False.
 
@@ -124,19 +119,6 @@ def process_single_frame(
         # every combined log's reference rather than just this frame's.
         ref_bounds=get_combined_reference_bounds(manifest, get_log_stems(session_id)),
     )
-
-    # Logs with an mp4 camera stream render it in the camera card, seeked
-    # client-side; only legacy per-frame JPG datasets get the inline overlay.
-    if manifest is not None and manifest.has_image(stem):
-        fig_kwargs["image"] = None
-    else:
-        file_dict = json.loads(file)
-        img_path = os.path.join(
-            file_dict["path"],
-            stem or file_dict["name"][0:-4],
-            str(frame_list[frame_idx]) + ".jpg",
-        )
-        fig_kwargs["image"] = load_image(img_path)
 
     # get a single frame data from Redis
     data = cache_get(session_id, CACHE_KEYS["frame_data"], str(frame_list[frame_idx]))
@@ -325,12 +307,10 @@ def process_overlay_frame(
     )
 
     # overlay all the frames
-    # get data from .feather file on the disk
     data = load_data(file_list, file)
     filterd_frame = filter_all(
         data, num_keys, num_values, cat_keys, cat_values, visible_table, visible_list
     )
-    fig_kwargs["image"] = None
 
     # generate the graph
     fig = get_scatter3d(filterd_frame, hover=config["keys"], **fig_kwargs)

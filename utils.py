@@ -14,7 +14,6 @@ Copyright (C) 2019 - PRESENT
 from typing import Dict, List, Optional, Any, Tuple, Union
 
 import json
-import base64
 import pandas as pd
 import numpy as np
 
@@ -55,8 +54,8 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
     """
     Load radar point cloud data from multiple files into a pandas DataFrame.
 
-    Thin wrapper over :func:`dataio.radar_store.load_radar`, which owns format
-    handling (Parquet, plus legacy CSV/pickle) and non-finite normalization.
+    Thin wrapper over :func:`dataio.radar_store.load_radar`, which owns the
+    Parquet read and non-finite normalization.
 
     Args:
         file_list: List of file specifications in JSON string format.
@@ -69,31 +68,6 @@ def load_data(file_list: List[str], file: Optional[str] = None) -> pd.DataFrame:
         ValueError: If an unsupported file type is encountered.
     """
     return load_radar(file_list, file)
-
-
-def load_image(img_path: str) -> Optional[str]:
-    """
-    Load and encode an image file to base64 format.
-
-    Args:
-        img_path: Path to the image file.
-
-    Returns:
-        Base64 encoded image string with data URI scheme prefix, or None if file cannot be loaded.
-
-    Note:
-        Returns None for FileNotFoundError, NotADirectoryError, or other IO errors.
-    """
-    try:
-        with open(img_path, "rb") as img_file:
-            encoding = base64.b64encode(img_file.read())
-        img = "data:image/jpeg;base64," + encoding.decode()
-    except FileNotFoundError:
-        img = None
-    except NotADirectoryError:
-        img = None
-
-    return img
 
 
 def clamp_frame_index(
@@ -178,7 +152,6 @@ def prepare_figure_kwargs(
 
     # Initialize figure kwargs with basic settings
     fig_kwargs = {
-        "image": None,
         "ref_name": ref_display["name"],
         "ref_display": ref_display,
         "size_vary": size_vary,
