@@ -833,6 +833,33 @@ body {
     border-top: 0;
 }
 
+/* With the curve minimized there is no section left to hand the spare height
+   to, so the image takes the dock rather than sitting in a 16:9 box above an
+   empty one. The picture keeps its own ratio inside the taller element --
+   object-fit letterboxes it against the black backdrop, the way a player
+   does. */
+.sv-inspector-body:has(#subview-threshold-section.sv-collapsed)
+    #subview-camera-section {
+    flex: 1 1 auto;
+}
+
+.sv-inspector-body:has(#subview-threshold-section.sv-collapsed)
+    #subview-camera-section
+    > .sv-subsection-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.sv-inspector-body:has(#subview-threshold-section.sv-collapsed) .sv-video {
+    flex: 1 1 auto;
+    aspect-ratio: auto;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+}
+
 .sv-video {
     width: 100%;
     aspect-ratio: 16 / 9;
