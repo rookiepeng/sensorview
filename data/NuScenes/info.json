@@ -1,0 +1,485 @@
+{
+    "manifest_version": 2,
+    "name": "nuScenes mini",
+    "table": {
+        "slider": "Frame",
+        "x_3d": "X",
+        "y_3d": "Y",
+        "z_3d": "Z",
+        "x_ref": "None",
+        "y_ref": "None",
+        "z_ref": "None",
+        "time_unit": "s",
+        "suffix": ".parquet",
+        "keys": {
+            "X": {
+                "description": "East (m)",
+                "decimal": 2,
+                "type": "numerical"
+            },
+            "Y": {
+                "description": "North (m)",
+                "decimal": 2,
+                "type": "numerical"
+            },
+            "Z": {
+                "description": "Up (m)",
+                "decimal": 2,
+                "type": "numerical"
+            },
+            "Range": {
+                "description": "Range (m)",
+                "decimal": 1,
+                "type": "numerical"
+            },
+            "Azimuth": {
+                "description": "Azimuth (deg)",
+                "decimal": 1,
+                "type": "numerical"
+            },
+            "RCS": {
+                "description": "RCS (dBsm)",
+                "decimal": 1,
+                "type": "numerical"
+            },
+            "Range_Rate": {
+                "description": "Range rate (m/s)",
+                "decimal": 2,
+                "type": "numerical"
+            },
+            "Range_Rate_Comp": {
+                "description": "Range rate, compensated (m/s)",
+                "decimal": 2,
+                "type": "numerical"
+            },
+            "Speed": {
+                "description": "Speed (m/s)",
+                "decimal": 2,
+                "type": "numerical"
+            },
+            "Time": {
+                "description": "Time (s)",
+                "decimal": 2,
+                "type": "numerical"
+            },
+            "Frame": {
+                "description": "Frame",
+                "decimal": 0,
+                "type": "numerical"
+            },
+            "Sensor": {
+                "description": "Radar",
+                "type": "categorical"
+            },
+            "Dyn_Prop": {
+                "description": "Dynamic property",
+                "type": "categorical"
+            },
+            "Ambig_State": {
+                "description": "Ambiguity state",
+                "type": "categorical"
+            },
+            "False_Alarm_Prob": {
+                "description": "False alarm probability",
+                "type": "categorical"
+            },
+            "Valid": {
+                "description": "Validity",
+                "type": "categorical"
+            }
+        }
+    },
+    "cloud": {
+        "format": "hdf5",
+        "suffix": ".cloud.h5",
+        "columns": [
+            "x",
+            "y",
+            "z"
+        ],
+        "decimation": {
+            "method": "voxel+budget",
+            "voxel_size": 0.25,
+            "max_points": 12000,
+            "coord_decimals": 2
+        },
+        "display": {
+            "color": "#8d99ae",
+            "size": 1.0,
+            "opacity": 0.25,
+            "name": "LIDAR_TOP"
+        }
+    },
+    "curve": {
+        "format": "hdf5",
+        "suffix": [
+            ".radar_front.h5",
+            ".radar_front_left.h5",
+            ".radar_front_right.h5",
+            ".radar_back_left.h5",
+            ".radar_back_right.h5",
+            ".lidar.h5"
+        ],
+        "plots": [
+            {
+                "id": "range_profile",
+                "label": "Range Profile",
+                "x": {
+                    "label": "Range (m)"
+                },
+                "y_label": "RCS (dBsm)",
+                "traces": [
+                    {
+                        "name": "rcs_peak",
+                        "label": "Peak RCS",
+                        "color": "#4c9be8",
+                        "width": 2
+                    },
+                    {
+                        "name": "rcs_mean",
+                        "label": "Mean RCS",
+                        "color": "#e8734c",
+                        "dash": "dash"
+                    }
+                ]
+            },
+            {
+                "id": "range_rate",
+                "label": "Range Rate",
+                "x": {
+                    "label": "Range (m)"
+                },
+                "y_label": "Range rate (m/s)",
+                "traces": [
+                    {
+                        "name": "rate_measured",
+                        "label": "Measured",
+                        "color": "#5cb85c",
+                        "width": 2
+                    },
+                    {
+                        "name": "rate_compensated",
+                        "label": "Ego-motion compensated",
+                        "color": "#e8c34c",
+                        "dash": "dash"
+                    },
+                    {
+                        "name": "rate_zero",
+                        "label": "Stationary",
+                        "color": "#8d99ae",
+                        "dash": "dot",
+                        "width": 1
+                    }
+                ]
+            },
+            {
+                "id": "lidar_range",
+                "label": "Lidar Range Density",
+                "x": {
+                    "label": "Range (m)"
+                },
+                "y_label": "Returns per 2 m bin",
+                "traces": [
+                    {
+                        "name": "returns_all",
+                        "label": "All returns",
+                        "color": "#4c9be8",
+                        "width": 2
+                    },
+                    {
+                        "name": "returns_above_ground",
+                        "label": "Above 0.5 m",
+                        "color": "#c678dd",
+                        "dash": "dash"
+                    }
+                ]
+            },
+            {
+                "id": "lidar_height",
+                "label": "Lidar Height Profile",
+                "x": {
+                    "label": "Height above ego ground (m)"
+                },
+                "y_label": "Returns per 0.25 m bin",
+                "traces": [
+                    {
+                        "name": "height_all",
+                        "label": "Returns",
+                        "color": "#4cd4e8",
+                        "width": 2
+                    }
+                ]
+            }
+        ]
+    },
+    "image": {
+        "format": "mp4",
+        "suffix": [
+            ".mp4"
+        ]
+    },
+    "reference": {
+        "suffix": ".reference.parquet",
+        "shape": "mesh",
+        "name": "Ego Vehicle",
+        "color": "#4c9ffe",
+        "opacity": 0.3,
+        "edge_color": "#7fc4ff",
+        "edge_width": 2,
+        "columns": {
+            "frame": "frame",
+            "x": "x",
+            "y": "y",
+            "z": "z",
+            "yaw": "yaw",
+            "pitch": "pitch",
+            "roll": "roll"
+        },
+        "vertices": [
+            [
+                -1.09,
+                -0.865,
+                0.0
+            ],
+            [
+                2.99,
+                -0.865,
+                0.0
+            ],
+            [
+                2.99,
+                0.865,
+                0.0
+            ],
+            [
+                -1.09,
+                0.865,
+                0.0
+            ],
+            [
+                -1.09,
+                -0.865,
+                1.05
+            ],
+            [
+                1.6,
+                -0.865,
+                1.05
+            ],
+            [
+                1.6,
+                0.865,
+                1.05
+            ],
+            [
+                -1.09,
+                0.865,
+                1.05
+            ],
+            [
+                -0.75,
+                -0.75,
+                1.56
+            ],
+            [
+                1.05,
+                -0.75,
+                1.56
+            ],
+            [
+                1.05,
+                0.75,
+                1.56
+            ],
+            [
+                -0.75,
+                0.75,
+                1.56
+            ]
+        ],
+        "faces": [
+            [
+                0,
+                1,
+                2
+            ],
+            [
+                0,
+                2,
+                3
+            ],
+            [
+                0,
+                1,
+                5
+            ],
+            [
+                0,
+                5,
+                4
+            ],
+            [
+                1,
+                2,
+                6
+            ],
+            [
+                1,
+                6,
+                5
+            ],
+            [
+                2,
+                3,
+                7
+            ],
+            [
+                2,
+                7,
+                6
+            ],
+            [
+                3,
+                0,
+                4
+            ],
+            [
+                3,
+                4,
+                7
+            ],
+            [
+                4,
+                5,
+                9
+            ],
+            [
+                4,
+                9,
+                8
+            ],
+            [
+                5,
+                6,
+                10
+            ],
+            [
+                5,
+                10,
+                9
+            ],
+            [
+                6,
+                7,
+                11
+            ],
+            [
+                6,
+                11,
+                10
+            ],
+            [
+                7,
+                4,
+                8
+            ],
+            [
+                7,
+                8,
+                11
+            ],
+            [
+                8,
+                9,
+                10
+            ],
+            [
+                8,
+                10,
+                11
+            ]
+        ],
+        "edges": [
+            [
+                0,
+                1
+            ],
+            [
+                1,
+                2
+            ],
+            [
+                2,
+                3
+            ],
+            [
+                3,
+                0
+            ],
+            [
+                4,
+                5
+            ],
+            [
+                5,
+                6
+            ],
+            [
+                6,
+                7
+            ],
+            [
+                7,
+                4
+            ],
+            [
+                8,
+                9
+            ],
+            [
+                9,
+                10
+            ],
+            [
+                10,
+                11
+            ],
+            [
+                11,
+                8
+            ],
+            [
+                0,
+                4
+            ],
+            [
+                1,
+                5
+            ],
+            [
+                2,
+                6
+            ],
+            [
+                3,
+                7
+            ],
+            [
+                4,
+                8
+            ],
+            [
+                5,
+                9
+            ],
+            [
+                6,
+                10
+            ],
+            [
+                7,
+                11
+            ]
+        ]
+    }
+}
