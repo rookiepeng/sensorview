@@ -9,9 +9,9 @@ filters.
 
 ## Screenshots
 
-The workbench on a two-log case: the 3D point cloud with its decimated
-backdrop and the host-vehicle overlay, the camera frame and range profile for
-the same instant in the inspector, and two statistical views in the dock.
+The workbench on a nuScenes scene: the radar point cloud with its decimated
+lidar backdrop and the ego-vehicle overlay, the camera frame and range profile
+for the same instant in the inspector, and two statistical views in the dock.
 
 <img src="./assets/screenshot.png" alt="SensorView workbench, dark theme" width="900"/>
 
