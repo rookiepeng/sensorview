@@ -17,10 +17,31 @@ import dash
 from dash import DiskcacheManager
 from dash.dependencies import Output, State
 
+import multiprocess
 import psutil
 
 # import redis
 from diskcache import FanoutCache
+
+
+# Background callbacks run in a worker process that Dash's DiskcacheManager
+# creates through `multiprocess`. On POSIX that defaults to fork, which copies
+# only the calling thread -- and this server is threaded, so a worker inherits
+# every lock and thread pool of a live, busy process without the threads that
+# would release them.
+#
+# Polars is the one that bites: its rayon pool has no workers on the far side of
+# a fork, so the first `collect()` in the worker blocks forever on threads that
+# do not exist. A dataset load is nothing but `collect()`, so it hangs -- but
+# only once something has already used Polars in the server process, which is
+# why reading frames the buffer had not reached yet (a high slider position) was
+# what made the next load hang.
+#
+# Spawn starts the worker from a clean interpreter instead. It is what Windows
+# has always used here, so this makes the platforms behave alike rather than
+# introducing anything new; the cost is the worker importing what it needs.
+if multiprocess.get_start_method(allow_none=True) is None:
+    multiprocess.set_start_method("spawn")
 
 
 class SafeDiskcacheManager(DiskcacheManager):

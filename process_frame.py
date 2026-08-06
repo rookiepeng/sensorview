@@ -17,6 +17,9 @@ import os
 
 import numpy as np
 
+from dash.exceptions import PreventUpdate
+
+from utils import clamp_frame_index
 from utils import filter_all
 from utils import cache_get
 from utils import load_data
@@ -94,6 +97,14 @@ def process_single_frame(
     frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
     if frame_list is None:
         frame_list = []
+
+    # The slider position arrives as callback state, so it can still be the one
+    # the previous dataset left behind. Nothing below survives it pointing past
+    # the end of this dataset's frames.
+    clamped_idx = clamp_frame_index(frame_list, frame_idx)
+    if clamped_idx is None:
+        raise PreventUpdate
+    frame_idx = clamped_idx
 
     manifest = get_manifest(session_id)
     # Sidecars belong to the log that recorded this frame, which with logs
@@ -290,6 +301,11 @@ def process_overlay_frame(
     frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
     if frame_list is None:
         frame_list = []
+
+    clamped_idx = clamp_frame_index(frame_list, frame_idx)
+    if clamped_idx is None:
+        raise PreventUpdate
+    frame_idx = clamped_idx
 
     # prepare figure key word arguments. Overlaying every frame at once leaves
     # no single frame for a per-frame pose to belong to, so the sidecar draws

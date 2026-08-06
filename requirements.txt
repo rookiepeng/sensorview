@@ -9,6 +9,9 @@ numpy
 pandas
 kaleido
 diskcache
+# Already pulled in by dash[diskcache], but named here because app_config picks
+# the start method background callback workers are created with.
+multiprocess
 orjson
 waitress
 flaskwebgui

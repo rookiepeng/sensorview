@@ -78,6 +78,17 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
         },
+        # Selecting another log ends this buffer, rather than letting it run to
+        # completion against the dataset it was started for. Its own frame loop
+        # only notices a *newer buffer* claiming the session, and a new buffer
+        # starts no earlier than the load it is waiting on -- so without this the
+        # outgoing dataset keeps writing bundles and advancing figure_idx while
+        # the incoming one is read, and the viewer is served the old log's frames
+        # under the new one's session.
+        cancel=[
+            Input("current-file", "data"),
+            Input("file-add", "value"),
+        ],
         progress=[
             Output("buffer", "value"),
             Output("buffer-tooltip", "children"),

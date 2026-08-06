@@ -29,6 +29,7 @@ from viz.viz import get_scatter2d
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES
 
+from utils import clamp_frame_index
 from utils import filter_all
 from utils import cache_set, cache_get
 from utils import load_data
@@ -208,10 +209,13 @@ def get_scatter_2d_left_view_callbacks(app: dash.Dash) -> None:
             data = load_data(file_list, file)
         else:
             frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
-            if frame_list is None:
+            # The slider position is state, so on a dataset switch it can still
+            # be the previous dataset's -- past the end of a shorter one.
+            frame_pos = clamp_frame_index(frame_list, slider_arg)
+            if frame_pos is None:
                 raise PreventUpdate
             data = cache_get(
-                session_id, CACHE_KEYS["frame_data"], str(frame_list[slider_arg])
+                session_id, CACHE_KEYS["frame_data"], str(frame_list[frame_pos])
             )
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
