@@ -1,16 +1,21 @@
-// Point-cloud backdrop frames, keyed "<session>/<frame index>". The cloud is display-only
-// and identical every time a frame is revisited, so an in-memory cache makes
-// scrubbing back over visited frames free. Bounded so long sessions cannot grow
+// Point-cloud backdrop frames, keyed "<session>/<log>/<frame index>". The cloud is
+// display-only and identical every time a frame is revisited, so an in-memory cache
+// makes scrubbing back over visited frames free. Bounded so long sessions cannot grow
 // it without limit.
+//
+// The log has to be part of the key. A session outlives the log selected in it, and
+// two logs in one case folder share frame indices -- so keying on the session alone
+// serves the previous log's backdrop for every frame the user had already visited,
+// while the radar traces around it come from the new one.
 const CLOUD_CACHE = new Map();
 const CLOUD_CACHE_LIMIT = 240;
 
-async function getCloudTrace(session, frameIndex) {
+async function getCloudTrace(session, logFile, frameIndex) {
   if (session == null || frameIndex == null) {
     return null;
   }
 
-  const key = `${session}/${frameIndex}`;
+  const key = `${session}/${logFile ?? ""}/${frameIndex}`;
   if (CLOUD_CACHE.has(key)) {
     return CLOUD_CACHE.get(key);
   }
@@ -180,7 +185,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       dark_template,
       light_template,
       local_index,
-      remote_trigger
+      remote_trigger,
+      log_file
     ) {
       // Check if triggered by play-stop button while playing
       const triggered = dash_clientside.callback_context.triggered.map(
@@ -359,7 +365,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         // Point-cloud backdrop. Appended after the opacity/hover loops above so the
         // decay-opacity ramp applied to radar trace groups never touches it —
         // cloud has no decay and no controls, its styling is fixed.
-        const cloudTrace = await getCloudTrace(session, slider_arg);
+        const cloudTrace = await getCloudTrace(session, log_file, slider_arg);
         if (cloudTrace) {
           fig.data = [...fig.data, cloudTrace];
         }

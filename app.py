@@ -254,6 +254,9 @@ app.clientside_callback(
     State("light-template", "data"),
     State("local-buffer-index", "data"),
     State("trigger-remote-figure", "data"),
+    # Identifies the log the backdrop belongs to, so switching logs inside one
+    # session does not keep serving the previous log's cloud out of the cache.
+    State("local-file-selection", "data"),
     prevent_initial_call=True,
 )
 
