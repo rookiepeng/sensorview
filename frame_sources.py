@@ -27,8 +27,10 @@ Copyright (C) 2019 - PRESENT
 
 from typing import Any, Dict, List, Optional
 
+import base64
 import hashlib
 import os
+import tempfile
 
 import numpy as np
 
@@ -40,6 +42,7 @@ from dataio.manifest import Manifest
 from dataio.reference import ReferenceStore
 from dataio.video import (
     VideoEncodeError,
+    extract_frames,
     is_browser_playable,
     probe_frame_count,
     transcode_to_mp4,
@@ -506,6 +509,107 @@ def image_stream_frame_count(source: str) -> Optional[int]:
     if key not in _FRAME_COUNTS:
         _FRAME_COUNTS[key] = probe_frame_count(source)
     return _FRAME_COUNTS[key]
+
+
+def _video_frame_for(local: int, local_total: int, video_frames: int) -> int:
+    """
+    Map one of a log's frames onto a frame of its recording.
+
+    The same count-to-count mapping the camera panel seeks with, restated
+    server-side for the export. Kept deliberately identical -- including
+    rounding halves up the way ``Math.round`` does rather than to even the way
+    Python's ``round`` does -- so an exported still is the picture the panel was
+    showing at that slider position, not its neighbour.
+
+    Args:
+        local: 0-based ordinal of the frame within the log's own frames.
+        local_total: How many frames that log owns.
+        video_frames: Frame count of its recording.
+
+    Returns:
+        0-based video frame index.
+    """
+    span = local_total - 1 if local_total > 1 else 1
+    ratio = min(1.0, max(0.0, local / span))
+    return int(ratio * (video_frames - 1) + 0.5)
+
+
+def get_export_frame_images(
+    manifest: Optional[Manifest],
+    session_id: str,
+    stream_id: Optional[str] = None,
+    max_width: int = 640,
+) -> Dict[Any, str]:
+    """
+    Extract one still per frame from the logs' recordings, base64 encoded.
+
+    The camera panel plays a video the browser seeks; the HTML export is a
+    single file with no server behind it, so its pictures have to travel inside
+    it as data URIs. Each slider position is mapped onto a video frame exactly
+    as the panel maps it, and the frames are pulled out in one ffmpeg pass per
+    log.
+
+    Frames that map onto the same video frame -- a log sampled faster than the
+    camera ran -- share one encoded string rather than decoding it twice.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        session_id: Session identifier.
+        stream_id: Which image stream to extract, as chosen in the camera
+            panel. Falls back to each log's default stream when it has no
+            stream by that id.
+        max_width: Width to fit the stills within; see
+            :func:`dataio.video.extract_frames`.
+
+    Returns:
+        Mapping of frame id -> ``data:image/jpeg;base64,...``. Empty when no
+        loaded log has a recording, or when ffmpeg is unavailable -- the export
+        then simply carries no pictures.
+    """
+    frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
+    if manifest is None or frame_list is None or len(frame_list) == 0:
+        return {}
+
+    images: Dict[Any, str] = {}
+    for stem in get_log_stems(session_id):
+        streams = manifest.image_streams(stem)
+        if not streams:
+            continue
+
+        selected = next((s for s in streams if s["id"] == stream_id), streams[0])
+        source = selected.get("file", "")
+        video_frames = image_stream_frame_count(source)
+        if not video_frames:
+            continue
+
+        positions = get_frame_positions(session_id, stem)
+        if not positions:
+            continue
+
+        # Several slider positions can land on one video frame, so gather the
+        # frame ids per video frame and extract each picture once.
+        wanted: Dict[int, List[Any]] = {}
+        for local, position in enumerate(positions):
+            if position >= len(frame_list):
+                continue
+            key = _video_frame_for(local, len(positions), video_frames)
+            wanted.setdefault(key, []).append(frame_list[position])
+
+        with tempfile.TemporaryDirectory(prefix="sv-export-") as staging:
+            extracted = extract_frames(
+                source, wanted.keys(), staging, max_width=max_width
+            )
+            for key, path in extracted.items():
+                try:
+                    with open(path, "rb") as handle:
+                        encoded = base64.b64encode(handle.read()).decode()
+                except OSError:
+                    continue
+                uri = f"data:image/jpeg;base64,{encoded}"
+                for frame_id in wanted[key]:
+                    images[frame_id] = uri
+
+    return images
 
 
 def get_curve_sources(

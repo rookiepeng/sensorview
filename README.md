@@ -102,7 +102,7 @@ costing no extra height either way.
 - **Dark/Light Theme**: chrome and Plotly templates switch together; the choice
   persists in `localStorage`
 - **Export**: current plot as PNG or HTML, all frames as an HTML video, or the
-  filtered data itself for the current frame or all frames
+  filtered data itself as Parquet for the current frame or all frames
 
 ---
 
@@ -208,7 +208,7 @@ Files are associated by **basename**. There are no subfolders and no per-file
 entries in the manifest.
 
 ```
-stem         = basename(<table file>) with ".parquet" (or ".csv" / ".pkl") removed
+stem         = basename(<table file>) with ".parquet" removed
 cloud file   = <stem><cloud.suffix>                    exactly one per log
 curve files  = <stem><suffix>            → source id derived from the suffix
                <stem>.<id><suffix>       → source id = <id>
@@ -364,9 +364,8 @@ parquetwrite("drive_01.parquet", tbl)
 ```
 
 Any codec Arrow can read is fine (`zstd` and `snappy` both compress well here).
-Legacy `.csv` and `.pkl` tables still load without conversion (`nan`, `NaN`,
-`null` are treated as null tokens in CSV), but only Parquet gets the pushdown
-read path.
+Parquet is the only table format the file picker offers and the only one the
+loader reads; selecting anything else raises `Unsupported file type`.
 
 ## Cloud (`.cloud.h5`)
 
@@ -522,12 +521,19 @@ owns; crossing into the next segment swaps the video source and re-maps against
 entirely, and the panel holds the previous picture rather than showing another
 log's footage under this one's data.
 
-### Legacy per-frame images
+### Stills in the HTML export
 
-A folder named after the table stem holding `<frame_id>.jpg` still works and is
-drawn as an inline overlay on the 3D canvas instead of in the inspector. This
-path only applies to `.csv`/`.pkl` logs with no mp4 stream (`data/ExampleCSV` is
-one); encode an mp4 for anything new.
+"All frames as HTML video" writes one self-contained file with no server behind
+it, so there is nothing for a `<video>` element to seek. That export instead
+pulls one still per frame out of the recording — the stream selected in the
+camera panel, mapped frame-for-frame exactly as the panel maps it — and inlines
+them as base64 JPEGs drawn in the corner of the scene.
+
+Every frame comes out of one ffmpeg pass per log (a `select` expression naming
+each index), and stills are downscaled to 640 px wide, since they render as a
+thumbnail and every one of them lands inside the file. Frames that map onto the
+same video frame share one encoded copy. Without ffmpeg the export still works;
+it just carries no pictures.
 
 ## Reference Pose (`.reference.parquet`)
 
@@ -1015,10 +1021,9 @@ pip install -r requirements.txt
 3. Drop the logs in: `<stem>.parquet` plus whatever sidecars exist for it.
    Anything missing simply does not appear.
 
-Existing `.csv` and `.pkl` tables are still offered in the file picker and load
-without conversion, as does a v1 `info.json` with its keys at the top level.
-Converting a table to Parquet and adopting the sidecar conventions is worth
-doing for the performance, but is left to whatever produces the data — see
+The file picker offers `.parquet` tables only. A v1 `info.json` with its keys at
+the top level still loads and is upgraded in memory, but a `.csv` or `.pkl`
+table has to be converted first — see
 [Writing a Converter](#writing-a-converter).
 
 ### Bundled cases
@@ -1030,8 +1035,6 @@ doing for the performance, but is left to whatever produces the data — see
   holds; `build_nuscenes_case.py` rebuilds the whole case from the original
   archive. The data is derived from nuScenes and carries **CC BY-NC-SA**
   (non-commercial) terms, not this repository's GPL-3.0.
-- **`data/ExampleCSV`** — a v1 manifest with a `.csv` table and a folder of
-  per-frame JPEGs: the legacy layout, kept working.
 
 ### Running the Application
 
@@ -1092,7 +1095,7 @@ See `requirements.txt` for the complete list:
 - **dash**, **dash-bootstrap-components**, **dash-daq**: web framework and interactive UI components
 - **polars**, **pandas**, **numpy**, **pyarrow**: data manipulation and Parquet I/O
 - **h5py**: HDF5 sidecars for point clouds and 1D curves
-- **imageio-ffmpeg**: bundles a static ffmpeg, used to count a recording's frames and transcode containers a browser cannot play
+- **imageio-ffmpeg**: bundles a static ffmpeg, used to count a recording's frames, extract the stills the HTML export inlines, and transcode containers a browser cannot play
 - **diskcache**: server-side FanoutCache for session and frame data
 - **orjson**: high-performance JSON serialization for API responses
 - **kaleido**: static image export for plots

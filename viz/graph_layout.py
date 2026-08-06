@@ -1,7 +1,8 @@
 """SensorView Graph Layout Module
 
 Layout configurations for plot types with focus on 3D scatter plot layouts,
-axis range management, aspect ratio calculation, and image overlay support.
+axis range management, aspect ratio calculation, and the camera-still overlay
+the standalone HTML export uses.
 
 Key function: get_scatter3d_layout()
 
@@ -27,7 +28,8 @@ def get_scatter3d_layout(
         y_range: Tuple of (min, max) values for y-axis range.
         z_range: Tuple of (min, max) values for z-axis range. Defaults to (-20, 20).
         **kwargs: Additional layout parameters:
-            - image: Optional image source for plot overlay
+            - image: Optional camera still, as a data URI, drawn as a
+              thumbnail over the scene (HTML export only)
             - title: Optional plot title
             - x_label: Optional x-axis label
             - y_label: Optional y-axis label
@@ -68,10 +70,20 @@ def get_scatter3d_layout(
         "aspectratio": aspect_ratio,
     }
 
-    # Efficiently create image configuration
+    # The camera stream is a video panel in the app, but a standalone HTML
+    # export has no server to seek against -- so that export, and only that
+    # export, inlines a still per frame and draws it in the corner of the scene.
     image = kwargs.get("image")
-    img_dict = (
-        [
+    layout = {
+        "title": kwargs.get("title"),
+        "scene": scene_config,
+        "margin": {"l": 0, "r": 0, "b": 0, "t": 40},
+        "legend": {"x": 0, "y": 0},
+        "uirevision": "no_change",
+    }
+
+    if image is not None:
+        layout["images"] = [
             {
                 "source": image,
                 "xref": "x domain",
@@ -84,16 +96,5 @@ def get_scatter3d_layout(
                 "sizey": 0.3,
             }
         ]
-        if image is not None
-        else None
-    )
 
-    # Return optimized layout configuration
-    return {
-        "title": kwargs.get("title"),
-        "scene": scene_config,
-        "margin": {"l": 0, "r": 0, "b": 0, "t": 40},
-        "legend": {"x": 0, "y": 0},
-        "images": img_dict,
-        "uirevision": "no_change",
-    }
+    return layout

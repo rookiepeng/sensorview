@@ -33,11 +33,13 @@ from app_config import CACHE_KEYS, KEY_TYPES
 from utils import filter_all
 from utils import cache_set, cache_get, cache_expire
 from utils import load_data
-from utils import load_image
 from utils import prepare_figure_kwargs
+
+from dataio.manifest import log_stem
 
 from frame_sources import (
     get_combined_reference_bounds,
+    get_export_frame_images,
     get_frame_stem,
     get_log_stems,
     get_manifest,
@@ -158,7 +160,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
 
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
 
-        # Use cached frame data instead of re-reading CSV from disk
+        # Use cached frame data instead of re-reading the table from disk
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
         if frame_list is None:
             # Fallback: load from disk if cache miss
@@ -189,12 +191,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             ),
         )
 
-        # Move loop-invariant operations outside the loop
-        file_dict = json.loads(file_list[0])
-        img_root = file_dict["path"]
-
-        # Pre-compute base layout (only image changes per frame)
-        fig_kwargs["image"] = None
+        # The layout is loop-invariant: nothing in it varies per frame.
         base_layout = get_scatter3d_layout(**fig_kwargs)
         has_ref = fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None
         ref_from_sidecar = bool(fig_kwargs.get("ref_from_sidecar"))
@@ -215,16 +212,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             # Sidecars belong to the log that recorded this frame, which with
             # logs combined is not necessarily the primary one.
             stem = get_frame_stem(session_id, slider_arg)
-
-            img_path = os.path.join(
-                img_root,
-                stem or file_dict["name"][0:-4],
-                str(frame_list[slider_arg]) + ".jpg",
-            )
-
-            # encode image frame
-            img = load_image(img_path)
-            fig_kwargs["image"] = img
 
             fig_kwargs["name"] = (
                 "Index: "
@@ -282,31 +269,12 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             else:
                 ref_fig = []
 
-            # Reuse base layout, only update image
-            if img is not None:
-                fig_layout = dict(base_layout)
-                fig_layout["images"] = [
-                    {
-                        "source": img,
-                        "xref": "x domain",
-                        "yref": "y domain",
-                        "x": 0,
-                        "y": 1,
-                        "xanchor": "left",
-                        "yanchor": "top",
-                        "sizex": 0.3,
-                        "sizey": 0.3,
-                    }
-                ]
-            else:
-                fig_layout = base_layout
-
             # Bundle all per-frame data into a single cache entry
             frame_bundle = {
                 "fig": fig,
                 "hover_strings": hover_strings,
                 "ref_fig": ref_fig,
-                "fig_layout": fig_layout,
+                "fig_layout": base_layout,
             }
             cache_set(frame_bundle, session_id, CACHE_KEYS["figure_bundle"], str(slider_arg))
             cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
@@ -331,7 +299,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-scatter3d", "n_clicks")},
         state={
-            "case": State("test-case", "value"),
             "session_id": State("session-id", "data"),
             "c_key": State("c-picker-3d", "value"),
             "size_vary": State("size-vary-switch", "value"),
@@ -341,6 +308,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             "file_list": State("file-add", "value"),
             "decay": State("decay-slider", "value"),
             "darkmode": State("darkmode-switch", "value"),
+            "stream_id": State("camera-stream-picker", "value"),
         },
         cancel=[Input("background-trigger", "data")],
         progress=[
@@ -352,7 +320,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
     def export_3d_scatter_animation(
         set_progress: Callable,
         btn: int,
-        case: str,
         session_id: str,
         c_key: str,
         size_vary: str,
@@ -362,6 +329,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         file_list: list,
         decay: int,
         darkmode: list,
+        stream_id: str,
     ) -> dict:
         """
         Export 3D scatter plot animation to HTML file with progress tracking.
@@ -369,7 +337,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         Args:
             set_progress: Function to control export progress spinner visibility.
             btn: Number of button clicks (must be > 0 to proceed).
-            case: Test case name for file organization.
             session_id: Unique session identifier for cache access.
             c_key: Column name for color mapping.
             size_vary: String indicating whether to vary marker sizes.
@@ -379,6 +346,8 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             file_list: List of additional file paths as JSON strings.
             decay: Number of past frames to show with decreasing opacity.
             darkmode: List indicating dark mode state (non-empty = enabled).
+            stream_id: Camera stream selected in the inspector, whose stills are
+                extracted and inlined into the exported file.
 
         Returns:
             Dictionary containing file download data for the generated HTML animation.
@@ -390,9 +359,6 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             raise PreventUpdate
 
         set_progress(["show"])
-
-        if not os.path.exists("data/" + case + "/images"):
-            os.makedirs("data/" + case + "/images")
 
         config = cache_get(session_id, CACHE_KEYS["config"])
         if config is None or "keys" not in config:
@@ -456,19 +422,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             visible_list,
         )
 
-        img_list = []
-
-        file_dict = json.loads(file_list[0])
-        for slider_arg, f_val in enumerate(frame_list):
-            img_list.append(
-                os.path.join(
-                    file_dict["path"],
-                    get_frame_stem(session_id, slider_arg) or file_dict["name"][0:-4],
-                    str(f_val) + ".jpg",
-                )
-            )
-
-        fig_kwargs["title"] = file_dict["name"][0:-4]
+        fig_kwargs["title"] = log_stem(json.loads(file_list[0])["name"])
 
         fig_kwargs["height"] = 750
 
@@ -476,11 +430,16 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
         fig_kwargs["c_type"] = c_type
         fig_kwargs["keys_dict"] = keys_dict
 
+        # The export is a single file with no server behind it, so the camera
+        # cannot be a video the browser seeks the way the panel does. One still
+        # per frame is pulled out of the recording and inlined instead.
+        frame_images = get_export_frame_images(export_manifest, session_id, stream_id)
+
         fig = go.Figure(
             get_animation_data(
                 filtered_table,
                 frame_key=config["slider"],
-                img_list=img_list,
+                frame_images=frame_images,
                 colormap=colormap,
                 dark_mode=bool(darkmode),
                 **fig_kwargs
@@ -489,6 +448,9 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
 
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
+
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
 
         file_name = "temp/" + timestamp + "_" + fig_kwargs["title"] + "_3dview.html"
 

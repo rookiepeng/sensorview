@@ -5,8 +5,8 @@ stays tabular and columnar. Parquet gives compressed columnar storage with
 predicate/projection pushdown, and MATLAB reads it natively via
 ``parquetread``/``parquetwrite`` (unlike Feather/Arrow IPC).
 
-Legacy ``.csv`` and ``.pkl`` inputs are still accepted so existing datasets load
-without conversion; only Parquet gets the lazy pushdown path.
+Parquet is the only accepted table format, which is what lets every read go
+through the lazy pushdown path.
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -21,11 +21,6 @@ import os
 import numpy as np
 import pandas as pd
 import polars as pl
-
-# Polars only recognizes "inf"/"-inf" as float tokens out of the box; a bare
-# "nan" makes it infer the whole column as a string, so list it (and common
-# variants) as null values to keep numeric columns numeric.
-CSV_NULL_VALUES = ["nan", "NaN", "NAN", "null", "NULL"]
 
 FileSpec = Union[str, Dict[str, str]]
 
@@ -105,15 +100,12 @@ def frame_ids_by_file(
     owners: List[tuple] = []
     for path in resolve_paths(file_list, file):
         try:
-            if path.lower().endswith(".parquet"):
-                ids = (
-                    pl.scan_parquet(path)
-                    .select(pl.col(frame_key).unique())
-                    .collect()
-                    .to_series()
-                )
-            else:
-                ids = _read_one(path)[frame_key].unique()
+            ids = (
+                pl.scan_parquet(path)
+                .select(pl.col(frame_key).unique())
+                .collect()
+                .to_series()
+            )
         except (pl.exceptions.PolarsError, KeyError, ValueError, OSError):
             owners.append((path, []))
             continue
@@ -176,36 +168,12 @@ def _normalize_non_finite(data: pd.DataFrame) -> pd.DataFrame:
     return data
 
 
-def _read_one(path: str) -> pl.DataFrame:
-    """
-    Eagerly read a single radar file of any supported format.
-
-    Args:
-        path: Path to a ``.parquet``, ``.csv``, or ``.pkl`` file.
-
-    Returns:
-        Polars DataFrame of the file contents.
-
-    Raises:
-        ValueError: If the file extension is not supported.
-    """
-    lowered = path.lower()
-    if lowered.endswith(".parquet"):
-        return pl.read_parquet(path)
-    if lowered.endswith(".csv"):
-        return pl.read_csv(path, null_values=CSV_NULL_VALUES)
-    if lowered.endswith(".pkl"):
-        return pl.from_pandas(pd.read_pickle(path))
-    raise ValueError(f"Unsupported file type: {os.path.basename(path)}")
-
-
 def scan_radar(paths: Sequence[str]) -> pl.LazyFrame:
     """
     Build a lazy scan over Parquet radar files.
 
     Args:
-        paths: Parquet file paths. Must all be Parquet; use :func:`load_radar`
-            for mixed or legacy formats.
+        paths: Parquet file paths.
 
     Returns:
         LazyFrame over the concatenated files, ready for pushdown filtering.
@@ -215,8 +183,14 @@ def scan_radar(paths: Sequence[str]) -> pl.LazyFrame:
     """
     if not paths:
         raise ValueError("scan_radar requires at least one path")
-    if not all(p.lower().endswith(".parquet") for p in paths):
-        raise ValueError("scan_radar only accepts .parquet files")
+
+    # Named rather than counted: this message is what the file picker surfaces
+    # when someone selects a table the app cannot read.
+    unsupported = next(
+        (p for p in paths if not p.lower().endswith(".parquet")), None
+    )
+    if unsupported is not None:
+        raise ValueError(f"Unsupported file type: {os.path.basename(unsupported)}")
 
     if len(paths) == 1:
         return pl.scan_parquet(paths[0])
@@ -241,9 +215,9 @@ def load_radar(
     """
     Load radar point cloud data into a pandas DataFrame.
 
-    When every input is Parquet, projection (``columns``) and the frame
-    predicate (``frame_key``/``frame_ids``) are pushed down into the scan so
-    only the needed bytes leave disk.
+    Projection (``columns``) and the frame predicate (``frame_key`` /
+    ``frame_ids``) are pushed down into the scan so only the needed bytes leave
+    disk.
 
     Args:
         file_list: Selected files (paths, dicts, or file-picker JSON strings).
@@ -263,25 +237,12 @@ def load_radar(
     if not paths:
         raise ValueError("No data files selected")
 
-    all_parquet = all(p.lower().endswith(".parquet") for p in paths)
+    frame = scan_radar(paths)
+    if columns:
+        frame = frame.select(list(columns))
+    if frame_key and frame_ids is not None:
+        frame = frame.filter(pl.col(frame_key).is_in(list(frame_ids)))
 
-    if all_parquet:
-        frame = scan_radar(paths)
-        if columns:
-            frame = frame.select(list(columns))
-        if frame_key and frame_ids is not None:
-            frame = frame.filter(pl.col(frame_key).is_in(list(frame_ids)))
-        data = _scalarize_list_columns(frame.collect()).to_pandas()
-    else:
-        parts = [_read_one(path) for path in paths]
-        combined = (
-            parts[0] if len(parts) == 1 else pl.concat(parts, how="diagonal_relaxed")
-        )
-        if columns:
-            combined = combined.select([c for c in columns if c in combined.columns])
-        if frame_key and frame_ids is not None and frame_key in combined.columns:
-            combined = combined.filter(pl.col(frame_key).is_in(list(frame_ids)))
-        data = _scalarize_list_columns(combined).to_pandas()
-
+    data = _scalarize_list_columns(frame.collect()).to_pandas()
     data = data.reset_index(drop=True)
     return _normalize_non_finite(data)

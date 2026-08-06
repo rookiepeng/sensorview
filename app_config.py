@@ -224,12 +224,7 @@ DROPDOWN_VALUES_CAT_COLOR = [
 """ Global Variables """
 REDIS_HASH_NAME = os.environ.get("DASH_APP_NAME", APP_TITLE)
 
-# Folders skipped when scanning a case directory for selectable radar tables.
-# Sidecars (.h5/.mp4) sit beside their log rather than in subfolders, and are
-# excluded by extension rather than by folder.
-SPECIAL_FOLDERS = ["images"]
-
-# Radar point cloud formats offered in the file picker. Parquet is the preferred
-# format; CSV and pickle stay supported so pre-existing datasets load without
-# conversion.
-RADAR_FILE_EXTENSIONS = (".parquet", ".csv", ".pkl")
+# Radar point cloud format offered in the file picker. Sidecars (.h5/.mp4) sit
+# beside their log rather than in subfolders, so they are excluded by extension
+# rather than by folder.
+RADAR_FILE_EXTENSIONS = (".parquet",)

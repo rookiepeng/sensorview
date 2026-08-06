@@ -33,6 +33,8 @@ from utils import filter_all
 from utils import cache_set, cache_get
 from utils import load_data
 
+from dataio.manifest import log_stem
+
 from frame_sources import cache_manifest, get_log_stem, get_manifest
 
 from process_frame import process_overlay_frame
@@ -196,7 +198,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 size_vary,
                 decay,
                 session_id,
-                file,
                 slider_arg,
                 ispaused,
             )
@@ -615,7 +616,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 size_vary,
                 decay,
                 session_id,
-                file,
                 slider_arg,
                 ispaused,
             )
@@ -775,7 +775,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         btn: int, session_id: str, visible_list: list, file: str, file_list: list
     ) -> dict:
         """
-        Export filtered data from all frames to CSV file.
+        Export filtered data from all frames to a Parquet file.
 
         Args:
             btn: Button click count (must be > 0).
@@ -785,7 +785,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             file_list: List of all file paths.
 
         Returns:
-            Dictionary with download data for CSV file.
+            Dictionary with download data for the Parquet file.
 
         Raises:
             PreventUpdate: If button not clicked or filter configuration unavailable.
@@ -813,17 +813,20 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             visible_table,
             visible_list,
         )
-        file_dict = json.loads(file)
-
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + file_dict["name"][0:-4] + "_" + timestamp + ".csv"
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
 
-        filtered_table.to_csv(
-            file_name,
-            index=False,
+        file_name = (
+            "temp/" + log_stem(json.loads(file)["name"]) + "_" + timestamp + ".parquet"
         )
+
+        # Exported in the same format the app reads, so an export is a log the
+        # app can open again -- the row index is an artifact of filtering, not
+        # data, so it is dropped rather than written as a column.
+        filtered_table.to_parquet(file_name, index=False)
 
         return {"download": send_file(file_name)}
 
@@ -842,7 +845,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         btn: int, slider_arg: int, session_id: str, visible_list: list, file: str
     ) -> dict:
         """
-        Export filtered data from current frame to CSV file.
+        Export filtered data from current frame to a Parquet file.
 
         Args:
             btn: Button click count (must be > 0).
@@ -852,7 +855,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             file: Current file path as JSON string.
 
         Returns:
-            Dictionary with download data for CSV file.
+            Dictionary with download data for the Parquet file.
 
         Raises:
             PreventUpdate: If button not clicked or required data unavailable.
@@ -888,17 +891,20 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             visible_table,
             visible_list,
         )
-        file_dict = json.loads(file)
-
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
 
-        file_name = "temp/" + file_dict["name"][0:-4] + "_" + timestamp + ".csv"
+        if not os.path.exists("temp"):
+            os.mkdir("temp")
 
-        filtered_table.to_csv(
-            file_name,
-            index=False,
+        file_name = (
+            "temp/" + log_stem(json.loads(file)["name"]) + "_" + timestamp + ".parquet"
         )
+
+        # Exported in the same format the app reads, so an export is a log the
+        # app can open again -- the row index is an artifact of filtering, not
+        # data, so it is dropped rather than written as a column.
+        filtered_table.to_parquet(file_name, index=False)
 
         return {"download": send_file(file_name)}
 
