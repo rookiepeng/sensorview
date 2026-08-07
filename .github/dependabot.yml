@@ -1,0 +1,23 @@
+version: 2
+
+updates:
+  # Keeps the action majors in .github/workflows current. This is the entry that
+  # earns its keep today: it is what will tell you when checkout, setup-python,
+  # upload-artifact or codeql-action publish a new major.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+
+  # requirements.txt currently pins nothing, so there is no version for dependabot
+  # to raise and this entry stays quiet. It starts producing updates as soon as
+  # the requirements are pinned, and security alerts reach it either way.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
