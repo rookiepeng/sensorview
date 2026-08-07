@@ -42,8 +42,6 @@ images/
 *.tar
 
 data/*
-!data/Example/
-!data/ExampleCSV/
 !data/NuScenes/
 /temp
 config.json
