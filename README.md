@@ -15,14 +15,7 @@ The workbench on a nuScenes scene: the radar point cloud with its decimated
 lidar backdrop and the ego-vehicle overlay, the camera frame and range profile
 for the same instant in the inspector, and two statistical views in the dock.
 
-<img src="./assets/screenshot.png" alt="SensorView workbench, dark theme" width="900"/>
-
-<details>
-<summary>Light theme</summary>
-
-<img src="./assets/screenshot_light.png" alt="SensorView workbench, light theme" width="900"/>
-
-</details>
+<img src="./assets/screenshot.gif" alt="SensorView workbench, dark theme" width="900"/>
 
 ## The Workbench
 
