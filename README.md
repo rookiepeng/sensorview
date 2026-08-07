@@ -24,7 +24,7 @@ Nothing scrolls except panel interiors, so no view is ever more than a click
 from visible — which is the point, since all of them describe the same frame.
 
 | Region | Holds |
-|---|---|
+| --- | --- |
 | **Top bar** | Dataset breadcrumb (it *is* the file picker), combine-logs, theme toggle, export menu |
 | **Left rail** | Display options and the per-column filters built from the manifest |
 | **Canvas** | The 3D point cloud — the only region that grows |
@@ -104,7 +104,7 @@ Each kind of sensor data gets the storage format that suits its shape, joined by
 a single **frame id**:
 
 | Data | Format | Filterable | Updates on |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Table (`table`) | Parquet (tidy table) | **Yes** — full filter pipeline | filter changes + frame changes |
 | Cloud (`cloud`) | HDF5, pre-decimated | No — fixed backdrop | frame changes only |
 | Curves (`curve`) | HDF5, one (N, 2) pair per frame | No | frame changes only |
@@ -151,7 +151,7 @@ git clone https://github.com/rookiepeng/sensorview.git
 cd sensorview
 ```
 
-2. Install Python dependencies:
+1. Install Python dependencies:
 
 ```bash
 pip install -r requirements.txt
