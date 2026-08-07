@@ -27,13 +27,19 @@ jobs:
       with:
         python-version: "3.14"
 
-    # Pinned: an unpinned linter turns an untouched branch red the day the tool
-    # ships a new rule. Bumping this is a deliberate commit, and dependabot
-    # cannot do it, so review the new findings when you raise the version.
-    - name: Install ruff
-      run: pip install ruff==0.16.1
+    # Both pinned: an unpinned linter or formatter turns an untouched branch red
+    # the day the tool ships a new rule or changes its style. Bumping these is a
+    # deliberate commit, and dependabot cannot do it, so review the fallout when
+    # you raise a version.
+    - name: Install ruff and black
+      run: pip install ruff==0.16.1 black==26.5.1
 
     # Rules live in ruff.toml. --output-format=github annotates the offending
     # lines directly in the pull request diff.
     - name: Run ruff
       run: ruff check --output-format=github .
+
+    # --diff prints exactly what black would rewrite, so a failure is actionable
+    # from the log alone. Run `black .` to fix.
+    - name: Check formatting with black
+      run: black --check --diff .
