@@ -184,7 +184,6 @@ def _threshold_section():
     )
 
 
-
 def get_inspector_layout():
     """
     Build the collapsible right inspector dock.

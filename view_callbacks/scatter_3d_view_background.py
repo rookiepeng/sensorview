@@ -203,9 +203,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             # entries that the new task is already populating.
             if cache_get(session_id, CACHE_KEYS["active_task_id"]) != trigger_idx:
                 print(
-                    "task ("
-                    + str(trigger_idx)
-                    + ") superseded by newer task, aborting"
+                    "task (" + str(trigger_idx) + ") superseded by newer task, aborting"
                 )
                 return {"dummy": 0}
 
@@ -276,16 +274,14 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                 "ref_fig": ref_fig,
                 "fig_layout": base_layout,
             }
-            cache_set(frame_bundle, session_id, CACHE_KEYS["figure_bundle"], str(slider_arg))
+            cache_set(
+                frame_bundle, session_id, CACHE_KEYS["figure_bundle"], str(slider_arg)
+            )
             cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
 
             percent = slider_arg / len(frame_list) * 100
             set_progress(
-                [
-                    percent,
-                    "Buffering ... (" + str(round(percent, 2)) + " %)",
-                    "warning"
-                ]
+                [percent, "Buffering ... (" + str(round(percent, 2)) + " %)", "warning"]
             )
 
         set_progress([100, "Buffer ready (100 %)", "success"])

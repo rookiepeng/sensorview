@@ -109,9 +109,7 @@ def _frame_nodes(path: str, template: str) -> List[str]:
 class CloudStore:
     """Read-only accessor for the decimated point-cloud sidecar."""
 
-    def __init__(
-        self, path: str, dataset_pattern: str = DEFAULT_CLOUD_PATTERN
-    ) -> None:
+    def __init__(self, path: str, dataset_pattern: str = DEFAULT_CLOUD_PATTERN) -> None:
         """
         Args:
             path: Path to the cloud HDF5 file.
@@ -185,9 +183,13 @@ class CloudStore:
         prefix = posixpath.basename(head)
         paths = _frame_nodes(self.path, self.dataset_pattern)
         return [
-            posixpath.basename(p)[len(prefix) : len(posixpath.basename(p)) - len(tail)]
-            if tail
-            else posixpath.basename(p)[len(prefix) :]
+            (
+                posixpath.basename(p)[
+                    len(prefix) : len(posixpath.basename(p)) - len(tail)
+                ]
+                if tail
+                else posixpath.basename(p)[len(prefix) :]
+            )
             for p in paths
         ]
 
@@ -289,9 +291,7 @@ class CurveStore:
         """
         return self.read_curve(dataset_pattern, frame_id)[1]
 
-    def frame_groups(
-        self, dataset_pattern: str = DEFAULT_CURVE_PATTERN
-    ) -> List[str]:
+    def frame_groups(self, dataset_pattern: str = DEFAULT_CURVE_PATTERN) -> List[str]:
         """
         List the per-frame group paths present in the file.
 
@@ -357,4 +357,3 @@ class CurveStore:
                 return sorted(group.keys())
         except (OSError, KeyError):
             return []
-
