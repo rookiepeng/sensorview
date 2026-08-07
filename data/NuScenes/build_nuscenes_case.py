@@ -369,8 +369,10 @@ def build_scene(
     """
     stem = scene["name"].replace("-", "_")
     samples = scene_samples(tables, indexed, scene)
-    print(f"  {scene['name']}: {len(samples)} keyframes, frames {frame_offset}-"
-          f"{frame_offset + len(samples) - 1}")
+    print(
+        f"  {scene['name']}: {len(samples)} keyframes, frames {frame_offset}-"
+        f"{frame_offset + len(samples) - 1}"
+    )
 
     origin = None
     rows = defaultdict(list)
@@ -412,7 +414,9 @@ def build_scene(
             record = channels.get(channel)
             if record is None:
                 continue
-            calibration = indexed["calibrated_sensor"][record["calibrated_sensor_token"]]
+            calibration = indexed["calibrated_sensor"][
+                record["calibrated_sensor_token"]
+            ]
             cal_r = quat_to_matrix(calibration["rotation"])
             cal_t = np.array(calibration["translation"])
 
@@ -441,9 +445,7 @@ def build_scene(
                 np.where(radial[:, None] == 0, 1.0, radial[:, None]),
             )
             rate_raw = unit[:, 0] * points["vx"] + unit[:, 1] * points["vy"]
-            rate_comp = (
-                unit[:, 0] * points["vx_comp"] + unit[:, 1] * points["vy_comp"]
-            )
+            rate_comp = unit[:, 0] * points["vx_comp"] + unit[:, 1] * points["vy_comp"]
 
             in_ego = rotate(xyz, cal_r) + cal_t
             in_world = rotate(in_ego, sweep_r) + sweep_t - origin
@@ -466,17 +468,28 @@ def build_scene(
             )
             rows["Sensor"].append(np.full(count, channel, dtype=object))
             rows["Dyn_Prop"].append(
-                np.array([DYN_PROP.get(int(v), "unknown") for v in points["dyn_prop"]], dtype=object)
+                np.array(
+                    [DYN_PROP.get(int(v), "unknown") for v in points["dyn_prop"]],
+                    dtype=object,
+                )
             )
             rows["Ambig_State"].append(
-                np.array([AMBIG_STATE.get(int(v), "unknown") for v in points["ambig_state"]], dtype=object)
+                np.array(
+                    [AMBIG_STATE.get(int(v), "unknown") for v in points["ambig_state"]],
+                    dtype=object,
+                )
             )
             rows["False_Alarm_Prob"].append(
-                np.array([PDH0.get(int(v), "unknown") for v in points["pdh0"]], dtype=object)
+                np.array(
+                    [PDH0.get(int(v), "unknown") for v in points["pdh0"]], dtype=object
+                )
             )
             rows["Valid"].append(
                 np.array(
-                    ["valid" if int(v) == 0 else f"invalid ({int(v)})" for v in points["invalid_state"]],
+                    [
+                        "valid" if int(v) == 0 else f"invalid ({int(v)})"
+                        for v in points["invalid_state"]
+                    ],
                     dtype=object,
                 )
             )
@@ -510,13 +523,17 @@ def build_scene(
         counts, _ = np.histogram(distance, bins=range_edges)
         above, _ = np.histogram(distance[height > GROUND_HEIGHT], bins=range_edges)
         height_edges = np.arange(
-            LIDAR_HEIGHT_RANGE[0], LIDAR_HEIGHT_RANGE[1] + LIDAR_HEIGHT_BIN, LIDAR_HEIGHT_BIN
+            LIDAR_HEIGHT_RANGE[0],
+            LIDAR_HEIGHT_RANGE[1] + LIDAR_HEIGHT_BIN,
+            LIDAR_HEIGHT_BIN,
         )
         height_counts, _ = np.histogram(height, bins=height_edges)
         lidar_curves[frame_id] = {
             "returns_all": pair(centres, counts),
             "returns_above_ground": pair(centres, above),
-            "height_all": pair((height_edges[:-1] + height_edges[1:]) / 2, height_counts),
+            "height_all": pair(
+                (height_edges[:-1] + height_edges[1:]) / 2, height_counts
+            ),
         }
 
         # ---------------- cameras ----------------
@@ -534,7 +551,11 @@ def build_scene(
         if not frames:
             continue
         furthest = max(
-            (float(distance.max()) for distance, *_ in frames.values() if len(distance)),
+            (
+                float(distance.max())
+                for distance, *_ in frames.values()
+                if len(distance)
+            ),
             default=RADAR_RANGE_BIN,
         )
         maximum = np.ceil(furthest / RADAR_RANGE_BIN) * RADAR_RANGE_BIN
@@ -556,11 +577,24 @@ def build_scene(
                 "rate_zero": pair(centres, np.zeros_like(centres)),
             }
         radar_curves[channel] = series
-        print(f"    curves: {channel} 0-{maximum:.0f} m in {RADAR_RANGE_BIN:.0f} m bins")
+        print(
+            f"    curves: {channel} 0-{maximum:.0f} m in {RADAR_RANGE_BIN:.0f} m bins"
+        )
 
     # ---------------- write ----------------
     table = pd.DataFrame({key: np.concatenate(value) for key, value in rows.items()})
-    for column in ("X", "Y", "Z", "Range", "Azimuth", "RCS", "Range_Rate", "Range_Rate_Comp", "Speed", "Time"):
+    for column in (
+        "X",
+        "Y",
+        "Z",
+        "Range",
+        "Azimuth",
+        "RCS",
+        "Range_Rate",
+        "Range_Rate_Comp",
+        "Speed",
+        "Time",
+    ):
         table[column] = table[column].astype(np.float32).round(3)
     table.to_parquet(os.path.join(out_dir, f"{stem}.parquet"), index=False)
     print(f"    table: {len(table)} detections, {table['Sensor'].nunique()} radars")
@@ -573,7 +607,10 @@ def build_scene(
         handle.attrs["columns"] = ["x", "y", "z"]
         for frame_id, points in cloud_frames.items():
             handle.create_dataset(
-                f"/frame_{frame_id}", data=points, compression="gzip", compression_opts=4
+                f"/frame_{frame_id}",
+                data=points,
+                compression="gzip",
+                compression_opts=4,
             )
     print(
         f"    cloud: {sum(len(p) for p in cloud_frames.values()) // len(cloud_frames)}"
@@ -686,7 +723,12 @@ def build_manifest():
                 "max_points": POINT_BUDGET,
                 "coord_decimals": 2,
             },
-            "display": {"color": "#8d99ae", "size": 1.0, "opacity": 0.25, "name": "LIDAR_TOP"},
+            "display": {
+                "color": "#8d99ae",
+                "size": 1.0,
+                "opacity": 0.25,
+                "name": "LIDAR_TOP",
+            },
         },
         "curve": {
             "format": "hdf5",
@@ -698,8 +740,18 @@ def build_manifest():
                     "x": {"label": "Range (m)"},
                     "y_label": "RCS (dBsm)",
                     "traces": [
-                        {"name": "rcs_peak", "label": "Peak RCS", "color": "#4c9be8", "width": 2},
-                        {"name": "rcs_mean", "label": "Mean RCS", "color": "#e8734c", "dash": "dash"},
+                        {
+                            "name": "rcs_peak",
+                            "label": "Peak RCS",
+                            "color": "#4c9be8",
+                            "width": 2,
+                        },
+                        {
+                            "name": "rcs_mean",
+                            "label": "Mean RCS",
+                            "color": "#e8734c",
+                            "dash": "dash",
+                        },
                     ],
                 },
                 {
@@ -708,9 +760,25 @@ def build_manifest():
                     "x": {"label": "Range (m)"},
                     "y_label": "Range rate (m/s)",
                     "traces": [
-                        {"name": "rate_measured", "label": "Measured", "color": "#5cb85c", "width": 2},
-                        {"name": "rate_compensated", "label": "Ego-motion compensated", "color": "#e8c34c", "dash": "dash"},
-                        {"name": "rate_zero", "label": "Stationary", "color": "#8d99ae", "dash": "dot", "width": 1},
+                        {
+                            "name": "rate_measured",
+                            "label": "Measured",
+                            "color": "#5cb85c",
+                            "width": 2,
+                        },
+                        {
+                            "name": "rate_compensated",
+                            "label": "Ego-motion compensated",
+                            "color": "#e8c34c",
+                            "dash": "dash",
+                        },
+                        {
+                            "name": "rate_zero",
+                            "label": "Stationary",
+                            "color": "#8d99ae",
+                            "dash": "dot",
+                            "width": 1,
+                        },
                     ],
                 },
                 {
@@ -719,8 +787,18 @@ def build_manifest():
                     "x": {"label": "Range (m)"},
                     "y_label": "Returns per 2 m bin",
                     "traces": [
-                        {"name": "returns_all", "label": "All returns", "color": "#4c9be8", "width": 2},
-                        {"name": "returns_above_ground", "label": "Above 0.5 m", "color": "#c678dd", "dash": "dash"},
+                        {
+                            "name": "returns_all",
+                            "label": "All returns",
+                            "color": "#4c9be8",
+                            "width": 2,
+                        },
+                        {
+                            "name": "returns_above_ground",
+                            "label": "Above 0.5 m",
+                            "color": "#c678dd",
+                            "dash": "dash",
+                        },
                     ],
                 },
                 {
@@ -729,7 +807,12 @@ def build_manifest():
                     "x": {"label": "Height above ego ground (m)"},
                     "y_label": "Returns per 0.25 m bin",
                     "traces": [
-                        {"name": "height_all", "label": "Returns", "color": "#4cd4e8", "width": 2}
+                        {
+                            "name": "height_all",
+                            "label": "Returns",
+                            "color": "#4cd4e8",
+                            "width": 2,
+                        }
                     ],
                 },
             ],
@@ -756,28 +839,62 @@ def build_manifest():
             # nuScenes poses are given at: 4.084 long, 1.730 wide, 1.562 tall.
             # Nose toward +x, which is where yaw=0 points.
             "vertices": [
-                [-1.09, -0.865, 0.0], [2.99, -0.865, 0.0], [2.99, 0.865, 0.0], [-1.09, 0.865, 0.0],
-                [-1.09, -0.865, 1.05], [1.60, -0.865, 1.05], [1.60, 0.865, 1.05], [-1.09, 0.865, 1.05],
-                [-0.75, -0.75, 1.56], [1.05, -0.75, 1.56], [1.05, 0.75, 1.56], [-0.75, 0.75, 1.56],
+                [-1.09, -0.865, 0.0],
+                [2.99, -0.865, 0.0],
+                [2.99, 0.865, 0.0],
+                [-1.09, 0.865, 0.0],
+                [-1.09, -0.865, 1.05],
+                [1.60, -0.865, 1.05],
+                [1.60, 0.865, 1.05],
+                [-1.09, 0.865, 1.05],
+                [-0.75, -0.75, 1.56],
+                [1.05, -0.75, 1.56],
+                [1.05, 0.75, 1.56],
+                [-0.75, 0.75, 1.56],
             ],
             "faces": [
-                [0, 1, 2], [0, 2, 3],
-                [0, 1, 5], [0, 5, 4],
-                [1, 2, 6], [1, 6, 5],
-                [2, 3, 7], [2, 7, 6],
-                [3, 0, 4], [3, 4, 7],
-                [4, 5, 9], [4, 9, 8],
-                [5, 6, 10], [5, 10, 9],
-                [6, 7, 11], [6, 11, 10],
-                [7, 4, 8], [7, 8, 11],
-                [8, 9, 10], [8, 10, 11],
+                [0, 1, 2],
+                [0, 2, 3],
+                [0, 1, 5],
+                [0, 5, 4],
+                [1, 2, 6],
+                [1, 6, 5],
+                [2, 3, 7],
+                [2, 7, 6],
+                [3, 0, 4],
+                [3, 4, 7],
+                [4, 5, 9],
+                [4, 9, 8],
+                [5, 6, 10],
+                [5, 10, 9],
+                [6, 7, 11],
+                [6, 11, 10],
+                [7, 4, 8],
+                [7, 8, 11],
+                [8, 9, 10],
+                [8, 10, 11],
             ],
             "edges": [
-                [0, 1], [1, 2], [2, 3], [3, 0],
-                [4, 5], [5, 6], [6, 7], [7, 4],
-                [8, 9], [9, 10], [10, 11], [11, 8],
-                [0, 4], [1, 5], [2, 6], [3, 7],
-                [4, 8], [5, 9], [6, 10], [7, 11],
+                [0, 1],
+                [1, 2],
+                [2, 3],
+                [3, 0],
+                [4, 5],
+                [5, 6],
+                [6, 7],
+                [7, 4],
+                [8, 9],
+                [9, 10],
+                [10, 11],
+                [11, 8],
+                [0, 4],
+                [1, 5],
+                [2, 6],
+                [3, 7],
+                [4, 8],
+                [5, 9],
+                [6, 10],
+                [7, 11],
             ],
         },
     }

@@ -1,0 +1,45 @@
+name: Lint
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ruff:
+    name: ruff
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python 3.14
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.14"
+
+    # Both pinned: an unpinned linter or formatter turns an untouched branch red
+    # the day the tool ships a new rule or changes its style. Bumping these is a
+    # deliberate commit, and dependabot cannot do it, so review the fallout when
+    # you raise a version.
+    - name: Install ruff and black
+      run: pip install ruff==0.16.1 black==26.5.1
+
+    # Rules live in ruff.toml. --output-format=github annotates the offending
+    # lines directly in the pull request diff.
+    - name: Run ruff
+      run: ruff check --output-format=github .
+
+    # --diff prints exactly what black would rewrite, so a failure is actionable
+    # from the log alone. Run `black .` to fix.
+    - name: Check formatting with black
+      run: black --check --diff .

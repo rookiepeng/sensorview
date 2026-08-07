@@ -1,0 +1,21 @@
+# Ruff configuration, shared by local runs and the Lint workflow so that a clean
+# `ruff check` on a laptop means a green check in CI.
+#
+# The selected set is the correctness-focused one: F (pyflakes) catches undefined
+# names, unused imports and f-string mistakes, while E4/E7/E9 cover the import,
+# statement and syntax errors pycodestyle can prove. The tree is clean under this
+# set today, so the gate starts green and only fires on genuine regressions.
+#
+# Deliberately not enabled yet — each needs a one-time cleanup commit first, and
+# is worth turning on once that is done:
+#
+#   I    import sorting             36 findings
+#   UP   pyupgrade / PEP 585 types  439 findings (Dict -> dict, Optional -> | None)
+#   DTZ  timezone-aware datetimes   11 findings
+#
+# Formatting is black's job, enforced separately by `black --check` in the Lint
+# workflow. Ruff's own formatter is deliberately left off: the two disagree in
+# places, and running both would leave them rewriting each other's output.
+
+[lint]
+select = ["E4", "E7", "E9", "F"]

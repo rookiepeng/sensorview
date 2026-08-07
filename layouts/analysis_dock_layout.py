@@ -36,7 +36,6 @@ from layouts.violin_card_layout import get_violin_pane_layout
 from layouts.parallel_card_layout import get_parallel_pane_layout
 from layouts.heatmap_card_layout import get_heatmap_pane_layout
 
-
 # View key -> the enable switch it drives -> the label offered in the slot
 # pickers. app.py's clientside gate reads the same list, and the keys are what
 # the slot selects hold.

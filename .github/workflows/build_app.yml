@@ -1,0 +1,125 @@
+name: Build App
+
+# Controls when the workflow will run
+on:
+  push:
+    # Triggers the workflow on push events but only for the master branch
+    branches: [master]
+    # A v* tag additionally publishes the builds as GitHub release assets
+    tags: ["v*"]
+  pull_request:
+    branches: [master]
+  # Allows the workflow to be started by hand from the Actions tab
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to the same branch makes the in-flight build obsolete; drop it
+# rather than paying for two full PyInstaller runs.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.artifact }}
+
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: read
+
+    strategy:
+      # One platform failing should not hide the other platform's result.
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: sensorview-linux
+            archive: sensorview-linux.tar.gz
+          - os: windows-latest
+            artifact: sensorview-windows
+            archive: sensorview-windows.zip
+
+    # Git Bash ships on the Windows runners, so a single shell keeps every
+    # build step identical across platforms.
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Python 3.14
+      uses: actions/setup-python@v7
+      with:
+        python-version: "3.14"
+        cache: pip
+        cache-dependency-path: requirements.txt
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: PyInstaller
+      run: python -m PyInstaller app.spec
+
+    - name: Copy example
+      run: cp -r ./data ./dist/sensorview/data
+
+    # Each platform is packed into one archive, which then serves as both the CI
+    # artifact and the release asset. tar is what preserves the executable bit on
+    # ./sensorview, which upload-artifact's own zip would otherwise drop.
+    - name: Package built app (Linux)
+      if: runner.os == 'Linux'
+      run: tar -czf ${{ matrix.archive }} -C ./dist sensorview
+
+    - name: Package built app (Windows)
+      if: runner.os == 'Windows'
+      run: pwsh -NoProfile -Command "Compress-Archive -Path dist/sensorview -DestinationPath ${{ matrix.archive }}"
+
+    - name: Archive built app
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ matrix.artifact }}
+        path: ./${{ matrix.archive }}
+        retention-days: 14
+
+  release:
+    name: Publish release
+    # Only tag builds publish, and only once both platforms have built cleanly.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to create the release and attach the built archives to it.
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Download built apps
+      uses: actions/download-artifact@v7
+      with:
+        path: artifacts
+        merge-multiple: true
+
+    # --clobber keeps a re-run of the same tag idempotent rather than erroring on
+    # an asset that is already attached.
+    - name: Publish to GitHub release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        ls -lh artifacts
+        if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag
+        fi
+        gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber

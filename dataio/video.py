@@ -347,4 +347,3 @@ def transcode_to_mp4(
     raise VideoEncodeError(
         f"ffmpeg could not transcode {source}: {result.stderr.strip()}"
     )
-

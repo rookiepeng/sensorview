@@ -24,7 +24,6 @@ import dash_bootstrap_components as dbc
 from app_config import app
 from app_config import APP_TITLE, APP_VERSION, THEME
 
-
 HIDDEN_FIELD = {"display": "none"}
 
 
@@ -64,7 +63,9 @@ def _breadcrumb():
         html.Button(
             [
                 html.I(className="bi bi-folder2-open"),
-                html.Span("No test case", id="crumb-case", className="sv-crumb sv-crumb-case"),
+                html.Span(
+                    "No test case", id="crumb-case", className="sv-crumb sv-crumb-case"
+                ),
                 html.Span("/", className="sv-crumb-sep"),
                 html.Span(
                     "select a log …",
@@ -161,12 +162,26 @@ def _export_menu():
         children=[
             dbc.DropdownMenu(
                 [
-                    dbc.DropdownMenuItem("Current plot (PNG)", id="export-scatter3d-png", n_clicks=0),
-                    dbc.DropdownMenuItem("Current plot (HTML)", id="export-scatter3d-html", n_clicks=0),
-                    dbc.DropdownMenuItem("All frames as HTML video", id="export-scatter3d", n_clicks=0),
+                    dbc.DropdownMenuItem(
+                        "Current plot (PNG)", id="export-scatter3d-png", n_clicks=0
+                    ),
+                    dbc.DropdownMenuItem(
+                        "Current plot (HTML)", id="export-scatter3d-html", n_clicks=0
+                    ),
+                    dbc.DropdownMenuItem(
+                        "All frames as HTML video", id="export-scatter3d", n_clicks=0
+                    ),
                     dbc.DropdownMenuItem(divider=True),
-                    dbc.DropdownMenuItem("Filtered data, current frame (Parquet)", id="export-data-current", n_clicks=0),
-                    dbc.DropdownMenuItem("Filtered data, all frames (Parquet)", id="export-data-all", n_clicks=0),
+                    dbc.DropdownMenuItem(
+                        "Filtered data, current frame (Parquet)",
+                        id="export-data-current",
+                        n_clicks=0,
+                    ),
+                    dbc.DropdownMenuItem(
+                        "Filtered data, all frames (Parquet)",
+                        id="export-data-all",
+                        n_clicks=0,
+                    ),
                 ],
                 label=html.I(className="bi bi-box-arrow-up"),
                 id="export-dropdown",

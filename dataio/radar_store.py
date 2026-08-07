@@ -186,9 +186,7 @@ def scan_radar(paths: Sequence[str]) -> pl.LazyFrame:
 
     # Named rather than counted: this message is what the file picker surfaces
     # when someone selects a table the app cannot read.
-    unsupported = next(
-        (p for p in paths if not p.lower().endswith(".parquet")), None
-    )
+    unsupported = next((p for p in paths if not p.lower().endswith(".parquet")), None)
     if unsupported is not None:
         raise ValueError(f"Unsupported file type: {os.path.basename(unsupported)}")
 
@@ -200,9 +198,7 @@ def scan_radar(paths: Sequence[str]) -> pl.LazyFrame:
     except Exception:
         # Schemas differ across files (e.g. sensors with different columns);
         # diagonal concat keeps the union of columns and null-fills the rest.
-        return pl.concat(
-            [pl.scan_parquet(p) for p in paths], how="diagonal_relaxed"
-        )
+        return pl.concat([pl.scan_parquet(p) for p in paths], how="diagonal_relaxed")
 
 
 def load_radar(

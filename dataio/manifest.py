@@ -812,9 +812,7 @@ class Manifest:
 
         return list(sources.values())
 
-    def curve_path(
-        self, stem: str, source_id: Optional[str] = None
-    ) -> Optional[str]:
+    def curve_path(self, stem: str, source_id: Optional[str] = None) -> Optional[str]:
         """
         Path to one of a log's curve sidecars.
 
@@ -1088,9 +1086,7 @@ class Manifest:
                     },
                 )
 
-        return sorted(
-            streams.values(), key=lambda s: (s["id"] != "image", s["id"])
-        )
+        return sorted(streams.values(), key=lambda s: (s["id"] != "image", s["id"]))
 
     def has_image(self, stem: str) -> bool:
         """

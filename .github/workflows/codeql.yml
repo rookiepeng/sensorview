@@ -1,0 +1,46 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  # Vulnerabilities are found in queries, not only in commits, so re-scan the
+  # unchanged tree weekly to pick up newly published CodeQL rules.
+  schedule:
+    - cron: "27 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze Python
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Required to upload the results to the repository's Security tab.
+      security-events: write
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v7
+
+    # v4 runs on the Node 24 runtime; v3 is deprecated in December 2026.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: python
+        # Python needs no compilation, so CodeQL reads the source directly
+        # instead of tracing a build.
+        build-mode: none
+
+    - name: Perform CodeQL analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:python"

@@ -1,0 +1,9 @@
+# Commits that only reformat code, hidden from blame output.
+#
+# Enable locally with:
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# The GitHub blame view picks this file up automatically.
+
+# Format the codebase with black
+18ba6128acd53d742c8292d177c020f0505cf389

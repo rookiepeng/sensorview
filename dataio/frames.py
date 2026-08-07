@@ -24,7 +24,9 @@ DEFAULT_TIME_KEY = "Time"
 DEFAULT_FPS = 10.0
 
 
-def find_time_key(data: pd.DataFrame, time_key: str = DEFAULT_TIME_KEY) -> Optional[str]:
+def find_time_key(
+    data: pd.DataFrame, time_key: str = DEFAULT_TIME_KEY
+) -> Optional[str]:
     """
     Locate the wall-clock time column, if the data has one.
 
