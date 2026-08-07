@@ -46,7 +46,6 @@ from frame_sources import cache_log_info, cache_manifest, get_reference_mapping
 from utils import cache_set, cache_get
 from utils import load_data
 
-
 # The overlay's geometry lives in the stylesheet; callbacks only toggle display.
 HIDE_LOADING = {"display": "none"}
 SHOW_LOADING = {"display": "flex"}
@@ -136,19 +135,13 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         if reference is not None:
             # A sidecar carries the reference outright, so the pickers map its
             # columns; the table's own ref columns are irrelevant to it.
-            columns = [
-                {"label": name, "value": name} for name in reference["columns"]
-            ]
+            columns = [{"label": name, "value": name} for name in reference["columns"]]
             options = [[none_option] + columns] * count
             mapping = reference["mapping"]
-            values = [
-                mapping.get(field) or "None" for field in REFERENCE_POSE_ORDER
-            ]
+            values = [mapping.get(field) or "None" for field in REFERENCE_POSE_ORDER]
             return options, values, {}, f"from {reference['file']}"
 
-        options = _create_dropdown_options(
-            config, num_keys, count, include_none=True
-        )
+        options = _create_dropdown_options(config, num_keys, count, include_none=True)
         values = ["None"] * count
         for index, config_key in enumerate(("x_ref", "y_ref", "z_ref")):
             values[index] = config.get(config_key, "None")

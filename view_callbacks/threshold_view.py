@@ -196,7 +196,9 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
             stem,
             plot_id,
             session_id,
-            frame_ids=[frame_list[idx] for idx in get_frame_positions(session_id, stem)],
+            frame_ids=[
+                frame_list[idx] for idx in get_frame_positions(session_id, stem)
+            ],
             source_id=source_id,
         )
 

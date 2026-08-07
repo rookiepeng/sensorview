@@ -219,9 +219,9 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
 
         log_info = get_log_info(session_id)
         frame_count = len(log_info.get("timestamps") or [])
-        frame_stems = log_info.get("frame_stems") or [
-            log_info.get("stem", "")
-        ] * frame_count
+        frame_stems = (
+            log_info.get("frame_stems") or [log_info.get("stem", "")] * frame_count
+        )
 
         segments = []
         for run in _frame_runs(frame_stems):

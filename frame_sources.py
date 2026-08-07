@@ -612,9 +612,7 @@ def get_export_frame_images(
     return images
 
 
-def get_curve_sources(
-    manifest: Optional[Manifest], stem: str
-) -> List[Dict[str, str]]:
+def get_curve_sources(manifest: Optional[Manifest], stem: str) -> List[Dict[str, str]]:
     """
     List the curve sidecars available for the current log.
 

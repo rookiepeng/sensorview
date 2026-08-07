@@ -23,7 +23,6 @@ import psutil
 # import redis
 from diskcache import FanoutCache
 
-
 # Background callbacks run in a worker process that Dash's DiskcacheManager
 # creates through `multiprocess`. On POSIX that defaults to fork, which copies
 # only the calling thread -- and this server is threaded, so a worker inherits
@@ -100,9 +99,7 @@ frame_cache = FanoutCache(
     FRAME_CACHE_PATH, timeout=120, shards=8, eviction_policy="none"
 )
 
-dash_cache = FanoutCache(
-    DASH_CACHE_PATH, timeout=120, shards=4, eviction_policy="none"
-)
+dash_cache = FanoutCache(DASH_CACHE_PATH, timeout=120, shards=4, eviction_policy="none")
 background_callback_manager = SafeDiskcacheManager(dash_cache)
 
 

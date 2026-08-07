@@ -399,7 +399,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             ),
             "buffer_color": Output("buffer", "color", allow_duplicate=True),
             "buffer_value": Output("buffer", "value", allow_duplicate=True),
-            "buffer_tooltip": Output("buffer-tooltip", "children", allow_duplicate=True),
+            "buffer_tooltip": Output(
+                "buffer-tooltip", "children", allow_duplicate=True
+            ),
         },
         inputs={
             "cat_values": Input({"type": "filter-dropdown", "index": ALL}, "value"),
