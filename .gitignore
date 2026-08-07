@@ -31,6 +31,8 @@ __pycache__/
 
 .ipynb_checkpoints/
 
+.pytest_cache/
+
 *.mat
 
 figures/

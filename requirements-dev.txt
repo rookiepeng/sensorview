@@ -1,0 +1,11 @@
+# Development-only dependencies, installed on top of requirements.txt.
+#
+#     pip install -r requirements.txt -r requirements-dev.txt
+#
+# Pinned so a tool release cannot turn an untouched branch red on its own, and so
+# dependabot raises the version as a reviewable pull request instead.
+pytest==9.1.1
+
+# Matches the versions the Lint workflow installs.
+black==26.5.1
+ruff==0.16.1
