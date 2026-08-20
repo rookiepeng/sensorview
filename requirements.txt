@@ -13,8 +13,13 @@ diskcache
 # the start method background callback workers are created with.
 multiprocess
 orjson
+# Serves the desktop app on loopback behind the native window.
 waitress
-flaskwebgui
+# Native window shell. Uses the OS webview: WebView2 on Windows, WKWebView on
+# macOS, WebKitGTK on Linux -- where the GTK bindings are a system package, so
+# `pip install "pywebview[gtk]"` plus gir1.2-webkit2-4.1 is what gets a window
+# there. Without them the app falls back to opening the default browser.
+pywebview
 typing-extensions
 # Bundles a static ffmpeg, used to transcode camera streams a browser cannot play.
 imageio-ffmpeg

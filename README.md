@@ -192,7 +192,18 @@ table has to be converted first — see
 python app.py
 ```
 
-Launches through FlaskWebGUI on port 8521 in its own window.
+Waitress serves the app on `127.0.0.1:8521` and pywebview shows it in a native
+window -- WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux. Closing
+the window ends the process.
+
+The window brings a native folder chooser with it: the browse button beside the
+data path in the open dialog. Served to a browser instead, that button is
+disabled and the path is typed.
+
+On Linux the GTK bindings are system packages rather than wheels, so a window
+there needs `pip install "pywebview[gtk]"` alongside `gir1.2-webkit2-4.1` and
+`python3-gi`. Without them SensorView opens in the default browser instead, and
+has to be stopped with Ctrl+C rather than by closing the window.
 
 #### Development
 
@@ -247,7 +258,8 @@ See `requirements.txt` for the complete list:
 - **diskcache**: server-side FanoutCache for session and frame data
 - **orjson**: high-performance JSON serialization for API responses
 - **kaleido**: static image export for plots
-- **flaskwebgui**: desktop application wrapper
+- **pywebview**: native window shell for the desktop app
+- **waitress**: WSGI server behind that window
 - **waitress**: production WSGI server (optional)
 
 ## Development

@@ -17,6 +17,8 @@ from dash import html
 
 import dash_bootstrap_components as dbc
 
+import desktop
+
 
 def _field(label: str, control, hint: str, target: str) -> html.Div:
     """
@@ -48,6 +50,10 @@ def get_modal_body() -> List[html.Div]:
     Returns:
         List[html.Div]: Path, test case, and log file fields.
     """
+    # A native folder chooser needs a native window. Served to a browser the
+    # button stays, disabled, rather than the field silently changing shape.
+    native_dialogs = desktop.is_available()
+
     return [
         _field(
             "Data path",
@@ -57,6 +63,21 @@ def get_modal_body() -> List[html.Div]:
                         id="data-path-modal",
                         placeholder="Directory containing the test cases …",
                         type="text",
+                    ),
+                    dbc.Button(
+                        html.I(className="bi bi-folder2-open"),
+                        id="browse-button-modal",
+                        n_clicks=0,
+                        disabled=not native_dialogs,
+                    ),
+                    dbc.Tooltip(
+                        (
+                            "Browse for a folder"
+                            if native_dialogs
+                            else "Browsing is available in the desktop app"
+                        ),
+                        target="browse-button-modal",
+                        placement="top",
                     ),
                     dbc.Button(
                         html.I(className="bi bi-arrow-clockwise"),

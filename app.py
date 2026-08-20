@@ -17,10 +17,7 @@ import json
 import os
 import shutil
 
-# from waitress import serve
 from multiprocessing import freeze_support
-
-from flaskwebgui import FlaskUI
 
 import orjson
 from flask import Response, abort, send_file
@@ -30,6 +27,8 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
 from utils import load_config, save_config, cache_get
+
+import desktop
 
 from view_callbacks.test_case_view import get_test_case_view_callbacks
 from view_callbacks.control_view import get_control_view_callbacks
@@ -306,6 +305,41 @@ def on_modal_open(is_modal_open: bool) -> Dict[str, str]:
     return {
         "data_path": data_path,
     }
+
+
+@app.callback(
+    output={
+        "data_path": Output("data-path-modal", "value", allow_duplicate=True),
+    },
+    inputs={"unused_browse": Input("browse-button-modal", "n_clicks")},
+    state={"data_path": State("data-path-modal", "value")},
+    prevent_initial_call=True,
+)
+def on_browse(unused_browse: Optional[int], data_path: str) -> Dict[str, str]:
+    """
+    Fill the data path from the OS folder chooser.
+
+    Only the desktop shell can raise a native dialog, so the button that gets
+    here is rendered disabled without one and this stays unreachable.
+
+    Args:
+        unused_browse: Number of browse button clicks (unused but required for callback).
+        data_path: Current contents of the path field, used to open the dialog
+            somewhere useful.
+
+    Returns:
+        Dictionary containing the chosen data path, which the path Input then
+        rescans for test cases.
+
+    Raises:
+        PreventUpdate: If the dialog was cancelled or is unavailable, so a
+            typed path survives a stray click.
+    """
+    chosen = desktop.pick_folder(data_path)
+    if chosen is None:
+        raise PreventUpdate
+
+    return {"data_path": chosen}
 
 
 @app.callback(
@@ -750,9 +784,12 @@ if __name__ == "__main__":
         app.run(debug=True, threaded=True, processes=1, host="0.0.0.0")
 
     else:
-        # serve(app.server, listen="*:8000")
+        # Spawned background-callback workers re-import this module, so the
+        # freeze support has to be in place before anything else starts.
         freeze_support()
 
-        FlaskUI(
-            app=app.server, server="flask", port=8521, profile_dir_prefix="sensorview"
-        ).run()
+        # Serves on loopback with waitress and shows it in an OS webview. For a
+        # deployment, drop the window and serve on a public interface instead:
+        #     from waitress import serve
+        #     serve(app.server, listen="*:8000")
+        desktop.run(app.server, title=APP_TITLE, port=8521)
