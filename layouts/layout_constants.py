@@ -29,3 +29,8 @@ colorscales = [
     "YlGnBu",
     "YlOrRd",
 ]
+
+# The full-screen loading overlays' geometry lives in the stylesheet; callbacks
+# only ever toggle ``display``.
+HIDE_LOADING = {"display": "none"}
+SHOW_LOADING = {"display": "flex"}

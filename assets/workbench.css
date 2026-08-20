@@ -1216,8 +1216,10 @@ body {
     font-weight: 650;
 }
 
-/* ── Loading overlay ─────────────────────────────────────────────────── */
-#loading-view {
+/* ── Loading overlays ────────────────────────────────────────────────── */
+/* Covers the viewport, so it is both the progress indicator and the thing that
+   keeps every control underneath out of reach until the work finishes. */
+.sv-loading-overlay {
     position: fixed;
     inset: 0;
     z-index: 2000;
@@ -1228,6 +1230,28 @@ body {
     gap: 14px;
     background: color-mix(in srgb, var(--sv-bg) 82%, transparent);
     backdrop-filter: blur(3px);
+}
+
+/* Filtering is usually quick, and a full-screen flash on every slider nudge
+   reads as a fault. So this variant starts fully transparent and only fades in
+   once the work has outlasted the delay -- a filter that returns before then is
+   never announced at all. It still covers the viewport from the first frame,
+   so the clicks are swallowed either way. */
+.sv-loading-deferred {
+    opacity: 0;
+    animation: sv-loading-fade-in 160ms ease-out 400ms forwards;
+}
+
+@keyframes sv-loading-fade-in {
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sv-loading-deferred {
+        animation-duration: 1ms;
+    }
 }
 
 .sv-loading-label {

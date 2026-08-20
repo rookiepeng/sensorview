@@ -43,12 +43,10 @@ from dataio.radar_store import frame_ids_by_file
 
 from frame_sources import cache_log_info, cache_manifest, get_reference_mapping
 
+from layouts.layout_constants import HIDE_LOADING, SHOW_LOADING
+
 from utils import cache_set, cache_get
 from utils import load_data
-
-# The overlay's geometry lives in the stylesheet; callbacks only toggle display.
-HIDE_LOADING = {"display": "none"}
-SHOW_LOADING = {"display": "flex"}
 
 
 def get_test_case_view_callbacks(app: dash.Dash) -> None:

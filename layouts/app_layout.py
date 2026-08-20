@@ -82,11 +82,19 @@ def _stores():
     ]
 
 
-def _loading_overlay():
+def _loading_overlay(component_id, label, class_name="sv-loading-overlay"):
     """
-    Build the full-screen overlay shown while a log is being read.
+    Build a full-screen overlay that blocks the whole app while work runs.
 
     Its geometry lives in the stylesheet; callbacks only ever set ``display``.
+    Because it covers the viewport it also swallows every click, which is the
+    point: none of the controls underneath can be moved while the job they
+    would re-trigger is still running.
+
+    Args:
+        component_id (str): Component id, which is what callbacks toggle.
+        label (str): Text shown under the spinner.
+        class_name (str): Overlay classes, which decide how it fades in.
 
     Returns:
         html.Div: The overlay.
@@ -96,9 +104,10 @@ def _loading_overlay():
             dbc.Spinner(
                 color="primary", spinner_style={"width": "3rem", "height": "3rem"}
             ),
-            html.Span("Loading dataset", className="sv-loading-label"),
+            html.Span(label, className="sv-loading-label"),
         ],
-        id="loading-view",
+        id=component_id,
+        className=class_name,
         style={"display": "none"},
     )
 
@@ -115,7 +124,19 @@ def get_app_layout():
             *_stores(),
             get_modal_layout(),
             get_error_modal(),
-            _loading_overlay(),
+            _loading_overlay("loading-view", "Loading dataset"),
+            # Raised for as long as a filter or axis change is being applied.
+            # It is deferred rather than instant (see the stylesheet): most
+            # changes return before it would be painted, and a full-screen
+            # flash on every slider nudge is worse than no overlay at all --
+            # but the click blocking is in force from the first frame either
+            # way, which is what stops a second change being queued behind the
+            # one still running.
+            _loading_overlay(
+                "update-loading-view",
+                "Applying changes",
+                class_name="sv-loading-overlay sv-loading-deferred",
+            ),
             get_topbar_layout(),
             html.Div(
                 [

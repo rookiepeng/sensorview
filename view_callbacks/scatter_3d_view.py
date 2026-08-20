@@ -37,6 +37,8 @@ from dataio.manifest import log_stem
 
 from frame_sources import cache_manifest, get_log_stem, get_manifest
 
+from layouts.layout_constants import HIDE_LOADING, SHOW_LOADING
+
 from process_frame import process_overlay_frame
 from process_frame import process_single_frame
 
@@ -438,6 +440,20 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "data_path": State("data-path", "value"),
             "case": State("test-case", "value"),
         },
+        # Filtering re-reads the whole log, so on a large one this callback is
+        # the app's longest synchronous pause -- long enough for the rail to
+        # still look live and invite a second adjustment, which would queue
+        # another full pass behind this one. The overlay covers the viewport
+        # for exactly as long as the callback runs, which puts every control
+        # out of reach until the figure it is about to return is on screen.
+        #
+        # Tied to the callback's lifetime rather than raised and lowered by
+        # hand: PreventUpdate and unhandled exceptions both end it, and both
+        # are reachable here, so hiding it from inside the body would strand
+        # it over a working app.
+        running=[
+            (Output("update-loading-view", "style"), SHOW_LOADING, HIDE_LOADING),
+        ],
         prevent_initial_call=True,
     )
     def regenerate_figure_callback(
