@@ -277,6 +277,12 @@ def run(
     try:
         import webview
 
+        # Every export in the app -- figures, Parquet, the animation -- is
+        # delivered through dcc.Download, which lands as a browser download.
+        # pywebview cancels those outright unless asked not to, so leaving this
+        # at its default makes every export button do nothing at all.
+        webview.settings["ALLOW_DOWNLOADS"] = True
+
         _window = webview.create_window(
             title,
             url,

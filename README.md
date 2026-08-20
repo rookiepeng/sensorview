@@ -196,9 +196,10 @@ Waitress serves the app on `127.0.0.1:8521` and pywebview shows it in a native
 window -- WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux. Closing
 the window ends the process.
 
-The window brings a native folder chooser with it: the browse button beside the
-data path in the open dialog. Served to a browser instead, that button is
-disabled and the path is typed.
+The window brings native dialogs with it: the browse button beside the data path
+in the open dialog, and a save dialog for every export, which asks where the
+file should go rather than dropping it in the downloads folder. Served to a
+browser instead, the browse button is disabled and the path is typed.
 
 On Linux the GTK bindings are system packages rather than wheels, so a window
 there needs `pip install "pywebview[gtk]"` alongside `gir1.2-webkit2-4.1` and
