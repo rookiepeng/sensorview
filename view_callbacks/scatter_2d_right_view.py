@@ -51,7 +51,7 @@ def get_scatter_2d_right_view_callbacks(app):
         inputs={
             "unused_slider_arg": Input("slider-frame", "value"),
             "unused_play_stop_click": Input("play-stop-button", "n_clicks"),
-            "all_frame_sw": Input("scatter2dl-allframe-switch", "value"),
+            "all_frame_sw": Input("scatter2dr-allframe-switch", "value"),
         },
         state={
             "ispaused": State("interval-component", "disabled"),
