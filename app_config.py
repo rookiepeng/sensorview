@@ -44,13 +44,38 @@ if multiprocess.get_start_method(allow_none=True) is None:
 
 
 class SafeDiskcacheManager(DiskcacheManager):
-    """DiskcacheManager that silently ignores already-terminated processes on cancel."""
+    """DiskcacheManager that silently ignores already-terminated processes on cancel.
+
+    It also drops whatever sits at a job's result key before that job starts.
+    Dash keys a background callback's result by the hash of its argument values,
+    and a result is meant to be read once: the browser polls for it and the read
+    deletes it. A job whose poll chain stops early never performs that read --
+    the renderer supersedes a running job as soon as one of its inputs changes
+    again, and the superseded job can still finish and write its result before
+    the kill reaches it -- so the entry is left behind under that key.
+
+    Nothing ages those leftovers out, and the next invocation whose arguments
+    hash to the same key is served one instead of running: Dash finds a result
+    already sitting at the key, returns it and terminates the job it just
+    started. Picking x/y/c back and forth on a 2D scatter is exactly that case,
+    since every other argument stays put, so the key repeats as soon as a
+    combination is revisited. When the leftover is a real figure the plot merely
+    shows a recomputation of the same inputs; when it is the `no_update` that a
+    PreventUpdate stored (the frame was not buffered yet when that job ran), the
+    figure silently does not update at all.
+    """
 
     def terminate_job(self, job):
         try:
             super().terminate_job(job)
         except psutil.NoSuchProcess:
             pass
+
+    def call_job_fn(self, key, job_fn, args, context):
+        self.clear_cache_entry(key)
+        self.clear_cache_entry(self._make_progress_key(key))
+        self.clear_cache_entry(self._make_set_props_key(key))
+        return super().call_job_fn(key, job_fn, args, context)
 
 
 APP_TITLE = "SensorView"
