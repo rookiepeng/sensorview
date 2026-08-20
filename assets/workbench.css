@@ -1038,15 +1038,37 @@ body {
     max-width: 260px;
 }
 
-/* dcc.Loading wraps the plot, and the collapse that gates it sits between the
-   two, so the height has to be handed down the whole chain. */
+/* dcc.Loading wraps the pane's whole body -- strip included, so the spinner
+   covers the selectors that start the job it belongs to -- which puts two
+   boxes between the pane and its contents: the parent below, and an unclassed
+   div of dcc.Loading's own around the children. The column has to be handed
+   down through both. Selecting that inner div by what it contains keeps this
+   off the spinner, which is its sibling and must stay free to centre itself. */
+.sv-pane-body,
+.sv-pane-body > div:has(> .sv-pane-stack),
+.sv-pane-stack {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The spinner is absolutely centred against this, so the pane body is what it
+   is measured against -- the strip and the plot together. */
+.sv-pane-body {
+    position: relative;
+}
+
+/* The collapse that gates the figure sits between the plot area and the graph,
+   so the height carries on down that chain too. */
 .sv-pane-plot {
     flex: 1 1 auto;
     min-height: 0;
     position: relative;
 }
 
-.sv-pane-plot > div,
+/* No `> div` here: the collapse is now the only direct child, and pinning it to
+   100% would override the height Bootstrap animates through while it opens. */
 .sv-pane-plot .collapse.show,
 .sv-pane-plot .dash-graph,
 .sv-pane-plot .js-plotly-plot,

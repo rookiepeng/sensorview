@@ -121,6 +121,15 @@ def pane(
     figure at all, which is the whole point of the switches -- these charts are
     expensive and there is no reason to compute one nobody is looking at.
 
+    The spinner wraps the control strip as well as the plot. Every one of those
+    selectors is an input to the background callback the spinner belongs to, so
+    a pane that leaves them live while it recomputes is inviting a second job to
+    be queued on top of the one already running. ``overlay_style`` dims them and
+    takes their pointer events rather than hiding them, so the strip keeps its
+    height -- the plot below would otherwise jump every time a figure is
+    regenerated -- and the settings the pending figure is being built from stay
+    readable while it is built.
+
     Args:
         controls: Components for the control strip.
         graph: The pane's figure.
@@ -132,19 +141,30 @@ def pane(
         html.Div: The pane.
     """
     return html.Div(
-        [
-            html.Div(controls, className="sv-pane-controls"),
-            *(extra_rows or []),
-            dcc.Loading(
-                id=loading_id,
-                type="default",
-                # `className` styles the spinner; the wrapper that has to carry
-                # the pane's remaining height is `parent_className`.
-                parent_className="sv-pane-plot",
-                children=[
-                    dbc.Collapse(graph, id=collapse_id, is_open=False),
+        dcc.Loading(
+            id=loading_id,
+            type="default",
+            # `className` styles the spinner; `parent_className` is the box the
+            # spinner is centred in, which is now the whole pane body.
+            parent_className="sv-pane-body",
+            overlay_style={
+                "visibility": "visible",
+                "opacity": 0.4,
+                "pointerEvents": "none",
+            },
+            # One wrapper of our own, so the flex column can be handed down
+            # through the unclassed div dcc.Loading renders around its children.
+            children=html.Div(
+                [
+                    html.Div(controls, className="sv-pane-controls"),
+                    *(extra_rows or []),
+                    html.Div(
+                        dbc.Collapse(graph, id=collapse_id, is_open=False),
+                        className="sv-pane-plot",
+                    ),
                 ],
+                className="sv-pane-stack",
             ),
-        ],
+        ),
         className="sv-pane",
     )
