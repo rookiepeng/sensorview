@@ -1,5 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+import shutil
+import sys
+
 from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
@@ -46,3 +50,20 @@ coll = COLLECT(exe,
                upx=True,
                upx_exclude=[],
                name='sensorview')
+
+# The Windows backend of pywebview reaches WebView2 through pythonnet, which
+# starts the .NET Framework runtime inside this process. That runtime refuses to
+# load an assembly whose file carries the Internet-zone mark Windows stamps on
+# everything extracted from a downloaded zip, so in a build the user downloaded
+# rather than built, Python.Runtime.dll fails to load, pywebview finds no GUI
+# backend, and the app opens a browser tab instead of its own window.
+#
+# The default AppDomain takes its configuration from <executable name>.config,
+# which the native host looks for next to the executable -- the one place a
+# bundled data file cannot reach, since PyInstaller puts those under _internal.
+# Hence the copy here, once COLLECT has laid the directory out.
+if sys.platform == 'win32':
+    shutil.copyfile(
+        'sensorview.exe.config',
+        os.path.join(DISTPATH, 'sensorview', 'sensorview.exe.config'),
+    )

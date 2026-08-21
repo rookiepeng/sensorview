@@ -28,6 +28,7 @@ import socket
 import sys
 import threading
 import time
+import traceback
 
 # The live native window, or None when the app is being served to a browser
 # instead. Everything else in this module keys off it.
@@ -139,6 +140,25 @@ def _claim_taskbar_identity(app_id: str = "SensorView.SensorView") -> None:
         pass
 
 
+def _app_data_dir() -> str:
+    """
+    Locate the per-user directory the app keeps its own state in.
+
+    Returns:
+        str: Data directory, created if missing.
+    """
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
+    elif sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Application Support")
+    else:
+        base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+
+    path = os.path.join(base, "SensorView")
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
 def _storage_path() -> str:
     """
     Locate the per-user directory the webview keeps its profile in.
@@ -150,15 +170,37 @@ def _storage_path() -> str:
     Returns:
         str: Profile directory, created if missing.
     """
-    if sys.platform == "win32":
-        base = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~")
-    elif sys.platform == "darwin":
-        base = os.path.expanduser("~/Library/Application Support")
-    else:
-        base = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-
-    path = os.path.join(base, "SensorView", "webview")
+    path = os.path.join(_app_data_dir(), "webview")
     os.makedirs(path, exist_ok=True)
+    return path
+
+
+def _record_gui_failure(error: BaseException) -> Optional[str]:
+    """
+    Write down why the native window could not start.
+
+    A built app is windowed, so it has no console: ``sys.stdout`` is None there
+    and the message printed beside this call goes nowhere. That leaves the
+    browser fallback looking like a deliberate choice rather than a failure,
+    which is exactly how a bundling problem stays invisible.
+
+    Args:
+        error: The exception the GUI backend raised.
+
+    Returns:
+        Optional[str]: Path to the log, or None if it could not be written.
+    """
+    path = os.path.join(_app_data_dir(), "desktop.log")
+    stamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    lines = traceback.format_exception(type(error), error, error.__traceback__)
+
+    try:
+        with open(path, "a", encoding="utf-8") as log:
+            log.write(f"\n=== {stamp} native window unavailable ===\n")
+            log.writelines(lines)
+    except OSError:
+        return None
+
     return path
 
 
@@ -305,7 +347,12 @@ def run(
         _window = None
         import webbrowser
 
-        print(f"Native window unavailable ({gui_error}); opening {url}", flush=True)
+        log_path = _record_gui_failure(gui_error)
+        detail = f"; details in {log_path}" if log_path else ""
+        print(
+            f"Native window unavailable ({gui_error}){detail}; opening {url}",
+            flush=True,
+        )
         webbrowser.open(url)
         try:
             threading.Event().wait()
