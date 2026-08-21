@@ -4,7 +4,7 @@ Layout configurations for plot types with focus on 3D scatter plot layouts,
 axis range management, aspect ratio calculation, and the camera-still overlay
 the standalone HTML export uses.
 
-Key functions: get_scatter3d_layout(), apply_camera()
+Key function: get_scatter3d_layout()
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -68,6 +68,7 @@ def get_scatter3d_layout(
         "zaxis": create_axis_config(z_range, kwargs.get("z_label")),
         "aspectmode": "manual",
         "aspectratio": aspect_ratio,
+        "uirevision": "no_change",
     }
 
     # The camera stream is a video panel in the app, but a standalone HTML
@@ -96,36 +97,5 @@ def get_scatter3d_layout(
                 "sizey": 0.3,
             }
         ]
-
-    return layout
-
-
-def apply_camera(
-    layout: Dict[str, Any], relayout_data: Optional[Dict[str, Any]]
-) -> Dict[str, Any]:
-    """
-    Write the viewer's own camera into a layout that was just built.
-
-    Every frame is a whole new figure, so plotly reads the camera from the
-    layout it is handed each time. ``uirevision`` is meant to spare the app from
-    tracking that -- plotly carries a rotation the user made across figures with
-    the same revision -- but it only does so while that rotation is still
-    recorded as a UI edit, and in the OS webview the desktop build runs in it is
-    not: the rotation reaches the scene but never the layout plotly consults, so
-    the next frame swings the view back to the default corner. Stating the
-    camera in the figure removes the question of whether it will be remembered.
-
-    Args:
-        layout: Figure layout to stamp. Modified in place.
-        relayout_data: Contents of the ``relayout-data`` store, which holds the
-            last camera the viewer moved to, or None while they have not moved
-            it -- in which case the layout keeps plotly's default view.
-
-    Returns:
-        Dict[str, Any]: The same layout.
-    """
-    camera = (relayout_data or {}).get("scene.camera")
-    if camera:
-        layout.setdefault("scene", {})["camera"] = camera
 
     return layout

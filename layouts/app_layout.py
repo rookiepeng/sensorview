@@ -66,7 +66,6 @@ def _stores():
         dcc.Store(id="local-file-selection", storage_type="local"),
         dcc.Store(id="current-file"),
         dcc.Store(id="key-dict"),
-        dcc.Store(id="relayout-data", data=None),
         dcc.Store(id="dark-template", data=pio.templates["plotly_dark"]),  # type: ignore
         dcc.Store(id="light-template", data=pio.templates["plotly"]),  # type: ignore
         dcc.Store(id="trigger-remote-figure", data=0),

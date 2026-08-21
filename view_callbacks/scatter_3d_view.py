@@ -14,7 +14,7 @@ Author: Zhengyu Peng
 License: GPL-3.0
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Tuple
 import json
 import os
 import datetime
@@ -41,8 +41,6 @@ from layouts.layout_constants import HIDE_LOADING, SHOW_LOADING
 
 from process_frame import process_overlay_frame
 from process_frame import process_single_frame
-
-from viz.graph_layout import apply_camera
 
 
 def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
@@ -119,7 +117,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "session_id": State("session-id", "data"),
             "file": State("current-file", "data"),
             "file_list": State("file-add", "value"),
-            "relayout_data": State("relayout-data", "data"),
         },
         prevent_initial_call=True,
     )
@@ -144,7 +141,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         session_id: str,
         file: str,
         file_list: list,
-        relayout_data: Optional[Dict[str, Any]],
     ) -> dict:
         """
         Handle server-side figure updates for slider and overlay changes.
@@ -168,7 +164,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             session_id: Session identifier.
             file: Current file path (JSON string).
             file_list: All loaded file paths.
-            relayout_data: Last camera the viewer moved to, if any.
 
         Returns:
             Dictionary with updated scatter plot figure including theme and visual settings.
@@ -214,8 +209,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         else:
             fig["layout"]["template"] = pio.templates["plotly"]
 
-        apply_camera(fig["layout"], relayout_data)
-
         return {"scatter3d": fig}
 
     @app.callback(
@@ -227,20 +220,16 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         state={
             "fig": State("scatter3d", "figure"),
-            "relayout_data": State("relayout-data", "data"),
         },
         prevent_initial_call=True,
     )
-    def colormap_change_callback(
-        colormap: str, fig: dict, relayout_data: Optional[Dict[str, Any]]
-    ) -> dict:
+    def colormap_change_callback(colormap: str, fig: dict) -> dict:
         """
         Update the colormap of the 3D scatter plot.
 
         Args:
             colormap: Name of the selected colormap.
             fig: Current figure dictionary.
-            relayout_data: Last camera the viewer moved to, if any.
 
         Returns:
             Dictionary with updated figure containing new colormap.
@@ -249,8 +238,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             # Empty-frame placeholder traces have no "marker" key; skip them
             if "marker" in trace:
                 trace["marker"]["colorscale"] = colormap
-
-        apply_camera(fig["layout"], relayout_data)
 
         return {"scatter3d": fig}
 
@@ -263,20 +250,16 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         state={
             "fig": State("scatter3d", "figure"),
-            "relayout_data": State("relayout-data", "data"),
         },
         prevent_initial_call=True,
     )
-    def darkmode_change_callback(
-        darkmode: list, fig: dict, relayout_data: Optional[Dict[str, Any]]
-    ) -> dict:
+    def darkmode_change_callback(darkmode: list, fig: dict) -> dict:
         """
         Toggle dark mode for the 3D scatter plot.
 
         Args:
             darkmode: Dark mode enable state (non-empty = enabled).
             fig: Current figure dictionary.
-            relayout_data: Last camera the viewer moved to, if any.
 
         Returns:
             Dictionary with updated figure containing new theme.
@@ -285,8 +268,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             fig["layout"]["template"] = pio.templates["plotly_dark"]
         else:
             fig["layout"]["template"] = pio.templates["plotly"]
-
-        apply_camera(fig["layout"], relayout_data)
 
         return {"scatter3d": fig}
 
@@ -301,16 +282,11 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "fig": State("scatter3d", "figure"),
             "session_id": State("session-id", "data"),
             "c_key": State("c-picker-3d", "value"),
-            "relayout_data": State("relayout-data", "data"),
         },
         prevent_initial_call=True,
     )
     def size_vary_callback(
-        size_vary: list,
-        fig: dict,
-        session_id: str,
-        c_key: str,
-        relayout_data: Optional[Dict[str, Any]],
+        size_vary: list, fig: dict, session_id: str, c_key: str
     ) -> dict:
         """
         Toggle point size variation for categorical data visualization.
@@ -322,7 +298,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             fig: Current figure data and layout.
             session_id: Session identifier.
             c_key: Color mapping column name.
-            relayout_data: Last camera the viewer moved to, if any.
 
         Returns:
             Dictionary with figure containing modified marker sizes.
@@ -356,8 +331,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             for i in range(0, data_length):
                 if "marker" in fig["data"][i]:
                     fig["data"][i]["marker"]["size"] = 3
-
-        apply_camera(fig["layout"], relayout_data)
 
         return {"scatter3d": fig}
 
@@ -952,33 +925,3 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         filtered_table.to_parquet(file_name, index=False)
 
         return {"download": send_file(file_name)}
-
-    @app.callback(
-        Output("relayout-data", "data"),
-        Input("scatter3d", "relayoutData"),
-        prevent_initial_call=True,
-    )
-    def store_camera(relayout_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Remember where the viewer moved the camera to.
-
-        Plotly reports every layout change through this one event -- a resize,
-        an axis edit, a rotation -- so only the ones carrying a camera are kept.
-        Anything else would drop the stored camera and let the next frame swing
-        the view back to the default corner, which is the whole point of keeping
-        it (see :func:`viz.graph_layout.apply_camera`).
-
-        Args:
-            relayout_data: Plot layout change data from Plotly events.
-
-        Returns:
-            Dict[str, Any]: The camera, in the form the figure builders read.
-
-        Raises:
-            PreventUpdate: If this change did not move the camera.
-        """
-        camera = (relayout_data or {}).get("scene.camera")
-        if camera is None:
-            raise PreventUpdate
-
-        return {"scene.camera": camera}

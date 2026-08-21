@@ -39,52 +39,26 @@ async function getCloudTrace(session, logFile, frameIndex) {
   return trace;
 }
 
-// The camera the viewer has rotated the scene to, ready to be written into a
-// layout. Every frame is a whole new figure, and plotly reads the camera from
-// the layout each time; `uirevision` is supposed to carry a rotation across
-// figures that share a revision, but it only does so while plotly still has
-// that rotation recorded as a UI edit -- and in the OS webview the desktop
-// build runs in, it does not, so the view snaps back to the default corner on
-// the next frame. Reading the camera off the live scene and stating it in the
-// figure settles it in every browser.
-function currentCamera() {
-  const gd = document.querySelector("#scatter3d .js-plotly-plot");
-  const camera = gd && gd._fullLayout && gd._fullLayout.scene
-    ? gd._fullLayout.scene.camera
-    : null;
-
-  return camera ? JSON.parse(JSON.stringify(camera)) : null;
-}
-
-// Plotly also carries a rotation across figures by itself, by copying the
-// camera out of the layout of the figure before -- where its own drag handler
-// is supposed to have left it. In the OS webview the desktop build runs in,
-// that last step does not happen: a rotation reaches the scene and nowhere
-// else. Nothing then holds the camera between the moment the viewer lets go of
-// the mouse and the next frame they ask for -- and Dash redraws the plot right
-// at that moment, off the figure it already has, which is one rotation behind
-// and would drag the view back to where it just came from.
-//
-// Recording the camera as the rotation happens is the missing half, and no
-// more than what a browser does on its own.
+// Plotly holds a record of the camera in the figure's own layout and restores it
+// whenever the plot is redrawn. In the OS webview the desktop build runs in that
+// record is not kept up: a rotation reaches the scene and nowhere else, so what
+// the record holds is an angle the viewer left some time ago -- and a redraw
+// then puts the view back there. Dropping the record as the viewer moves leaves
+// a redraw with nothing to restore, which is what keeps the scene where they
+// put it. Note that replacing the record instead of dropping it is not the same
+// thing: a redraw would still restore it, and during a wheel zoom, where the
+// redraw lands several notches behind the viewer, restoring it eats the zoom.
 function trackCamera(graphDiv) {
   if (graphDiv.__cameraTracked || typeof graphDiv.on !== "function") {
     return true;
   }
 
-  const remember = (event) => {
-    const camera = event && event["scene.camera"];
-    if (!camera) {
+  graphDiv.on("plotly_relayout", (event) => {
+    if (!event || !event["scene.camera"] || !graphDiv.layout.scene) {
       return;
     }
-    graphDiv.layout.scene = graphDiv.layout.scene || {};
-    graphDiv.layout.scene.camera = camera;
-  };
-
-  // While the rotation is still going as well as at its end: a redraw landing
-  // mid-rotation throws it away just as readily.
-  graphDiv.on("plotly_relayouting", remember);
-  graphDiv.on("plotly_relayout", remember);
+    delete graphDiv.layout.scene.camera;
+  });
   graphDiv.__cameraTracked = true;
 
   return true;
@@ -388,13 +362,6 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           data: allData.flatMap((d) => d.data.fig),
           layout: data.data.fig_layout,
         };
-
-        // Keep the viewer looking from wherever they rotated to, rather than
-        // from the default corner this layout was built with.
-        const camera = currentCamera();
-        if (camera) {
-          fig.layout.scene = Object.assign({}, fig.layout.scene, { camera });
-        }
 
         // Create opacity array
         const opacityValues = Array.from(
