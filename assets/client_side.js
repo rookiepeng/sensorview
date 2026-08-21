@@ -39,6 +39,23 @@ async function getCloudTrace(session, logFile, frameIndex) {
   return trace;
 }
 
+// The camera the viewer has rotated the scene to, ready to be written into a
+// layout. Every frame is a whole new figure, and plotly reads the camera from
+// the layout each time; `uirevision` is supposed to carry a rotation across
+// figures that share a revision, but it only does so while plotly still has
+// that rotation recorded as a UI edit -- and in the OS webview the desktop
+// build runs in, it does not, so the view snaps back to the default corner on
+// the next frame. Reading the camera off the live scene and stating it in the
+// figure settles it in every browser.
+function currentCamera() {
+  const gd = document.querySelector("#scatter3d .js-plotly-plot");
+  const camera = gd && gd._fullLayout && gd._fullLayout.scene
+    ? gd._fullLayout.scene.camera
+    : null;
+
+  return camera ? JSON.parse(JSON.stringify(camera)) : null;
+}
+
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   clientside_callback: {
     initWorker: function (n_clicks) {
@@ -321,6 +338,13 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           data: allData.flatMap((d) => d.data.fig),
           layout: data.data.fig_layout,
         };
+
+        // Keep the viewer looking from wherever they rotated to, rather than
+        // from the default corner this layout was built with.
+        const camera = currentCamera();
+        if (camera) {
+          fig.layout.scene = Object.assign({}, fig.layout.scene, { camera });
+        }
 
         // Create opacity array
         const opacityValues = Array.from(
