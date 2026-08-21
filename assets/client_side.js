@@ -56,6 +56,56 @@ function currentCamera() {
   return camera ? JSON.parse(JSON.stringify(camera)) : null;
 }
 
+// Plotly also carries a rotation across figures by itself, by copying the
+// camera out of the layout of the figure before -- where its own drag handler
+// is supposed to have left it. In the OS webview the desktop build runs in,
+// that last step does not happen: a rotation reaches the scene and nowhere
+// else. Nothing then holds the camera between the moment the viewer lets go of
+// the mouse and the next frame they ask for -- and Dash redraws the plot right
+// at that moment, off the figure it already has, which is one rotation behind
+// and would drag the view back to where it just came from.
+//
+// Recording the camera as the rotation happens is the missing half, and no
+// more than what a browser does on its own.
+function trackCamera(graphDiv) {
+  if (graphDiv.__cameraTracked || typeof graphDiv.on !== "function") {
+    return true;
+  }
+
+  const remember = (event) => {
+    const camera = event && event["scene.camera"];
+    if (!camera) {
+      return;
+    }
+    graphDiv.layout.scene = graphDiv.layout.scene || {};
+    graphDiv.layout.scene.camera = camera;
+  };
+
+  // While the rotation is still going as well as at its end: a redraw landing
+  // mid-rotation throws it away just as readily.
+  graphDiv.on("plotly_relayouting", remember);
+  graphDiv.on("plotly_relayout", remember);
+  graphDiv.__cameraTracked = true;
+
+  return true;
+}
+
+// Dash draws the plot after this file runs, and replaces it whenever the layout
+// re-renders, so keep looking rather than binding once at load.
+(function watchForPlot() {
+  const attach = () => {
+    const graphDiv = document.querySelector("#scatter3d .js-plotly-plot");
+    return graphDiv ? trackCamera(graphDiv) : false;
+  };
+
+  if (attach()) {
+    return;
+  }
+
+  const observer = new MutationObserver(attach);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+})();
+
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   clientside_callback: {
     initWorker: function (n_clicks) {
