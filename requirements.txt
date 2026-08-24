@@ -16,9 +16,13 @@ orjson
 # Serves the desktop app on loopback behind the native window.
 waitress
 # Native window shell. Uses the OS webview: WebView2 on Windows, WKWebView on
-# macOS, WebKitGTK on Linux -- where the GTK bindings are a system package, so
-# `pip install "pywebview[gtk]"` plus gir1.2-webkit2-4.1 is what gets a window
-# there. Without them the app falls back to opening the default browser.
+# macOS, and on Linux either WebKitGTK or QtWebEngine -- neither of which comes
+# with pywebview, so a Linux run needs one of them installed alongside it or the
+# app falls back to opening the default browser:
+#   `pip install qtpy PySide6`             -- Qt, self-contained
+#   `pip install "pywebview[gtk]"`         -- GTK, plus system gir1.2-webkit2-4.1
+# Not listed as a dependency here because the choice is per-platform; the Linux
+# CI build installs the Qt pair so the built app carries its own renderer.
 pywebview
 typing-extensions
 # Bundles a static ffmpeg, used to transcode camera streams a browser cannot play.

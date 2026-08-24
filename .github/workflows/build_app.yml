@@ -64,6 +64,17 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
+    # pywebview has no webview of its own on Linux: it reaches the OS one
+    # through GTK or Qt bindings, and PyInstaller bundles whichever of them is
+    # importable at build time. With neither, the built app finds no GUI backend
+    # and opens a browser tab instead of its own window. PySide6 carries
+    # QtWebEngine into the bundle, so the app brings its own renderer rather
+    # than depending on the user having WebKitGTK installed; qtpy is the binding
+    # shim webview.platforms.qt imports through, and pulls nothing on its own.
+    - name: Install Linux webview backend
+      if: runner.os == 'Linux'
+      run: pip install qtpy PySide6
+
     - name: PyInstaller
       run: python -m PyInstaller app.spec
 
