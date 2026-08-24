@@ -20,11 +20,13 @@ anywhere, which is why the manifest needs nothing to describe it -- an earlier
 When *M* cannot be read -- no ffmpeg, or a file it cannot demux -- the video is
 left where it is rather than seeked to a guessed position.
 
-Combining logs puts several recordings behind one slider. The mapping is per
-log, not per session: the slider is cut into segments, one per run of frames a
-log owns, and *N* is that log's own frame count. Crossing into the next segment
-swaps the video element's source and then seeks within it, so each log is
-measured against its own recording rather than against the concatenated span.
+Combining logs puts several recordings behind one slider, and logs that share
+frame ids put several of them on the *same* slider position. So the panel holds
+one video element per loaded log rather than one element the slider re-points:
+each element's source is fixed for the life of the load, and *N* is that log's
+own frame count. An element whose log recorded nothing at the current position
+is hidden, which leaves a single video in the stretches only one log covers and
+a grid of them where they overlap.
 
 Half a frame is added so the seek lands mid-frame, where float rounding cannot
 spill onto a neighbour. ``time_offset`` from the manifest shifts the whole clip,
@@ -41,50 +43,73 @@ License: GPL-3.0
 from typing import Any, Dict, List
 
 import dash
+from dash import html
 from dash.dependencies import Input, Output, State
 
-from frame_sources import get_log_info, get_manifest, image_stream_frame_count
+from frame_sources import (
+    get_frame_positions,
+    get_log_stems,
+    get_manifest,
+    image_stream_frame_count,
+)
 
 HIDDEN = {"display": "none"}
 
 
-def _frame_runs(frame_stems: List[str]) -> List[Dict[str, Any]]:
+def _stem_runs(positions: List[int]) -> List[Dict[str, int]]:
     """
-    Cut the slider into runs of consecutive frames owned by one log.
+    Compress one log's slider positions into runs of consecutive frames.
 
     Args:
-        frame_stems: Owning log stem per slider position.
+        positions: Slider positions the log recorded, ascending.
 
     Returns:
-        List of ``{"stem", "start", "count", "local_start", "local_total"}``.
-        ``local_start`` counts how many of that log's frames precede the run and
-        ``local_total`` how many it owns overall, so a log whose frames are
+        List of ``{"start", "count", "local_start"}``. ``local_start`` counts
+        how many of that log's frames precede the run, so a log whose frames are
         interleaved with another's still maps onto its own recording end to end.
+        Runs rather than the raw positions because the whole list is shipped to
+        the browser, and a long log has thousands of them.
     """
-    totals: Dict[str, int] = {}
-    for stem in frame_stems:
-        totals[stem] = totals.get(stem, 0) + 1
-
-    runs: List[Dict[str, Any]] = []
-    consumed: Dict[str, int] = {}
+    runs: List[Dict[str, int]] = []
     index = 0
-    while index < len(frame_stems):
-        stem = frame_stems[index]
+    while index < len(positions):
         end = index
-        while end < len(frame_stems) and frame_stems[end] == stem:
+        while end + 1 < len(positions) and positions[end + 1] == positions[end] + 1:
             end += 1
         runs.append(
             {
-                "stem": stem,
-                "start": index,
-                "count": end - index,
-                "local_start": consumed.get(stem, 0),
-                "local_total": totals[stem],
+                "start": positions[index],
+                "count": end - index + 1,
+                "local_start": index,
             }
         )
-        consumed[stem] = consumed.get(stem, 0) + (end - index)
-        index = end
+        index = end + 1
     return runs
+
+
+def _merged_streams(manifest: Any, stems: List[str]) -> List[Dict[str, str]]:
+    """
+    Union the image streams the loaded logs recorded.
+
+    Combined logs need not carry the same cameras, and a selector that only
+    listed the primary's would hide a stream the second log was combined in for.
+
+    Args:
+        manifest: Dataset manifest.
+        stems: Loaded log stems, primary first.
+
+    Returns:
+        De-duplicated ``{"id", "label"}`` entries in first-seen order.
+    """
+    merged: List[Dict[str, str]] = []
+    seen = set()
+    for stem in stems:
+        for stream in manifest.image_streams(stem):
+            if stream["id"] in seen:
+                continue
+            seen.add(stream["id"])
+            merged.append({"id": stream["id"], "label": stream["label"]})
+    return merged
 
 
 def get_camera_view_callbacks(app: dash.Dash) -> None:
@@ -122,8 +147,9 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
             dict: Section visibility, stream options, and selected stream
         """
         manifest = get_manifest(session_id)
-        stem = get_log_info(session_id).get("stem", "")
-        streams = manifest.image_streams(stem) if manifest else []
+        streams = (
+            _merged_streams(manifest, get_log_stems(session_id)) if manifest else []
+        )
 
         if not streams:
             return {
@@ -167,12 +193,14 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
             dict: Panel and splitter visibility styles
         """
         manifest = get_manifest(session_id)
-        stem = get_log_info(session_id).get("stem", "")
-        if manifest is None or not stem:
+        stems = get_log_stems(session_id)
+        if manifest is None or not stems:
             return {"panel_style": HIDDEN, "splitter_style": HIDDEN}
 
-        has_content = manifest.has_image(stem) or bool(
-            manifest.has_curve(stem) and manifest.curve_plots()
+        # Any loaded log with a sidecar is reason enough to keep the dock: the
+        # panels below draw whichever logs recorded the frame in view.
+        has_content = any(manifest.has_image(stem) for stem in stems) or bool(
+            manifest.curve_plots() and any(manifest.has_curve(stem) for stem in stems)
         )
         # Clearing `display` lets the stylesheet's flex layout take over again.
         style = {} if has_content else HIDDEN
@@ -180,7 +208,7 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
 
     @app.callback(
         output={
-            "src": Output("camera-video", "src"),
+            "children": Output("camera-video-grid", "children"),
             "config": Output("camera-config", "data"),
         },
         inputs={
@@ -197,7 +225,11 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
         stream_id: str, unused_file_loaded: int, session_id: str
     ) -> Dict[str, Any]:
         """
-        Point the video element at the selected stream.
+        Build one video element per log carrying the selected stream.
+
+        A log gets an element for the whole load, not a turn on a shared one, so
+        two logs that recorded the same frame can both be on screen at once. The
+        source is therefore fixed per element and never swapped.
 
         Args:
             stream_id (str): Selected camera stream identifier
@@ -206,167 +238,207 @@ def get_camera_view_callbacks(app: dash.Dash) -> None:
             session_id (str): Session identifier
 
         Returns:
-            dict: Source URL for the first segment and the descriptor the seek
-            callback reads, or both None when no loaded log has a matching
+            dict: The grid's video elements and the descriptor the seek callback
+            reads, or an empty grid and None when no loaded log has a matching
             stream
         """
+        empty: Dict[str, Any] = {"children": [], "config": None}
         if not stream_id:
-            return {"src": None, "config": None}
+            return empty
 
         manifest = get_manifest(session_id)
         if manifest is None:
-            return {"src": None, "config": None}
+            return empty
 
-        log_info = get_log_info(session_id)
-        frame_count = len(log_info.get("timestamps") or [])
-        frame_stems = (
-            log_info.get("frame_stems") or [log_info.get("stem", "")] * frame_count
-        )
-
-        segments = []
-        for run in _frame_runs(frame_stems):
-            streams = manifest.image_streams(run["stem"])
+        cells = []
+        logs = []
+        for stem in get_log_stems(session_id):
+            streams = manifest.image_streams(stem)
             selected = next((s for s in streams if s["id"] == stream_id), None)
             if selected is None:
-                # This log recorded no such stream. Leaving the run out means
-                # the client holds the previous frame rather than showing
-                # another log's footage under this one's data.
+                # This log recorded no such stream, so it gets no cell at all
+                # rather than a black box beside the logs that did.
                 continue
+
+            positions = get_frame_positions(session_id, stem)
+            if not positions:
+                continue
+
+            cells.append(
+                html.Div(
+                    [
+                        html.Video(
+                            # The load counter is appended as a cache-busting
+                            # query string: two different logs can share the
+                            # same session id and stream id (both named
+                            # "image"), and a browser never reloads a <video
+                            # src> that comes out identical to what it already
+                            # has loaded.
+                            src=(
+                                f"/api/camera/{session_id}/{stem}/{stream_id}"
+                                f"?v={unused_file_loaded}"
+                            ),
+                            # Playback is driven entirely by the frame slider,
+                            # so the element never plays on its own: no
+                            # controls, no autoplay, muted so browsers never
+                            # block the load.
+                            controls=False,
+                            autoPlay=False,
+                            muted=True,
+                            preload="auto",
+                            className="sv-video",
+                            # How the clientside seek finds this log's config
+                            # without pattern-matching ids.
+                            **{"data-stem": stem},
+                        ),
+                        html.Span(stem, className="sv-video-label"),
+                    ],
+                    className="sv-video-cell",
+                )
+            )
 
             # Both counts are measured, never declared. A null video count means
             # the probe failed, and the clientside callback leaves the video
             # alone rather than guessing at a position.
-            segments.append(
+            logs.append(
                 {
-                    # The load counter is appended as a cache-busting query
-                    # string: two different logs can share the same session id
-                    # and stream id (both named "image"), and a browser never
-                    # reloads a <video src> that comes out identical to what it
-                    # already has loaded.
-                    "src": (
-                        f"/api/camera/{session_id}/{run['stem']}/{stream_id}"
-                        f"?v={unused_file_loaded}"
-                    ),
+                    "stem": stem,
                     "video_frames": image_stream_frame_count(selected.get("file", "")),
-                    "start": run["start"],
-                    "count": run["count"],
-                    "local_start": run["local_start"],
-                    "local_total": run["local_total"],
+                    "local_total": len(positions),
+                    "runs": _stem_runs(positions),
                 }
             )
 
-        if not segments:
-            return {"src": None, "config": None}
+        if not logs:
+            return empty
 
         return {
-            # The slider resets to 0 on load, so the first segment is the one
-            # about to be shown; the seek callback swaps it from there.
-            "src": segments[0]["src"],
+            "children": cells,
             "config": {
-                "segments": segments,
+                "logs": logs,
                 "offset": float((manifest.image or {}).get("time_offset", 0.0)),
             },
         }
 
-    # Point the video at the segment holding the current frame and seek within
-    # it. Kept clientside so scrubbing costs no server round trip -- the browser
-    # already has the decoded stream.
+    # Seek every log's video to the current frame, and hide the ones whose log
+    # recorded nothing there. Kept clientside so scrubbing costs no server round
+    # trip -- the browser already has the decoded streams.
     app.clientside_callback(
         """
         function(frame_index, config) {
             const no_update = window.dash_clientside.no_update;
-            const hold = [no_update, no_update];
-            const segments = (config || {}).segments;
-            if (!Array.isArray(segments) || segments.length === 0) {
-                return hold;
+            const logs = (config || {}).logs;
+            if (!Array.isArray(logs) || logs.length === 0) {
+                return no_update;
             }
-            const video = document.getElementById('camera-video');
-            if (!video) {
-                return hold;
-            }
-
+            const offset = (config || {}).offset || 0;
             const index = frame_index || 0;
-            const segment = segments.find(function (s) {
-                return index >= s.start && index < s.start + s.count;
-            });
-            // No segment owns this frame: the log it belongs to recorded no
-            // stream. Hold the current picture rather than showing another
-            // log's footage as if it were this one's.
-            if (!segment) {
-                return hold;
-            }
 
-            // Read at fire time rather than captured, so a listener left
-            // pending by an earlier frame still seeks to the latest position.
-            video.svSeekTarget = { index: index, segment: segment,
-                                   offset: (config || {}).offset || 0 };
-
-            // Deferred until metadata has landed, because the mapping needs the
-            // element's own duration to turn a frame number into a time.
-            const computeTarget = function(target) {
+            // Recording and log cover the same stretch of time, so the fraction
+            // of the way through the log is the fraction of the way through the
+            // video. Mapping count to count rather than second to second means
+            // a camera that ran at a different rate than the data still lands
+            // on the nearest real frame instead of somewhere between two.
+            const computeTarget = function(video, target) {
                 const duration = video.duration;
                 if (!isFinite(duration) || duration <= 0) {
                     return null;
                 }
-                const seg = target.segment;
-                const videoFrames = seg.video_frames || 0;
-                const dataFrames = seg.local_total || 0;
+                const videoFrames = target.video_frames || 0;
+                const dataFrames = target.local_total || 0;
                 // Nothing to map between: the probe could not read the file.
                 // Leave the video where it is rather than guessing.
                 if (videoFrames < 1 || dataFrames < 1) {
                     return null;
                 }
-                // Recording and log cover the same stretch of time, so the
-                // fraction of the way through the log is the fraction of the
-                // way through the video. Mapping count to count rather than
-                // second to second means a camera that ran at a different rate
-                // than the data still lands on the nearest real frame instead
-                // of somewhere between two.
-                const local = seg.local_start + (target.index - seg.start);
                 const span = dataFrames > 1 ? dataFrames - 1 : 1;
-                const ratio = Math.min(1, Math.max(0, local / span));
+                const ratio = Math.min(1, Math.max(0, target.local / span));
                 const k = Math.round(ratio * (videoFrames - 1));
                 // Aim at the middle of that frame: landing exactly on a
                 // boundary can round onto the neighbouring frame.
                 return (k + 0.5) * duration / videoFrames;
             };
 
-            const seek = function() {
+            const seek = function(video) {
+                // Read at fire time rather than captured, so a listener left
+                // pending by an earlier frame still seeks to the latest
+                // position.
                 const target = video.svSeekTarget;
                 if (!target) {
                     return;
                 }
-                const time = computeTarget(target);
+                const time = computeTarget(video, target);
                 if (time === null) {
                     return;
                 }
                 try {
-                    video.currentTime = Math.max(0, time + target.offset);
+                    video.currentTime = Math.max(0, time + offset);
                 } catch (err) {
                     /* Element not seekable yet; the loadedmetadata handler
                        below retries once metadata arrives. */
                 }
             };
 
-            // Crossing into another log's frames means another recording. The
-            // src is handed back as an output so Dash stays the one owning the
-            // prop, and the seek waits for the new file's metadata.
-            const wanted = segment.src;
-            const current = video.getAttribute('src') || '';
-            if (current !== wanted) {
-                video.addEventListener('loadedmetadata', seek, { once: true });
-                return [wanted, null];
+            const apply = function() {
+                const videos = document.querySelectorAll(
+                    '#camera-video-grid video[data-stem]');
+                let ack = null;
+                videos.forEach(function (video) {
+                    const stem = video.getAttribute('data-stem');
+                    const entry = logs.find(function (l) {
+                        return l.stem === stem;
+                    });
+                    const cell = video.closest('.sv-video-cell') || video;
+
+                    const run = entry && (entry.runs || []).find(function (r) {
+                        return index >= r.start && index < r.start + r.count;
+                    });
+                    // This log recorded nothing at this position. Hiding the
+                    // cell leaves the logs that did with the whole grid, rather
+                    // than showing another log's footage as if it were this
+                    // one's.
+                    if (!run) {
+                        cell.style.display = 'none';
+                        return;
+                    }
+                    cell.style.display = '';
+
+                    video.svSeekTarget = {
+                        local: run.local_start + (index - run.start),
+                        local_total: entry.local_total,
+                        video_frames: entry.video_frames
+                    };
+
+                    if (video.readyState >= 1) {
+                        seek(video);
+                        if (ack === null) {
+                            ack = video.currentTime;
+                        }
+                    } else {
+                        // Deferred until metadata has landed, because the
+                        // mapping needs the element's own duration to turn a
+                        // frame number into a time.
+                        video.addEventListener('loadedmetadata', function () {
+                            seek(video);
+                        }, { once: true });
+                    }
+                });
+                return { videos: videos.length, ack: ack };
+            };
+
+            const result = apply();
+            // A fresh config arrives with the grid it describes, and on the
+            // very first render the elements may not be in the DOM yet. Retry
+            // once on the next frame rather than leaving every video unseeked
+            // until the slider next moves.
+            if (result.videos === 0) {
+                window.requestAnimationFrame(apply);
+                return no_update;
             }
 
-            if (video.readyState >= 1) {
-                seek();
-                return [no_update, video.currentTime];
-            }
-            video.addEventListener('loadedmetadata', seek, { once: true });
-            return [no_update, null];
+            return result.ack;
         }
         """,
-        Output("camera-video", "src", allow_duplicate=True),
         Output("camera-seek-ack", "data"),
         Input("slider-frame", "value"),
         Input("camera-config", "data"),

@@ -138,13 +138,19 @@ It works that out by reading each selected table's frame column on its own and
 mapping frame id → owning stem. Two consequences:
 
 - **Give the logs in a case disjoint frame ids.** Numbering each log from zero
-  makes ids collide across logs, and anything keyed on a frame id — including
-  the browser's point-cloud cache — can then serve one log's data while another
-  is selected. Running the ids end to end across the case (log A 0–38, log B
-  39–78, …) makes that class of bug impossible. `data/NuScenes` is built this
-  way.
-- A frame id claimed by two logs resolves to whichever the picker lists last;
-  there is no error.
+  makes ids collide across logs, and most of what is keyed on a frame id —
+  including the browser's point-cloud cache — can then serve one log's data
+  while another is selected. Running the ids end to end across the case (log A
+  0–38, log B 39–78, …) makes that class of bug impossible. `data/NuScenes` is
+  built this way.
+- A frame id claimed by two logs collapses onto **one** slider position, and
+  there is no error either way. The two panels with room for more than one
+  answer show both logs: the image section gives each its own video, labelled
+  with its stem, and the curve section stacks one band per log against a shared
+  x axis and y range. Everything with room for a single answer — the point
+  cloud, the reference pose, the stills in the HTML export, and the browser's
+  cloud cache — resolves to the primary log, the one picked in the file modal
+  rather than added through **Combine**.
 
 ## Table (`.parquet`)
 

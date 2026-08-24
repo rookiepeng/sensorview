@@ -12,9 +12,16 @@ Sidecars resolve from the *stem of the log a frame came from*, cached per
 session alongside the frame index derived from the loaded Parquet. Combining
 logs concatenates their rows, so the slider walks one log's frames and then the
 next; resolving every frame against the primary log's stem would leave the whole
-second half with no cloud, no pose, no curves, and the wrong video. The primary
-log still owns anything that is not per-frame -- which streams and curve sources
-the pickers offer -- because those are chosen once per load.
+second half with no cloud, no pose, no curves, and the wrong video.
+
+Logs need not run end to end, though. Two that share a frame id collapse onto
+one slider position, and there the panels that can show several logs at once --
+the camera and the curve -- show all of them rather than picking a winner; see
+:func:`get_frame_stems`. The pickers those panels sit behind offer the union of
+what every loaded log recorded, so a stream or a curve source only the second
+log has is still selectable. The primary log remains the tie-break for anything
+that has room for one answer only: the point cloud, the pose, and the stills in
+the HTML export.
 
 Cloud frames are deliberately *not* copied into the session cache: the chunked
 HDF5 sidecar is already a frame-indexed cache, and duplicating decimated points
@@ -51,7 +58,7 @@ from dataio.video import (
 from utils import cache_get, cache_set
 
 from viz.graph_data import get_cloud_scatter3d_data
-from viz.viz import get_curve_plot
+from viz.viz import get_curve_plot, get_curve_plot_grid
 
 # Video frame counts, keyed on (path, size, mtime). Probing shells out to
 # ffmpeg, and the answer only changes when the file does.
@@ -105,6 +112,7 @@ def cache_log_info(
     stem: str,
     timestamps: List[float],
     frame_stems: Optional[List[str]] = None,
+    frame_owner_sets: Optional[List[List[str]]] = None,
 ) -> None:
     """
     Store the loaded logs' identity and derived frame index.
@@ -119,16 +127,52 @@ def cache_log_info(
         frame_stems: Owning log stem per slider position, aligned index-wise
             with the frame list. Defaults to the primary stem throughout, which
             is what a single loaded log means.
+        frame_owner_sets: *Every* log that recorded each slider position, the
+            primary's first. Two logs sharing a frame id collapse onto one
+            slider position, and the camera and curve panels show both -- which
+            they cannot do from ``frame_stems``, since that names only one.
     """
     cache_set(
         {
             "stem": stem,
             "timestamps": timestamps,
             "frame_stems": list(frame_stems) if frame_stems else [],
+            "frame_owner_sets": (
+                [list(owners) for owners in frame_owner_sets]
+                if frame_owner_sets
+                else []
+            ),
         },
         session_id,
         CACHE_KEYS["log_info"],
     )
+
+
+def build_frame_owner_sets(
+    frame_list: Any, frame_owners: Optional[Dict[str, List[str]]], stem: str
+) -> tuple:
+    """
+    Shape the per-frame ownership map into the two lists the cache holds.
+
+    Args:
+        frame_list: Frame ids in slider order.
+        frame_owners: ``{str(frame_id): [stem, ...]}`` as read off the selected
+            tables, or None when a single log is loaded.
+        stem: Primary log's stem.
+
+    Returns:
+        ``(owner_sets, frame_stems)``. Each owner set leads with the primary
+        when it recorded that frame, which keeps ``frame_stems`` -- the head of
+        every set -- naming the log it named before logs could share a position.
+        A frame no selected table claims falls back to the primary alone.
+    """
+    owner_sets: List[List[str]] = []
+    for frame_id in frame_list:
+        owners = list((frame_owners or {}).get(str(frame_id)) or [stem])
+        if stem in owners:
+            owners = [stem] + [other for other in owners if other != stem]
+        owner_sets.append(owners)
+    return owner_sets, [owners[0] for owners in owner_sets]
 
 
 def get_log_info(session_id: str) -> Dict[str, Any]:
@@ -139,13 +183,21 @@ def get_log_info(session_id: str) -> Dict[str, Any]:
         session_id: Session identifier.
 
     Returns:
-        Dict with ``stem``, ``timestamps``, and ``frame_stems``; empty values
-        when nothing is cached yet.
+        Dict with ``stem``, ``timestamps``, ``frame_stems``, and
+        ``frame_owner_sets``; empty values when nothing is cached yet.
     """
     cached = cache_get(session_id, CACHE_KEYS["log_info"])
     if not cached:
-        return {"stem": "", "timestamps": [], "frame_stems": []}
+        return {
+            "stem": "",
+            "timestamps": [],
+            "frame_stems": [],
+            "frame_owner_sets": [],
+        }
     cached.setdefault("frame_stems", [])
+    # An entry written by an older build carries no owner sets; the accessors
+    # below fall back to the single-owner list rather than reading nothing.
+    cached.setdefault("frame_owner_sets", [])
     return cached
 
 
@@ -182,19 +234,54 @@ def get_frame_stem(session_id: str, frame_idx: int) -> str:
     return info.get("stem", "")
 
 
+def get_frame_stems(session_id: str, frame_idx: int) -> List[str]:
+    """
+    List *every* log that recorded one slider position.
+
+    Two logs sharing a frame id collapse onto a single slider position, and the
+    camera and curve panels show one subplot per log rather than picking a
+    winner. :func:`get_frame_stem` still names the one log that owns the
+    position's other sidecars.
+
+    Args:
+        session_id: Session identifier.
+        frame_idx: Slider position (an index into the frame list, not a frame
+            id).
+
+    Returns:
+        Owning stems, the primary log's first. Falls back to the single owner
+        when no owner sets are cached -- which is the single-log case, and any
+        session cached by an older build.
+    """
+    owner_sets = get_log_info(session_id).get("frame_owner_sets") or []
+    if frame_idx is not None and 0 <= frame_idx < len(owner_sets):
+        owners = [stem for stem in owner_sets[frame_idx] if stem]
+        if owners:
+            return owners
+
+    stem = get_frame_stem(session_id, frame_idx)
+    return [stem] if stem else []
+
+
 def get_log_stems(session_id: str) -> List[str]:
     """
-    List every loaded log's stem, in slider order.
+    List every loaded log's stem, the primary's first.
 
     Args:
         session_id: Session identifier.
 
     Returns:
-        De-duplicated stems, the primary log's first when nothing is combined.
+        De-duplicated stems. The primary leads so that anything resolving a
+        clash by iteration order -- the HTML export's stills, say -- settles on
+        the same log the rest of the app treats as authoritative.
     """
     info = get_log_info(session_id)
     stems: List[str] = []
-    for stem in list(info.get("frame_stems") or []) + [info.get("stem", "")]:
+    ordered = [info.get("stem", "")]
+    for owners in info.get("frame_owner_sets") or []:
+        ordered.extend(owners)
+    ordered.extend(info.get("frame_stems") or [])
+    for stem in ordered:
         if stem and stem not in stems:
             stems.append(stem)
     return stems
@@ -202,7 +289,11 @@ def get_log_stems(session_id: str) -> List[str]:
 
 def get_frame_positions(session_id: str, stem: str) -> List[int]:
     """
-    List the slider positions one log owns.
+    List the slider positions one log recorded.
+
+    Membership, not ownership: a position two logs share counts for both, so
+    each log's video and curve range are measured against its own frames rather
+    than against only the ones it won.
 
     Args:
         session_id: Session identifier.
@@ -212,7 +303,12 @@ def get_frame_positions(session_id: str, stem: str) -> List[int]:
         Slider positions in ascending order. When no per-frame mapping is
         cached the log owns every position, so the whole range is returned.
     """
-    frame_stems = get_log_info(session_id).get("frame_stems") or []
+    info = get_log_info(session_id)
+    owner_sets = info.get("frame_owner_sets") or []
+    if owner_sets:
+        return [idx for idx, owners in enumerate(owner_sets) if stem in owners]
+
+    frame_stems = info.get("frame_stems") or []
     if not frame_stems:
         frame_list = cache_get(session_id, CACHE_KEYS["frame_list"])
         return list(range(len(frame_list))) if frame_list is not None else []
@@ -607,7 +703,11 @@ def get_export_frame_images(
                     continue
                 uri = f"data:image/jpeg;base64,{encoded}"
                 for frame_id in wanted[key]:
-                    images[frame_id] = uri
+                    # A frame two logs recorded is claimed by both. The export
+                    # has room for one still per frame, so the first log to
+                    # offer one keeps it -- and `get_log_stems` leads with the
+                    # primary, which is the log the rest of the app defers to.
+                    images.setdefault(frame_id, uri)
 
     return images
 
@@ -813,17 +913,7 @@ def get_curve_figure(
     if store is None:
         return get_curve_plot()
 
-    # Every series carries its own x column, so each curve is drawn against its
-    # own axis rather than a shared one.
-    series = {}
-    x_series = {}
-    for trace in plot["traces"]:
-        axis, values = store.read_curve(trace["dataset"], frame_id)
-        if values is None:
-            continue
-        series[trace["name"]] = values
-        if axis is not None:
-            x_series[trace["name"]] = axis
+    series, x_series = _read_curve_series(store, plot, frame_id)
 
     return get_curve_plot(
         series=series,
@@ -835,3 +925,111 @@ def get_curve_figure(
         y_range=y_range or plot["y_range"],
         log_y=plot["log_y"],
     )
+
+
+def get_curve_figure_multi(
+    manifest: Optional[Manifest],
+    stems: List[str],
+    frame_id: Any,
+    plot_id: str,
+    y_range: Optional[list] = None,
+    source_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Build the 1D curve figure for one (frame, plot) across several logs.
+
+    Combining logs that share frame ids puts more than one recording on a single
+    slider position. Rather than picking a winner, each log that recorded this
+    frame gets its own stacked panel, drawn against one shared x axis and one
+    shared y range so the levels are directly comparable.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stems: Log stems to draw, in panel order (top first). Stems without
+            this curve sidecar, or with nothing readable for this frame, are
+            dropped rather than shown as an empty row.
+        frame_id: Frame identifier.
+        plot_id: Plot identifier declared in the manifest.
+        y_range: Optional [min, max] y clamp shared by every panel.
+        source_id: Curve source to read; defaults to each log's first.
+
+    Returns:
+        Figure dictionary. One readable log renders exactly as
+        :func:`get_curve_figure` does, so the single-log case is unchanged.
+    """
+    if manifest is None or not plot_id:
+        return get_curve_plot()
+
+    plot = manifest.curve_plot(plot_id)
+    if plot is None:
+        return get_curve_plot()
+
+    panels = []
+    for stem in stems:
+        if not manifest.has_curve(stem):
+            continue
+        store = _curve_store(manifest, stem, source_id)
+        if store is None:
+            continue
+        series, x_series = _read_curve_series(store, plot, frame_id)
+        if not series:
+            continue
+        panels.append(
+            {
+                "title": stem,
+                "series": series,
+                "x_series": x_series,
+                "traces": plot["traces"],
+            }
+        )
+
+    shared_range = y_range or plot["y_range"]
+
+    if not panels:
+        return get_curve_plot()
+    if len(panels) == 1:
+        return get_curve_plot(
+            series=panels[0]["series"],
+            x_series=panels[0]["x_series"],
+            traces=plot["traces"],
+            x_label=plot["x_label"],
+            y_label=plot["y_label"],
+            x_range=plot["x_range"],
+            y_range=shared_range,
+            log_y=plot["log_y"],
+        )
+
+    return get_curve_plot_grid(
+        panels=panels,
+        x_label=plot["x_label"],
+        y_label=plot["y_label"],
+        x_range=plot["x_range"],
+        y_range=shared_range,
+        log_y=plot["log_y"],
+    )
+
+
+def _read_curve_series(store: CurveStore, plot: Dict[str, Any], frame_id: Any) -> tuple:
+    """
+    Read one plot's traces out of one log's curve sidecar.
+
+    Args:
+        store: Curve store for the log.
+        plot: Normalized plot definition.
+        frame_id: Frame identifier.
+
+    Returns:
+        ``(series, x_series)`` keyed by trace name. Every series carries its own
+        x column, so each curve is drawn against its own axis rather than a
+        shared one; a trace the file does not hold is simply absent.
+    """
+    series: Dict[str, Any] = {}
+    x_series: Dict[str, Any] = {}
+    for trace in plot["traces"]:
+        axis, values = store.read_curve(trace["dataset"], frame_id)
+        if values is None:
+            continue
+        series[trace["name"]] = values
+        if axis is not None:
+            x_series[trace["name"]] = axis
+    return series, x_series

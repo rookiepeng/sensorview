@@ -291,9 +291,41 @@ def get_curve_plot(
             },
         }
 
-    figure_data = []
-    for trace in traces:
-        values = series.get(trace["name"])
+    figure_data = _curve_traces(series, x_series, traces)
+
+    if not figure_data:
+        figure_data = [{"type": "scatter", "x": [], "y": []}]
+
+    return {"data": figure_data, "layout": layout}
+
+
+def _curve_traces(
+    series: Optional[Dict[str, np.ndarray]],
+    x_series: Optional[Dict[str, np.ndarray]],
+    traces: Optional[List[Dict[str, Any]]],
+    y_axis: Optional[str] = None,
+    showlegend: Optional[bool] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Build one panel's scattergl traces from its series.
+
+    Args:
+        series: Mapping of trace name to its 1D values for this frame.
+        x_series: Per-trace x vectors; falls back to sample index.
+        traces: Normalized trace definitions in draw order.
+        y_axis: Y-axis id (``"y2"``, …) when the panel is one of several
+            stacked in a grid. Omitted entirely for a single-axes figure so its
+            output is unchanged.
+        showlegend: Whether these traces claim legend entries. Stacked panels
+            repeat the same series names, so only the first panel says yes and
+            the rest ride its entries through ``legendgroup``.
+
+    Returns:
+        Traces in draw order; a series the frame does not hold is skipped.
+    """
+    figure_data: List[Dict[str, Any]] = []
+    for trace in traces or []:
+        values = (series or {}).get(trace["name"])
         if values is None or np.size(values) == 0:
             continue
 
@@ -306,33 +338,176 @@ def get_curve_plot(
             # sample index so the curve still reads correctly.
             axis = np.arange(len(values))
 
-        figure_data.append(
+        figure_trace = {
+            "type": "scattergl",
+            "x": _plottable(axis),
+            "y": _plottable(values),
+            "mode": trace.get("mode", "lines"),
+            "name": trace.get("label", trace["name"]),
+            "line": {
+                "color": trace.get("color"),
+                "dash": trace.get("dash", "solid"),
+                "width": trace.get("width", 2),
+            },
+            "marker": {
+                "color": trace.get("color"),
+                "size": trace.get("size", 6),
+                "symbol": trace.get("symbol", "circle"),
+                # An "-open" symbol is drawn by its outline alone, and an
+                # outline of width zero is not drawn at all. Filled symbols
+                # get the same colour they already have, so this costs them
+                # nothing.
+                "line": {"color": trace.get("color"), "width": 1.6},
+            },
+            "hovertemplate": "%{y:.2f}<extra>"
+            + str(trace.get("label", trace["name"]))
+            + "</extra>",
+        }
+        if y_axis is not None:
+            # Every panel shares the one x axis, so only the y assignment
+            # decides which band of the figure a curve is drawn in.
+            figure_trace["xaxis"] = "x"
+            figure_trace["yaxis"] = y_axis
+            figure_trace["legendgroup"] = trace["name"]
+        if showlegend is not None:
+            figure_trace["showlegend"] = showlegend
+
+        figure_data.append(figure_trace)
+
+    return figure_data
+
+
+def get_curve_plot_grid(
+    panels: List[Dict[str, Any]],
+    x_label: str = "",
+    y_label: str = "",
+    x_range: Optional[List[float]] = None,
+    y_range: Optional[List[float]] = None,
+    log_y: bool = False,
+) -> Dict[str, Any]:
+    """
+    Render one 1D curve plot per log, stacked, against a shared x axis.
+
+    Combining logs that share frame ids puts several recordings on one slider
+    position. Overlaying them would double every trace a plot already declares
+    -- these plots regularly declare a handful -- so each log gets its own band
+    instead. They share one x axis and one y range, which is the whole point:
+    the bands are only worth stacking if the levels line up between them.
+
+    Built as plain axis domains rather than through ``make_subplots``, which
+    would return a ``go.Figure`` where every other builder in this module
+    returns a dict.
+
+    Args:
+        panels: One dict per log, top to bottom, each with ``title`` (the log
+            stem), ``series``, ``x_series``, and ``traces``.
+        x_label: X-axis title, drawn once under the bottom panel.
+        y_label: Y-axis title, repeated on every panel.
+        x_range: Optional [min, max] x clamp.
+        y_range: Optional [min, max] y clamp shared by every panel.
+        log_y: Whether to use logarithmic y axes.
+
+    Returns:
+        Dictionary containing figure data and layout. A single panel is drawn
+        by :func:`get_curve_plot` instead -- there is nothing to stack.
+    """
+    if not panels:
+        return get_curve_plot()
+    if len(panels) == 1:
+        return get_curve_plot(
+            series=panels[0].get("series"),
+            x_series=panels[0].get("x_series"),
+            traces=panels[0].get("traces"),
+            x_label=x_label,
+            y_label=y_label,
+            x_range=x_range,
+            y_range=y_range,
+            log_y=log_y,
+        )
+
+    count = len(panels)
+    # Room for the panel title above each band, and for the shared axis under
+    # the last one.
+    gap = min(0.08, 0.4 / count)
+    height = (1 - gap * (count - 1)) / count
+
+    figure_data: List[Dict[str, Any]] = []
+    axes: Dict[str, Any] = {}
+    annotations: List[Dict[str, Any]] = []
+
+    for index, panel in enumerate(panels):
+        # Panel 0 sits at the top, so its domain is the highest.
+        top = 1 - index * (height + gap)
+        axis_number = index + 1
+        suffix = "" if axis_number == 1 else str(axis_number)
+
+        y_axis: Dict[str, Any] = {
+            "domain": [round(top - height, 6), round(top, 6)],
+            "title": {"text": y_label},
+            "type": "log" if log_y else "linear",
+            "anchor": "x",
+        }
+        if y_range:
+            y_axis["range"] = list(y_range)
+        axes[f"yaxis{suffix}"] = y_axis
+
+        figure_data.extend(
+            _curve_traces(
+                panel.get("series"),
+                panel.get("x_series"),
+                panel.get("traces"),
+                y_axis=f"y{suffix}",
+                # The panels repeat the same series, so one set of legend
+                # entries covers them all; `legendgroup` makes a click toggle
+                # that series in every band at once.
+                showlegend=index == 0,
+            )
+        )
+
+        annotations.append(
             {
-                "type": "scattergl",
-                "x": _plottable(axis),
-                "y": _plottable(values),
-                "mode": trace.get("mode", "lines"),
-                "name": trace.get("label", trace["name"]),
-                "line": {
-                    "color": trace.get("color"),
-                    "dash": trace.get("dash", "solid"),
-                    "width": trace.get("width", 2),
-                },
-                "marker": {
-                    "color": trace.get("color"),
-                    "size": trace.get("size", 6),
-                    "symbol": trace.get("symbol", "circle"),
-                    # An "-open" symbol is drawn by its outline alone, and an
-                    # outline of width zero is not drawn at all. Filled symbols
-                    # get the same colour they already have, so this costs them
-                    # nothing.
-                    "line": {"color": trace.get("color"), "width": 1.6},
-                },
-                "hovertemplate": "%{y:.2f}<extra>"
-                + str(trace.get("label", trace["name"]))
-                + "</extra>",
+                "text": str(panel.get("title", "")),
+                "xref": "paper",
+                "yref": "paper",
+                "x": 0,
+                "y": round(top, 6),
+                "xanchor": "left",
+                "yanchor": "bottom",
+                "showarrow": False,
+                "font": {"size": 10},
             }
         )
+
+    layout: Dict[str, Any] = {
+        # One x axis for the whole stack, drawn under the bottom band: the
+        # bands are being compared against each other, so repeating the ticks
+        # between them would spend height on nothing.
+        "xaxis": {
+            "title": {"text": x_label},
+            "automargin": True,
+            "domain": [0, 1],
+            "anchor": f"y{count}",
+        },
+        **axes,
+        "margin": {"l": 52, "r": 14, "b": 68, "t": 10},
+        "legend": {
+            "orientation": "h",
+            "yref": "container",
+            "yanchor": "bottom",
+            "y": 0,
+            "xanchor": "left",
+            "x": 0,
+            "font": {"size": 10},
+            "itemwidth": 30,
+            "tracegroupgap": 2,
+        },
+        "annotations": annotations,
+        "hovermode": "x unified",
+        "hoverlabel": {"font": {"size": 10.5}, "namelength": -1},
+        "uirevision": "no_change",
+    }
+    if x_range:
+        layout["xaxis"]["range"] = list(x_range)
 
     if not figure_data:
         figure_data = [{"type": "scatter", "x": [], "y": []}]

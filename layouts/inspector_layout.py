@@ -31,10 +31,14 @@ def _camera_section():
     Build the camera portion of the dock.
 
     Returns:
-        html.Div: Stream selector and the video element, behind a header with
+        html.Div: Stream selector and the video grid, behind a header with
         its own minimize toggle so it can give up space to the curve section.
         Minimizing takes the header with it; the way back is the chip in the
         panel bar.
+
+        The grid's cells are filled in by ``select_camera_stream`` -- one video
+        element per loaded log, since combining logs that share frame ids means
+        several recordings can cover the same slider position.
     """
     return html.Div(
         [
@@ -76,17 +80,7 @@ def _camera_section():
                         ),
                         className="sv-subsection-controls",
                     ),
-                    html.Video(
-                        id="camera-video",
-                        # Playback is driven entirely by the frame slider, so the
-                        # element never plays on its own: no controls, no autoplay,
-                        # muted so browsers never block the load.
-                        controls=False,
-                        autoPlay=False,
-                        muted=True,
-                        preload="auto",
-                        className="sv-video",
-                    ),
+                    html.Div(id="camera-video-grid", className="sv-video-grid"),
                 ],
                 className="sv-subsection-body",
             ),
@@ -162,7 +156,10 @@ def _threshold_section():
                         className="sv-subsection-controls",
                     ),
                     # A responsive Graph sets its own height:100% inline, so the
-                    # size has to be pinned on the wrapper.
+                    # size has to be pinned on the wrapper. The floor moves with
+                    # the panel count (see ``update_threshold_plot``), so
+                    # stacked logs take room from the dock rather than
+                    # squeezing each other flat.
                     html.Div(
                         dcc.Graph(
                             id="threshold-plot",
@@ -173,6 +170,7 @@ def _threshold_section():
                                 "layout": {"uirevision": "no_change"},
                             },
                         ),
+                        id="threshold-graph-wrap",
                         className="sv-threshold-graph",
                     ),
                 ],

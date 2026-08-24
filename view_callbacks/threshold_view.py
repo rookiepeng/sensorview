@@ -5,6 +5,14 @@ to it -- read from the log's HDF5 sidecar. A single file holds many named
 series; which of them share a plot, and how each is styled, comes from
 ``info.json``.
 
+Combining logs that share frame ids puts several sidecars on one slider
+position. Each gets a stacked band of its own against a shared x axis and a
+shared y range, rather than the primary log winning the position outright:
+overlaying them instead would double every trace the plot already declares, and
+these plots regularly declare a handful. The sensor and plot selectors offer the
+union of what the loaded logs recorded, so a sidecar only the second log has is
+still reachable.
+
 Note what this callback does *not* listen to: ``filter-trigger``. Threshold
 series are display-only, so dragging a filter slider never re-reads or
 re-renders them. They update on frame change and on their own selector.
@@ -17,7 +25,7 @@ Author: Zhengyu Peng
 License: GPL-3.0
 """
 
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -27,10 +35,10 @@ from app_config import CACHE_KEYS
 
 from frame_sources import (
     get_frame_positions,
-    get_frame_stem,
-    get_log_stem,
+    get_frame_stems,
+    get_log_stems,
     get_manifest,
-    get_curve_figure,
+    get_curve_figure_multi,
     get_curve_plots,
     get_curve_sources,
     get_curve_y_range,
@@ -39,6 +47,56 @@ from frame_sources import (
 from utils import cache_get
 
 HIDDEN = {"display": "none"}
+
+# Enough for the axis, a wrapped legend, and one readable curve; each further
+# stacked panel needs a band of its own on top of that.
+MIN_GRAPH_HEIGHT = 220
+PANEL_HEIGHT = 140
+
+
+def _merge_options(per_log: List[List[Dict[str, str]]]) -> List[Dict[str, str]]:
+    """
+    Union the picker entries several logs offer, keeping the first log's order.
+
+    Combined logs need not have recorded the same sensors or the same plots, and
+    a selector that only listed the primary's would hide the very sidecar the
+    second log was combined in for.
+
+    Args:
+        per_log: One list of ``{"id", "label"}`` dicts per log, primary first.
+
+    Returns:
+        De-duplicated entries by id, in first-seen order.
+    """
+    merged: List[Dict[str, str]] = []
+    seen = set()
+    for entries in per_log:
+        for entry in entries:
+            if entry["id"] in seen:
+                continue
+            seen.add(entry["id"])
+            merged.append(entry)
+    return merged
+
+
+def _merge_y_ranges(ranges: List[Optional[list]]) -> Optional[list]:
+    """
+    Widen several per-log y ranges into the one the stacked panels share.
+
+    Stacking the logs is only worth doing if a level in one band means the same
+    as the level beside it, so the panels are pinned to a common range rather
+    than each to its own.
+
+    Args:
+        ranges: Per-log ``[min, max]`` estimates, any of which may be None.
+
+    Returns:
+        The enclosing ``[min, max]``, or None when nothing could be estimated.
+    """
+    usable = [pair for pair in ranges if pair]
+    if not usable:
+        return None
+    return [min(pair[0] for pair in usable), max(pair[1] for pair in usable)]
 
 
 def get_threshold_view_callbacks(app: dash.Dash) -> None:
@@ -76,7 +134,9 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
             dict: Section visibility, source options, and selected source
         """
         manifest = get_manifest(session_id)
-        sources = get_curve_sources(manifest, get_log_stem(session_id))
+        sources = _merge_options(
+            [get_curve_sources(manifest, stem) for stem in get_log_stems(session_id)]
+        )
 
         if not sources:
             return {
@@ -121,7 +181,12 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
         """
         manifest = get_manifest(session_id)
         plots = (
-            get_curve_plots(manifest, get_log_stem(session_id), source_id)
+            _merge_options(
+                [
+                    get_curve_plots(manifest, stem, source_id)
+                    for stem in get_log_stems(session_id)
+                ]
+            )
             if source_id
             else []
         )
@@ -141,7 +206,10 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
         }
 
     @app.callback(
-        output={"figure": Output("threshold-plot", "figure")},
+        output={
+            "figure": Output("threshold-plot", "figure"),
+            "wrap_style": Output("threshold-graph-wrap", "style"),
+        },
         inputs={
             "frame_idx": Input("slider-frame", "value"),
             "plot_id": Input("threshold-plot-picker", "value"),
@@ -155,6 +223,11 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
         """
         Render the threshold plot for the current frame.
 
+        Logs that share a frame id land on one slider position, and each gets a
+        stacked panel of its own rather than the primary silently winning. The
+        wrapper's minimum height grows with the panel count, so the extra bands
+        take room from the dock instead of squeezing each other flat.
+
         Args:
             frame_idx (int): Current slider position
             plot_id (str): Selected plot identifier
@@ -162,7 +235,7 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
             session_id (str): Session identifier
 
         Returns:
-            dict: Contains the threshold figure
+            dict: Contains the threshold figure and the wrapper's height
 
         Raises:
             PreventUpdate: If no plot is selected or no data is loaded
@@ -182,33 +255,52 @@ def get_threshold_view_callbacks(app: dash.Dash) -> None:
         if frame_idx is None or frame_idx >= len(frame_list):
             raise PreventUpdate
 
-        # Curves belong to the log that recorded this frame, which with logs
-        # combined is not necessarily the primary one.
-        stem = get_frame_stem(session_id, frame_idx)
+        # Curves belong to the logs that recorded this frame, which with logs
+        # combined need not include the primary one at all.
+        stems = [
+            stem
+            for stem in get_frame_stems(session_id, frame_idx)
+            if manifest.has_curve(stem)
+        ]
 
         # Held constant across frames so the signal's position relative to its
-        # threshold stays readable while scrubbing. Sampled only from the frames
-        # this log owns -- the other logs' ids are not in its sidecar, and
-        # spending the sample budget on frames that read back empty would leave
-        # the range estimated from a handful of the log's own.
-        y_range = get_curve_y_range(
+        # threshold stays readable while scrubbing, and shared between the
+        # panels so their levels can be read against each other. Sampled only
+        # from the frames each log recorded -- the other logs' ids are not in
+        # its sidecar, and spending the sample budget on frames that read back
+        # empty would leave the range estimated from a handful of the log's own.
+        y_range = _merge_y_ranges(
+            [
+                get_curve_y_range(
+                    manifest,
+                    stem,
+                    plot_id,
+                    session_id,
+                    frame_ids=[
+                        frame_list[idx] for idx in get_frame_positions(session_id, stem)
+                    ],
+                    source_id=source_id,
+                )
+                for stem in stems
+            ]
+        )
+
+        figure = get_curve_figure_multi(
             manifest,
-            stem,
+            stems,
+            frame_list[frame_idx],
             plot_id,
-            session_id,
-            frame_ids=[
-                frame_list[idx] for idx in get_frame_positions(session_id, stem)
-            ],
+            y_range=y_range,
             source_id=source_id,
         )
 
+        # One y axis per panel, so counting them counts the bands that were
+        # actually drawn -- stems whose sidecar read back empty are not among
+        # them.
+        panels = sum(1 for key in figure.get("layout", {}) if key.startswith("yaxis"))
         return {
-            "figure": get_curve_figure(
-                manifest,
-                stem,
-                frame_list[frame_idx],
-                plot_id,
-                y_range=y_range,
-                source_id=source_id,
-            )
+            "figure": figure,
+            "wrap_style": {
+                "minHeight": f"{max(MIN_GRAPH_HEIGHT, PANEL_HEIGHT * panels)}px"
+            },
         }

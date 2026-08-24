@@ -852,25 +852,67 @@ body {
     min-height: 0;
 }
 
-.sv-inspector-body:has(#subview-threshold-section.sv-collapsed) .sv-video {
+.sv-inspector-body:has(#subview-threshold-section.sv-collapsed) .sv-video-grid {
     flex: 1 1 auto;
-    aspect-ratio: auto;
-    height: auto;
     max-height: none;
     min-height: 0;
+}
+
+.sv-inspector-body:has(#subview-threshold-section.sv-collapsed) .sv-video {
+    height: 100%;
+    aspect-ratio: auto;
+    min-height: 0;
+}
+
+/* Combined logs that share frame ids each get their own element, so the
+   section holds a grid rather than a single picture. It wraps to one column in
+   a narrow dock and pairs them up once it is dragged wide enough for two to
+   still be worth looking at. */
+.sv-video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 6px;
+    /* However wide the dock is dragged, the pictures stop taking height from
+       the curve at some point; past that the grid scrolls. */
+    max-height: 42vh;
+    overflow-y: auto;
+}
+
+.sv-video-cell {
+    position: relative;
+    min-width: 0;
 }
 
 .sv-video {
     width: 100%;
     aspect-ratio: 16 / 9;
-    /* However wide the dock is dragged, the picture stops taking height from
-       the curve at some point. */
-    max-height: 30vh;
     object-fit: contain;
     background: #000;
     border: 1px solid var(--sv-border);
     border-radius: var(--sv-radius);
     display: block;
+}
+
+/* Which recording is which only matters once there are two of them. */
+.sv-video-label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    max-width: calc(100% - 8px);
+    padding: 1px 6px;
+    border-radius: var(--sv-radius);
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+.sv-video-grid:not(:has(> .sv-video-cell ~ .sv-video-cell)) .sv-video-label {
+    display: none;
 }
 
 .sv-threshold-graph {
