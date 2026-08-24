@@ -26,7 +26,6 @@ from typing import Dict, Iterable, List, Optional
 
 import glob
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -35,8 +34,9 @@ import tempfile
 # to be transcoded before it reaches the client.
 BROWSER_PLAYABLE_EXTENSIONS = (".mp4", ".m4v", ".webm", ".ogv")
 
-# ffmpeg's progress line, e.g. "frame=  246 fps=0.0 q=-1.0 Lsize=N/A ...".
-_FRAME_STAT = re.compile(r"frame=\s*(\d+)")
+# A framecrc header line, e.g. "#codec_id 0: h264". Everything else the muxer
+# writes is one line per packet, which is what gets counted.
+_FRAMECRC_HEADER = "#"
 
 # Counting frames only demuxes, so it is quick even for a long recording. The
 # cap is there so a damaged file cannot wedge the callback that asks for it.
@@ -126,6 +126,38 @@ def find_ffmpeg() -> Optional[str]:
     return shutil.which("ffmpeg")
 
 
+def count_packet_lines(output: str) -> int:
+    """
+    Count the packet lines in a ``framecrc`` dump.
+
+    Split out from :func:`probe_frame_count` so the parsing can be tested
+    against captured ffmpeg output without an ffmpeg to run.
+
+    Counted with :meth:`str.count` rather than by splitting: a long recording
+    is one line per frame, and materialising a list of a few hundred thousand
+    strings to measure its length is a waste of the memory the caller is
+    already holding the dump in.
+
+    Args:
+        output: The muxer's stdout. Header lines start with ``#``; every other
+            non-empty line is one packet.
+
+    Returns:
+        Number of packet lines.
+    """
+    if not output:
+        return 0
+
+    total = output.count("\n")
+    headers = output.count("\n" + _FRAMECRC_HEADER)
+    if output.startswith(_FRAMECRC_HEADER):
+        headers += 1
+    # A final line the muxer did not terminate still counts as a packet.
+    if not output.endswith("\n"):
+        total += 1
+    return max(0, total - headers)
+
+
 def probe_frame_count(path: str) -> Optional[int]:
     """
     Count the video frames in a recording.
@@ -135,6 +167,16 @@ def probe_frame_count(path: str) -> Optional[int]:
     take seconds to decode, and works for a codec no decoder is available for.
     Container metadata is not trusted instead -- AVI and Matroska routinely
     declare no frame count at all.
+
+    The packets are counted by writing them through the ``framecrc`` muxer, one
+    line each, rather than by reading ffmpeg's own ``frame=`` progress counter.
+    That counter is maintained by the *encoder*, so from ffmpeg 7 a stream copy
+    reports no frame count at all -- the progress line comes out as bare
+    ``size=N/A time=... bitrate=N/A speed=...`` and the probe silently returned
+    None for every file, leaving the camera panel stuck on frame 0 and the HTML
+    export with no stills. ``framecrc`` has been in ffmpeg since long before any
+    version this app is likely to meet, and counts the same either way, so this
+    needs no version sniffing.
 
     Args:
         path: Path to any video file.
@@ -149,8 +191,10 @@ def probe_frame_count(path: str) -> Optional[int]:
 
     try:
         result = _run_ffmpeg(
-            [ffmpeg, "-hide_banner", "-i", path]
-            + ["-map", "0:v:0", "-c", "copy", "-f", "null", "-"],
+            # Nothing here parses stderr, so the chatter is turned off rather
+            # than captured: a per-packet dump is quite enough output already.
+            [ffmpeg, "-hide_banner", "-nostats", "-loglevel", "error"]
+            + ["-i", path, "-map", "0:v:0", "-c", "copy", "-f", "framecrc", "-"],
             timeout=_PROBE_TIMEOUT,
         )
     except subprocess.TimeoutExpired:
@@ -159,14 +203,7 @@ def probe_frame_count(path: str) -> Optional[int]:
     if result.returncode != 0:
         return None
 
-    # The progress report is written repeatedly as it goes; the final one holds
-    # the total. It goes to stderr alongside the stream info.
-    matches = _FRAME_STAT.findall(result.stderr or "")
-    if not matches:
-        return None
-
-    count = int(matches[-1])
-    return count or None
+    return count_packet_lines(result.stdout or "") or None
 
 
 def extract_frames(
