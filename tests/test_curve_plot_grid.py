@@ -13,7 +13,7 @@ License: GPL-3.0
 import numpy as np
 import pytest
 
-from viz.viz import get_curve_plot, get_curve_plot_grid
+from viz.viz import TITLE_BAND_HEIGHT, get_curve_plot, get_curve_plot_grid
 
 TRACES = [
     {"name": "signal", "label": "Signal", "color": "#4c78a8"},
@@ -172,6 +172,24 @@ class TestDegenerateCounts:
 
 class TestTitles:
     """Which band is which log."""
+
+    def test_the_top_title_has_margin_to_sit_in(self, three_logs):
+        layout = get_curve_plot_grid(three_logs)["layout"]
+        # Panel 0's domain reaches 1 and its title sits on that edge, so the
+        # text is drawn in the top margin. The single-plot figure's 10px clips
+        # it -- that is the bug this guards.
+        assert layout["annotations"][0]["y"] == pytest.approx(1.0)
+        assert layout["margin"]["t"] >= TITLE_BAND_HEIGHT
+
+    def test_inner_titles_have_a_gap_to_sit_in(self, three_logs):
+        layout = get_curve_plot_grid(three_logs)["layout"]
+        # Every title below the first is drawn in the gap above its own band,
+        # which therefore must not be zero.
+        gaps = [
+            layout[upper]["domain"][0] - layout[lower]["domain"][1]
+            for upper, lower in (("yaxis", "yaxis2"), ("yaxis2", "yaxis3"))
+        ]
+        assert all(gap > 0.02 for gap in gaps), gaps
 
     def test_each_panel_is_annotated_with_its_stem(self, three_logs):
         layout = get_curve_plot_grid(three_logs)["layout"]

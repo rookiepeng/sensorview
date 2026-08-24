@@ -377,6 +377,11 @@ def _curve_traces(
     return figure_data
 
 
+# Pixels a stacked panel's title needs above its band: the 10px font plus the
+# few between the text and the curves it labels.
+TITLE_BAND_HEIGHT = 22
+
+
 def get_curve_plot_grid(
     panels: List[Dict[str, Any]],
     x_label: str = "",
@@ -426,8 +431,8 @@ def get_curve_plot_grid(
         )
 
     count = len(panels)
-    # Room for the panel title above each band, and for the shared axis under
-    # the last one.
+    # Room between the bands for each one's title, which is drawn sitting on the
+    # top edge of its own domain.
     gap = min(0.08, 0.4 / count)
     height = (1 - gap * (count - 1)) / count
 
@@ -489,7 +494,10 @@ def get_curve_plot_grid(
             "anchor": f"y{count}",
         },
         **axes,
-        "margin": {"l": 52, "r": 14, "b": 68, "t": 10},
+        # The top band's domain reaches 1, and its title sits on that edge --
+        # outside the plot area, in the margin. The single-plot figure's 10px
+        # is a hairline there and clips the text; this reserves a line for it.
+        "margin": {"l": 52, "r": 14, "b": 68, "t": TITLE_BAND_HEIGHT},
         "legend": {
             "orientation": "h",
             "yref": "container",
