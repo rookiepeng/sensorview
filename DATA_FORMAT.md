@@ -391,10 +391,16 @@ it just carries no pictures.
 
 ## Reference Pose (`.reference.parquet`)
 
-`x_ref` / `y_ref` / `z_ref` mark a moving origin in the 3D view — usually the
-host vehicle — from table columns. Those carry a position and nothing else, so a
-shape placed from them sits square to the axes however the vehicle is actually
-pointing. A pose sidecar carries orientation too.
+A sidecar of its own marks the moving origin in the 3D view — usually the host
+vehicle. It is the only thing that places one.
+
+> Earlier versions also read a position from three table columns, `x_ref` /
+> `y_ref` / `z_ref`. They carried a position and nothing else, so a shape placed
+> from them sat square to the axes however the vehicle was actually pointing,
+> and they cost every row of the table three columns to say where one vehicle
+> was in a few hundred frames. **They are no longer read.** A manifest that
+> still names them is not an error — the keys are ignored, and dropped the next
+> time a v1 manifest is written.
 
 ### Layout
 
@@ -448,25 +454,29 @@ file that spells it something the fallbacks do not look for (`t`, `sample_idx`)
 matches nothing, and the reference never appears. Pick the column there and the
 choice is saved to `info.json` with the rest.
 
-A usable sidecar **supersedes `x_ref` / `y_ref` / `z_ref` outright** rather than
-drawing alongside them, and the axis ranges widen to cover wherever the pose
-travels — across every combined log, not just the current frame's. Overlay mode
-draws no reference at all: every frame at once leaves no single pose to show.
+The axis ranges widen to cover wherever the pose travels — across every combined
+log, not just the current frame's. Overlay mode draws no reference at all: every
+frame at once leaves no single pose to show.
 
 ### When nothing places it
 
-Declaring a `reference` block is the dataset saying it has a reference. So when
-nothing can place one — the pose sidecar is missing or unreadable, and no
-`x_ref` / `y_ref` are set — it is drawn at the origin `(0, 0, 0)` instead of not
-at all, with the axis ranges widened to reach it there. A missing sidecar then
-reads as a reference sitting at the origin rather than as a `reference` block
-that was quietly ignored, which is the harder of the two to diagnose.
+Declaring a `reference` block is the dataset saying it has a reference. So a
+dataset that declares one and ships **no sidecar at all** draws it at the origin
+`(0, 0, 0)` rather than not at all, with the axis ranges widened to reach it
+there: a missing sidecar then reads as a reference sitting at the origin rather
+than as a `reference` block that was quietly ignored, which is the harder of the
+two to diagnose.
 
 - The shape is whatever the block declared: its **mesh** if it declares
   geometry, the plain **dot** if it does not.
 - A dataset with **no `reference` block at all** draws nothing, exactly as
   before — otherwise every case in the world would grow a white dot it never
   asked for.
+- A log **whose sidecar pairs with nothing** — the frame picker reading `None`,
+  so no row of the file belongs to any frame — draws nothing either. That is the
+  pairing being unset, not the dataset failing to say where its reference goes,
+  and a body parked at the origin would look placed. Map the frame column and it
+  appears.
 - This is for a reference the dataset *cannot* place, not one that is unplaced
   for a moment. A frame the sidecar has no row for, and a frame whose rows were
   all filtered away, both keep drawing nothing rather than sending the reference
@@ -537,8 +547,8 @@ conversion**. Saving a v1 dataset writes v1 back rather than silently upgrading
 it.
 
 > The app writes back to `info.json` when you change a 3D axis or reference
-> picker — the `slider` / `x_3d` / `y_3d` / `z_3d` / `x_ref` / `y_ref` / `z_ref`
-> values and `reference.columns`, with every other block preserved. `config.json`
+> picker — the `slider` / `x_3d` / `y_3d` / `z_3d` values and
+> `reference.columns`, with every other block preserved. `config.json`
 > in the repo root is something else entirely: per-installation UI state (last
 > data path, case, and file), auto-created and git-ignored.
 
@@ -560,7 +570,6 @@ it.
 |---|---|---|---|
 | `slider` | string | `"Frame"` | The frame id column. Integer. |
 | `x_3d`, `y_3d`, `z_3d` | string | first numeric keys | Default 3D axes. A column the loaded log lacks is ignored. |
-| `x_ref`, `y_ref`, `z_ref` | string | `"None"` | Reference-point columns. The **string** `"None"` disables an axis. Superseded by a pose sidecar when the log has one. |
 | `time_unit` | string | `"s"` | Unit of the `Time` column: `s`, `ms`, `us`, `ns` (long spellings accepted). An unrecognized value falls back to 1.0 rather than rescaling the index. |
 | `suffix` | string | `".parquet"` | Table file suffix; also what stem extraction strips. |
 | `keys` | object | `{}` | Column metadata; see below. |
@@ -688,9 +697,6 @@ The table block is the only required one:
     "x_3d": "X",
     "y_3d": "Y",
     "z_3d": "Z",
-    "x_ref": "None",
-    "y_ref": "None",
-    "z_ref": "None",
     "time_unit": "s",
     "keys": {
       "Frame":  { "description": "Frame",      "decimal": 0, "type": "numerical" },

@@ -25,7 +25,7 @@ import plotly.io as pio
 from layouts.layout_constants import colorscales
 
 
-def _select(component_id, label, tooltip, **kwargs):
+def _select(component_id, label, tooltip, class_name="", **kwargs):
     """
     Build a compact labelled select with its tooltip.
 
@@ -33,6 +33,8 @@ def _select(component_id, label, tooltip, **kwargs):
         component_id (str): Component id, also the tooltip target.
         label (str): Prefix shown in the input group.
         tooltip (str): Explanatory text.
+        class_name (str): Extra classes for the wrapper, e.g. ``sv-field-wide``
+            to span a mapping grid.
         **kwargs: Extra props forwarded to ``dbc.Select``.
 
     Returns:
@@ -46,7 +48,7 @@ def _select(component_id, label, tooltip, **kwargs):
             ),
             dbc.Tooltip(tooltip, target=component_id, placement="bottom"),
         ],
-        className="sv-grow",
+        className=f"sv-grow {class_name}".strip(),
     )
 
 
@@ -88,61 +90,82 @@ def _axis_config_panel():
     """
     Build the axis mapping panel that drops out of the tool cluster.
 
+    Three sections, each a grid of the same three columns so a field lines up
+    with the one above it: which column drives the slider, which drive the
+    axes, and -- for a log with a pose sidecar -- which of that file's columns
+    carry the reference.
+
+    The reference section is the sidecar's editor and nothing else's, so a log
+    without one hides it rather than showing seven selects with nothing to
+    offer.
+
     Returns:
-        dbc.Collapse: Slider, x/y/z, and the reference selectors.
+        dbc.Collapse: The frame, axis, and reference selectors.
     """
     axes = [
         ("x-picker-3d", "x", "Column plotted on the x axis"),
         ("y-picker-3d", "y", "Column plotted on the y axis"),
         ("z-picker-3d", "z", "Column plotted on the z axis"),
     ]
-    refs = [
-        ("x-ref-picker-3d", "x ref", "Reference column for the x axis"),
-        ("y-ref-picker-3d", "y ref", "Reference column for the y axis"),
-        ("z-ref-picker-3d", "z ref", "Reference column for the z axis"),
-    ]
-    # These only mean anything for a reference sidecar, so the row appears only
-    # for a log that has one and its columns come from that file rather than
-    # from the table. Orientation because a table column carries a position and
-    # nothing else; the frame key because the sidecar is a separate file that
-    # has to be paired with the table row by row -- read from the wrong column
-    # it pairs with nothing, and the reference simply never appears.
-    sidecar_refs = [
-        ("frame-ref-picker-3d", "frame", "Reference column holding the frame id"),
-        ("yaw-ref-picker-3d", "yaw", "Reference column for yaw, in radians"),
-        ("pitch-ref-picker-3d", "pitch", "Reference column for pitch, in radians"),
-        ("roll-ref-picker-3d", "roll", "Reference column for roll, in radians"),
+    # Position and orientation, in the order the pose is read. Both come from
+    # the sidecar: a table column carries a position and nothing else.
+    reference = [
+        ("x-ref-picker-3d", "x", "Sidecar column for the reference x position"),
+        ("y-ref-picker-3d", "y", "Sidecar column for the reference y position"),
+        ("z-ref-picker-3d", "z", "Sidecar column for the reference z position"),
+        ("yaw-ref-picker-3d", "yaw", "Sidecar column for yaw, in radians"),
+        ("pitch-ref-picker-3d", "pitch", "Sidecar column for pitch, in radians"),
+        ("roll-ref-picker-3d", "roll", "Sidecar column for roll, in radians"),
     ]
 
     return dbc.Collapse(
         html.Div(
             [
                 html.Span("Frame index", className="sv-section-label"),
-                _select(
-                    "slider-picker-3d",
-                    "slider",
-                    "Integer column used as the temporal axis for the frame slider",
+                html.Div(
+                    [
+                        _select(
+                            "slider-picker-3d",
+                            "slider",
+                            "Integer column used as the temporal axis for the "
+                            "frame slider",
+                            class_name="sv-field-wide",
+                        )
+                    ],
+                    className="sv-field-grid",
                 ),
                 html.Div(className="sv-divider"),
                 html.Span("Axes", className="sv-section-label"),
                 html.Div(
                     [_select(cid, label, tip) for cid, label, tip in axes],
-                    className="sv-pane-controls mb-2",
-                ),
-                html.Span("Reference", className="sv-section-label"),
-                html.Span(
-                    "",
-                    id="ref-source-note",
-                    className="sv-source-note",
+                    className="sv-field-grid",
                 ),
                 html.Div(
-                    [_select(cid, label, tip) for cid, label, tip in refs],
-                    className="sv-pane-controls mb-0",
-                ),
-                html.Div(
-                    [_select(cid, label, tip) for cid, label, tip in sidecar_refs],
-                    id="ref-pose-controls",
-                    className="sv-pane-controls mb-0 mt-2",
+                    [
+                        html.Div(className="sv-divider"),
+                        html.Span("Reference", className="sv-section-label"),
+                        html.Span("", id="ref-source-note", className="sv-source-note"),
+                        html.Div(
+                            [
+                                # The frame key spans the row: it is what pairs
+                                # a sidecar row with a table frame, so every
+                                # column under it is read through this one.
+                                _select(
+                                    "frame-ref-picker-3d",
+                                    "frame",
+                                    "Sidecar column holding the frame id, paired "
+                                    "with the table's own frame column",
+                                    class_name="sv-field-wide",
+                                ),
+                                *[
+                                    _select(cid, label, tip)
+                                    for cid, label, tip in reference
+                                ],
+                            ],
+                            className="sv-field-grid",
+                        ),
+                    ],
+                    id="ref-controls",
                     style={"display": "none"},
                 ),
             ],

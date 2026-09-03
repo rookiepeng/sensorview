@@ -26,6 +26,7 @@ from utils import prepare_figure_kwargs
 from frame_sources import (
     get_cloud_trace,
     get_combined_reference_bounds,
+    has_reference_sidecar,
     get_frame_stem,
     get_log_stems,
     get_manifest,
@@ -105,6 +106,7 @@ def process_single_frame(
     # Sidecars belong to the log that recorded this frame, which with logs
     # combined is not necessarily the primary one.
     stem = get_frame_stem(session_id, frame_idx)
+    stems = get_log_stems(session_id)
 
     # prepare figure key word arguments
     fig_kwargs = prepare_figure_kwargs(
@@ -117,7 +119,8 @@ def process_single_frame(
         frame_idx,
         # Axis ranges are fixed for the whole session, so they have to cover
         # every combined log's reference rather than just this frame's.
-        ref_bounds=get_combined_reference_bounds(manifest, get_log_stems(session_id)),
+        ref_bounds=get_combined_reference_bounds(manifest, stems),
+        has_sidecar=has_reference_sidecar(manifest, stems),
     )
 
     # get a single frame data from Redis
@@ -196,14 +199,15 @@ def process_single_frame(
             else:
                 break
 
-    if fig_kwargs.get("ref_from_sidecar"):
+    ref_source = fig_kwargs.get("ref_source")
+    if ref_source == "sidecar":
         # The pose is per frame, so it is read from the sidecar rather than from
         # the filtered frame -- filtering out every detection does not move the
-        # host vehicle.
+        # host vehicle. A frame the sidecar has no row for draws nothing rather
+        # than stranding the reference at its last known pose.
         pose = get_reference_pose(manifest, stem, frame_list[frame_idx])
         fig_ref = (
             get_reference_traces(
-                data_frame=filterd_frame,
                 name=fig_kwargs.get("ref_name", None),
                 display=fig_kwargs.get("ref_display"),
                 pose=pose,
@@ -211,24 +215,13 @@ def process_single_frame(
             if pose is not None
             else []
         )
-    elif fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None:
+    elif ref_source == "origin":
         fig_ref = get_reference_traces(
-            data_frame=filterd_frame,
-            x_key=fig_kwargs["x_ref"],
-            y_key=fig_kwargs["y_ref"],
-            z_key=fig_kwargs["z_ref"],
             name=fig_kwargs.get("ref_name", None),
             display=fig_kwargs.get("ref_display"),
         )
     else:
-        # No sidecar and no ref columns: nothing here places the reference.
-        # A reference the manifest declared still draws, at the origin; a
-        # dataset that declared none draws nothing.
-        fig_ref = get_reference_traces(
-            data_frame=filterd_frame,
-            name=fig_kwargs.get("ref_name", None),
-            display=fig_kwargs.get("ref_display"),
-        )
+        fig_ref = []
 
     # The cloud is a display-only backdrop: read once per frame, never refiltered,
     # and drawn first so the radar detections render on top of it.
@@ -297,9 +290,10 @@ def process_overlay_frame(
     frame_idx = clamped_idx
 
     # prepare figure key word arguments. Overlaying every frame at once leaves
-    # no single frame for a per-frame pose to belong to, so the sidecar draws
-    # nothing here -- but it still owns the reference, so the table's ref
-    # columns stay suppressed rather than standing in for it.
+    # no single frame for a per-frame pose to belong to, so a sidecar-placed
+    # reference draws nothing here -- see get_scatter3d.
+    overlay_manifest = get_manifest(session_id)
+    overlay_stems = get_log_stems(session_id)
     fig_kwargs = prepare_figure_kwargs(
         config,
         num_keys,
@@ -308,9 +302,8 @@ def process_overlay_frame(
         bool(size_vary),
         frame_list,
         frame_idx,
-        ref_bounds=get_combined_reference_bounds(
-            get_manifest(session_id), get_log_stems(session_id)
-        ),
+        ref_bounds=get_combined_reference_bounds(overlay_manifest, overlay_stems),
+        has_sidecar=has_reference_sidecar(overlay_manifest, overlay_stems),
     )
 
     # overlay all the frames

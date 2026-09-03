@@ -19,37 +19,12 @@ from dataio.calibration import rotation_matrix
 
 REF_HOVER = "Lateral: %{x:.2f} m<br>Longitudinal: %{y:.2f} m<br>"
 
-# Where a reference goes when the dataset declares one but nothing says where it
-# is. A `reference` block is the dataset stating that it has a reference, so it
-# is drawn whether or not a pose or a ref column ever turns up: a declared
-# reference that never appears reads as the block having been ignored, which is
-# the harder thing to diagnose than one sitting visibly at the origin.
+# Where a reference goes when the dataset declares one but has no pose to place
+# it by. Drawing it there says the `reference` block was read and the poses were
+# not, which is a far easier thing to diagnose than an overlay that never
+# appears. Whether an unplaced reference is drawn at all is the caller's call --
+# see :func:`utils.prepare_figure_kwargs`, which is where the sources are known.
 DEFAULT_REFERENCE_ORIGIN = (0.0, 0.0, 0.0)
-
-
-def _ref_point(
-    data_frame: pd.DataFrame,
-    x_key: str,
-    y_key: str,
-    z_key: Optional[str],
-) -> Tuple[float, float, float]:
-    """
-    Read the reference position out of a frame.
-
-    Args:
-        data_frame: Source data for the frame.
-        x_key: Column holding the reference x coordinate.
-        y_key: Column holding the reference y coordinate.
-        z_key: Optional column holding the reference z coordinate.
-
-    Returns:
-        ``(x, y, z)`` from the first row; z is 0 when no column is given.
-    """
-    return (
-        float(data_frame[x_key].iloc[0]),
-        float(data_frame[y_key].iloc[0]),
-        0.0 if z_key is None else float(data_frame[z_key].iloc[0]),
-    )
 
 
 def _pose_point(pose: Dict[str, float]) -> Tuple[float, float, float]:
@@ -67,43 +42,6 @@ def _pose_point(pose: Dict[str, float]) -> Tuple[float, float, float]:
         float(pose.get("y", 0.0)),
         float(pose.get("z", 0.0)),
     )
-
-
-def _ref_origin(
-    data_frame: pd.DataFrame,
-    x_key: Optional[str],
-    y_key: Optional[str],
-    z_key: Optional[str],
-    pose: Optional[Dict[str, float]],
-) -> Optional[Tuple[float, float, float]]:
-    """
-    Decide where the reference sits, from whichever source the dataset has.
-
-    Args:
-        data_frame: Source data for the frame.
-        x_key: Column holding the reference x coordinate, if any.
-        y_key: Column holding the reference y coordinate, if any.
-        z_key: Column holding the reference z coordinate, if any.
-        pose: Pose from the reference sidecar, if any. It wins outright: it is
-            the one source that also carries orientation.
-
-    Returns:
-        ``(x, y, z)`` in plot coordinates, or None when nothing places the
-        reference -- no pose, and no ref columns this frame actually carries.
-    """
-    if pose is not None:
-        return _pose_point(pose)
-
-    if not x_key or not y_key or data_frame.empty:
-        return None
-
-    # A column named in the config but absent from the table -- a config left
-    # over from another dataset -- places nothing rather than raising.
-    columns = data_frame.columns
-    if x_key not in columns or y_key not in columns:
-        return None
-
-    return _ref_point(data_frame, x_key, y_key, z_key if z_key in columns else None)
 
 
 def _place_vertices(
@@ -203,8 +141,8 @@ def get_ref_scatter3d_data(
     Generate reference data for a 3D scatter plot.
 
     Args:
-        origin: Reference position in plot coordinates, from
-            :func:`_ref_origin`.
+        origin: Reference position in plot coordinates -- the pose's, or
+            :data:`DEFAULT_REFERENCE_ORIGIN` when there is no pose to place it.
         name: Optional label for the reference point in the plot.
         display: Optional manifest styling (``color``, ``size``, ``opacity``,
             ``symbol``, ``line_color``, ``line_width``).
@@ -263,14 +201,13 @@ def get_ref_mesh3d_data(
     disagree with what the dataset meant.
 
     The vertices sit in the reference's own frame. Without a pose they are
-    placed as authored, which is all a position from table columns supports. A
-    ``pose`` from the reference sidecar also carries orientation, and then the
-    whole mesh turns with it.
+    placed as authored, around whatever origin the caller passes. A ``pose``
+    from the reference sidecar also carries orientation, and then the whole
+    mesh turns with it.
 
     Args:
-        origin: Reference position in plot coordinates, from
-            :func:`_ref_origin` -- or :data:`DEFAULT_REFERENCE_ORIGIN` when the
-            dataset declares a mesh but never says where it goes.
+        origin: Reference position in plot coordinates -- the pose's, or
+            :data:`DEFAULT_REFERENCE_ORIGIN` when there is no pose to place it.
         name: Optional label for the reference in the plot.
         display: Manifest styling and geometry, normalized by
             :func:`dataio.manifest.normalize_reference_display`.
@@ -327,10 +264,6 @@ def get_ref_mesh3d_data(
 
 
 def get_reference_traces(
-    data_frame: pd.DataFrame,
-    x_key: Optional[str] = None,
-    y_key: Optional[str] = None,
-    z_key: Optional[str] = None,
     name: Optional[str] = "Origin",
     display: Optional[Dict[str, Any]] = None,
     pose: Optional[Dict[str, float]] = None,
@@ -338,48 +271,26 @@ def get_reference_traces(
     """
     Build the reference overlay in whichever shape the manifest asked for.
 
-    Callers hand over whatever the dataset offers -- a pose, ref columns, or
-    neither -- and the manifest decides what "neither" means. A dataset that
-    declared a ``reference`` block has said it has one, so it is drawn at
-    :data:`DEFAULT_REFERENCE_ORIGIN`: the mesh if it declared geometry, the dot
-    otherwise. A dataset that never mentioned a reference draws nothing, which
-    is why the block's presence is carried through ``display["declared"]``
-    rather than inferred from the styling -- the defaults make the two identical.
-
-    That fallback is for a reference nothing in the dataset can place. A pose
-    sidecar that simply has no row for this frame is a different case, and its
-    callers pass no traces at all rather than parking the reference at the
-    origin mid-playback.
+    Draws the reference wherever the pose puts it, or -- with no pose --  at
+    :data:`DEFAULT_REFERENCE_ORIGIN`. It does not decide *whether* a reference
+    belongs on this figure: a caller that hands over no pose is saying it wants
+    the reference drawn unplaced, and one that wants none does not call at all.
+    That decision needs to know which logs have sidecars and whether they pair
+    with the table, which is :func:`utils.prepare_figure_kwargs`'s job.
 
     Args:
-        data_frame: DataFrame containing the source data.
-        x_key: Column name for x-axis coordinates.
-        y_key: Column name for y-axis coordinates.
-        z_key: Column name for z-axis coordinates.
         name: Optional label for the reference in the plot.
         display: Manifest styling, normalized by
             :func:`dataio.manifest.normalize_reference_display`. Absent or
-            shapeless, the reference stays the plain marker it has always been;
-            ``display["declared"]`` says whether the dataset asked for one.
-        pose: Pose read from the log's reference sidecar. When given it is the
-            source of position and orientation, and the column names are unused.
+            shapeless, the reference stays the plain marker it has always been.
+        pose: Pose read from the log's reference sidecar, carrying position in
+            meters and yaw/pitch/roll in radians.
 
     Returns:
         List of traces to append to the figure.
     """
     display = display or {}
-    origin = _ref_origin(data_frame, x_key, y_key, z_key, pose)
-
-    if origin is None and display.get("declared") and not (x_key and y_key):
-        # Nothing in this dataset can place the reference -- no pose sidecar,
-        # no ref columns -- so it is drawn unplaced rather than not at all.
-        # Note the column check: with ref columns configured, an origin of None
-        # means this frame's rows were all filtered away, and parking the
-        # reference at (0, 0, 0) because of a filter would be a lie.
-        origin = DEFAULT_REFERENCE_ORIGIN
-
-    if origin is None:
-        return []
+    origin = _pose_point(pose) if pose is not None else DEFAULT_REFERENCE_ORIGIN
 
     if display.get("shape") == "mesh":
         return get_ref_mesh3d_data(origin, name, display, pose)

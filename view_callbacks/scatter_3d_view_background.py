@@ -39,6 +39,7 @@ from dataio.manifest import log_stem
 
 from frame_sources import (
     get_combined_reference_bounds,
+    has_reference_sidecar,
     get_export_frame_images,
     get_frame_stem,
     get_log_stems,
@@ -175,6 +176,7 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             use_cached_frames = True
 
         manifest = get_manifest(session_id)
+        stems = get_log_stems(session_id)
 
         # prepare figure key word arguments
         fig_kwargs = prepare_figure_kwargs(
@@ -186,15 +188,23 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             frame_list,
             # Axis ranges are fixed for the whole buffer, so they have to cover
             # every combined log's reference rather than just the primary one's.
-            ref_bounds=get_combined_reference_bounds(
-                manifest, get_log_stems(session_id)
-            ),
+            ref_bounds=get_combined_reference_bounds(manifest, stems),
+            has_sidecar=has_reference_sidecar(manifest, stems),
         )
 
         # The layout is loop-invariant: nothing in it varies per frame.
         base_layout = get_scatter3d_layout(**fig_kwargs)
-        has_ref = fig_kwargs["x_ref"] is not None and fig_kwargs["y_ref"] is not None
-        ref_from_sidecar = bool(fig_kwargs.get("ref_from_sidecar"))
+        ref_source = fig_kwargs.get("ref_source")
+        # An unplaced reference is the same traces on every frame, so it is
+        # built once rather than per frame in the loop below.
+        ref_at_origin = (
+            get_reference_traces(
+                name=fig_kwargs.get("ref_name", None),
+                display=fig_kwargs.get("ref_display"),
+            )
+            if ref_source == "origin"
+            else []
+        )
 
         for slider_arg, frame_idx in enumerate(frame_list):
             # --- Cooperative cancellation check ---
@@ -243,11 +253,10 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             fig = result["scatter_data"]
             hover_strings = result["hover_strings"]
 
-            if ref_from_sidecar:
+            if ref_source == "sidecar":
                 pose = get_reference_pose(manifest, stem, frame_idx)
                 ref_fig = (
                     get_reference_traces(
-                        data_frame=filterd_frame,
                         name=fig_kwargs.get("ref_name", None),
                         display=fig_kwargs.get("ref_display"),
                         pose=pose,
@@ -255,24 +264,8 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                     if pose is not None
                     else []
                 )
-            elif has_ref:
-                ref_fig = get_reference_traces(
-                    data_frame=filterd_frame,
-                    x_key=fig_kwargs["x_ref"],
-                    y_key=fig_kwargs["y_ref"],
-                    z_key=fig_kwargs["z_ref"],
-                    name=fig_kwargs.get("ref_name", None),
-                    display=fig_kwargs.get("ref_display"),
-                )
             else:
-                # No sidecar and no ref columns: nothing places the
-                # reference. One the manifest declared still draws, at the
-                # origin; a dataset that declared none draws nothing.
-                ref_fig = get_reference_traces(
-                    data_frame=filterd_frame,
-                    name=fig_kwargs.get("ref_name", None),
-                    display=fig_kwargs.get("ref_display"),
-                )
+                ref_fig = ref_at_origin
 
             # Bundle all per-frame data into a single cache entry
             frame_bundle = {
@@ -392,9 +385,10 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             bool(size_vary),
             frame_list,
             ref_bounds=get_combined_reference_bounds(export_manifest, export_stems),
+            has_sidecar=has_reference_sidecar(export_manifest, export_stems),
         )
 
-        if fig_kwargs.get("ref_from_sidecar"):
+        if fig_kwargs.get("ref_source") == "sidecar":
             # The export is a standalone HTML file with every frame baked in, so
             # the poses have to travel with it rather than be looked up per frame.
             fig_kwargs["ref_poses"] = {

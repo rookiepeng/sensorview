@@ -17,6 +17,7 @@ import pytest
 
 from dataio.manifest import (
     DEFAULT_REFERENCE_COLUMNS,
+    NO_COLUMN,
     DEFAULT_REFERENCE_DISPLAY,
     _mesh_edges,
     _mesh_extent,
@@ -248,11 +249,17 @@ class TestNormalizeReferenceColumns:
         assert columns["x"] == "east"
         assert columns["yaw"] == "heading"
 
-    @pytest.mark.parametrize("unset", [None, "", "None"])
-    def test_the_three_unset_spellings_all_become_none(self, unset):
+    @pytest.mark.parametrize("cleared", [None, "", "None"])
+    def test_the_three_cleared_spellings_all_become_one(self, cleared):
         # "None" is what the view's pickers emit for an empty dropdown; all
         # three must be one thing downstream rather than three.
-        assert normalize_reference_columns({"x": unset})["x"] is None
+        assert normalize_reference_columns({"x": cleared})["x"] == NO_COLUMN
+
+    def test_a_field_the_block_does_not_name_is_not_the_same_as_cleared(self):
+        # Unnamed is resolved by guessing a column called `x`; cleared is the
+        # user saying there is none, and the guess must not undo that.
+        assert normalize_reference_columns({"y": "north"})["x"] is None
+        assert normalize_reference_columns({"x": "None"})["x"] is not None
 
     def test_unknown_fields_are_ignored(self):
         columns = normalize_reference_columns({"not_a_field": "x"})

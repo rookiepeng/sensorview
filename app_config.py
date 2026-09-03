@@ -155,19 +155,17 @@ DROPDOWN_OPTIONS_3D_XYZ = [
     Output("z-picker-3d", "options"),
 ]
 
-# The reference pickers map the fields a sidecar can supply. Which columns they
-# list depends on where the reference comes from: a log with a
-# `.reference.parquet` sidecar maps that file's columns (and shows all of them),
-# while a log without one maps its own table columns for position and hides the
-# rest -- a table column carries neither orientation nor a frame key of its own.
+# The reference pickers map the columns of a log's `.reference.parquet` sidecar
+# -- the only thing that places a reference -- so they list that file's columns,
+# and the panel hides them for a log that has none.
 DROPDOWN_OPTIONS_3D_XYZ_REF = [
+    Output("frame-ref-picker-3d", "options"),
     Output("x-ref-picker-3d", "options"),
     Output("y-ref-picker-3d", "options"),
     Output("z-ref-picker-3d", "options"),
     Output("yaw-ref-picker-3d", "options"),
     Output("pitch-ref-picker-3d", "options"),
     Output("roll-ref-picker-3d", "options"),
-    Output("frame-ref-picker-3d", "options"),
 ]
 
 # values for dropdown components with all the keys
@@ -193,20 +191,20 @@ DROPDOWN_VALUES_3D_XYZ = [
 ]
 
 DROPDOWN_VALUES_3D_XYZ_REF = [
+    Output("frame-ref-picker-3d", "value"),
     Output("x-ref-picker-3d", "value"),
     Output("y-ref-picker-3d", "value"),
     Output("z-ref-picker-3d", "value"),
     Output("yaw-ref-picker-3d", "value"),
     Output("pitch-ref-picker-3d", "value"),
     Output("roll-ref-picker-3d", "value"),
-    Output("frame-ref-picker-3d", "value"),
 ]
 
-# Sidecar fields the reference pickers map, in picker order. `frame` sits last
-# so the first three stay the positions the table's own x_ref/y_ref/z_ref fill
-# in when a log has no sidecar; every list built from this order is indexed
-# against it, so appending is the only safe way to add a field.
-REFERENCE_PICKER_ORDER = ("x", "y", "z", "yaw", "pitch", "roll", "frame")
+# Sidecar fields the reference pickers map, in the order the panel shows them:
+# the frame key that pairs the file with the table, then the pose it carries.
+# Both lists above are indexed positionally against this, so the three orders
+# have to be changed together.
+REFERENCE_PICKER_ORDER = ("frame", "x", "y", "z", "yaw", "pitch", "roll")
 
 DROPDOWN_VALUES_ALL_STATE = [
     State("c-picker-3d", "value"),

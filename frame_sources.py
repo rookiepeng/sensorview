@@ -484,6 +484,29 @@ def get_reference_bounds(
     return store.bounds()
 
 
+def has_reference_sidecar(manifest: Optional[Manifest], stems: List[str]) -> bool:
+    """
+    Whether any loaded log has a reference-pose sidecar on disk.
+
+    Asked alongside :func:`get_combined_reference_bounds`, which answers None
+    for two different situations the renderer has to tell apart: a dataset with
+    no sidecar anywhere, and one whose sidecar pairs with no frame because its
+    frame column is unmapped. The first draws its declared reference unplaced;
+    the second hides it, the sidecar's own pairing being the thing that is
+    unset.
+
+    Args:
+        manifest: Dataset manifest, or None.
+        stems: Log stems in play.
+
+    Returns:
+        True when at least one stem has a sidecar file.
+    """
+    if manifest is None:
+        return False
+    return any(stem and manifest.has_reference_pose(stem) for stem in stems)
+
+
 def get_combined_reference_bounds(
     manifest: Optional[Manifest], stems: List[str]
 ) -> Optional[Dict[str, Any]]:

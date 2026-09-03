@@ -30,6 +30,8 @@ import os
 import numpy as np
 import polars as pl
 
+from dataio.manifest import NO_COLUMN
+
 # Pose fields in the order the renderer wants them. Position in meters,
 # orientation in radians (ZYX intrinsic: yaw about z, pitch about y, roll about
 # x), matching the convention :mod:`dataio.calibration` uses for mountings.
@@ -106,9 +108,11 @@ class ReferenceStore:
         """
         Args:
             path: Path to the sidecar Parquet.
-            columns: Mapping of pose field -> column name, as configured. Fields
-                the mapping omits fall back to a column named after the field
-                itself, so a self-describing file needs no configuration.
+            columns: Mapping of pose field -> column name, as configured. A
+                field the mapping omits falls back to a column named after the
+                field itself, so a self-describing file needs no configuration;
+                one it names as :data:`dataio.manifest.NO_COLUMN` has no column
+                at all.
             frame_key: The table's frame column name, used when the mapping does
                 not name one.
         """
@@ -175,6 +179,11 @@ class ReferenceStore:
         """
         Decide which file column feeds each pose field.
 
+        A field the mapping names as nothing resolves to nothing: the guesses
+        below are for a file nobody has mapped yet, and running them over an
+        explicit choice would make the pickers' empty dropdown inert -- pick it,
+        and the column it was meant to clear comes straight back.
+
         Args:
             available: Column names present in the file.
         """
@@ -182,16 +191,20 @@ class ReferenceStore:
 
         def pick(field: str) -> Optional[str]:
             configured = self.columns.get(field)
+            if configured == NO_COLUMN:
+                return None
             if configured and configured in available:
                 return configured
-            # Unmapped, or mapped to a column this file does not have: a column
+            # Unnamed, or named as a column this file does not have: a column
             # named after the field is the obvious intent either way.
             return lowered.get(field)
 
         self._resolved = {field: pick(field) for field in POSE_FIELDS}
 
         frame_column = self.columns.get("frame")
-        if not frame_column or frame_column not in available:
+        if frame_column == NO_COLUMN:
+            frame_column = None
+        elif not frame_column or frame_column not in available:
             frame_column = None
             for candidate in (self.frame_key, "frame", "frame_id", "frame_idx"):
                 if candidate and candidate in available:

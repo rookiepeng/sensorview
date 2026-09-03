@@ -29,7 +29,7 @@ from app_config import (
     DROPDOWN_VALUES_3D_XYZ_REF,
     REFERENCE_PICKER_ORDER,
 )
-from dataio.manifest import DEFAULT_REFERENCE_COLUMNS, Manifest
+from dataio.manifest import DEFAULT_REFERENCE_COLUMNS, NO_COLUMN, Manifest
 from dataio.reference import ReferenceStore
 from layouts.canvas_layout import get_canvas_layout
 from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
@@ -171,6 +171,62 @@ class TestMappingTheFrameColumn:
         manifest.save()
 
         assert Manifest.load(case).reference_columns()["frame"] == "sample_idx"
+
+
+class TestClearingIt:
+    """The picker's empty dropdown is the reference's off switch, so it has to
+    outrank the name guessing -- otherwise picking None on a file that does
+    have a `frame` column silently resolves straight back to it, and the
+    control does nothing at all."""
+
+    @pytest.fixture
+    def plain(self, tmp_path):
+        """A sidecar the guesses would resolve on their own."""
+        path = tmp_path / "log.reference.parquet"
+        pl.DataFrame({"frame": [0, 1], "x": [1.0, 2.0], "y": [3.0, 4.0]}).write_parquet(
+            path
+        )
+        return str(path)
+
+    def test_the_guess_pairs_an_unmapped_file(self, plain):
+        store = ReferenceStore.open(plain, dict(DEFAULT_REFERENCE_COLUMNS), "Frame")
+
+        assert store.resolved_columns["frame"] == "frame"
+        assert store.pose(0) is not None
+
+    def test_clearing_the_frame_column_unpairs_it(self, plain):
+        columns = {**DEFAULT_REFERENCE_COLUMNS, "frame": NO_COLUMN}
+
+        store = ReferenceStore.open(plain, columns, "Frame")
+
+        assert store.resolved_columns["frame"] is None
+        assert store.pose(0) is None
+        # No poses means no extent, which is what tells the figure to hide it.
+        assert store.bounds() is None
+
+    def test_the_pickers_own_spelling_of_empty_clears_it(self, case):
+        # Straight from the dropdown, through the manifest, to the store.
+        manifest = Manifest.load(case)
+        manifest.update_reference_columns({"frame": "None"})
+        manifest.save()
+
+        reloaded = Manifest.load(case)
+        store = ReferenceStore.open(
+            reloaded.reference_path("log"),
+            reloaded.reference_columns(),
+            frame_key=reloaded.frame_key,
+        )
+
+        assert store.resolved_columns["frame"] is None
+
+    def test_clearing_a_pose_field_sticks_too(self, plain):
+        columns = {**DEFAULT_REFERENCE_COLUMNS, "y": NO_COLUMN}
+
+        store = ReferenceStore.open(plain, columns, "Frame")
+
+        assert store.resolved_columns["y"] is None
+        # x and y are what place it, so cleared it places nothing.
+        assert not store.is_usable
 
 
 class TestStoreCache:

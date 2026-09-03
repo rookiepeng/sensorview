@@ -313,13 +313,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         ctype = keys_dict[c_key].get("type", KEY_TYPES["NUM"])
 
-        if (
-            config.get("x_ref", None) is not None
-            and config.get("y_ref", None) is not None
-        ):
-            data_length = len(fig["data"]) - 1
-        else:
-            data_length = len(fig["data"])
+        data_length = len(fig["data"])
 
         if size_vary and ctype == KEY_TYPES["CAT"]:
             for i in range(0, data_length):
@@ -514,9 +508,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             x_picker_3d: X-axis column name.
             y_picker_3d: Y-axis column name.
             z_picker_3d: Z-axis column name.
-            x_ref_picker_3d: Reference X-column name.
-            y_ref_picker_3d: Reference Y-column name.
-            z_ref_picker_3d: Reference Z-column name.
+            x_ref_picker_3d: Reference x column name (sidecar only).
+            y_ref_picker_3d: Reference y column name (sidecar only).
+            z_ref_picker_3d: Reference z column name (sidecar only).
             yaw_ref_picker_3d: Reference yaw column name (sidecar only).
             pitch_ref_picker_3d: Reference pitch column name (sidecar only).
             roll_ref_picker_3d: Reference roll column name (sidecar only).
@@ -573,12 +567,9 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         config["y_3d"] = y_picker_3d
         config["z_3d"] = z_picker_3d
 
-        # The reference pickers map one of two different things, depending on
-        # what this log carries: the columns of its pose sidecar, or -- with no
-        # sidecar -- three of its own table columns. They are the same pickers
-        # because they answer the same question; what changes is where the answer
-        # is written, and a sidecar's mapping must never land in the table's
-        # x_ref/y_ref/z_ref, where it would name columns the table does not have.
+        # The reference pickers map the columns of this log's pose sidecar, and
+        # exist only for a log that has one -- the panel hides them otherwise,
+        # and there is nothing to write.
         manifest = get_manifest(session_id)
         stem = get_log_stem(session_id)
         maps_sidecar = manifest is not None and manifest.has_reference_pose(stem)
@@ -597,10 +588,6 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
                 # fallback, which a file calling it `t` or `sample_idx` defeats.
                 "frame": frame_ref_picker_3d,
             }
-        else:
-            config["x_ref"] = x_ref_picker_3d
-            config["y_ref"] = y_ref_picker_3d
-            config["z_ref"] = z_ref_picker_3d
 
         # Persist the axis selections back to the dataset. This goes through the
         # manifest rather than dumping `config` straight over info.json: config

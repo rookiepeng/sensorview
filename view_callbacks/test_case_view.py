@@ -115,43 +115,36 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
 
         return default_values
 
-    def _reference_pickers(
-        config: dict, num_keys: list, reference: dict | None
-    ) -> tuple[list, list, dict, str]:
+    def _reference_pickers(reference: dict | None) -> tuple[list, list, dict, str]:
         """
         Build the options and values for the reference pickers.
 
         Args:
-            config: Flat config projected from the manifest.
-            num_keys: Numerical table columns the loaded log actually has.
             reference: Sidecar description from
-                :func:`frame_sources.get_reference_mapping`, or None.
+                :func:`frame_sources.get_reference_mapping`, or None when the
+                log has no sidecar.
 
         Returns:
-            ``(options, values, sidecar_row_style, note)`` -- one options list
-            and one value per picker, the style hiding or showing the
-            sidecar-only row, and the label naming where the columns come from.
+            ``(options, values, section_style, note)`` -- one options list and
+            one value per picker, the style hiding or showing the reference
+            section, and the label naming the file the columns come from.
         """
-        none_option = {"label": "None", "value": "None"}
         count = len(DROPDOWN_OPTIONS_3D_XYZ_REF)
 
-        if reference is not None:
-            # A sidecar carries the reference outright, so the pickers map its
-            # columns; the table's own ref columns are irrelevant to it. The
-            # mapping shown is the one the store resolved, fallbacks included,
-            # so the frame picker opens on the column actually being read
-            # rather than on an empty box that hides a working guess.
-            columns = [{"label": name, "value": name} for name in reference["columns"]]
-            options = [[none_option] + columns] * count
-            mapping = reference["mapping"]
-            values = [mapping.get(field) or "None" for field in REFERENCE_PICKER_ORDER]
-            return options, values, {}, f"from {reference['file']}"
+        if reference is None:
+            # The sidecar is the only thing these pickers map, so a log without
+            # one hides the section rather than showing seven empty selects.
+            return [[]] * count, ["None"] * count, {"display": "none"}, ""
 
-        options = _create_dropdown_options(config, num_keys, count, include_none=True)
-        values = ["None"] * count
-        for index, config_key in enumerate(("x_ref", "y_ref", "z_ref")):
-            values[index] = config.get(config_key, "None")
-        return options, values, {"display": "none"}, ""
+        # The mapping shown is the one the store resolved, fallbacks included,
+        # so a picker opens on the column actually being read rather than on an
+        # empty box that hides a working guess.
+        none_option = {"label": "None", "value": "None"}
+        columns = [{"label": name, "value": name} for name in reference["columns"]]
+        options = [[none_option] + columns] * count
+        mapping = reference["mapping"]
+        values = [mapping.get(field) or "None" for field in REFERENCE_PICKER_ORDER]
+        return options, values, {}, f"from {reference['file']}"
 
     def _create_filter_components(
         data: pd.DataFrame, cat_keys: list, num_keys: list, keys_dict: dict
@@ -320,9 +313,9 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "dp_vals_cat": DROPDOWN_VALUES_CAT,
             "dp_opts_num": DROPDOWN_OPTIONS_3D_XYZ,
             "dp_vals_num": DROPDOWN_VALUES_3D_XYZ,
-            "dp_opts_num_with_none": DROPDOWN_OPTIONS_3D_XYZ_REF,
-            "dp_vals_num_with_none": DROPDOWN_VALUES_3D_XYZ_REF,
-            "ref_pose_style": Output("ref-pose-controls", "style"),
+            "dp_opts_ref": DROPDOWN_OPTIONS_3D_XYZ_REF,
+            "dp_vals_ref": DROPDOWN_VALUES_3D_XYZ_REF,
+            "ref_section_style": Output("ref-controls", "style"),
             "ref_source_note": Output("ref-source-note", "children"),
             "error_modal_open": Output("error-modal", "is_open"),
             "error_message": Output("error-modal-message", "children"),
@@ -487,11 +480,11 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             config, num_keys, len(DROPDOWN_OPTIONS_3D_XYZ)
         )
         (
-            options_num_with_none,
-            xyz_ref_all,
-            ref_pose_style,
+            options_ref,
+            values_ref,
+            ref_section_style,
             ref_source_note,
-        ) = _reference_pickers(config, num_keys, get_reference_mapping(manifest, stem))
+        ) = _reference_pickers(get_reference_mapping(manifest, stem))
 
         # Generate default values with state preservation
         values_all = _get_default_values(all_keys, len(DROPDOWN_VALUES_ALL))
@@ -533,9 +526,9 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             "dp_vals_cat": values_cat,
             "dp_opts_num": options_num,
             "dp_vals_num": xyz_all,
-            "dp_opts_num_with_none": options_num_with_none,
-            "dp_vals_num_with_none": xyz_ref_all,
-            "ref_pose_style": ref_pose_style,
+            "dp_opts_ref": options_ref,
+            "dp_vals_ref": values_ref,
+            "ref_section_style": ref_section_style,
             "ref_source_note": ref_source_note,
             "error_modal_open": False,
             "error_message": "",

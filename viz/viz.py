@@ -28,9 +28,6 @@ def get_scatter3d(
     z_key: str,
     c_key: str,
     hover: Optional[Dict[str, Dict[str, Any]]] = None,
-    x_ref: Optional[str] = None,
-    y_ref: Optional[str] = None,
-    z_ref: Optional[str] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """
@@ -43,11 +40,10 @@ def get_scatter3d(
         z_key: Column name for z-axis coordinates.
         c_key: Column name for color mapping.
         hover: Configuration for hover tooltips.
-        x_ref: Optional column name for reference x coordinates.
-        y_ref: Optional column name for reference y coordinates.
-        z_ref: Optional column name for reference z coordinates.
         **kwargs: Additional parameters:
             - ref_name: Name for reference points
+            - ref_source: Where the reference comes from; see
+              :func:`utils.prepare_figure_kwargs`.
             - Other parameters passed to get_scatter3d_data
 
     Returns:
@@ -59,26 +55,13 @@ def get_scatter3d(
         data_frame, x_key, y_key, z_key, c_key, hover=hover, **kwargs
     )
 
-    if x_ref is None or y_ref is None or x_ref == "None" or y_ref == "None":
-        data = fig_dict["scatter_data"]
-        if not kwargs.get("ref_from_sidecar"):
-            # No ref columns and no pose sidecar: nothing places the
-            # reference, so one the manifest declared draws at the origin. A
-            # sidecar-owned reference is a different case -- it has poses, just
-            # not one this overlay of every frame at once can pick.
-            data = data + get_reference_traces(
-                data_frame=data_frame,
-                name=ref_name,
-                display=kwargs.get("ref_display"),
-            )
-    else:
-        if z_ref == "None":
-            z_ref = None
-        data = fig_dict["scatter_data"] + get_reference_traces(
-            data_frame=data_frame,
-            x_key=x_ref,
-            y_key=y_ref,
-            z_key=z_ref,
+    data = fig_dict["scatter_data"]
+
+    # This overlays every frame at once, which leaves no single frame for a
+    # per-frame pose to belong to -- so a sidecar-placed reference draws
+    # nothing here. An unplaced one is the same wherever the slider is.
+    if kwargs.get("ref_source") == "origin":
+        data = data + get_reference_traces(
             name=ref_name,
             display=kwargs.get("ref_display"),
         )
@@ -695,9 +678,6 @@ def get_animation_data(
     x_key: str,
     y_key: str,
     z_key: str,
-    x_ref: Optional[str] = None,
-    y_ref: Optional[str] = None,
-    z_ref: Optional[str] = None,
     frame_key: str = "Frame",
     frame_images: Optional[Dict[Any, str]] = None,
     colormap: Optional[str] = None,
@@ -713,8 +693,6 @@ def get_animation_data(
         x_key: Column name for x-axis coordinates.
         y_key: Column name for y-axis coordinates.
         z_key: Column name for z-axis coordinates.
-        x_ref: Optional column name for reference x coordinates.
-        y_ref: Optional column name for reference y coordinates.
         frame_key: Column name containing frame indices.
         frame_images: Frame id -> camera still as a data URI, extracted from
             the log's recording. Keyed by frame id rather than by position
@@ -724,7 +702,9 @@ def get_animation_data(
         **kwargs: Additional parameters:
             - keys_dict: Dictionary of column descriptions
             - ref_poses: Frame id -> reference pose, from the log's reference
-              sidecar. Supersedes the x/y/z ref columns when present.
+              sidecar, baked in because the export is a standalone file.
+            - ref_source: Where the reference comes from; see
+              :func:`utils.prepare_figure_kwargs`.
             - Other parameters passed to get_scatter3d_layout
 
     Returns:
@@ -781,38 +761,14 @@ def get_animation_data(
 
         # Add reference data if needed
         ref_pose = (frame_kwargs.get("ref_poses") or {}).get(frame_idx)
-        if ref_pose is not None:
+        if ref_pose is not None or frame_kwargs.get("ref_source") == "origin":
+            # A frame the sidecar has no row for falls out here with a source of
+            # "sidecar" and no pose, and draws nothing -- as it does live.
             fig = (
                 get_reference_traces(
-                    data_frame=filtered_df,
                     name=frame_kwargs.get("ref_name", "Host Vehicle"),
                     display=frame_kwargs.get("ref_display"),
                     pose=ref_pose,
-                )
-                + fig
-            )
-        elif x_ref is not None and y_ref is not None:
-            fig = (
-                get_reference_traces(
-                    data_frame=filtered_df,
-                    x_key=x_ref,
-                    y_key=y_ref,
-                    z_key=z_ref,
-                    name=frame_kwargs.get("ref_name", "Host Vehicle"),
-                    display=frame_kwargs.get("ref_display"),
-                )
-                + fig
-            )
-        elif not frame_kwargs.get("ref_from_sidecar"):
-            # Nothing places the reference, so one the manifest declared
-            # goes to the origin. The guard keeps a sidecar-owned reference
-            # out -- a frame it has no row for draws nothing rather than
-            # sending the reference to the origin mid-playback.
-            fig = (
-                get_reference_traces(
-                    data_frame=filtered_df,
-                    name=frame_kwargs.get("ref_name", "Host Vehicle"),
-                    display=frame_kwargs.get("ref_display"),
                 )
                 + fig
             )

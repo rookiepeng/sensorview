@@ -524,6 +524,29 @@ body {
     margin-bottom: 12px;
 }
 
+/* Column mapping: slider, axes, and the reference sidecar's columns, all on one
+   three-column grid so `x` sits above `yaw` instead of drifting with each
+   label's width the way a wrapping flex row does. auto-fit rather than a fixed
+   3, so the popover narrowing drops to two columns and then one instead of
+   squeezing a column name into 60px. */
+.sv-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.sv-field-grid .input-group {
+    width: auto;
+}
+
+/* The keys the rest of a section is read through -- the frame slider, and the
+   sidecar column its rows are paired on -- take the full row: they are one
+   choice each, not one of three. */
+.sv-field-grid .sv-field-wide {
+    grid-column: 1 / -1;
+}
+
 .sv-divider {
     height: 1px;
     background: var(--sv-border);

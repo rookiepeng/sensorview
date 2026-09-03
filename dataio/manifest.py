@@ -50,14 +50,16 @@ MANIFEST_VERSION = 2
 MANIFEST_NAME = "info.json"
 
 # Keys a v1 info.json carries at the top level; these move under "table" in v2.
+#
+# `x_ref`/`y_ref`/`z_ref` were once here too: a reference position read from
+# three table columns, which could carry no orientation and no per-frame pose.
+# The pose sidecar replaced them outright. They are not read any more, so a v1
+# manifest that still names them loses them the next time it is written.
 _V1_TABLE_KEYS = (
     "slider",
     "x_3d",
     "y_3d",
     "z_3d",
-    "x_ref",
-    "y_ref",
-    "z_ref",
     "keys",
     "time_unit",
 )
@@ -134,8 +136,17 @@ DEFAULT_REFERENCE_DISPLAY = {
     "line_width": 2,
 }
 
+# What a field named as nothing normalizes to -- the pickers' empty dropdown, or
+# an explicit null in the manifest. Distinct from a field the manifest never
+# names, which is None: unnamed means "guess a column from the field's own
+# name", and that guess is what lets a self-describing sidecar work with no
+# mapping at all. Named-as-nothing is the user saying the file has no such
+# column, and for `frame` -- the column the file is paired with the table on --
+# that switches the whole overlay off.
+NO_COLUMN = ""
+
 # Pose fields a reference sidecar can supply, mapped to the column names that
-# carry them. All None: an unmapped field falls back to a column named after the
+# carry them. All None: an unnamed field falls back to a column named after the
 # field itself, so a sidecar that already calls its columns `x`/`yaw`/... needs
 # no mapping. `frame` falls back to the table's own frame column.
 DEFAULT_REFERENCE_COLUMNS = {
@@ -446,16 +457,17 @@ def normalize_reference_columns(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]
 
     Returns:
         Dict with an entry for every field in :data:`DEFAULT_REFERENCE_COLUMNS`.
-        ``"None"`` -- what the view's pickers emit for an unset dropdown -- and
-        the empty string both normalize to ``None``, so an unmapped field is one
-        thing downstream rather than three.
+        A field the block does not name is ``None`` -- resolve it by guessing.
+        A field it names as nothing is :data:`NO_COLUMN`: null, the empty
+        string, and ``"None"`` (what the view's pickers emit for an empty
+        dropdown) all mean the same thing, and none of them means "guess".
     """
     columns = dict(DEFAULT_REFERENCE_COLUMNS)
     for field, value in (raw or {}).items():
         if field not in columns:
             continue
         if value is None or value == "" or value == "None":
-            columns[field] = None
+            columns[field] = NO_COLUMN
         else:
             columns[field] = str(value)
     return columns
@@ -1144,8 +1156,8 @@ class Manifest:
         Update the axis/slider selections held in the manifest.
 
         Args:
-            values: Subset of ``slider``, ``x_3d``, ``y_3d``, ``z_3d``,
-                ``x_ref``, ``y_ref``, ``z_ref``. Unknown keys are ignored.
+            values: Subset of ``slider``, ``x_3d``, ``y_3d``, ``z_3d``.
+                Unknown keys are ignored.
         """
         table = self.raw.setdefault("table", {})
         for key in _V1_TABLE_KEYS:

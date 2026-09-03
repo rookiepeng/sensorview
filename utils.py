@@ -109,6 +109,7 @@ def prepare_figure_kwargs(
     slider_arg: int = 0,
     # Reference sidecar
     ref_bounds: Optional[Dict[str, Any]] = None,
+    has_sidecar: bool = False,
 ) -> Dict[str, Any]:
     """
     Prepare keyword arguments for creating a 3D scatter plot figure.
@@ -121,30 +122,35 @@ def prepare_figure_kwargs(
         size_vary: Whether to vary marker sizes based on groups.
         frame_list: List or array of frame values for animation.
         slider_arg: Current slider position index. Defaults to 0.
-        ref_bounds: Position extent of the log's reference sidecar, as
-            ``{"x": (min, max), ...}``. Its presence means the sidecar owns the
-            reference: the table's ref columns are dropped, and the axis ranges
-            make room for wherever the reference travels.
+        ref_bounds: Position extent of the reference sidecars, as
+            ``{"x": (min, max), ...}``. Its presence means a sidecar places the
+            reference, and the axis ranges make room for wherever it travels.
+        has_sidecar: Whether any loaded log has a reference sidecar on disk.
+            Together with ``ref_bounds`` this separates the two ways a log can
+            have no poses: no sidecar at all, and a sidecar whose frame column
+            pairs with nothing. See ``ref_source`` below.
 
     Returns:
         Dictionary containing all necessary keyword arguments for plotting.
+        ``ref_source`` in it says where the reference overlay comes from and is
+        the only thing a renderer should branch on:
+
+        - ``"sidecar"`` -- poses place it, read per frame.
+        - ``"origin"`` -- the manifest declares a reference and no log has a
+          sidecar, so it is drawn unplaced at the origin. A declared reference
+          that never appears reads as the block having been ignored.
+        - ``None`` -- draw nothing. Either the dataset never declared a
+          reference, or it has a sidecar that pairs with no frame: the frame
+          picker reading ``None`` is the mapping being unset, and a reference
+          whose own file cannot be paired with the table is hidden rather than
+          parked at the origin, where it would look placed.
     """
     keys_dict = config["keys"]
 
-    def normalize_ref_value(value: Optional[str]) -> Optional[str]:
-        """Convert string 'None' to actual None value."""
-        return None if value == "None" else value
-
-    def get_axis_range(key: str, ref_key: Optional[str] = None) -> List[float]:
-        """Calculate axis range considering reference key if provided."""
+    def get_axis_range(key: str) -> List[float]:
+        """The filter range of one axis column."""
         key_idx = num_keys.index(key)
-        base_range = [num_values[key_idx][0], num_values[key_idx][1]]
-
-        if ref_key is not None:
-            ref_idx = num_keys.index(ref_key)
-            ref_range = [num_values[ref_idx][0], num_values[ref_idx][1]]
-            return [min(base_range[0], ref_range[0]), max(base_range[1], ref_range[1])]
-        return base_range
+        return [num_values[key_idx][0], num_values[key_idx][1]]
 
     # How the reference is drawn comes from the dataset manifest; where it sits
     # comes from the ref pickers below.
@@ -182,33 +188,31 @@ def prepare_figure_kwargs(
         }
     )
 
-    # Setup reference points. A pose sidecar supersedes the table's ref columns
-    # outright rather than being drawn alongside them: they describe the same
-    # reference, and the sidecar is the one that also carries orientation.
+    # Where the reference comes from -- resolved once, here, because this is the
+    # only place that can see all three inputs at once: what the manifest
+    # declared, whether a sidecar exists, and whether it yielded any poses.
     from_sidecar = ref_bounds is not None
-    x_ref = None if from_sidecar else normalize_ref_value(config.get("x_ref"))
-    y_ref = None if from_sidecar else normalize_ref_value(config.get("y_ref"))
-    z_ref = None if from_sidecar else normalize_ref_value(config.get("z_ref"))
+    if from_sidecar:
+        ref_source = "sidecar"
+    elif has_sidecar or not ref_display.get("declared"):
+        # A sidecar with no poses is one whose frame column pairs with nothing.
+        # That is the mapping being unset, not a dataset that never says where
+        # its reference goes, so the overlay is hidden rather than sent to the
+        # origin -- a body sitting at (0, 0, 0) reads as placed.
+        ref_source = None
+    else:
+        ref_source = "origin"
 
-    fig_kwargs.update(
-        {
-            "x_ref": x_ref,
-            "y_ref": y_ref,
-            "z_ref": z_ref,
-            "ref_from_sidecar": from_sidecar,
-        }
-    )
+    fig_kwargs["ref_source"] = ref_source
 
     # Calculate axis ranges
     fig_kwargs.update(
         {
-            "x_range": get_axis_range(x_key, x_ref if x_ref and y_ref else None),
-            "y_range": get_axis_range(y_key, y_ref if x_ref and y_ref else None),
-            "z_range": get_axis_range(z_key, z_ref),
+            "x_range": get_axis_range(x_key),
+            "y_range": get_axis_range(y_key),
+            "z_range": get_axis_range(z_key),
         }
     )
-
-    has_reference = from_sidecar or bool(x_ref and y_ref)
 
     # A reference read from a sidecar is not a column of the table, so nothing
     # above has accounted for where it goes. Widen the ranges to cover its whole
@@ -227,27 +231,27 @@ def prepare_figure_kwargs(
     # be made room for here or it is simply clipped away. An unplaced reference
     # of either shape needs the same treatment for a different reason: it is
     # drawn at the origin, which the data's own extent need not contain.
-    unplaced = bool(ref_display.get("declared")) and not has_reference
-    if ref_display["shape"] == "mesh" or unplaced:
+    if ref_source is not None:
         # A mesh that turns reaches further along an axis than its own extent on
         # that axis, so budget for the worst case: the distance to its furthest
-        # vertex, which bounds every orientation.
+        # vertex, which bounds every orientation. A marker carries no geometry,
+        # so its extent is the origin itself.
         radius = ref_display.get("radius", 0.0)
-        # A marker carries no geometry, so its extent is the origin itself.
         extent = ref_display.get("extent") or [[0.0, 0.0]] * 3
         for axis, range_key in enumerate(("x_range", "y_range", "z_range")):
             low, high = fig_kwargs[range_key]
-            if not has_reference:
-                # Nothing places this reference, so it is drawn at the origin:
-                # the range has to reach it where it actually is rather than
-                # pad by it wherever the data happens to sit.
+            if ref_source == "origin":
+                # Drawn at the origin, so the range has to reach it where it
+                # actually is rather than pad by it wherever the data sits.
                 fig_kwargs[range_key] = [
                     min(low, extent[axis][0]),
                     max(high, extent[axis][1]),
                 ]
-                continue
-            near, far = (-radius, radius) if from_sidecar else extent[axis]
-            fig_kwargs[range_key] = [min(low, low + near), max(high, high + far)]
+            else:
+                fig_kwargs[range_key] = [
+                    min(low, low - radius),
+                    max(high, high + radius),
+                ]
 
     # Setup color range
     if fig_kwargs["c_type"] == KEY_TYPES["NUM"]:
