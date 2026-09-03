@@ -61,6 +61,16 @@ def get_scatter3d(
 
     if x_ref is None or y_ref is None or x_ref == "None" or y_ref == "None":
         data = fig_dict["scatter_data"]
+        if not kwargs.get("ref_from_sidecar"):
+            # No ref columns and no pose sidecar: nothing places the reference,
+            # so a mesh the manifest declared draws at the origin and a marker
+            # draws nothing. A sidecar-owned reference is a different case --
+            # it has poses, just not one this overlay of every frame can pick.
+            data = data + get_reference_traces(
+                data_frame=data_frame,
+                name=ref_name,
+                display=kwargs.get("ref_display"),
+            )
     else:
         if z_ref == "None":
             z_ref = None
@@ -788,6 +798,19 @@ def get_animation_data(
                     x_key=x_ref,
                     y_key=y_ref,
                     z_key=z_ref,
+                    name=frame_kwargs.get("ref_name", "Host Vehicle"),
+                    display=frame_kwargs.get("ref_display"),
+                )
+                + fig
+            )
+        elif not frame_kwargs.get("ref_from_sidecar"):
+            # Nothing places the reference: a declared mesh goes to the
+            # origin, a marker draws nothing. The guard keeps a sidecar-owned
+            # reference out -- a frame it has no row for draws nothing rather
+            # than sending the body to the origin mid-playback.
+            fig = (
+                get_reference_traces(
+                    data_frame=filtered_df,
                     name=frame_kwargs.get("ref_name", "Host Vehicle"),
                     display=frame_kwargs.get("ref_display"),
                 )

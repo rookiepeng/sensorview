@@ -225,15 +225,24 @@ def prepare_figure_kwargs(
     # A mesh reference occupies space a dot does not, and the 3D scene fixes its
     # axes (autorange is off), so whatever the mesh adds beyond the data has to
     # be made room for here or it is simply clipped away.
-    if ref_display["shape"] == "mesh" and has_reference:
+    if ref_display["shape"] == "mesh":
         # A mesh that turns reaches further along an axis than its own extent on
         # that axis, so budget for the worst case: the distance to its furthest
         # vertex, which bounds every orientation.
         radius = ref_display.get("radius", 0.0)
         extent = ref_display.get("extent") or [[0.0, 0.0]] * 3
         for axis, range_key in enumerate(("x_range", "y_range", "z_range")):
-            near, far = (-radius, radius) if from_sidecar else extent[axis]
             low, high = fig_kwargs[range_key]
+            if not has_reference:
+                # Nothing places this reference, so its mesh is drawn at the
+                # origin: the range has to reach the mesh where it actually is
+                # rather than pad by it wherever the data happens to sit.
+                fig_kwargs[range_key] = [
+                    min(low, extent[axis][0]),
+                    max(high, extent[axis][1]),
+                ]
+                continue
+            near, far = (-radius, radius) if from_sidecar else extent[axis]
             fig_kwargs[range_key] = [min(low, low + near), max(high, high + far)]
 
     # Setup color range

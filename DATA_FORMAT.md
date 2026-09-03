@@ -487,6 +487,15 @@ see which detections land on the vehicle and which are past it:
   `true` derives them from `faces` including every diagonal, `false` draws none.
 - A mesh with no usable triangles falls back to the marker, as does an unknown
   `shape` — a dot in the right place beats nothing at all.
+- A mesh **nothing can place** — no pose sidecar, no `x_ref` / `y_ref` — is drawn
+  at the origin `(0, 0, 0)`, with the axes widened to reach it there. The
+  geometry is declared in `info.json`, so a body that never appears reads as the
+  block having been ignored. Only a mesh does this: a marker is a position and
+  nothing else, so with no position it still draws nothing.
+- That fallback is for a reference the dataset *cannot* place, not one that is
+  unplaced for a moment. A frame the sidecar has no row for, and a frame whose
+  rows were all filtered away, both keep drawing nothing rather than sending the
+  body to the origin mid-playback.
 - The 3D scene makes room for whatever the mesh adds beyond the data, using the
   furthest vertex as a radius so a rotating mesh is never clipped.
 

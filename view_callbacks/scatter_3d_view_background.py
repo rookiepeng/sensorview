@@ -265,7 +265,14 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
                     display=fig_kwargs.get("ref_display"),
                 )
             else:
-                ref_fig = []
+                # No sidecar and no ref columns: nothing places the reference.
+                # A mesh the manifest declared still draws, at the origin; a
+                # marker, being only a position, draws nothing.
+                ref_fig = get_reference_traces(
+                    data_frame=filterd_frame,
+                    name=fig_kwargs.get("ref_name", None),
+                    display=fig_kwargs.get("ref_display"),
+                )
 
             # Bundle all per-frame data into a single cache entry
             frame_bundle = {

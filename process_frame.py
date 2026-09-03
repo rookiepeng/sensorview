@@ -221,7 +221,14 @@ def process_single_frame(
             display=fig_kwargs.get("ref_display"),
         )
     else:
-        fig_ref = []
+        # No sidecar and no ref columns: nothing here places the reference. A
+        # mesh the manifest declared still draws, at the origin; a marker,
+        # being only a position, draws nothing.
+        fig_ref = get_reference_traces(
+            data_frame=filterd_frame,
+            name=fig_kwargs.get("ref_name", None),
+            display=fig_kwargs.get("ref_display"),
+        )
 
     # The cloud is a display-only backdrop: read once per frame, never refiltered,
     # and drawn first so the radar detections render on top of it.

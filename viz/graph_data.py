@@ -19,6 +19,12 @@ from dataio.calibration import rotation_matrix
 
 REF_HOVER = "Lateral: %{x:.2f} m<br>Longitudinal: %{y:.2f} m<br>"
 
+# Where a reference goes when the dataset declares one but nothing says where it
+# is. Only a mesh uses it: the geometry is stated in the manifest, so it exists
+# whether or not a pose or a ref column ever turns up, and a declared body that
+# never appears reads as the `reference` block having been ignored.
+DEFAULT_REFERENCE_ORIGIN = (0.0, 0.0, 0.0)
+
 
 def _ref_point(
     data_frame: pd.DataFrame,
@@ -60,6 +66,43 @@ def _pose_point(pose: Dict[str, float]) -> Tuple[float, float, float]:
         float(pose.get("y", 0.0)),
         float(pose.get("z", 0.0)),
     )
+
+
+def _ref_origin(
+    data_frame: pd.DataFrame,
+    x_key: Optional[str],
+    y_key: Optional[str],
+    z_key: Optional[str],
+    pose: Optional[Dict[str, float]],
+) -> Optional[Tuple[float, float, float]]:
+    """
+    Decide where the reference sits, from whichever source the dataset has.
+
+    Args:
+        data_frame: Source data for the frame.
+        x_key: Column holding the reference x coordinate, if any.
+        y_key: Column holding the reference y coordinate, if any.
+        z_key: Column holding the reference z coordinate, if any.
+        pose: Pose from the reference sidecar, if any. It wins outright: it is
+            the one source that also carries orientation.
+
+    Returns:
+        ``(x, y, z)`` in plot coordinates, or None when nothing places the
+        reference -- no pose, and no ref columns this frame actually carries.
+    """
+    if pose is not None:
+        return _pose_point(pose)
+
+    if not x_key or not y_key or data_frame.empty:
+        return None
+
+    # A column named in the config but absent from the table -- a config left
+    # over from another dataset -- places nothing rather than raising.
+    columns = data_frame.columns
+    if x_key not in columns or y_key not in columns:
+        return None
+
+    return _ref_point(data_frame, x_key, y_key, z_key if z_key in columns else None)
 
 
 def _place_vertices(
@@ -151,39 +194,25 @@ def _pose_rotation(pose: Optional[Dict[str, float]]) -> Optional[np.ndarray]:
 
 
 def get_ref_scatter3d_data(
-    data_frame: pd.DataFrame,
-    x_key: str,
-    y_key: str,
-    z_key: Optional[str] = None,
+    origin: Tuple[float, float, float],
     name: Optional[str] = "Origin",
     display: Optional[Dict[str, Any]] = None,
-    pose: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     """
     Generate reference data for a 3D scatter plot.
 
     Args:
-        data_frame: DataFrame containing the source data.
-        x_key: Column name for x-axis coordinates.
-        y_key: Column name for y-axis coordinates.
-        z_key: Optional column name for z-axis coordinates.
+        origin: Reference position in plot coordinates, from
+            :func:`_ref_origin`.
         name: Optional label for the reference point in the plot.
         display: Optional manifest styling (``color``, ``size``, ``opacity``,
             ``symbol``, ``line_color``, ``line_width``).
-        pose: Pose from the reference sidecar. When given it places the marker
-            outright and the frame and column names are not read at all.
 
     Returns:
         Dictionary containing plot data with coordinates, styling, and hover information.
     """
-    if pose is None and data_frame.empty:
-        return {"mode": "markers", "type": "scatter3d", "x": [], "y": [], "z": []}
-
     display = display or {}
-    if pose is not None:
-        x_val, y_val, z_val = _pose_point(pose)
-    else:
-        x_val, y_val, z_val = _ref_point(data_frame, x_key, y_key, z_key)
+    x_val, y_val, z_val = origin
 
     # Create marker configuration once
     marker_config = {
@@ -213,10 +242,7 @@ def get_ref_scatter3d_data(
 
 
 def get_ref_mesh3d_data(
-    data_frame: pd.DataFrame,
-    x_key: str,
-    y_key: str,
-    z_key: Optional[str] = None,
+    origin: Tuple[float, float, float],
     name: Optional[str] = "Origin",
     display: Optional[Dict[str, Any]] = None,
     pose: Optional[Dict[str, float]] = None,
@@ -241,33 +267,24 @@ def get_ref_mesh3d_data(
     whole mesh turns with it.
 
     Args:
-        data_frame: DataFrame containing the source data.
-        x_key: Column name for x-axis coordinates.
-        y_key: Column name for y-axis coordinates.
-        z_key: Optional column name for z-axis coordinates.
+        origin: Reference position in plot coordinates, from
+            :func:`_ref_origin` -- or :data:`DEFAULT_REFERENCE_ORIGIN` when the
+            dataset declares a mesh but never says where it goes.
         name: Optional label for the reference in the plot.
         display: Manifest styling and geometry, normalized by
             :func:`dataio.manifest.normalize_reference_display`.
         pose: Pose from the reference sidecar, carrying position in meters and
-            yaw/pitch/roll in radians.
+            yaw/pitch/roll in radians. Read here for its orientation only; the
+            position it carries has already gone into ``origin``.
 
     Returns:
         The mesh trace, followed by the wireframe trace when the manifest asks
-        for edges. Empty when there is no frame to place the mesh against, or no
-        geometry to place.
+        for edges. Empty when there is no geometry to place.
     """
-    if pose is None and data_frame.empty:
-        return []
-
     display = display or {}
     faces = display.get("faces") or []
     if not faces:
         return []
-
-    if pose is not None:
-        origin = _pose_point(pose)
-    else:
-        origin = _ref_point(data_frame, x_key, y_key, z_key)
 
     vertices = _place_vertices(
         display.get("vertices") or [], origin, _pose_rotation(pose)
@@ -320,11 +337,24 @@ def get_reference_traces(
     """
     Build the reference overlay in whichever shape the manifest asked for.
 
+    Callers hand over whatever the dataset offers -- a pose, ref columns, or
+    neither -- and the shape decides what "neither" means. A marker is a
+    position and nothing else, so with no position it draws nothing. A mesh is
+    geometry the manifest declared, so it is drawn at
+    :data:`DEFAULT_REFERENCE_ORIGIN` instead: a declared body that never appears
+    reads as the ``reference`` block having been ignored, which is the harder
+    thing to diagnose of the two.
+
+    That fallback is for a reference nothing in the dataset can place. A pose
+    sidecar that simply has no row for this frame is a different case, and its
+    callers pass no traces at all rather than parking the mesh at the origin
+    mid-playback.
+
     Args:
         data_frame: DataFrame containing the source data.
         x_key: Column name for x-axis coordinates.
         y_key: Column name for y-axis coordinates.
-        z_key: Optional column name for z-axis coordinates.
+        z_key: Column name for z-axis coordinates.
         name: Optional label for the reference in the plot.
         display: Manifest styling, normalized by
             :func:`dataio.manifest.normalize_reference_display`. Absent or
@@ -336,13 +366,23 @@ def get_reference_traces(
         List of traces to append to the figure.
     """
     display = display or {}
+    origin = _ref_origin(data_frame, x_key, y_key, z_key, pose)
+
+    if origin is None and display.get("shape") == "mesh" and not (x_key and y_key):
+        # Nothing in this dataset can place the reference -- no pose sidecar,
+        # no ref columns -- so the mesh is drawn unplaced rather than not at
+        # all. Note the column check: with ref columns configured, an origin of
+        # None means this frame's rows were all filtered away, and parking the
+        # body at (0, 0, 0) because of a filter would be a lie.
+        origin = DEFAULT_REFERENCE_ORIGIN
+
+    if origin is None:
+        return []
 
     if display.get("shape") == "mesh":
-        return get_ref_mesh3d_data(data_frame, x_key, y_key, z_key, name, display, pose)
+        return get_ref_mesh3d_data(origin, name, display, pose)
 
-    return [
-        get_ref_scatter3d_data(data_frame, x_key, y_key, z_key, name, display, pose)
-    ]
+    return [get_ref_scatter3d_data(origin, name, display)]
 
 
 def get_cloud_scatter3d_data(
