@@ -155,11 +155,11 @@ DROPDOWN_OPTIONS_3D_XYZ = [
     Output("z-picker-3d", "options"),
 ]
 
-# The reference pickers map six pose fields. Which columns they list depends on
-# where the reference comes from: a log with a `.reference.parquet` sidecar maps
-# that file's columns (and shows all six), while a log without one maps its own
-# table columns for position and hides the orientation three -- table columns
-# carry no orientation.
+# The reference pickers map the fields a sidecar can supply. Which columns they
+# list depends on where the reference comes from: a log with a
+# `.reference.parquet` sidecar maps that file's columns (and shows all of them),
+# while a log without one maps its own table columns for position and hides the
+# rest -- a table column carries neither orientation nor a frame key of its own.
 DROPDOWN_OPTIONS_3D_XYZ_REF = [
     Output("x-ref-picker-3d", "options"),
     Output("y-ref-picker-3d", "options"),
@@ -167,6 +167,7 @@ DROPDOWN_OPTIONS_3D_XYZ_REF = [
     Output("yaw-ref-picker-3d", "options"),
     Output("pitch-ref-picker-3d", "options"),
     Output("roll-ref-picker-3d", "options"),
+    Output("frame-ref-picker-3d", "options"),
 ]
 
 # values for dropdown components with all the keys
@@ -198,10 +199,14 @@ DROPDOWN_VALUES_3D_XYZ_REF = [
     Output("yaw-ref-picker-3d", "value"),
     Output("pitch-ref-picker-3d", "value"),
     Output("roll-ref-picker-3d", "value"),
+    Output("frame-ref-picker-3d", "value"),
 ]
 
-# Pose fields the reference pickers map, in picker order.
-REFERENCE_POSE_ORDER = ("x", "y", "z", "yaw", "pitch", "roll")
+# Sidecar fields the reference pickers map, in picker order. `frame` sits last
+# so the first three stay the positions the table's own x_ref/y_ref/z_ref fill
+# in when a log has no sidecar; every list built from this order is indexed
+# against it, so appending is the only safe way to add a field.
+REFERENCE_PICKER_ORDER = ("x", "y", "z", "yaw", "pitch", "roll", "frame")
 
 DROPDOWN_VALUES_ALL_STATE = [
     State("c-picker-3d", "value"),

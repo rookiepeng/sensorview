@@ -89,7 +89,7 @@ def _axis_config_panel():
     Build the axis mapping panel that drops out of the tool cluster.
 
     Returns:
-        dbc.Collapse: Slider, x/y/z, and x/y/z reference selectors.
+        dbc.Collapse: Slider, x/y/z, and the reference selectors.
     """
     axes = [
         ("x-picker-3d", "x", "Column plotted on the x axis"),
@@ -101,10 +101,14 @@ def _axis_config_panel():
         ("y-ref-picker-3d", "y ref", "Reference column for the y axis"),
         ("z-ref-picker-3d", "z ref", "Reference column for the z axis"),
     ]
-    # Orientation only exists in a reference sidecar -- a table column carries a
-    # position and nothing else -- so this row appears only for a log that has
-    # one, and its columns come from that file rather than from the table.
-    pose_refs = [
+    # These only mean anything for a reference sidecar, so the row appears only
+    # for a log that has one and its columns come from that file rather than
+    # from the table. Orientation because a table column carries a position and
+    # nothing else; the frame key because the sidecar is a separate file that
+    # has to be paired with the table row by row -- read from the wrong column
+    # it pairs with nothing, and the reference simply never appears.
+    sidecar_refs = [
+        ("frame-ref-picker-3d", "frame", "Reference column holding the frame id"),
         ("yaw-ref-picker-3d", "yaw", "Reference column for yaw, in radians"),
         ("pitch-ref-picker-3d", "pitch", "Reference column for pitch, in radians"),
         ("roll-ref-picker-3d", "roll", "Reference column for roll, in radians"),
@@ -136,7 +140,7 @@ def _axis_config_panel():
                     className="sv-pane-controls mb-0",
                 ),
                 html.Div(
-                    [_select(cid, label, tip) for cid, label, tip in pose_refs],
+                    [_select(cid, label, tip) for cid, label, tip in sidecar_refs],
                     id="ref-pose-controls",
                     className="sv-pane-controls mb-0 mt-2",
                     style={"display": "none"},

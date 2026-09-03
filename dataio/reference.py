@@ -36,6 +36,12 @@ import polars as pl
 POSE_FIELDS = ("x", "y", "z", "yaw", "pitch", "roll")
 POSITION_FIELDS = ("x", "y", "z")
 
+# Every field the manifest's `reference.columns` block can map. `frame` is not a
+# pose field -- it is what pairs a sidecar row with a table frame -- but it is
+# just as configurable, so anything keyed on "how is this file mapped" has to
+# count it.
+MAPPED_FIELDS = POSE_FIELDS + ("frame",)
+
 
 def _fingerprint(path: str) -> Tuple[float, int]:
     """
@@ -144,9 +150,12 @@ class ReferenceStore:
 
         mtime, size = _fingerprint(path)
         # The mapping is part of the key: repointing a picker has to re-derive
-        # the poses, and a mapping change leaves the file itself untouched.
+        # the poses, and a mapping change leaves the file itself untouched. That
+        # includes `frame` -- pointing it at another column re-keys every pose in
+        # the file, which is the largest change a picker can make, not one to
+        # answer out of the cache.
         signature = f"{path}|{frame_key}|" + "|".join(
-            f"{field}={(columns or {}).get(field)}" for field in POSE_FIELDS
+            f"{field}={(columns or {}).get(field)}" for field in MAPPED_FIELDS
         )
         key = (signature, mtime, size)
 

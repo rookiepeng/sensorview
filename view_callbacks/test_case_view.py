@@ -33,7 +33,7 @@ from app_config import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
 from app_config import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
 from app_config import DROPDOWN_OPTIONS_3D_XYZ, DROPDOWN_OPTIONS_3D_XYZ_REF
 from app_config import DROPDOWN_VALUES_3D_XYZ, DROPDOWN_VALUES_3D_XYZ_REF
-from app_config import REFERENCE_POSE_ORDER
+from app_config import REFERENCE_PICKER_ORDER
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES, THEME
 
@@ -119,7 +119,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         config: dict, num_keys: list, reference: dict | None
     ) -> tuple[list, list, dict, str]:
         """
-        Build the options and values for the six reference pickers.
+        Build the options and values for the reference pickers.
 
         Args:
             config: Flat config projected from the manifest.
@@ -128,20 +128,23 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
                 :func:`frame_sources.get_reference_mapping`, or None.
 
         Returns:
-            ``(options, values, pose_row_style, note)`` -- one options list and
-            one value per picker, the style hiding or showing the orientation
-            row, and the label naming where the columns come from.
+            ``(options, values, sidecar_row_style, note)`` -- one options list
+            and one value per picker, the style hiding or showing the
+            sidecar-only row, and the label naming where the columns come from.
         """
         none_option = {"label": "None", "value": "None"}
         count = len(DROPDOWN_OPTIONS_3D_XYZ_REF)
 
         if reference is not None:
             # A sidecar carries the reference outright, so the pickers map its
-            # columns; the table's own ref columns are irrelevant to it.
+            # columns; the table's own ref columns are irrelevant to it. The
+            # mapping shown is the one the store resolved, fallbacks included,
+            # so the frame picker opens on the column actually being read
+            # rather than on an empty box that hides a working guess.
             columns = [{"label": name, "value": name} for name in reference["columns"]]
             options = [[none_option] + columns] * count
             mapping = reference["mapping"]
-            values = [mapping.get(field) or "None" for field in REFERENCE_POSE_ORDER]
+            values = [mapping.get(field) or "None" for field in REFERENCE_PICKER_ORDER]
             return options, values, {}, f"from {reference['file']}"
 
         options = _create_dropdown_options(config, num_keys, count, include_none=True)

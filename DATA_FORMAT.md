@@ -441,6 +441,13 @@ An unmapped field falls back to a column named after the field itself (`x`,
 `pitch`/`roll` needs no mapping at all**. `frame` additionally falls back to the
 table's own frame column, then to `frame`, `frame_id`, `frame_idx`.
 
+All seven — the frame key included — are pickers in the 3D view's axis panel,
+listing the sidecar's own columns and writing straight back to this block. The
+frame key matters most: it is what pairs a sidecar row with a table frame, so a
+file that spells it something the fallbacks do not look for (`t`, `sample_idx`)
+matches nothing, and the reference never appears. Pick the column there and the
+choice is saved to `info.json` with the rest.
+
 A usable sidecar **supersedes `x_ref` / `y_ref` / `z_ref` outright** rather than
 drawing alongside them, and the axis ranges widen to cover wherever the pose
 travels — across every combined log, not just the current frame's. Overlay mode

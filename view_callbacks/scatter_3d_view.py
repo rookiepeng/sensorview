@@ -419,6 +419,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "yaw_ref_picker_3d": Input("yaw-ref-picker-3d", "value"),
             "pitch_ref_picker_3d": Input("pitch-ref-picker-3d", "value"),
             "roll_ref_picker_3d": Input("roll-ref-picker-3d", "value"),
+            "frame_ref_picker_3d": Input("frame-ref-picker-3d", "value"),
             "unused_vistable_trigger": Input("visible-table-change-trigger", "data"),
             "unused_left_hide_trigger": Input("left-hide-trigger", "data"),
             "unused_right_hide_trigger": Input("right-hide-trigger", "data"),
@@ -472,6 +473,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         yaw_ref_picker_3d: str,
         pitch_ref_picker_3d: str,
         roll_ref_picker_3d: str,
+        frame_ref_picker_3d: str,
         # Trigger inputs
         unused_vistable_trigger: int,
         unused_left_hide_trigger: int,
@@ -518,6 +520,8 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             yaw_ref_picker_3d: Reference yaw column name (sidecar only).
             pitch_ref_picker_3d: Reference pitch column name (sidecar only).
             roll_ref_picker_3d: Reference roll column name (sidecar only).
+            frame_ref_picker_3d: Reference frame-id column name (sidecar only),
+                the column its rows are paired with the table's frames on.
             unused_vistable_trigger: Visibility trigger (unused).
             unused_left_hide_trigger: Left panel trigger (unused).
             unused_right_hide_trigger: Right panel trigger (unused).
@@ -569,7 +573,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         config["y_3d"] = y_picker_3d
         config["z_3d"] = z_picker_3d
 
-        # The six reference pickers map one of two different things, depending on
+        # The reference pickers map one of two different things, depending on
         # what this log carries: the columns of its pose sidecar, or -- with no
         # sidecar -- three of its own table columns. They are the same pickers
         # because they answer the same question; what changes is where the answer
@@ -580,13 +584,18 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         maps_sidecar = manifest is not None and manifest.has_reference_pose(stem)
 
         if maps_sidecar:
-            pose_columns = {
+            reference_columns = {
                 "x": x_ref_picker_3d,
                 "y": y_ref_picker_3d,
                 "z": z_ref_picker_3d,
                 "yaw": yaw_ref_picker_3d,
                 "pitch": pitch_ref_picker_3d,
                 "roll": roll_ref_picker_3d,
+                # Which column pairs the sidecar's rows with the table's frames.
+                # Wrong, and every lookup misses and the reference vanishes --
+                # so it is picked here rather than left to the name-guessing
+                # fallback, which a file calling it `t` or `sample_idx` defeats.
+                "frame": frame_ref_picker_3d,
             }
         else:
             config["x_ref"] = x_ref_picker_3d
@@ -600,7 +609,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         if manifest is not None:
             manifest.update_table_view(config)
             if maps_sidecar:
-                manifest.update_reference_columns(pose_columns)
+                manifest.update_reference_columns(reference_columns)
                 # The renderer reads the reference block off the cached config,
                 # so it has to carry the mapping the manifest just took.
                 config["reference"] = manifest.reference
