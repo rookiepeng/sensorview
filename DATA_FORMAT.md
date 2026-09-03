@@ -446,6 +446,25 @@ drawing alongside them, and the axis ranges widen to cover wherever the pose
 travels — across every combined log, not just the current frame's. Overlay mode
 draws no reference at all: every frame at once leaves no single pose to show.
 
+### When nothing places it
+
+Declaring a `reference` block is the dataset saying it has a reference. So when
+nothing can place one — the pose sidecar is missing or unreadable, and no
+`x_ref` / `y_ref` are set — it is drawn at the origin `(0, 0, 0)` instead of not
+at all, with the axis ranges widened to reach it there. A missing sidecar then
+reads as a reference sitting at the origin rather than as a `reference` block
+that was quietly ignored, which is the harder of the two to diagnose.
+
+- The shape is whatever the block declared: its **mesh** if it declares
+  geometry, the plain **dot** if it does not.
+- A dataset with **no `reference` block at all** draws nothing, exactly as
+  before — otherwise every case in the world would grow a white dot it never
+  asked for.
+- This is for a reference the dataset *cannot* place, not one that is unplaced
+  for a moment. A frame the sidecar has no row for, and a frame whose rows were
+  all filtered away, both keep drawing nothing rather than sending the reference
+  to the origin mid-playback.
+
 ### Mesh geometry
 
 The reference draws as a white dot by default. A `reference` block with
@@ -487,15 +506,6 @@ see which detections land on the vehicle and which are past it:
   `true` derives them from `faces` including every diagonal, `false` draws none.
 - A mesh with no usable triangles falls back to the marker, as does an unknown
   `shape` — a dot in the right place beats nothing at all.
-- A mesh **nothing can place** — no pose sidecar, no `x_ref` / `y_ref` — is drawn
-  at the origin `(0, 0, 0)`, with the axes widened to reach it there. The
-  geometry is declared in `info.json`, so a body that never appears reads as the
-  block having been ignored. Only a mesh does this: a marker is a position and
-  nothing else, so with no position it still draws nothing.
-- That fallback is for a reference the dataset *cannot* place, not one that is
-  unplaced for a moment. A frame the sidecar has no row for, and a frame whose
-  rows were all filtered away, both keep drawing nothing rather than sending the
-  body to the origin mid-playback.
 - The 3D scene makes room for whatever the mesh adds beyond the data, using the
   furthest vertex as a radius so a rotating mesh is never clipped.
 

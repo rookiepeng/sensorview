@@ -221,9 +221,9 @@ def process_single_frame(
             display=fig_kwargs.get("ref_display"),
         )
     else:
-        # No sidecar and no ref columns: nothing here places the reference. A
-        # mesh the manifest declared still draws, at the origin; a marker,
-        # being only a position, draws nothing.
+        # No sidecar and no ref columns: nothing here places the reference.
+        # A reference the manifest declared still draws, at the origin; a
+        # dataset that declared none draws nothing.
         fig_ref = get_reference_traces(
             data_frame=filterd_frame,
             name=fig_kwargs.get("ref_name", None),

@@ -224,19 +224,23 @@ def prepare_figure_kwargs(
 
     # A mesh reference occupies space a dot does not, and the 3D scene fixes its
     # axes (autorange is off), so whatever the mesh adds beyond the data has to
-    # be made room for here or it is simply clipped away.
-    if ref_display["shape"] == "mesh":
+    # be made room for here or it is simply clipped away. An unplaced reference
+    # of either shape needs the same treatment for a different reason: it is
+    # drawn at the origin, which the data's own extent need not contain.
+    unplaced = bool(ref_display.get("declared")) and not has_reference
+    if ref_display["shape"] == "mesh" or unplaced:
         # A mesh that turns reaches further along an axis than its own extent on
         # that axis, so budget for the worst case: the distance to its furthest
         # vertex, which bounds every orientation.
         radius = ref_display.get("radius", 0.0)
+        # A marker carries no geometry, so its extent is the origin itself.
         extent = ref_display.get("extent") or [[0.0, 0.0]] * 3
         for axis, range_key in enumerate(("x_range", "y_range", "z_range")):
             low, high = fig_kwargs[range_key]
             if not has_reference:
-                # Nothing places this reference, so its mesh is drawn at the
-                # origin: the range has to reach the mesh where it actually is
-                # rather than pad by it wherever the data happens to sit.
+                # Nothing places this reference, so it is drawn at the origin:
+                # the range has to reach it where it actually is rather than
+                # pad by it wherever the data happens to sit.
                 fig_kwargs[range_key] = [
                     min(low, extent[axis][0]),
                     max(high, extent[axis][1]),

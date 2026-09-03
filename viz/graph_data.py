@@ -20,9 +20,10 @@ from dataio.calibration import rotation_matrix
 REF_HOVER = "Lateral: %{x:.2f} m<br>Longitudinal: %{y:.2f} m<br>"
 
 # Where a reference goes when the dataset declares one but nothing says where it
-# is. Only a mesh uses it: the geometry is stated in the manifest, so it exists
-# whether or not a pose or a ref column ever turns up, and a declared body that
-# never appears reads as the `reference` block having been ignored.
+# is. A `reference` block is the dataset stating that it has a reference, so it
+# is drawn whether or not a pose or a ref column ever turns up: a declared
+# reference that never appears reads as the block having been ignored, which is
+# the harder thing to diagnose than one sitting visibly at the origin.
 DEFAULT_REFERENCE_ORIGIN = (0.0, 0.0, 0.0)
 
 
@@ -338,17 +339,17 @@ def get_reference_traces(
     Build the reference overlay in whichever shape the manifest asked for.
 
     Callers hand over whatever the dataset offers -- a pose, ref columns, or
-    neither -- and the shape decides what "neither" means. A marker is a
-    position and nothing else, so with no position it draws nothing. A mesh is
-    geometry the manifest declared, so it is drawn at
-    :data:`DEFAULT_REFERENCE_ORIGIN` instead: a declared body that never appears
-    reads as the ``reference`` block having been ignored, which is the harder
-    thing to diagnose of the two.
+    neither -- and the manifest decides what "neither" means. A dataset that
+    declared a ``reference`` block has said it has one, so it is drawn at
+    :data:`DEFAULT_REFERENCE_ORIGIN`: the mesh if it declared geometry, the dot
+    otherwise. A dataset that never mentioned a reference draws nothing, which
+    is why the block's presence is carried through ``display["declared"]``
+    rather than inferred from the styling -- the defaults make the two identical.
 
     That fallback is for a reference nothing in the dataset can place. A pose
     sidecar that simply has no row for this frame is a different case, and its
-    callers pass no traces at all rather than parking the mesh at the origin
-    mid-playback.
+    callers pass no traces at all rather than parking the reference at the
+    origin mid-playback.
 
     Args:
         data_frame: DataFrame containing the source data.
@@ -358,7 +359,8 @@ def get_reference_traces(
         name: Optional label for the reference in the plot.
         display: Manifest styling, normalized by
             :func:`dataio.manifest.normalize_reference_display`. Absent or
-            shapeless, the reference stays the plain marker it has always been.
+            shapeless, the reference stays the plain marker it has always been;
+            ``display["declared"]`` says whether the dataset asked for one.
         pose: Pose read from the log's reference sidecar. When given it is the
             source of position and orientation, and the column names are unused.
 
@@ -368,12 +370,12 @@ def get_reference_traces(
     display = display or {}
     origin = _ref_origin(data_frame, x_key, y_key, z_key, pose)
 
-    if origin is None and display.get("shape") == "mesh" and not (x_key and y_key):
+    if origin is None and display.get("declared") and not (x_key and y_key):
         # Nothing in this dataset can place the reference -- no pose sidecar,
-        # no ref columns -- so the mesh is drawn unplaced rather than not at
-        # all. Note the column check: with ref columns configured, an origin of
-        # None means this frame's rows were all filtered away, and parking the
-        # body at (0, 0, 0) because of a filter would be a lie.
+        # no ref columns -- so it is drawn unplaced rather than not at all.
+        # Note the column check: with ref columns configured, an origin of None
+        # means this frame's rows were all filtered away, and parking the
+        # reference at (0, 0, 0) because of a filter would be a lie.
         origin = DEFAULT_REFERENCE_ORIGIN
 
     if origin is None:

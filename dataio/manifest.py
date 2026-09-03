@@ -359,7 +359,14 @@ def normalize_reference_display(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]
         back to ``marker`` rather than raising: a typo in a cosmetic field
         should not cost the user their reference point. So does a ``mesh`` with
         no drawable geometry -- a dot in the right place beats nothing at all.
+
+        ``declared`` records whether the dataset asked for a reference at all,
+        which the defaults otherwise erase: an absent block and an empty one
+        normalize to the same white dot. The renderer needs the distinction,
+        because a declared reference nothing can place is still drawn -- at the
+        origin -- while a dataset that never mentioned one draws nothing.
     """
+    declared = raw is not None
     raw = raw or {}
 
     display = dict(DEFAULT_REFERENCE_DISPLAY)
@@ -395,6 +402,10 @@ def normalize_reference_display(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]
         display["edge_color"] = display["edge_color"] or display["color"]
         display["extent"] = _mesh_extent(vertices)
         display["radius"] = _mesh_radius(vertices)
+
+    # Set last so a manifest cannot claim it: whether the block exists is this
+    # function's own reading of its input, not a field the block can author.
+    display["declared"] = declared
 
     return display
 
