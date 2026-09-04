@@ -79,7 +79,7 @@ class SafeDiskcacheManager(DiskcacheManager):
 
 
 APP_TITLE = "SensorView"
-APP_VERSION = "v12.4"
+APP_VERSION = "v12.5"
 
 DATA_PATH = "./data"
 FRAME_CACHE_PATH = "./cache/frame"
