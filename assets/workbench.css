@@ -22,6 +22,12 @@
     --sv-inspector-w: 380px;
     --sv-dock-h: 50vh;
     --sv-dock-tabs-h: 38px;
+    /* Floor for a pane's plot area. The figures reserve 120px of vertical
+       margin for their axes, so anything much below this leaves a drawing area
+       of a few pixels -- a shape Plotly still accepts and scattergl still
+       allocates GL buffers for, but which is no longer a chart. The dock
+       splitter's own minimum is derived from this (see workbench.js). */
+    --sv-pane-plot-min: 180px;
     --sv-radius: 6px;
     --sv-gap: 10px;
     --sv-font-sm: 0.78rem;
@@ -1128,7 +1134,11 @@ body {
    so the height carries on down that chain too. */
 .sv-pane-plot {
     flex: 1 1 auto;
-    min-height: 0;
+    /* Not `0`: a pane squeezed past this point stops being a plot. The dock's
+       splitter already refuses to go that small, so this only catches the
+       paths that resize a pane without going through it -- a short window
+       being fitted, or a browser zoom. */
+    min-height: var(--sv-pane-plot-min);
     position: relative;
 }
 

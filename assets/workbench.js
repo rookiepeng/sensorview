@@ -24,7 +24,11 @@
      pointer delta carries: the dock and the inspector are anchored to the far
      edge, so moving toward the origin makes them bigger. */
   var SPLITTERS = {
-    "dock-splitter": { axis: "y", panel: "analysis-dock", grow: -1, min: 140 },
+    /* The dock's floor is its chrome (head, pane padding, control strip: about
+       130px) plus --sv-pane-plot-min, so dragging this edge can never squeeze a
+       pane's plot below the height at which it is still a plot. Getting the
+       dock out of the way entirely is what the collapse toggle is for. */
+    "dock-splitter": { axis: "y", panel: "analysis-dock", grow: -1, min: 310 },
     "rail-splitter": {
       axis: "x",
       panel: "filter-sidebar-col",
