@@ -76,7 +76,7 @@ jobs:
       run: pip install qtpy PySide6
 
     - name: PyInstaller
-      run: python -m PyInstaller app.spec
+      run: python -m PyInstaller sensorview.spec
 
     - name: Copy example
       run: cp -r ./data ./dist/sensorview/data
