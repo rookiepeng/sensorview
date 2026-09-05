@@ -33,7 +33,7 @@ from settings import CACHE_KEYS, KEY_TYPES
 from utils import filter_all
 from utils import cache_set, cache_get, cache_expire
 from utils import load_data
-from utils import prepare_figure_kwargs
+from viz.figure_kwargs import prepare_figure_kwargs
 
 from dataio.manifest import log_stem
 

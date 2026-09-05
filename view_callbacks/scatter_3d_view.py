@@ -39,8 +39,8 @@ from frame_sources import cache_manifest, get_log_stem, get_manifest
 
 from layouts.layout_constants import HIDE_LOADING, SHOW_LOADING
 
-from process_frame import process_overlay_frame
-from process_frame import process_single_frame
+from viz.frame_figure import process_overlay_frame
+from viz.frame_figure import process_single_frame
 
 
 def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:

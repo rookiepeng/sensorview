@@ -10,7 +10,7 @@ session's cached manifest, never from the URL, so a request cannot reach outside
 the dataset directory.
 
 Usage:
-    from routes import register_api_routes
+    from server.routes import register_api_routes
     register_api_routes(app)
 
 Author: Zhengyu Peng

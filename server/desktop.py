@@ -14,7 +14,7 @@ deployment imports this module only for :func:`is_available` and
 have to install a GUI toolkit to do it.
 
 Usage:
-    from desktop import run, is_available, pick_folder
+    from server.desktop import run, is_available, pick_folder
 
 Author: Zhengyu Peng
 License: GPL-3.0

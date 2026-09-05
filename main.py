@@ -4,10 +4,6 @@ Start the app here::
 
     python main.py
 
-Everything else is a piece of it: :mod:`dash_app` wires the Dash application,
-:mod:`settings` holds the shared configuration, and :mod:`desktop` hosts a
-running server in a native window. None of them start anything on import.
-
 Author: Zhengyu Peng
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
@@ -15,9 +11,9 @@ Copyright (C) 2019 - PRESENT
 
 from multiprocessing import freeze_support
 
-import desktop
+from server import desktop
 
-from dash_app import app
+from server.dash_app import app
 from settings import APP_TITLE
 
 # The Dash dev server instead of the desktop window: hot reload and in-browser

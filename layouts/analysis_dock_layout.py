@@ -9,7 +9,7 @@ preference -- they exist because these figures are expensive and there is no
 point computing one nobody is looking at. So slot assignment *is* the switch: a
 view placed in a slot is live, everything else is idle, and a collapsed dock
 computes nothing at all. The switches survive as hidden state (see the
-clientside gate in ``dash_app.py``) because every view callback already reads them.
+clientside gate in ``server/clientside.py``) because every view callback already reads them.
 
 All six panes are always in the tree -- component ids have to be unique, so a
 pane cannot be moved between slots. Instead the gate assigns each pane a slot
@@ -37,7 +37,7 @@ from layouts.parallel_card_layout import get_parallel_pane_layout
 from layouts.heatmap_card_layout import get_heatmap_pane_layout
 
 # View key -> the enable switch it drives -> the label offered in the slot
-# pickers. dash_app.py's clientside gate reads the same list, and the keys are what
+# pickers. server/clientside.py's clientside gate reads the same list, and the keys are what
 # the slot selects hold.
 DOCK_VIEWS = [
     ("left", "left-switch", "2D Scatter A"),

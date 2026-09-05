@@ -17,7 +17,7 @@ from dash import html
 
 import dash_bootstrap_components as dbc
 
-import desktop
+from server import desktop
 
 
 def _field(label: str, control, hint: str, target: str) -> html.Div:

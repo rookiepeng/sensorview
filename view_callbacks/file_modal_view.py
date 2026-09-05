@@ -26,7 +26,7 @@ import dash
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-import desktop
+from server import desktop
 
 from settings import DATA_PATH, RADAR_FILE_EXTENSIONS
 from utils import load_config, save_config

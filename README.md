@@ -212,12 +212,12 @@ Set `DEBUG = True` in `main.py` for the Dash dev server with hot reload.
 
 #### Server
 
-`dash_app.py` exposes a wired `app` that any WSGI server can host, so a deployment
-skips `main.py` and its window entirely:
+`server/dash_app.py` exposes a wired `app` that any WSGI server can host, so a
+deployment skips `main.py` and its window entirely:
 
 ```python
 from waitress import serve
-from dash_app import app
+from server.dash_app import app
 
 serve(app.server, listen="*:8000")
 ```
@@ -267,23 +267,37 @@ See `requirements.txt` for the complete list:
 
 ## Development
 
-### Top-level Modules
+### Package Map
 
-Which file does what, and which one starts the app:
+Two modules sit at the root; everything else is a package named for what it owns:
 
 | Module | Role |
 |---|---|
 | `main.py` | **The entry point.** The only module with a `__main__`; `python main.py` runs the app. |
-| `dash_app.py` | Assembles the Dash application — layout, clientside callbacks, and the registration of every callback module. Exposes `app` for a WSGI server; starts nothing on import. |
 | `settings.py` | The Dash instance, the disk caches, and the shared constants every module reads. |
-| `routes.py` | The plain HTTP endpoints the browser fetches outside Dash's callback protocol. |
-| `desktop.py` | Hosts a running server in a native window. Imported by `main.py`, never run directly. |
-| `frame_sources/` | Resolves a session's manifest, logs, and per-frame sidecar data. One module per store; see below. |
-| `process_frame.py` | Filtering and figure construction for one frame. |
-| `utils.py` | Cache helpers and `config.json` persistence. |
+| `server/` | Assembling the app and putting it in front of a user; see below. |
+| `layouts/` | The component tree, one module per region of the shell. |
+| `view_callbacks/` | The server-side callbacks, one module per view. |
+| `viz/` | Data to Plotly figures, plus the per-frame pipeline that feeds them. |
+| `frame_sources/` | Resolves a session's manifest, logs, and per-frame sidecar data. |
+| `dataio/` | The read layer: Parquet, HDF5, mp4, and the manifest that describes them. |
+| `utils/` | The session cache, JSON persistence, table loading, and filtering. |
 
 Nothing but `main.py` runs on its own, and nothing starts a server on import —
 which is what lets background-callback workers re-import these modules safely.
+
+### Application Shell (`server/`)
+
+Everything that exists to assemble the app and serve it, in the order it happens:
+
+- `dash_app`: wires the layout, the routes, and every callback module into the
+  `app` from `settings`, and stops there — importing it starts nothing
+- `clientside`: the callbacks that run in the browser, with no server round trip
+  — the frame buffer, the transport readout, and the dock's slot bookkeeping
+- `routes`: the plain HTTP endpoints the browser fetches outside Dash's callback
+  protocol
+- `desktop`: serves a wired app with waitress and shows it in a native window.
+  Imported by `main.py`, never run directly
 
 ### Layout Package (`layouts/`)
 
@@ -343,6 +357,26 @@ and re-reads only when the frame changes.
 - `dense_store`: HDF5 readers for cloud points and 1D curves
 - `calibration`: extrinsics → 4×4 transform for cross-sensor alignment
 - `video`: on-demand transcoding of foreign containers
+
+### Visualization Package (`viz/`)
+
+- `graph_data`: traces from a DataFrame
+- `graph_layout`: the scene, axes, and colourbar around them
+- `viz`: the high-level plots the 2D and camera views call
+- `figure_kwargs`: resolves the axis, colour, and reference arguments the three
+  above all take
+- `frame_figure`: the pipeline — gathers one frame from the session cache and
+  the sidecar stores, then calls the four above. The only module here that knows
+  a session exists
+
+### Shared Helpers (`utils/`)
+
+One concern per module, and none of them know about the others:
+
+- `cache`: the session disk cache, keyed by session id
+- `config`: JSON persistence for `info.json` and `config.json`
+- `data`: loading the radar table through `dataio`
+- `filters`: reducing a frame to the rows the filter rail allows
 
 ## License
 

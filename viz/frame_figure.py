@@ -1,10 +1,17 @@
-"""Frame Processing Module for SensorView
+"""Per-Frame Figure Assembly
 
-Handles processing and visualization of individual data frames with single frame
-processing, overlay frame processing, decay effects, and multi-file data integration.
+Builds the complete 3D scene for one slider position: the cached table frame,
+filtered; the decay trail behind it; the point-cloud backdrop under it; and the
+reference overlay wherever its sidecar puts it.
 
-Key functions: process_single_frame() and process_overlay_frame() for 3D scatter
-plot generation with filtering, reference overlays, and temporal effects.
+This is the pipeline layer of :mod:`viz`, and the only module in the package
+that reaches outside it -- :mod:`~viz.graph_data` and :mod:`~viz.graph_layout`
+turn a DataFrame into traces and know nothing about sessions or caches, while
+this one gathers what they need from :mod:`utils.cache` and
+:mod:`frame_sources` first.
+
+Key functions: process_single_frame() draws one frame, process_overlay_frame()
+collapses every frame of the loaded logs into a single static scene.
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -17,11 +24,12 @@ import numpy as np
 
 from dash.exceptions import PreventUpdate
 
+from settings import CACHE_KEYS
+
+from utils import cache_get
 from utils import clamp_frame_index
 from utils import filter_all
-from utils import cache_get
 from utils import load_data
-from utils import prepare_figure_kwargs
 
 from frame_sources import (
     get_cloud_trace,
@@ -33,12 +41,11 @@ from frame_sources import (
     get_reference_pose,
 )
 
-from viz.viz import get_scatter3d
-from viz.graph_data import get_reference_traces
-from viz.graph_data import get_scatter3d_data
-from viz.graph_layout import get_scatter3d_layout
-
-from settings import CACHE_KEYS
+from .figure_kwargs import prepare_figure_kwargs
+from .viz import get_scatter3d
+from .graph_data import get_reference_traces
+from .graph_data import get_scatter3d_data
+from .graph_layout import get_scatter3d_layout
 
 
 def process_single_frame(

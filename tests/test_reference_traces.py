@@ -26,7 +26,7 @@ import numpy as np
 import pytest
 
 from dataio.manifest import normalize_reference_display
-from utils import prepare_figure_kwargs
+from viz.figure_kwargs import prepare_figure_kwargs
 from viz.graph_data import DEFAULT_REFERENCE_ORIGIN, get_reference_traces
 
 # A square pyramid: a mesh with an unmistakable apex, so a misplaced or
