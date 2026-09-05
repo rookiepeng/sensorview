@@ -31,7 +31,7 @@ import dash
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from app_config import CACHE_KEYS
+from settings import CACHE_KEYS
 
 from frame_sources import (
     get_frame_positions,

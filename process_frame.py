@@ -38,7 +38,7 @@ from viz.graph_data import get_reference_traces
 from viz.graph_data import get_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
 
-from app_config import CACHE_KEYS
+from settings import CACHE_KEYS
 
 
 def process_single_frame(

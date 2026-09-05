@@ -26,7 +26,7 @@ from dash.exceptions import PreventUpdate
 import plotly.io as pio
 import plotly.graph_objs as go
 
-from app_config import CACHE_KEYS, KEY_TYPES
+from settings import CACHE_KEYS, KEY_TYPES
 
 from utils import clamp_frame_index
 from utils import filter_all

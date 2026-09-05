@@ -26,8 +26,8 @@ from dash.exceptions import PreventUpdate
 
 from viz.viz import get_scatter2d
 
-from app_config import background_callback_manager
-from app_config import CACHE_KEYS, KEY_TYPES
+from settings import background_callback_manager
+from settings import CACHE_KEYS, KEY_TYPES
 
 from utils import clamp_frame_index
 from utils import filter_all

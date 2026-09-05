@@ -33,7 +33,7 @@ jobs:
 
     # The full runtime set is needed, not just pytest: tests/test_utils.py and
     # tests/test_video_frame_mapping.py import utils and frame_sources, which
-    # reach app_config and therefore dash and diskcache. There is no lighter
+    # reach settings and therefore dash and diskcache. There is no lighter
     # install under which those two modules import at all.
     - name: Install dependencies
       run: |

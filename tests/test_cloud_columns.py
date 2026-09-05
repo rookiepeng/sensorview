@@ -79,9 +79,7 @@ class TestResolution:
         assert store.xyz_indices() == (0, 1, 2)
 
     def test_mapping_selects_the_named_columns(self, cloud_file):
-        store = CloudStore(
-            cloud_file(), columns={"x": "east", "y": "north", "z": "up"}
-        )
+        store = CloudStore(cloud_file(), columns={"x": "east", "y": "north", "z": "up"})
         assert store.xyz_indices() == (1, 0, 2)
         assert store.resolved_columns == {"x": "east", "y": "north", "z": "up"}
 
@@ -92,9 +90,7 @@ class TestResolution:
     def test_a_field_named_for_a_missing_column_takes_what_is_left(self, cloud_file):
         # y and z are honoured; x gets the column nothing else claimed rather
         # than costing the other two their mapping.
-        store = CloudStore(
-            cloud_file(), columns={"x": "nope", "y": "north", "z": "up"}
-        )
+        store = CloudStore(cloud_file(), columns={"x": "nope", "y": "north", "z": "up"})
         assert store.xyz_indices() == (1, 0, 2)
 
     def test_a_partial_mapping_keeps_the_axis_it_names(self, cloud_file):
@@ -130,15 +126,11 @@ class TestResolution:
 
 class TestReadFrame:
     def test_columns_are_reordered_into_xyz(self, cloud_file):
-        store = CloudStore(
-            cloud_file(), columns={"x": "east", "y": "north", "z": "up"}
-        )
+        store = CloudStore(cloud_file(), columns={"x": "east", "y": "north", "z": "up"})
         assert list(store.read_frame(0)[0][:3]) == [20.0, 10.0, 3.0]
 
     def test_extra_columns_survive_in_stored_order(self, cloud_file):
-        store = CloudStore(
-            cloud_file(), columns={"x": "east", "y": "north", "z": "up"}
-        )
+        store = CloudStore(cloud_file(), columns={"x": "east", "y": "north", "z": "up"})
         frame = store.read_frame(0)
         assert frame.shape == (2, 4)
         assert frame[0][3] == pytest.approx(0.9)

@@ -1,10 +1,16 @@
-"""SensorView Configuration Module
+"""SensorView Settings and Shared Resources
 
-Core configuration settings, constants, and shared resources for the SensorView
-application including app settings, cache configuration, and UI component mappings.
+What every other module reads: the constants, the cache configuration, the
+dropdown output groups the views wire themselves to -- and the ``dash.Dash``
+instance itself, which lives here rather than in :mod:`app` so that a callback
+module can take the app without importing the thing that registers it.
+
+Nothing here starts a server or touches a dataset, which is what makes it safe
+for a spawned background-callback worker to import.
 
 Usage:
-    from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
+    from settings import app
+    from settings import APP_TITLE, DATA_PATH, CACHE_KEYS
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -95,10 +101,10 @@ CACHE_KEYS = {
     "frame_list": "FRAME_LIST",
     "frame_data": "FRAME_DATA",
     # Dataset manifest (info.json v2): declares the table/cloud/curve/image
-    # stores and the frame_id <-> timestamp map every view synchronizes on.
+    # stores every view resolves its per-frame data through.
     "manifest": "MANIFEST",
-    # Current log: the stem its sidecars are keyed on, plus the frame timestamps
-    # and capture rate derived from that log's Parquet data.
+    # Current log: the stem its sidecars are keyed on, plus which log owns each
+    # slider position once several are combined.
     "log_info": "LOG_INFO",
     # Per-(log, plot) threshold y range, estimated once so the axis stays
     # fixed while scrubbing instead of autoscaling every frame.

@@ -16,7 +16,7 @@ from dash import html
 
 import dash_bootstrap_components as dbc
 
-from app_config import THEME
+from settings import THEME
 
 from layouts.pane_common import icon_button, labelled_select, pane
 

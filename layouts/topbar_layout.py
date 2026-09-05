@@ -21,8 +21,8 @@ from dash import html
 
 import dash_bootstrap_components as dbc
 
-from app_config import app
-from app_config import APP_TITLE, APP_VERSION, THEME
+from settings import app
+from settings import APP_TITLE, APP_VERSION, THEME
 
 HIDDEN_FIELD = {"display": "none"}
 

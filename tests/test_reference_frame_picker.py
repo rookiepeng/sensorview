@@ -24,7 +24,7 @@ import dash
 import polars as pl
 import pytest
 
-from app_config import (
+from settings import (
     DROPDOWN_OPTIONS_3D_XYZ_REF,
     DROPDOWN_VALUES_3D_XYZ_REF,
     REFERENCE_PICKER_ORDER,

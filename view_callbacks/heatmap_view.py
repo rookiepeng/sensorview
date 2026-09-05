@@ -23,8 +23,8 @@ from dash.exceptions import PreventUpdate
 
 from viz.viz import get_heatmap
 
-from app_config import background_callback_manager
-from app_config import CACHE_KEYS
+from settings import background_callback_manager
+from settings import CACHE_KEYS
 
 from utils import filter_all
 from utils import cache_get

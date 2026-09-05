@@ -21,7 +21,7 @@ from dash import html
 
 import dash_bootstrap_components as dbc
 
-from app_config import THEME
+from settings import THEME
 
 
 def _switch(component_id, label, tooltip):

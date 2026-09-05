@@ -14,7 +14,7 @@ block_cipher = None
 webview_datas, webview_binaries, webview_hiddenimports = collect_all('webview')
 
 
-a = Analysis(['app.py'],
+a = Analysis(['main.py'],
              pathex=['./sensorview'],
              binaries=webview_binaries,
              datas=[('./assets', 'assets'), ('./assets/fonts/bootstrap-icons.woff', "assets/fonts"), ('./assets/fonts/bootstrap-icons.woff2', "assets/fonts"), ("./view_callbacks", "view_callbacks")] + webview_datas,

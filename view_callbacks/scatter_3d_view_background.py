@@ -8,7 +8,7 @@ Usage:
     from view_callbacks.scatter_3d_view_background import get_scatter_3d_view_background_callbacks
     get_scatter_3d_view_background_callbacks(app)
 
-Note: Requires background callback manager configuration in app_config.
+Note: Requires background callback manager configuration in settings.
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -27,8 +27,8 @@ import plotly.graph_objs as go
 
 import numpy as np
 
-from app_config import background_callback_manager
-from app_config import CACHE_KEYS, KEY_TYPES
+from settings import background_callback_manager
+from settings import CACHE_KEYS, KEY_TYPES
 
 from utils import filter_all
 from utils import cache_set, cache_get, cache_expire

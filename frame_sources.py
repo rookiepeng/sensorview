@@ -41,7 +41,7 @@ import tempfile
 
 import numpy as np
 
-from app_config import CACHE_KEYS, VIDEO_CACHE_PATH
+from settings import CACHE_KEYS, VIDEO_CACHE_PATH
 
 from dataio.calibration import apply_transform
 from dataio.dense_store import CloudStore, CurveStore

@@ -24,18 +24,18 @@ from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 
-from app_config import (
+from settings import (
     DROPDOWN_OPTIONS_ALL,
     DROPDOWN_VALUES_ALL,
     DROPDOWN_VALUES_ALL_STATE,
 )
-from app_config import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
-from app_config import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
-from app_config import DROPDOWN_OPTIONS_3D_XYZ, DROPDOWN_OPTIONS_3D_XYZ_REF
-from app_config import DROPDOWN_VALUES_3D_XYZ, DROPDOWN_VALUES_3D_XYZ_REF
-from app_config import REFERENCE_PICKER_ORDER
-from app_config import background_callback_manager
-from app_config import CACHE_KEYS, KEY_TYPES, THEME
+from settings import DROPDOWN_OPTIONS_CAT, DROPDOWN_VALUES_CAT
+from settings import DROPDOWN_OPTIONS_CAT_COLOR, DROPDOWN_VALUES_CAT_COLOR
+from settings import DROPDOWN_OPTIONS_3D_XYZ, DROPDOWN_OPTIONS_3D_XYZ_REF
+from settings import DROPDOWN_VALUES_3D_XYZ, DROPDOWN_VALUES_3D_XYZ_REF
+from settings import REFERENCE_PICKER_ORDER
+from settings import background_callback_manager
+from settings import CACHE_KEYS, KEY_TYPES, THEME
 
 from dataio.frames import unique_frame_ids
 from dataio.manifest import Manifest, ManifestError

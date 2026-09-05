@@ -1,35 +1,34 @@
-"""SensorView Application Server
+"""SensorView Dash Application
 
-Flask/Dash-based web application for real-time sensor data visualization and analysis
-with multiple visualization modes, test case management, and WebWorker-based caching.
+Assembles the app: the layout, the clientside callbacks that run in the browser,
+and the registration of every server-side callback module. Importing this module
+gives you a fully wired ``app`` ready to serve -- it does not serve it. Running
+the app is :mod:`main`, and hosting it in a native window is :mod:`desktop`.
 
-Features: 3D/2D scatter plots, heatmaps, histograms, interactive controls, frame
-navigation, data filtering, and session-based data isolation.
+The pieces it wires together:
+
+- ``settings``           the Dash instance, caches and shared constants
+- ``layouts.*``          the component tree
+- ``routes``             plain HTTP endpoints, outside the callback protocol
+- ``view_callbacks.*``   one module per panel, each registering its own callbacks
+
+Usage:
+    from app import app        # a wired Dash app, for a WSGI server to host
 
 Author: Zhengyu Peng
 License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-from typing import Dict, List, Any, Optional, Union
-
-import json
-import os
-import shutil
-
-from multiprocessing import freeze_support
-
-import orjson
-from flask import Response, abort, send_file
-
 import dash
 from dash.dependencies import Input, Output, State
-from dash.exceptions import PreventUpdate
 
-from utils import load_config, save_config, cache_get
+from settings import app
+from settings import APP_TITLE
 
-import desktop
+from routes import register_api_routes
 
+from view_callbacks.file_modal_view import get_file_modal_view_callbacks
 from view_callbacks.test_case_view import get_test_case_view_callbacks
 from view_callbacks.control_view import get_control_view_callbacks
 from view_callbacks.scatter_3d_view import get_scatter_3d_view_callbacks
@@ -45,20 +44,6 @@ from view_callbacks.violin_view import get_violin_view_callbacks
 from view_callbacks.camera_view import get_camera_view_callbacks
 from view_callbacks.threshold_view import get_threshold_view_callbacks
 
-from frame_sources import (
-    get_frame_stem,
-    get_log_stems,
-    get_manifest,
-    get_cloud_trace,
-    playable_image_file,
-)
-
-from app_config import app
-from app_config import APP_TITLE, DATA_PATH, CACHE_KEYS
-from app_config import RADAR_FILE_EXTENSIONS
-
-from dataio.manifest import table_sidecar_suffixes
-
 from layouts.app_layout import get_app_layout
 from layouts.analysis_dock_layout import DOCK_VIEWS, EMPTY_SLOT
 
@@ -66,151 +51,6 @@ app.scripts.config.serve_locally = True
 app.css.config.serve_locally = True
 app.title = APP_TITLE
 app.layout = get_app_layout
-
-
-@app.server.route("/api/data/<session>/<start_index_str>", methods=["GET"])
-def get_data_by_index(session: str, start_index_str: str) -> Response:
-    """
-    Retrieve buffered figure data from cache for a specific session.
-
-    Args:
-        session: Unique session identifier for data isolation.
-        start_index_str: Starting index from which to retrieve data (converted to int).
-
-    Returns:
-        JSON response containing:
-            - If start_index_str > latest_server_buffer_index: [{"index": -1}]
-            - If start_index_str == latest_server_buffer_index: []
-            - Otherwise: List of dictionaries with figure data, hover strings,
-              reference figures, and layouts for each index.
-    """
-    latest_server_buffer_index = cache_get(session, CACHE_KEYS["figure_idx"])
-    start_index = int(start_index_str)
-
-    if latest_server_buffer_index is None:
-        latest_server_buffer_index = -1
-
-    _orjson_opts = orjson.OPT_SERIALIZE_NUMPY
-
-    if start_index > latest_server_buffer_index:
-        return Response(
-            orjson.dumps([{"index": -1}]),
-            mimetype="application/json",
-        )
-
-    if start_index == latest_server_buffer_index:
-        return Response(orjson.dumps([]), mimetype="application/json")
-
-    # Cap the number of frames returned per request to prevent huge JSON responses
-    # that cause browser memory spikes. storeBuffer polls on an interval and will
-    # pick up remaining frames in subsequent requests.
-    MAX_BATCH_SIZE = 40
-    end_index = min(start_index + 1 + MAX_BATCH_SIZE, latest_server_buffer_index + 1)
-
-    buffer = []
-    for idx in range(start_index + 1, end_index):
-        bundle = cache_get(session, CACHE_KEYS["figure_bundle"], str(idx))
-        if bundle is not None:
-            buffer.append(
-                {
-                    "index": idx,
-                    "fig": bundle["fig"],
-                    "hover_strings": bundle["hover_strings"],
-                    "ref_fig": bundle["ref_fig"],
-                    "fig_layout": bundle["fig_layout"],
-                }
-            )
-
-    return Response(
-        orjson.dumps(buffer, option=_orjson_opts), mimetype="application/json"
-    )
-
-
-@app.server.route("/api/cloud/<session>/<int:frame_idx>", methods=["GET"])
-def get_cloud_frame(session: str, frame_idx: int) -> Response:
-    """
-    Serve the point-cloud backdrop trace for one frame.
-
-    The cloud is deliberately kept off the IndexedDB figure-buffer path that the
-    radar traces use. The buffer pre-fetches a window of frames ahead, and a
-    decimated cloud frame is orders of magnitude larger than a table one --
-    buffering it would balloon client storage for data that is pure backdrop.
-    Instead the client fetches just the frame it is displaying, and caches it.
-
-    Args:
-        session: Session identifier used to look up the manifest and frame list.
-        frame_idx: Slider position (an index into the frame list, not a frame id).
-
-    Returns:
-        JSON ``{"trace": <scatter3d trace>}``, or ``{"trace": null}`` when the
-        dataset has no cloud or that frame is missing.
-    """
-    empty = Response(orjson.dumps({"trace": None}), mimetype="application/json")
-
-    manifest = get_manifest(session)
-    # With logs combined the backdrop comes from whichever log recorded this
-    # frame, so the stem is resolved per frame rather than per session.
-    stem = get_frame_stem(session, frame_idx)
-    if manifest is None or not stem or not manifest.has_cloud(stem):
-        return empty
-
-    frame_list = cache_get(session, CACHE_KEYS["frame_list"])
-    if frame_list is None or frame_idx < 0 or frame_idx >= len(frame_list):
-        return empty
-
-    trace = get_cloud_trace(manifest, stem, frame_list[frame_idx])
-    if trace is None:
-        return empty
-
-    return Response(
-        orjson.dumps({"trace": trace}, option=orjson.OPT_SERIALIZE_NUMPY),
-        mimetype="application/json",
-    )
-
-
-@app.server.route("/api/camera/<session>/<stem>/<stream_id>", methods=["GET"])
-def get_camera_stream(session: str, stem: str, stream_id: str):
-    """
-    Serve a camera mp4 for the browser's video element.
-
-    Each combined log has its own recording, so which one is served is part of
-    the URL -- the video element swaps source as the slider crosses from one
-    log into the next.
-
-    The file path still comes from the session's manifest, never from the URL:
-    ``stem`` only selects among the logs this session actually loaded, and
-    ``stream_id`` among the streams found beside that log, so neither can walk
-    outside the dataset directory.
-
-    Args:
-        session: Session identifier used to look up the manifest.
-        stem: Log stem, which must be one of the session's loaded logs.
-        stream_id: Camera stream identifier declared in the manifest.
-
-    Returns:
-        The mp4 file response. ``conditional=True`` enables HTTP Range
-        requests, which is what makes ``currentTime`` seeking work at all --
-        without it the browser must download the whole clip before it can seek.
-
-        A recording in a container browsers cannot play is transcoded on first
-        request and served from the video cache, so this can block for a few
-        seconds once per log.
-    """
-    manifest = get_manifest(session)
-    if manifest is None or stem not in get_log_stems(session):
-        abort(404)
-
-    stream = next(
-        (s for s in manifest.image_streams(stem) if s["id"] == stream_id), None
-    )
-    if stream is None:
-        abort(404)
-
-    playable = playable_image_file(stream["file"])
-    if playable is None:
-        abort(404)
-
-    return send_file(playable, mimetype="video/mp4", conditional=True)
 
 
 # Initialize worker
@@ -267,327 +107,6 @@ app.clientside_callback(
     State("local-file-selection", "data"),
     prevent_initial_call=True,
 )
-
-
-@app.callback(
-    output={
-        "data_path": Output("data-path-modal", "value"),
-    },
-    inputs={"is_modal_open": Input("modal-centered", "is_open")},
-)
-def on_modal_open(is_modal_open: bool) -> Dict[str, str]:
-    """
-    Initialize data path when configuration modal is opened.
-
-    Args:
-        is_modal_open: Boolean indicating if the modal is currently open.
-
-    Returns:
-        Dictionary containing the data path configuration.
-
-    Raises:
-        PreventUpdate: If modal is not open to prevent unnecessary updates.
-    """
-    if not is_modal_open:
-        raise PreventUpdate
-
-    if os.path.isfile("./config.json"):
-        config = load_config("./config.json")
-    else:
-        config = {"DATA_PATH": DATA_PATH}
-        save_config(config, "./config.json")
-    data_path = config.get("DATA_PATH", DATA_PATH)
-
-    if os.path.exists("./temp"):
-        shutil.rmtree("./temp")
-    os.makedirs("./temp")
-
-    return {
-        "data_path": data_path,
-    }
-
-
-@app.callback(
-    output={
-        "data_path": Output("data-path-modal", "value", allow_duplicate=True),
-    },
-    inputs={"unused_browse": Input("browse-button-modal", "n_clicks")},
-    state={"data_path": State("data-path-modal", "value")},
-    prevent_initial_call=True,
-)
-def on_browse(unused_browse: Optional[int], data_path: str) -> Dict[str, str]:
-    """
-    Fill the data path from the OS folder chooser.
-
-    Only the desktop shell can raise a native dialog, so the button that gets
-    here is rendered disabled without one and this stays unreachable.
-
-    Args:
-        unused_browse: Number of browse button clicks (unused but required for callback).
-        data_path: Current contents of the path field, used to open the dialog
-            somewhere useful.
-
-    Returns:
-        Dictionary containing the chosen data path, which the path Input then
-        rescans for test cases.
-
-    Raises:
-        PreventUpdate: If the dialog was cancelled or is unavailable, so a
-            typed path survives a stray click.
-    """
-    chosen = desktop.pick_folder(data_path)
-    if chosen is None:
-        raise PreventUpdate
-
-    return {"data_path": chosen}
-
-
-@app.callback(
-    output={
-        "case_options": Output("case-picker-modal", "options"),
-        "case_value": Output("case-picker-modal", "value"),
-    },
-    inputs={
-        "data_path": Input("data-path-modal", "value"),
-        "unused_refresh": Input("refresh-button-modal", "n_clicks"),
-    },
-)
-def on_path_change(
-    data_path: str, unused_refresh: Optional[int]
-) -> Dict[str, Union[str, List[Dict[str, str]]]]:
-    """
-    Update available test cases when data path changes.
-
-    Args:
-        data_path: Path to the data directory containing test cases.
-        unused_refresh: Number of refresh button clicks (unused but required for callback).
-
-    Returns:
-        Dictionary containing:
-            - case_options: List of available test case options
-            - case_value: Currently selected test case value
-    """
-    config = load_config("./config.json")
-
-    stored_case = config.get("CASE", "")
-
-    options = []
-    try:
-        obj = os.scandir(data_path)
-    except OSError:
-        return {
-            "case_options": "",
-            "case_value": "",
-        }
-
-    for entry in obj:
-        if entry.is_dir():
-            # only add the folder with 'info.json'
-            if os.path.exists(os.path.join(data_path, entry.name, "info.json")):
-                options.append({"label": entry.name, "value": entry.name})
-
-    case_val = options[0]["value"]
-
-    # check previously loaded case in the browser's cache
-    if stored_case:
-        for _, case in enumerate(options):
-            if stored_case == case["value"]:
-                case_val = stored_case
-                break
-
-    return {
-        "case_options": options,
-        "case_value": case_val,
-    }
-
-
-@app.callback(
-    output={
-        "file_value": Output("file-picker-modal", "value"),
-        "file_options": Output("file-picker-modal", "options"),
-    },
-    inputs={
-        "case_val": Input("case-picker-modal", "value"),
-    },
-    state={
-        "data_path": State("data-path-modal", "value"),
-    },
-)
-def on_case_change(
-    case_val: str, data_path: str
-) -> Dict[str, Union[str, List[Dict[str, str]]]]:
-    """
-    Update available data files when test case selection changes.
-
-    Args:
-        case_val: Selected test case name.
-        data_path: Path to the data directory.
-
-    Returns:
-        Dictionary containing:
-            - file_value: Currently selected file value (JSON string)
-            - file_options: List of available data file options
-    """
-    config = load_config("./config.json")
-
-    stored_file = config.get("FILE", "")
-
-    if not case_val:
-        return {
-            "file_value": "",
-            "file_options": "",
-        }
-
-    case_dir = os.path.join(data_path, case_val)
-    # Sidecars that are Parquet in their own right are not logs, however much
-    # they look like one to a listing that goes by extension.
-    sidecar_suffixes = tuple(table_sidecar_suffixes(case_dir))
-    data_files = []
-    for dirpath, _, files in os.walk(case_dir):
-        for name in files:
-            lowered = name.lower()
-            if lowered.endswith(RADAR_FILE_EXTENSIONS) and not lowered.endswith(
-                sidecar_suffixes
-            ):
-                data_files.append(
-                    {
-                        "label": os.path.join(dirpath[len(case_dir) :], name),
-                        "value": json.dumps(
-                            {
-                                "path": dirpath,
-                                "name": name,
-                                "label": os.path.join(dirpath[len(case_dir) :], name),
-                            }
-                        ),
-                    }
-                )
-
-    if not data_files:
-        return {
-            "file_value": "",
-            "file_options": "",
-        }
-
-    file_value = data_files[0]["value"]
-    if stored_file:
-        for _, file in enumerate(data_files):
-            if stored_file == file["value"]:
-                file_value = stored_file
-                break
-
-    config["DATA_PATH"] = data_path
-    config["CASE"] = case_val
-    config["FILE"] = file_value
-    save_config(config, "./config.json")
-
-    return {
-        "file_value": file_value,
-        "file_options": data_files,
-    }
-
-
-@app.callback(
-    output={
-        "modal_is_open": Output("modal-centered", "is_open", allow_duplicate=True),
-        "data_path_str": Output("data-path", "value"),
-        "test_case_str": Output("test-case", "value"),
-        "log_file_str": Output("log-file", "value"),
-        "current_file_update": Output("current-file", "data"),
-        "add_file_value": Output("file-add", "value"),
-        "add_file_options": Output("file-add", "options"),
-    },
-    inputs={
-        "unused_ok_modal": Input("ok-modal", "n_clicks"),
-    },
-    state={
-        "data_path": State("data-path-modal", "value"),
-        "case_val": State("case-picker-modal", "value"),
-        "file_value": State("file-picker-modal", "value"),
-        "file_options": State("file-picker-modal", "options"),
-        "current_file": State("current-file", "data"),
-    },
-    prevent_initial_call=True,
-)
-def on_modal_close(
-    unused_ok_modal: Optional[int],
-    data_path: str,
-    case_val: str,
-    file_value: str,
-    file_options: List[Dict[str, str]],
-    current_file: Optional[str],
-) -> Dict[str, Any]:
-    """
-    Apply configuration changes when modal is closed via OK button.
-
-    Args:
-        unused_ok_modal: Number of OK button clicks (unused but required for callback).
-        data_path: Selected data directory path.
-        case_val: Selected test case name.
-        file_value: Selected file value (JSON string).
-        file_options: List of available file options.
-        current_file: Currently loaded file value.
-
-    Returns:
-        Dictionary containing updated UI state values including modal visibility,
-        display strings, and file configurations.
-
-    Raises:
-        PreventUpdate: If no file is selected.
-    """
-    if not file_value:
-        raise PreventUpdate
-
-    config = load_config("./config.json")
-
-    file_dict = json.loads(file_value)
-
-    config["DATA_PATH"] = data_path
-    config["CASE"] = case_val
-    config["FILE"] = file_value
-    save_config(config, "./config.json")
-
-    if current_file == file_value:
-        return {
-            "modal_is_open": False,
-            "data_path_str": data_path,
-            "test_case_str": case_val,
-            "log_file_str": file_dict["label"],
-            "current_file_update": dash.no_update,
-            "add_file_value": dash.no_update,
-            "add_file_options": dash.no_update,
-        }
-
-    return {
-        "modal_is_open": False,
-        "data_path_str": data_path,
-        "test_case_str": case_val,
-        "log_file_str": file_dict["label"],
-        "current_file_update": file_value,
-        "add_file_value": [],
-        "add_file_options": file_options,
-    }
-
-
-@app.callback(
-    output={
-        "modal_is_open": Output("modal-centered", "is_open", allow_duplicate=True),
-    },
-    inputs={
-        "unused_select_modal": Input("select-button", "n_clicks"),
-    },
-    prevent_initial_call=True,
-)
-def open_modal(unused_select_modal: Optional[int]) -> Dict[str, bool]:
-    """
-    Open the configuration modal when select button is clicked.
-
-    Args:
-        unused_select_modal: Number of select button clicks (unused but required for callback).
-
-    Returns:
-        Dictionary containing modal open state.
-    """
-    return {"modal_is_open": True}
 
 
 # This clientside callback function disables the interval component based on
@@ -764,6 +283,9 @@ app.clientside_callback(
     Input("slider-frame", "max"),
 )
 
+register_api_routes(app)
+
+get_file_modal_view_callbacks(app)
 get_test_case_view_callbacks(app)
 get_control_view_callbacks(app)
 get_scatter_3d_view_callbacks(app)
@@ -776,20 +298,3 @@ get_parcats_view_callbacks(app)
 get_violin_view_callbacks(app)
 get_camera_view_callbacks(app)
 get_threshold_view_callbacks(app)
-
-
-if __name__ == "__main__":
-    DEBUG = False
-    if DEBUG:
-        app.run(debug=True, threaded=True, processes=1, host="0.0.0.0")
-
-    else:
-        # Spawned background-callback workers re-import this module, so the
-        # freeze support has to be in place before anything else starts.
-        freeze_support()
-
-        # Serves on loopback with waitress and shows it in an OS webview. For a
-        # deployment, drop the window and serve on a public interface instead:
-        #     from waitress import serve
-        #     serve(app.server, listen="*:8000")
-        desktop.run(app.server, title=APP_TITLE, port=8521)

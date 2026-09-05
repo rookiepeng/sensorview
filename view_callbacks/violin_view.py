@@ -20,8 +20,8 @@ from dash.dcc import send_file  # pyright: ignore[reportPrivateImportUsage]
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from app_config import background_callback_manager
-from app_config import CACHE_KEYS
+from settings import background_callback_manager
+from settings import CACHE_KEYS
 
 from utils import filter_all
 from utils import cache_get

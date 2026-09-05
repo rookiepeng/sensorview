@@ -9,7 +9,7 @@ numpy
 pandas
 kaleido
 diskcache
-# Already pulled in by dash[diskcache], but named here because app_config picks
+# Already pulled in by dash[diskcache], but named here because settings picks
 # the start method background callback workers are created with.
 multiprocess
 orjson

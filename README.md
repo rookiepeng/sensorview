@@ -189,7 +189,7 @@ table has to be converted first — see
 #### Desktop app
 
 ```bash
-python app.py
+python main.py
 ```
 
 Waitress serves the app on `127.0.0.1:8521` and pywebview shows it in a native
@@ -208,15 +208,17 @@ has to be stopped with Ctrl+C rather than by closing the window.
 
 #### Development
 
-Set `DEBUG = True` at the bottom of `app.py` for the Dash dev server with hot
-reload.
+Set `DEBUG = True` in `main.py` for the Dash dev server with hot reload.
 
 #### Server
 
-Uncomment the Waitress lines in `app.py` for a deployment:
+`app.py` exposes a wired `app` that any WSGI server can host, so a deployment
+skips `main.py` and its window entirely:
 
 ```python
 from waitress import serve
+from app import app
+
 serve(app.server, listen="*:8000")
 ```
 
@@ -265,6 +267,24 @@ See `requirements.txt` for the complete list:
 
 ## Development
 
+### Top-level Modules
+
+Which file does what, and which one starts the app:
+
+| Module | Role |
+|---|---|
+| `main.py` | **The entry point.** The only module with a `__main__`; `python main.py` runs the app. |
+| `app.py` | Assembles the Dash application — layout, clientside callbacks, and the registration of every callback module. Exposes `app` for a WSGI server; starts nothing on import. |
+| `settings.py` | The Dash instance, the disk caches, and the shared constants every module reads. |
+| `routes.py` | The plain HTTP endpoints the browser fetches outside Dash's callback protocol. |
+| `desktop.py` | Hosts a running server in a native window. Imported by `main.py`, never run directly. |
+| `frame_sources.py` | Resolves a session's manifest, logs, and per-frame sidecar data. |
+| `process_frame.py` | Filtering and figure construction for one frame. |
+| `utils.py` | Cache helpers and `config.json` persistence. |
+
+Nothing but `main.py` runs on its own, and nothing starts a server on import —
+which is what lets background-callback workers re-import these modules safely.
+
 ### Layout Package (`layouts/`)
 
 One module per region of the shell:
@@ -282,7 +302,8 @@ One module per region of the shell:
 
 A modular callback system, one module per view:
 
-- `test_case_view`: dataset selection, loading, and the filter rail it builds
+- `file_modal_view`: the open-dataset dialog — data path, case, and log choice
+- `test_case_view`: dataset loading, and the filter rail it builds
 - `control_view`: playback and navigation controls
 - `scatter_3d_view`: 3D visualization callbacks
 - `scatter_3d_view_background`: background callback pre-computing and buffering

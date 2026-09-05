@@ -22,7 +22,7 @@ import pytest
 from dash import DiskcacheManager
 from diskcache import FanoutCache
 
-from app_config import SafeDiskcacheManager
+from settings import SafeDiskcacheManager
 
 NO_UPDATE = {"_dash_no_update": "_dash_no_update"}
 

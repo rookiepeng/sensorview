@@ -17,8 +17,8 @@ import json
 import pandas as pd
 import numpy as np
 
-from app_config import EXPIRATION, KEY_TYPES
-from app_config import frame_cache
+from settings import EXPIRATION, KEY_TYPES
+from settings import frame_cache
 
 from dataio.manifest import normalize_reference_display
 from dataio.radar_store import load_radar
