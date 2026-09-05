@@ -4,11 +4,32 @@ Part of [SensorView](README.md). This is the on-disk contract for the
 `data/<Case>/` layout described in the README's
 [Data Architecture](README.md#data-architecture) section.
 
-Everything below is the on-disk contract. It is written to be enough to build a
-converter from any source format without reading the application code: exact
-filenames, exact HDF5 paths, exact dtypes, and what each manifest key does.
-[Writing a Converter](#writing-a-converter) has a worked example and a
-validation checklist.
+It is written to be enough to build a converter from any source format without
+reading the application code: exact filenames, exact HDF5 paths, exact dtypes,
+and what every manifest key does.
+
+**Never done this before?** [Start Here](#start-here) gets a case on screen in
+two files. **Converting an existing dataset?** [Writing a Converter](#writing-a-converter)
+is a worked example end to end. **Something not showing up?**
+[Troubleshooting](#troubleshooting) maps symptoms to causes.
+
+### Contents
+
+| Section | What it covers |
+|---|---|
+| [At a Glance](#at-a-glance) | The folder layout, and every store in one table |
+| [Start Here](#start-here) | The smallest case that opens, and what to add next |
+| [Vocabulary](#vocabulary) | case, log, stem, frame id, frame index, source id, stream id |
+| [File Naming and Association](#file-naming-and-association) | How sidecars find their log — the rules a converter must respect |
+| [The Frame ID Contract](#the-frame-id-contract) | The join key behind every store, and combining logs |
+| [Table](#table-parquet) | The one store the app queries |
+| [Cloud](#cloud-cloudh5) | The point-cloud backdrop |
+| [Curve](#curve-curveh5) | Per-frame 1D curves |
+| [Image](#image-mp4) | Camera footage, and how it is seeked |
+| [Reference Pose](#reference-pose-referenceparquet) | The moving origin — usually the host vehicle |
+| [`info.json` Reference](#infojson-reference) | Every manifest key, block by block |
+| [Writing a Converter](#writing-a-converter) | Worked example, MATLAB notes, validation checklist |
+| [Troubleshooting](#troubleshooting) | Symptom → cause, for failures that surface as silence |
 
 ## At a Glance
 
@@ -37,6 +58,75 @@ data/MyCase/                     ← a "case": one info.json, any number of logs
 
 Adding a log is dropping files in the folder — there is nothing to register.
 Every sidecar is optional; panels for missing data hide themselves.
+
+## Start Here
+
+A case needs **two files**: one table, and one manifest describing its columns.
+Everything else on this page is optional, and can be added later one file at a
+time without touching what already works.
+
+```python
+import json
+from pathlib import Path
+
+import pandas as pd
+
+case = Path("data/MyCase")
+case.mkdir(parents=True, exist_ok=True)
+
+# One row per point per frame. "Frame" is the join key for every other store.
+pd.DataFrame({
+    "Frame": [0, 0, 1, 1],
+    "X":     [12.4, 18.1, 12.9, 18.4],
+    "Y":     [-3.2,  4.7, -3.0,  4.9],
+    "Z":     [ 0.4,  0.6,  0.4,  0.6],
+    "RCS":   [ 8.1, -2.3,  7.9, -2.6],
+}).to_parquet(case / "run_01.parquet", index=False)
+
+manifest = {
+    "manifest_version": 2,
+    "table": {
+        "slider": "Frame",
+        "x_3d": "X", "y_3d": "Y", "z_3d": "Z",
+        "keys": {
+            "X":   {"description": "East (m)",   "type": "numerical"},
+            "Y":   {"description": "North (m)",  "type": "numerical"},
+            "Z":   {"description": "Up (m)",     "type": "numerical"},
+            "RCS": {"description": "RCS (dBsm)", "type": "numerical"},
+        },
+    },
+}
+(case / "info.json").write_text(json.dumps(manifest, indent=4), encoding="utf-8")
+```
+
+Point the open dialog at `data/MyCase` and `run_01` is there to scrub, filter,
+color and plot. Three things in that snippet are the whole contract in
+miniature — the rest of this page is detail:
+
+- **`Frame` is the join key.** Every sidecar you add later is addressed by these
+  same ids. See [The Frame ID Contract](#the-frame-id-contract).
+- **`slider` names the frame column**, and `x_3d`/`y_3d`/`z_3d` name the default
+  3D axes.
+- **A column with no `keys` entry is invisible** — no filter, no axis, no hover.
+  The slider column is the exception; it needs no entry.
+
+### What to add next
+
+| To get | Drop in | Read |
+|---|---|---|
+| A point-cloud backdrop | `run_01.cloud.h5` + a `cloud` block | [Cloud](#cloud-cloudh5) |
+| Per-frame 1D curves | `run_01.curve.h5` + a `curve` block | [Curve](#curve-curveh5) |
+| Camera footage | `run_01.mp4` + an `image` block | [Image](#image-mp4) |
+| A moving origin | `run_01.reference.parquet` | [Reference Pose](#reference-pose-referenceparquet) |
+| A second sensor's curves | `run_01.sensor_2.curve.h5` | [Several sources per log](#several-sources-per-log) |
+| A second camera | `run_01.rear.mp4` | [File Naming](#file-naming-and-association) |
+| A second log | `run_02.parquet`, with **different** frame ids | [Frame ids across combined logs](#frame-ids-across-combined-logs) |
+
+Every one of those resolves by filename: the sidecar starts with the table's
+stem (`run_01`), so there is nothing to register in the manifest beyond the
+block that turns the panel on. That block has to carry something — an **empty**
+`"cloud": {}` reads the same as no block at all — so give it at least its
+`suffix`.
 
 ## Vocabulary
 
@@ -140,14 +230,15 @@ mapping frame id → owning stem. Two consequences:
   while another is selected. Running the ids end to end across the case (log A
   0–38, log B 39–78, …) makes that class of bug impossible. `data/NuScenes` is
   built this way.
-- A frame id claimed by two logs collapses onto **one** slider position, and
-  there is no error either way. The two panels with room for more than one
-  answer show both logs: the image section gives each its own video, labelled
-  with its stem, and the curve section stacks one band per log against a shared
-  x axis and y range. Everything with room for a single answer — the point
-  cloud, the reference pose, the stills in the HTML export, and the browser's
-  cloud cache — resolves to the primary log, the one picked in the file modal
-  rather than added through **Combine**.
+- **A frame id claimed by two logs collapses onto one slider position**, with no
+  error either way. What you see there depends on whether the panel has room for
+  more than one answer:
+  - **Both logs.** The image section gives each its own video, labelled with its
+    stem. The curve section stacks one band per log against a shared x axis and
+    y range.
+  - **The primary log only.** The point cloud, the reference pose, the stills in
+    the HTML export, and the browser's cloud cache. The *primary* is the log
+    picked in the file modal, not one added through **Combine**.
 
 ## Table (`.parquet`)
 
@@ -322,6 +413,10 @@ plus 5% padding. A manifest-declared `y_range` always wins over the estimate.
 
 ## Image (`.mp4`)
 
+Camera footage beside the data. The panel is a browser `<video>` element that
+never plays on its own — it is seeked to whatever frame the rest of the app is
+showing, which is what the encoding requirements below are all in service of.
+
 ### Encoding requirements
 
 | Requirement | Why |
@@ -391,13 +486,14 @@ it just carries no pictures.
 A sidecar of its own marks the moving origin in the 3D view — usually the host
 vehicle. It is the only thing that places one.
 
-> Earlier versions also read a position from three table columns, `x_ref` /
-> `y_ref` / `z_ref`. They carried a position and nothing else, so a shape placed
-> from them sat square to the axes however the vehicle was actually pointing,
-> and they cost every row of the table three columns to say where one vehicle
-> was in a few hundred frames. **They are no longer read.** A manifest that
-> still names them is not an error — the keys are ignored, and dropped the next
-> time a v1 manifest is written.
+> **Superseded:** earlier versions also read a position from three table
+> columns, `x_ref` / `y_ref` / `z_ref`. They carried a position and nothing
+> else, so a shape placed from them sat square to the axes however the vehicle
+> was actually pointing — and they spent three columns on every row of the table
+> to say where one vehicle was across a few hundred frames.
+>
+> **They are no longer read.** A manifest that still names them is not an error:
+> the keys are ignored, and dropped the next time a v1 manifest is written.
 
 ### Layout
 
@@ -457,12 +553,13 @@ frame at once leaves no single pose to show.
 
 ### When nothing places it
 
-Declaring a `reference` block is the dataset saying it has a reference. So a
-dataset that declares one and ships **no sidecar at all** draws it at the origin
-`(0, 0, 0)` rather than not at all, with the axis ranges widened to reach it
-there: a missing sidecar then reads as a reference sitting at the origin rather
-than as a `reference` block that was quietly ignored, which is the harder of the
-two to diagnose.
+Declaring a `reference` block is the dataset saying it *has* a reference. So a
+dataset that declares one but ships **no sidecar at all** draws it at the origin
+`(0, 0, 0)` rather than not at all, with the axis ranges widened to reach it.
+
+That is deliberate. A reference parked at the origin is easy to read as "the
+pose file is missing"; a `reference` block that was quietly ignored looks like
+nothing at all, and is the harder of the two to diagnose.
 
 - The shape is whatever the block declared: its **mesh** if it declares
   geometry, the plain **dot** if it does not.
@@ -560,6 +657,9 @@ it.
 | `curve` | object | absent | Omit and no curve panel appears. |
 | `image` | object | absent | Omit and no video panel appears. |
 | `reference` | object | absent | Pose source and overlay styling. |
+
+An **empty** block is indistinguishable from an absent one: `"image": {}` turns
+nothing on. Give a block you mean to enable at least its `suffix`.
 
 ### `table`
 
@@ -869,3 +969,63 @@ print(pose and pose.resolved_columns, pose and pose.pose(frame_ids[0]))
 If `read_frame` returns `None`, `signals()` comes back empty, or `pose(...)` is
 `None`, the frame ids or the dataset pattern disagree with the file — the things
 nothing else checks for you.
+
+## Troubleshooting
+
+Nearly every failure here is silent: a panel that stays empty rather than an
+error. Find the symptom, and the cause is almost always one of these.
+
+### Nothing opens
+
+| Symptom | Usually means |
+|---|---|
+| The log is not offered in the file picker | The table sits in a subfolder instead of beside `info.json`, or its name ends in the `reference` suffix — those are filtered out on purpose. |
+| `Unsupported file type` | Not Parquet. It is the only table format the loader reads. |
+| The log opens but the 3D view is empty | `table.slider` names a column that is not in the file, or the `x_3d`/`y_3d`/`z_3d` columns are missing from this log. |
+
+### A column is missing
+
+| Symptom | Usually means |
+|---|---|
+| No filter, axis, or hover entry for a column | It has no `keys` entry — or the entry's name does not match the column exactly, **case included**. |
+| A column present in one log is missing in another | Working as intended: a `keys` entry absent from a given log is dropped rather than offered and then failing. |
+| A numeric filter makes rows vanish | Those rows hold `NaN` in that column, which fails the range comparison. If the column is meaningfully optional, reconsider filtering on it. |
+
+### A sidecar does not show up
+
+| Symptom | Usually means |
+|---|---|
+| The point cloud never appears | No `cloud` block; or the file's stem does not match the table's; or the dataset paths spell the frame ids differently than the table does (`/frame_0` vs `/frame_0.0` vs `/frame_000`). |
+| The point cloud appears in the wrong place | It is stored in its sensor's own frame and needs a [`cloud.calibration`](#calibration). |
+| The curve panel is empty | Trace `name`s in the manifest do not match dataset names in the file. |
+| One plot is missing from the selector | Every series in it is absent from the selected source. A plot with nothing to draw is not offered — that is what lets one `plots` list cover sensors that recorded different things. |
+| Curves are mostly gaps | Working as intended: non-finite bins are drawn as breaks, not clamped or dropped. |
+| A second sensor or camera is not listed | Its filename continues past the stem with something other than `.` — `run_01_rear.mp4` is a log called `run_01_rear`, not a second stream of `run_01`. |
+
+### The video is wrong
+
+| Symptom | Usually means |
+|---|---|
+| It shows the wrong frame | The mp4 is not all-intra, so seeks land on the nearest keyframe instead of the frame asked for. |
+| It never moves at all | ffmpeg could not demux the file, so the frame count is unknown and the panel is deliberately left where it is rather than seeked to a guess. |
+| It drifts further out as the log runs | The clip and the log do not cover the same stretch of time. Trim the clip to the log's span; a constant offset instead means `image.time_offset`. |
+| The first seek stalls for seconds | The container is being transcoded on demand. Ship `.mp4`. |
+
+### The reference is wrong
+
+| Symptom | Usually means |
+|---|---|
+| It sits at the origin and never moves | A `reference` block is declared but no sidecar was found. See [When nothing places it](#when-nothing-places-it). |
+| It never appears at all | The sidecar's frame column is not mapped and none of the fallbacks match it. Pick it in the 3D view's reference pickers; the choice is saved back to `info.json`. |
+| It is placed but points the wrong way | The mesh is authored along the wrong axis for how `yaw` is measured. See [Mesh geometry](#mesh-geometry). |
+| It disappears on some frames | The sidecar has no row for those frames. That is by design, rather than stranding it at its last known pose. |
+
+### Logs interfere with each other
+
+| Symptom | Usually means |
+|---|---|
+| One log shows another's cloud, pose, or stills | Their frame ids collide. Give the logs in a case **disjoint** ids — run them end to end across the case. |
+| Two logs share a slider position | The same thing, and it is not an error. The image and curve panels show both; everything else resolves to the primary log. |
+
+Before opening a new case, [the validation checklist](#validation-checklist)
+covers the same ground as a pre-flight pass.
