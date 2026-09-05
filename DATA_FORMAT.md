@@ -113,20 +113,17 @@ That is deliberate: a manifest cannot drift out of sync with the data it
 describes, and re-exporting a log needs no manifest edit.
 
 ```python
-frame_ids  = sorted(table[slider].unique())      # the frame ids, ascending
-timestamps = [t - t0 for t in per-frame min(Time)] * time_scale   # seconds, first frame at 0
+frame_ids = sorted(table[slider].unique())   # the frame ids, ascending
 ```
 
-- When there is no `Time` column (or it contains nulls), timestamps fall back to
-  `index / 10.0`.
 - Frame ids do **not** need to be contiguous or start at zero; they only need to
   sort ascending and identify a frame uniquely.
 - **Use an integer frame column.** The frame id is substituted into HDF5 dataset
   paths with Python's `str()`, so `0` yields `/frame_0` while `0.0` yields
   `/frame_0.0`. Any consistent formatting works, but integers are what every
   reader and every example here assumes.
-- Slider position *i* addresses `frame_ids[i]` and `timestamps[i]`; the cloud,
-  curve, and pose stores are all addressed by the id, not the position.
+- Slider position *i* addresses `frame_ids[i]`; the cloud, curve, and pose
+  stores are all addressed by the id, not the position.
 - A frame present in the table but missing from a sidecar renders as empty for
   that panel; it is not an error.
 
@@ -163,7 +160,7 @@ The only store the app queries. One row per detection/point per frame.
 | **Tidy rows** | One row = one point at one frame. No nesting, no per-frame arrays. |
 | **Scalar columns** | List/array columns are collapsed at load: a numeric list keeps its first element, anything else is joined into a comma-separated string. Length-1 lists (`["sensor_1"]`) are the common exporter mistake this covers, but write scalars if you can. |
 | **Slider column** | Integer, present on every row. Named by `table.slider` (default `Frame`). |
-| **Time column** | Optional but recommended: named `Time`, numeric, non-decreasing, in the unit declared by `table.time_unit`. It is what the transport reports; the camera seek does not depend on it. |
+| **Time column** | Optional: named `Time`, numeric, non-decreasing. Carried as an ordinary column — plot it, filter on it, hover over it — but nothing derives the frame index or the camera seek from it, so its unit is yours to choose. |
 | **Numerical columns** | Any numeric dtype. `±inf` is normalized to `NaN` on load. |
 | **Categorical columns** | Strings. The filter's options are the column's `unique()` values, so keep the cardinality sane (tens, not thousands). |
 | **Column names** | Must match the manifest's `keys` entries exactly, case included. |
@@ -196,7 +193,7 @@ whole feature set:
 | Column | Type | Role |
 |---|---|---|
 | `Frame` | int32/int64 | `table.slider` — the frame id |
-| `Time` | float | wall clock, unit declared by `time_unit` |
+| `Time` | float | wall clock, in whatever unit the exporter uses |
 | `X` / `Y` / `Z` | float | `x_3d` / `y_3d` / `z_3d` |
 | `Sensor` | string | categorical, splits the statistical views |
 | *(anything else)* | numeric or string | color scales, extra filters, hover |
@@ -537,8 +534,8 @@ dataset that is not radar still reads naturally.
 
 Two things it deliberately does **not** contain:
 
-- **The frame index.** Frame ids and timestamps are derived from the table at
-  load time, so the manifest can never drift out of sync.
+- **The frame index.** Frame ids are derived from the table at load time, so
+  the manifest can never drift out of sync.
 - **Per-log file lists.** Sidecars resolve from the selected log's stem.
 
 A v1 `info.json` (no `manifest_version`, table keys at the top level) is
@@ -570,7 +567,6 @@ it.
 |---|---|---|---|
 | `slider` | string | `"Frame"` | The frame id column. Integer. |
 | `x_3d`, `y_3d`, `z_3d` | string | first numeric keys | Default 3D axes. A column the loaded log lacks is ignored. |
-| `time_unit` | string | `"s"` | Unit of the `Time` column: `s`, `ms`, `us`, `ns` (long spellings accepted). An unrecognized value falls back to 1.0 rather than rescaling the index. |
 | `suffix` | string | `".parquet"` | Table file suffix; also what stem extraction strips. |
 | `keys` | object | `{}` | Column metadata; see below. |
 | `format`, `calibration` | any | — | Carried by some datasets as a record of provenance; read by nothing. |
@@ -697,7 +693,6 @@ The table block is the only required one:
     "x_3d": "X",
     "y_3d": "Y",
     "z_3d": "Z",
-    "time_unit": "s",
     "keys": {
       "Frame":  { "description": "Frame",      "decimal": 0, "type": "numerical" },
       "Time":   { "description": "Time (s)",   "decimal": 2, "type": "numerical" },
@@ -764,7 +759,6 @@ manifest = {
     "table": {
         "slider": "Frame",
         "x_3d": "X", "y_3d": "Y", "z_3d": "Z",
-        "time_unit": "s",
         "keys": {
             "Frame":  {"description": "Frame",      "decimal": 0, "type": "numerical"},
             "Time":   {"description": "Time (s)",   "decimal": 2, "type": "numerical"},
@@ -847,7 +841,7 @@ A quick smoke test without launching the UI:
 ```python
 from dataio.manifest import Manifest
 from dataio.dense_store import CloudStore, CurveStore
-from dataio.frames import build_frame_index
+from dataio.frames import unique_frame_ids
 from dataio.radar_store import load_radar
 from dataio.reference import ReferenceStore
 
@@ -857,10 +851,8 @@ print(manifest.has_cloud(stem), manifest.has_curve(stem), manifest.has_image(ste
 print(manifest.curve_sources(stem), manifest.image_streams(stem))
 
 data = load_radar(["data/MyCase/run_01.parquet"])
-frame_ids, timestamps, fps = build_frame_index(
-    data, manifest.frame_key, time_scale=manifest.time_scale
-)
-print(len(frame_ids), "frames,", round(timestamps[-1], 2), "s")
+frame_ids = unique_frame_ids(data, manifest.frame_key)
+print(len(frame_ids), "frames")
 
 cloud = CloudStore(manifest.cloud_path(stem), manifest.cloud_dataset_pattern())
 print(cloud.columns(), cloud.read_frame(frame_ids[0]).shape)

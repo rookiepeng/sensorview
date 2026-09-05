@@ -24,7 +24,7 @@ Copyright (C) 2019 - PRESENT
 
 from dataio.manifest import Manifest, ManifestError, log_stem
 from dataio.calibration import Calibration, apply_transform
-from dataio.frames import build_frame_index, derive_fps, unique_frame_ids
+from dataio.frames import unique_frame_ids
 from dataio.radar_store import load_radar, scan_radar
 from dataio.dense_store import CloudStore, CurveStore
 from dataio.reference import ReferenceStore
@@ -35,8 +35,6 @@ __all__ = [
     "log_stem",
     "Calibration",
     "apply_transform",
-    "build_frame_index",
-    "derive_fps",
     "unique_frame_ids",
     "load_radar",
     "scan_radar",

@@ -12,9 +12,9 @@ nothing about any individual log. It declares:
 
 Two things it deliberately does **not** declare:
 
-- **The frame index.** Frame ids and timestamps are derived from the Parquet
-  data (see :mod:`dataio.frames`), so a manifest cannot drift out of sync with
-  the log it describes.
+- **The frame index.** Frame ids are derived from the Parquet data (see
+  :mod:`dataio.frames`), so a manifest cannot drift out of sync with the log
+  it describes.
 - **Per-log file lists.** Logs live side by side in the case folder and are
   associated by basename::
 
@@ -53,36 +53,17 @@ MANIFEST_NAME = "info.json"
 #
 # `x_ref`/`y_ref`/`z_ref` were once here too: a reference position read from
 # three table columns, which could carry no orientation and no per-frame pose.
-# The pose sidecar replaced them outright. They are not read any more, so a v1
-# manifest that still names them loses them the next time it is written.
+# The pose sidecar replaced them outright. `time_unit` went the same way when
+# the camera seek stopped working in seconds -- nothing derives a timestamp any
+# more, so the unit of the `Time` column has nothing left to scale. None of them
+# are read, so a v1 manifest that still names them loses them when it is written.
 _V1_TABLE_KEYS = (
     "slider",
     "x_3d",
     "y_3d",
     "z_3d",
     "keys",
-    "time_unit",
 )
-
-# Unit of the table's `Time` column, as seconds per stored unit.
-DEFAULT_TIME_UNIT = "s"
-TIME_UNIT_SCALES = {
-    "s": 1.0,
-    "sec": 1.0,
-    "second": 1.0,
-    "seconds": 1.0,
-    "ms": 1e-3,
-    "msec": 1e-3,
-    "millisecond": 1e-3,
-    "milliseconds": 1e-3,
-    "us": 1e-6,
-    "usec": 1e-6,
-    "microsecond": 1e-6,
-    "microseconds": 1e-6,
-    "ns": 1e-9,
-    "nanosecond": 1e-9,
-    "nanoseconds": 1e-9,
-}
 
 # Default filename suffixes associating a log's sidecars with its table.
 DEFAULT_TABLE_SUFFIX = ".parquet"
@@ -607,30 +588,6 @@ class Manifest:
     def frame_key(self) -> str:
         """Column in the table used as the frame/slider key."""
         return self.table.get("slider", "Frame")
-
-    @property
-    def time_unit(self) -> str:
-        """
-        Unit of the table's ``Time`` column.
-
-        Timestamps drive the capture rate and the image seek, so the unit has
-        to be known rather than guessed -- a log timestamped in milliseconds
-        read as seconds yields a 0.02 Hz capture rate and a video that never
-        moves. Declared rather than sniffed because the only honest signal is
-        the exporter's intent.
-        """
-        return str(self.table.get("time_unit", DEFAULT_TIME_UNIT)).lower()
-
-    @property
-    def time_scale(self) -> float:
-        """
-        Factor converting the ``Time`` column to seconds.
-
-        Returns:
-            Seconds per stored unit; 1.0 for an unrecognised declaration, which
-            keeps a typo from silently rescaling the whole frame index.
-        """
-        return TIME_UNIT_SCALES.get(self.time_unit, 1.0)
 
     # ------------------------------------------------------------------
     # Logs

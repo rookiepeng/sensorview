@@ -300,7 +300,7 @@ A modular callback system, one module per view:
 
 - `manifest`: `info.json` v2 parsing, v1 upgrade, basename sidecar resolution,
   curve plot definitions, non-destructive persistence
-- `frames`: frame ids, timestamps, and capture rate derived from the Parquet data
+- `frames`: frame ids derived from the Parquet data
 - `radar_store`: Parquet table loading with projection/predicate pushdown
 - `reference`: per-frame reference pose from a Parquet sidecar, with the
   configurable column mapping

@@ -37,7 +37,7 @@ from app_config import REFERENCE_PICKER_ORDER
 from app_config import background_callback_manager
 from app_config import CACHE_KEYS, KEY_TYPES, THEME
 
-from dataio.frames import build_frame_index
+from dataio.frames import unique_frame_ids
 from dataio.manifest import Manifest, ManifestError
 from dataio.radar_store import frame_ids_by_file
 
@@ -266,21 +266,17 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         config: dict,
         session_id: str,
         stem: str,
-        time_scale: float = 1.0,
         frame_owners: dict[str, list[str]] | None = None,
     ) -> np.ndarray:
         """Setup data caching for frames and visibility."""
         # The frame index is derived from the data itself, never declared in the
-        # manifest, so it can never drift out of sync with the log. Only the
-        # *unit* of those timestamps comes from the manifest.
-        frame_list, timestamps, _ = build_frame_index(
-            data, config["slider"], time_scale=time_scale
-        )
+        # manifest, so it can never drift out of sync with the log.
+        frame_list = unique_frame_ids(data, config["slider"])
         cache_set(frame_list, session_id, CACHE_KEYS["frame_list"])
         # Which logs each slider position belongs to, so per-frame sidecars
         # resolve against the logs that actually recorded that frame.
         owner_sets, frame_stems = build_frame_owner_sets(frame_list, frame_owners, stem)
-        cache_log_info(session_id, stem, timestamps, frame_stems, owner_sets)
+        cache_log_info(session_id, stem, frame_stems, owner_sets)
 
         # Create and cache visibility table
         visible_table = pd.DataFrame({"_IDS_": data.index, "_VIS_": "visible"})
@@ -448,7 +444,6 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
             config,
             session_id,
             stem,
-            manifest.time_scale,
             _frame_owners(manifest, add_file_value, file),
         )
 

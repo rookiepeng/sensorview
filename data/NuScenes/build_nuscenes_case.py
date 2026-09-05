@@ -689,7 +689,6 @@ def build_manifest():
             "x_3d": "X",
             "y_3d": "Y",
             "z_3d": "Z",
-            "time_unit": "s",
             "suffix": ".parquet",
             "keys": {
                 "X": numerical("East (m)"),

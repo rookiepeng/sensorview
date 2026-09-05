@@ -110,20 +110,18 @@ def get_manifest(session_id: str) -> Optional[Manifest]:
 def cache_log_info(
     session_id: str,
     stem: str,
-    timestamps: List[float],
     frame_stems: Optional[List[str]] = None,
     frame_owner_sets: Optional[List[List[str]]] = None,
 ) -> None:
     """
-    Store the loaded logs' identity and derived frame index.
+    Store the loaded logs' identity and per-frame ownership.
 
-    The capture rate is deliberately not kept: nothing reads it now that the
-    camera seek maps frame counts rather than working in seconds.
+    Neither timestamps nor a capture rate are kept: nothing reads either now
+    that the camera seek maps frame counts rather than working in seconds.
 
     Args:
         session_id: Session identifier.
         stem: Primary log's stem -- the one that owns per-load choices.
-        timestamps: Per-frame timestamps derived from the Parquet data.
         frame_stems: Owning log stem per slider position, aligned index-wise
             with the frame list. Defaults to the primary stem throughout, which
             is what a single loaded log means.
@@ -135,7 +133,6 @@ def cache_log_info(
     cache_set(
         {
             "stem": stem,
-            "timestamps": timestamps,
             "frame_stems": list(frame_stems) if frame_stems else [],
             "frame_owner_sets": (
                 [list(owners) for owners in frame_owner_sets]
@@ -183,14 +180,13 @@ def get_log_info(session_id: str) -> Dict[str, Any]:
         session_id: Session identifier.
 
     Returns:
-        Dict with ``stem``, ``timestamps``, ``frame_stems``, and
-        ``frame_owner_sets``; empty values when nothing is cached yet.
+        Dict with ``stem``, ``frame_stems``, and ``frame_owner_sets``; empty
+        values when nothing is cached yet.
     """
     cached = cache_get(session_id, CACHE_KEYS["log_info"])
     if not cached:
         return {
             "stem": "",
-            "timestamps": [],
             "frame_stems": [],
             "frame_owner_sets": [],
         }

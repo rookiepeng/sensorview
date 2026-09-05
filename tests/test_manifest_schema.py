@@ -17,9 +17,7 @@ import os
 import pytest
 
 from dataio.manifest import (
-    DEFAULT_TIME_UNIT,
     MANIFEST_VERSION,
-    TIME_UNIT_SCALES,
     Manifest,
     ManifestError,
     upgrade_to_v2,
@@ -128,30 +126,6 @@ class TestFrameKey:
     def test_reads_the_declared_slider(self, make_case):
         case_dir = make_case({"manifest_version": 2, "table": {"slider": "Scan"}})
         assert Manifest.load(case_dir).frame_key == "Scan"
-
-
-class TestTimeUnit:
-    def test_defaults_to_seconds(self, make_case):
-        manifest = Manifest.load(make_case({"manifest_version": 2, "table": {}}))
-        assert manifest.time_unit == DEFAULT_TIME_UNIT
-        assert manifest.time_scale == 1.0
-
-    @pytest.mark.parametrize("unit, scale", sorted(TIME_UNIT_SCALES.items()))
-    def test_every_declared_spelling_resolves(self, make_case, unit, scale):
-        case_dir = make_case({"manifest_version": 2, "table": {"time_unit": unit}})
-        assert Manifest.load(case_dir).time_scale == scale
-
-    def test_declaration_is_case_insensitive(self, make_case):
-        case_dir = make_case({"manifest_version": 2, "table": {"time_unit": "MS"}})
-        assert Manifest.load(case_dir).time_scale == 1e-3
-
-    def test_unrecognised_unit_does_not_rescale(self, make_case):
-        # 1.0 rather than raising or guessing: a typo must not silently stretch
-        # the whole frame index.
-        case_dir = make_case(
-            {"manifest_version": 2, "table": {"time_unit": "fortnight"}}
-        )
-        assert Manifest.load(case_dir).time_scale == 1.0
 
 
 class TestLegacyConfig:
