@@ -278,7 +278,7 @@ Which file does what, and which one starts the app:
 | `settings.py` | The Dash instance, the disk caches, and the shared constants every module reads. |
 | `routes.py` | The plain HTTP endpoints the browser fetches outside Dash's callback protocol. |
 | `desktop.py` | Hosts a running server in a native window. Imported by `main.py`, never run directly. |
-| `frame_sources.py` | Resolves a session's manifest, logs, and per-frame sidecar data. |
+| `frame_sources/` | Resolves a session's manifest, logs, and per-frame sidecar data. One module per store; see below. |
 | `process_frame.py` | Filtering and figure construction for one frame. |
 | `utils.py` | Cache helpers and `config.json` persistence. |
 
@@ -316,6 +316,21 @@ A modular callback system, one module per view:
 - `camera_view`: mp4 stream selection, clientside frame-exact seeking, and
   inspector visibility
 - `threshold_view`: per-frame 1D curve plot rendering
+
+### Frame Sources Package (`frame_sources/`)
+
+Bridges the session cache to the `dataio` stores, one module per store. The
+table is refiltered whenever a filter changes; everything here is display-only
+and re-reads only when the frame changes.
+
+- `session`: which manifest a session holds, and which log owns each slider
+  position once several are combined — the only module the other four depend on
+- `cloud`: the point-cloud backdrop
+- `reference`: the moving origin and the axis bounds that follow it
+- `image`: camera streams, transcoding, and the stills the HTML export inlines
+- `curve`: per-frame 1D curves and their held y ranges
+
+`__init__` re-exports the public names, so callers import from the package.
 
 ### Data IO Package (`dataio/`)
 
