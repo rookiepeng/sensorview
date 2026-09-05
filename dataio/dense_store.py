@@ -15,13 +15,16 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import os
 import posixpath
 
 import h5py
 import numpy as np
+
+# Axes a cloud frame feeds, in the order the renderer wants its columns.
+CLOUD_FIELDS = ("x", "y", "z")
 
 DEFAULT_CLOUD_PATTERN = "/frame_{frame_id}"
 DEFAULT_CURVE_PATTERN = "/frame_{frame_id}/{name}"
@@ -109,14 +112,23 @@ def _frame_nodes(path: str, template: str) -> List[str]:
 class CloudStore:
     """Read-only accessor for the decimated point-cloud sidecar."""
 
-    def __init__(self, path: str, dataset_pattern: str = DEFAULT_CLOUD_PATTERN) -> None:
+    def __init__(
+        self,
+        path: str,
+        dataset_pattern: str = DEFAULT_CLOUD_PATTERN,
+        columns: Optional[Dict[str, Optional[str]]] = None,
+    ) -> None:
         """
         Args:
             path: Path to the cloud HDF5 file.
             dataset_pattern: Dataset path pattern with a ``{frame_id}`` placeholder.
+            columns: Mapping of cloud field -> stored column name, as configured
+                in the manifest's ``cloud.columns`` block. A field it does not
+                name resolves on its own; see :meth:`xyz_indices`.
         """
         self.path = path
         self.dataset_pattern = dataset_pattern
+        self.columns = dict(columns or {})
 
     @property
     def exists(self) -> bool:
@@ -131,8 +143,10 @@ class CloudStore:
             frame_id: Frame identifier.
 
         Returns:
-            (N, C) float array where the first three columns are xyz, or None
-            when the file or that frame's dataset is absent.
+            (N, C) float array whose first three columns are xyz -- reordered
+            when the mapping puts them somewhere else, with the remaining
+            columns following in their stored order. None when the file or that
+            frame's dataset is absent.
         """
         if not self.exists:
             return None
@@ -143,11 +157,104 @@ class CloudStore:
                 node = handle.get(dataset_path)
                 if node is None:
                     return None
-                return np.asarray(node[()])
+                points = np.asarray(node[()])
         except (OSError, KeyError):
             return None
 
-    def columns(self) -> List[str]:
+        return self._order_xyz(points)
+
+    def _order_xyz(self, points: np.ndarray) -> np.ndarray:
+        """
+        Put the mapped x, y and z in the first three columns.
+
+        Args:
+            points: Array as stored.
+
+        Returns:
+            The array untouched when xyz already lead it -- the usual case, and
+            not worth copying a frame of points for -- and a reordered copy
+            otherwise.
+        """
+        if points.ndim != 2 or points.shape[1] < len(CLOUD_FIELDS):
+            return points
+
+        order = self.xyz_indices(points.shape[1])
+        if order == tuple(range(len(CLOUD_FIELDS))):
+            return points
+
+        rest = [i for i in range(points.shape[1]) if i not in order]
+        return points[:, list(order) + rest]
+
+    def xyz_indices(self, width: Optional[int] = None) -> Tuple[int, ...]:
+        """
+        Locate the stored column feeding each axis.
+
+        Resolved in passes rather than field by field, so a mapping that names
+        only some of the axes still gets those axes: every column the manifest
+        asked for is claimed first, then columns named after a field, and only
+        then are the fields still left over filled from the unclaimed positions.
+        Going field by field lets an unmapped ``x`` take position 0 before a
+        mapped ``y`` has asked for it.
+
+        No two fields share a column, and all three always resolve -- a point
+        with no x is not a point. Two fields naming *the same* column is the one
+        genuine contradiction; the earlier axis keeps it and the later one falls
+        through, which at least draws a cloud.
+
+        Args:
+            width: Number of columns a frame actually has. A column past the end
+                of one is left unclaimed rather than allowed to raise on the
+                read.
+
+        Returns:
+            ``(x, y, z)`` column indices.
+        """
+        available = self.available_columns()
+        lookup = {name.lower(): index for index, name in enumerate(available)}
+        limit = width if width is not None else max(len(available), len(CLOUD_FIELDS))
+
+        resolved: Dict[str, int] = {}
+        claimed: set = set()
+
+        def claim(field: str, index: Optional[int]) -> None:
+            if index is None or index in claimed or not 0 <= index < limit:
+                return
+            resolved[field] = index
+            claimed.add(index)
+
+        for field in CLOUD_FIELDS:
+            configured = self.columns.get(field)
+            claim(field, lookup.get(str(configured).lower()) if configured else None)
+
+        for field in CLOUD_FIELDS:
+            if field not in resolved:
+                claim(field, lookup.get(field))
+
+        for position, field in enumerate(CLOUD_FIELDS):
+            if field in resolved:
+                continue
+            spare = next((i for i in range(limit) if i not in claimed), position)
+            resolved[field] = spare
+            claimed.add(spare)
+
+        return tuple(resolved[field] for field in CLOUD_FIELDS)
+
+    @property
+    def resolved_columns(self) -> Dict[str, Optional[str]]:
+        """
+        Which stored column ended up feeding each axis.
+
+        Returns:
+            Field -> column name. A file that names no columns reports the xyz
+            default, which is what its positions mean.
+        """
+        available = self.available_columns()
+        return {
+            field: available[index] if index < len(available) else None
+            for field, index in zip(CLOUD_FIELDS, self.xyz_indices())
+        }
+
+    def available_columns(self) -> List[str]:
         """
         Column names for the stored point arrays.
 
@@ -156,15 +263,15 @@ class CloudStore:
             xyz default when unset.
         """
         if not self.exists:
-            return ["x", "y", "z"]
+            return list(CLOUD_FIELDS)
         try:
             with h5py.File(self.path, "r") as handle:
                 cols = handle.attrs.get("columns")
                 if cols is None:
-                    return ["x", "y", "z"]
+                    return list(CLOUD_FIELDS)
                 return [c.decode() if isinstance(c, bytes) else str(c) for c in cols]
         except OSError:
-            return ["x", "y", "z"]
+            return list(CLOUD_FIELDS)
 
     def frame_ids(self) -> List[str]:
         """

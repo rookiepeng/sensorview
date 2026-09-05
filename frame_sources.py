@@ -331,7 +331,11 @@ def get_cloud_points(
     if not manifest.has_cloud(stem):
         return None
 
-    store = CloudStore(manifest.cloud_path(stem), manifest.cloud_dataset_pattern())
+    store = CloudStore(
+        manifest.cloud_path(stem),
+        manifest.cloud_dataset_pattern(),
+        manifest.cloud_columns(),
+    )
     points = store.read_frame(frame_id)
     if points is None or len(points) == 0:
         return None

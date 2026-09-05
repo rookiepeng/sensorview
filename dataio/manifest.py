@@ -140,6 +140,23 @@ DEFAULT_REFERENCE_COLUMNS = {
     "roll": None,
 }
 
+# Cloud fields the renderer places, mapped to the column names that carry them.
+# All None: an unnamed field falls back to a column named after the field
+# itself, and then to that field's position in the stored array -- so a cloud
+# written xyz-first, with or without a `columns` attribute naming them, needs no
+# mapping at all.
+#
+# There is deliberately no NO_COLUMN here, unlike the reference block. That
+# spelling exists so a picker's empty dropdown can say "this file has no such
+# column", and a pose without a `z` is still a pose sitting on the ground plane.
+# A point without an `x` is not a point, so every cloud field resolves to
+# something.
+DEFAULT_CLOUD_COLUMNS = {
+    "x": None,
+    "y": None,
+    "z": None,
+}
+
 # Keys of the `reference` block that describe *where the data comes from* rather
 # than how it is drawn, and so are not part of the display dict.
 _REFERENCE_SOURCE_KEYS = ("suffix", "columns")
@@ -454,6 +471,38 @@ def normalize_reference_columns(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]
     return columns
 
 
+def normalize_cloud_columns(raw: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Fill in a manifest ``cloud.columns`` block.
+
+    The mapping form mirrors ``reference.columns``: a cloud whose stored columns
+    are named for the quantities they carry -- ``east``/``north``/``up``, say --
+    says which one feeds each axis, instead of the reader assuming the first
+    three columns are xyz in that order.
+
+    Args:
+        raw: The mapping as authored, or None when the dataset declares none.
+            Anything that is not a mapping -- notably the list of column names
+            older manifests carried here as provenance -- is ignored rather than
+            guessed at, leaving every field to resolve on its own.
+
+    Returns:
+        Dict with an entry for every field in :data:`DEFAULT_CLOUD_COLUMNS`. A
+        field the block does not name is ``None``: resolve it by guessing.
+    """
+    columns = dict(DEFAULT_CLOUD_COLUMNS)
+    if not isinstance(raw, dict):
+        return columns
+
+    for field, value in raw.items():
+        if field not in columns:
+            continue
+        if value is None or value == "" or value == "None":
+            continue
+        columns[field] = str(value)
+    return columns
+
+
 def _suffix_source_id(suffix: str) -> str:
     """
     Name a source after the suffix that matched its whole filename.
@@ -675,6 +724,15 @@ class Manifest:
     def cloud_calibration(self) -> Calibration:
         """Extrinsics for the point cloud."""
         return Calibration.from_dict((self.cloud or {}).get("calibration"))
+
+    def cloud_columns(self) -> Dict[str, Any]:
+        """
+        Which stored column feeds each cloud axis.
+
+        Returns:
+            Normalized mapping; see :func:`normalize_cloud_columns`.
+        """
+        return normalize_cloud_columns((self.cloud or {}).get("columns"))
 
     def cloud_display(self) -> Dict[str, Any]:
         """

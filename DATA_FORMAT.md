@@ -324,8 +324,10 @@ hovered, no runtime controls.
 
 - The dataset path comes from `cloud.dataset_pattern`, default
   `/frame_{frame_id}`. A nested `/frames/{frame_id}` also resolves.
-- **Columns 0, 1, 2 are x, y, z** in the same coordinate frame as the table's
-  3D axes. Extra columns are read and carried but not rendered today.
+- **Columns 0, 1, 2 are x, y, z by default**, in the same coordinate frame as
+  the table's 3D axes. A cloud stored in some other order says so with
+  [`cloud.columns`](#which-column-is-which). Extra columns are read and carried
+  but not rendered today.
 - Dtype is `float32` in every file here; any numeric dtype h5py can read works.
 - **Decimate before writing** — the app has no way to ask for more resolution
   later, and every point costs WebGL fill rate plus JSON payload on the
@@ -336,14 +338,58 @@ hovered, no runtime controls.
 - `gzip` compression with one chunk per frame keeps a frame read to one
   contiguous block. It is optional — see the curve note below.
 - Omit the dataset for a frame with no points rather than writing an empty one.
-- The `columns` root attribute is informational; the renderer always uses the
-  first three columns.
+- The `columns` root attribute names the stored columns. It is what a
+  `cloud.columns` mapping resolves against, and on its own it is enough: a file
+  whose attribute already names its columns `x`/`y`/`z` has them placed
+  correctly whatever order they sit in.
+
+### Which column is which
+
+A cloud frame is a bare `(N, C)` array, so nothing inside it says which column
+is x. By default the first three are taken as x, y and z. A cloud stored in some
+other order maps them the way the [pose sidecar](#column-mapping) does:
+
+```json
+"cloud": {
+    "columns": { "x": "east", "y": "north", "z": "up" }
+}
+```
+
+The names on the right are the file's own, read from its `columns` root
+attribute. Each axis resolves in this order:
+
+1. **The column the mapping names**, when the file carries it.
+2. **A column named after the axis itself** (`x`, `y`, `z`), matched
+   case-insensitively — which is why a self-describing file needs no mapping.
+3. **Whatever position is left over** — for a file that names nothing, 0, 1 and
+   2, exactly as before.
+
+Two details worth knowing:
+
+- **Resolution runs in passes, not axis by axis.** Every column the manifest
+  asked for is claimed before the unnamed axes take what is left, so a mapping
+  that names only `x` still gets the column it named — going axis by axis would
+  let an unmapped `x` take position 0 out from under a mapped `y`.
+- **All three axes always resolve.** A point with no x is not a point, so unlike
+  `reference.columns` there is no way to declare an axis absent: an empty value
+  means "guess", not "no such column". Two axes naming the same column is the
+  one real contradiction — the earlier one keeps it, and the later falls
+  through, so no axis is ever dropped.
+
+The read reorders each frame so xyz lead it, with any extra columns following in
+their stored order. A cloud already stored xyz-first is passed through untouched.
+
+> **Superseded:** earlier versions carried a **list** here —
+> `"columns": ["x", "y", "z"]` — mirroring the file's own attribute as a record
+> of provenance, and read by nothing. **The list form is no longer read.** A
+> `columns` that is not a mapping is ignored, and every axis resolves on its
+> own, which for a cloud written xyz-first is the same answer as before.
 
 ### Calibration
 
-`cloud.calibration` is applied to columns 0–2 at read time, so a cloud stored in
-its sensor's own frame lines up with a table stored in the vehicle or world
-frame:
+`cloud.calibration` is applied to the xyz columns at read time — after the
+mapping above has decided which those are — so a cloud stored in its sensor's
+own frame lines up with a table stored in the vehicle or world frame:
 
 ```json
 "cloud": {
@@ -688,7 +734,8 @@ nothing on. Give a block you mean to enable at least its `suffix`.
 | `dataset_pattern` | string | `"/frame_{frame_id}"` | Must contain `{frame_id}`. |
 | `calibration` | object | identity | `translation` `[x, y, z]` in meters, `rotation_rpy_deg` `[roll, pitch, yaw]` in degrees. Applied at read. |
 | `display` | object | see below | Fixed trace styling: `color` `"#8d99ae"`, `size` `1.2`, `opacity` `0.35`, `name` `"Point Cloud"`. |
-| `format`, `columns`, `decimation` | any | — | Provenance only; read by nothing. Worth writing anyway — a decimated cloud cannot say elsewhere how it was decimated. |
+| `columns` | object | positional | Which stored column feeds each axis — `{"x": …, "y": …, "z": …}`. See [Which column is which](#which-column-is-which). |
+| `format`, `decimation` | any | — | Provenance only; read by nothing. Worth writing anyway — a decimated cloud cannot say elsewhere how it was decimated. |
 
 The backdrop has no runtime controls by design, which is why its styling lives
 in the manifest rather than in a dropdown.
@@ -932,6 +979,8 @@ surfaces as silence rather than an error.
       manifest matches a dataset name in the file.
 - [ ] Cloud frames are already decimated — a few tens of thousands of points at
       most.
+- [ ] Cloud columns are xyz-first, or the file's `columns` attribute names them
+      and `cloud.columns` maps them.
 - [ ] The pose sidecar's frame column holds table frame ids, its positions are
       meters and its angles radians.
 - [ ] The mp4 is all-intra, and its duration covers the same span as the log.
@@ -954,8 +1003,13 @@ data = load_radar(["data/MyCase/run_01.parquet"])
 frame_ids = unique_frame_ids(data, manifest.frame_key)
 print(len(frame_ids), "frames")
 
-cloud = CloudStore(manifest.cloud_path(stem), manifest.cloud_dataset_pattern())
-print(cloud.columns(), cloud.read_frame(frame_ids[0]).shape)
+cloud = CloudStore(
+    manifest.cloud_path(stem),
+    manifest.cloud_dataset_pattern(),
+    manifest.cloud_columns(),
+)
+print(cloud.available_columns(), cloud.resolved_columns)
+print(cloud.read_frame(frame_ids[0]).shape)
 
 curve = CurveStore(manifest.curve_path(stem))
 print(curve.signals(manifest.curve_dataset_pattern()))
@@ -997,6 +1051,7 @@ error. Find the symptom, and the cause is almost always one of these.
 |---|---|
 | The point cloud never appears | No `cloud` block; or the file's stem does not match the table's; or the dataset paths spell the frame ids differently than the table does (`/frame_0` vs `/frame_0.0` vs `/frame_000`). |
 | The point cloud appears in the wrong place | It is stored in its sensor's own frame and needs a [`cloud.calibration`](#calibration). |
+| The point cloud is there but its axes look swapped | Its stored columns are not xyz-first, and neither the file's `columns` attribute nor [`cloud.columns`](#which-column-is-which) says otherwise. |
 | The curve panel is empty | Trace `name`s in the manifest do not match dataset names in the file. |
 | One plot is missing from the selector | Every series in it is absent from the selected source. A plot with nothing to draw is not offered — that is what lets one `plots` list cover sensors that recorded different things. |
 | Curves are mostly gaps | Working as intended: non-finite bins are drawn as breaks, not clamped or dropped. |

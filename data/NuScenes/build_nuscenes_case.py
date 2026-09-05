@@ -712,7 +712,7 @@ def build_manifest():
         "cloud": {
             "format": "hdf5",
             "suffix": ".cloud.h5",
-            "columns": ["x", "y", "z"],
+            "columns": {"x": "x", "y": "y", "z": "z"},
             "decimation": {
                 "method": "voxel+budget",
                 "voxel_size": VOXEL_SIZE,
