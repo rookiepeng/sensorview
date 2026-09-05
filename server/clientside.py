@@ -91,6 +91,10 @@ def get_clientside_callbacks(app: dash.Dash) -> None:
         # Identifies the log the backdrop belongs to, so switching logs inside one
         # session does not keep serving the previous log's cloud out of the cache.
         State("local-file-selection", "data"),
+        # And which load it belongs to. Combining logs keeps the same primary
+        # selection but renumbers the slider, so the log name alone would let the
+        # backdrop cached for a position outlive the frame it was fetched for.
+        State("file-loaded-trigger", "data"),
         prevent_initial_call=True,
     )
 

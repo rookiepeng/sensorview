@@ -1,21 +1,36 @@
-// Point-cloud backdrop frames, keyed "<session>/<log>/<frame index>". The cloud is
-// display-only and identical every time a frame is revisited, so an in-memory cache
-// makes scrubbing back over visited frames free. Bounded so long sessions cannot grow
-// it without limit.
+// Point-cloud backdrop frames, keyed "<session>/<load>/<log>/<frame index>". The
+// cloud is display-only and identical every time a frame is revisited, so an
+// in-memory cache makes scrubbing back over visited frames free. Bounded so long
+// sessions cannot grow it without limit.
 //
 // The log has to be part of the key. A session outlives the log selected in it, and
 // two logs in one case folder share frame indices -- so keying on the session alone
 // serves the previous log's backdrop for every frame the user had already visited,
 // while the radar traces around it come from the new one.
+//
+// The load counter has to be part of it too, and the log name alone is not enough to
+// stand in for it. Combining logs leaves the primary selection untouched but rebuilds
+// the frame list around it, so a slider position that meant one frame id before the
+// combine means another one after: cached under the log name alone, index 0 of
+// "0796 combined with 0103" is served 0796's backdrop while the detections around it
+// are 0103's. `file-loaded-trigger` counts loads, so it changes whenever the frame
+// list can, and entries from earlier loads are dropped outright rather than left to
+// age out of a cache the new load is competing for.
 const CLOUD_CACHE = new Map();
 const CLOUD_CACHE_LIMIT = 240;
+let CLOUD_CACHE_LOAD = null;
 
-async function getCloudTrace(session, logFile, frameIndex) {
+async function getCloudTrace(session, loadCount, logFile, frameIndex) {
   if (session == null || frameIndex == null) {
     return null;
   }
 
-  const key = `${session}/${logFile ?? ""}/${frameIndex}`;
+  if (CLOUD_CACHE_LOAD !== loadCount) {
+    CLOUD_CACHE.clear();
+    CLOUD_CACHE_LOAD = loadCount;
+  }
+
+  const key = `${session}/${loadCount ?? ""}/${logFile ?? ""}/${frameIndex}`;
   if (CLOUD_CACHE.has(key)) {
     return CLOUD_CACHE.get(key);
   }
@@ -227,7 +242,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       light_template,
       local_index,
       remote_trigger,
-      log_file
+      log_file,
+      load_count
     ) {
       // Check if triggered by play-stop button while playing
       const triggered = dash_clientside.callback_context.triggered.map(
@@ -406,7 +422,12 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         // Point-cloud backdrop. Appended after the opacity/hover loops above so the
         // decay-opacity ramp applied to radar trace groups never touches it —
         // cloud has no decay and no controls, its styling is fixed.
-        const cloudTrace = await getCloudTrace(session, log_file, slider_arg);
+        const cloudTrace = await getCloudTrace(
+          session,
+          load_count,
+          log_file,
+          slider_arg
+        );
         if (cloudTrace) {
           fig.data = [...fig.data, cloudTrace];
         }
