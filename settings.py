@@ -2,7 +2,7 @@
 
 What every other module reads: the constants, the cache configuration, the
 dropdown output groups the views wire themselves to -- and the ``dash.Dash``
-instance itself, which lives here rather than in :mod:`app` so that a callback
+instance itself, which lives here rather than in :mod:`dash_app` so that a callback
 module can take the app without importing the thing that registers it.
 
 Nothing here starts a server or touches a dataset, which is what makes it safe

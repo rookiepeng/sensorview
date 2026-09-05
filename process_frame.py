@@ -123,7 +123,7 @@ def process_single_frame(
         has_sidecar=has_reference_sidecar(manifest, stems),
     )
 
-    # get a single frame data from Redis
+    # get a single frame data from cache
     data = cache_get(session_id, CACHE_KEYS["frame_data"], str(frame_list[frame_idx]))
 
     if data is None:

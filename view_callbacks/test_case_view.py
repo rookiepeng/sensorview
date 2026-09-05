@@ -626,7 +626,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         canvas, so refusing to close it while a selection stands would leave no
         way to get it off the screen. What is combined stays visible instead
         through the trigger button, which is lit while the selection is not
-        empty (see the clientside callback in ``app.py``).
+        empty (see the clientside callback in ``dash_app.py``).
 
         Args:
             click (int): Number of button clicks
@@ -645,7 +645,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         return {"state": not open_state}
 
     # The six analysis enable switches are no longer reset here. They are driven
-    # by the active dock tab (see the clientside gate in app.py), which already
+    # by the active dock tab (see the clientside gate in dash_app.py), which already
     # re-fires on `file-loaded-trigger` -- so a newly loaded log refreshes the
     # view being looked at instead of switching it off.
 

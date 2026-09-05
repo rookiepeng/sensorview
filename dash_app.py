@@ -13,7 +13,7 @@ The pieces it wires together:
 - ``view_callbacks.*``   one module per panel, each registering its own callbacks
 
 Usage:
-    from app import app        # a wired Dash app, for a WSGI server to host
+    from dash_app import app  # a wired Dash app, for a WSGI server to host
 
 Author: Zhengyu Peng
 License: GPL-3.0

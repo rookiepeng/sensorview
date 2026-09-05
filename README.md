@@ -212,12 +212,12 @@ Set `DEBUG = True` in `main.py` for the Dash dev server with hot reload.
 
 #### Server
 
-`app.py` exposes a wired `app` that any WSGI server can host, so a deployment
+`dash_app.py` exposes a wired `app` that any WSGI server can host, so a deployment
 skips `main.py` and its window entirely:
 
 ```python
 from waitress import serve
-from app import app
+from dash_app import app
 
 serve(app.server, listen="*:8000")
 ```
@@ -274,7 +274,7 @@ Which file does what, and which one starts the app:
 | Module | Role |
 |---|---|
 | `main.py` | **The entry point.** The only module with a `__main__`; `python main.py` runs the app. |
-| `app.py` | Assembles the Dash application — layout, clientside callbacks, and the registration of every callback module. Exposes `app` for a WSGI server; starts nothing on import. |
+| `dash_app.py` | Assembles the Dash application — layout, clientside callbacks, and the registration of every callback module. Exposes `app` for a WSGI server; starts nothing on import. |
 | `settings.py` | The Dash instance, the disk caches, and the shared constants every module reads. |
 | `routes.py` | The plain HTTP endpoints the browser fetches outside Dash's callback protocol. |
 | `desktop.py` | Hosts a running server in a native window. Imported by `main.py`, never run directly. |
