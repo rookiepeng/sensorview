@@ -109,7 +109,7 @@ def _combine_control():
             html.Div(
                 [
                     html.Span("Combine additional logs", className="sv-section-label"),
-                    html.Div(dcc.Dropdown(id="file-add", multi=True), className=THEME),
+                    html.Div(dcc.Dropdown(id="file-add", multi=True, maxHeight=500), className=THEME),
                 ],
                 className="sv-combine-inner",
             ),

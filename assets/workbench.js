@@ -366,6 +366,22 @@
       }
     });
 
+    /* The picker floats over the canvas, so a press anywhere else dismisses it.
+       The dropdown's option list is portaled outside the panel, hence its own
+       selectors; the open/close state is owned by the button's n_clicks. */
+    document.addEventListener("pointerdown", function (event) {
+      var panel = document.getElementById("collapse-add");
+      if (!panel || !panel.classList.contains("show")) return;
+      if (
+        event.target.closest(
+          "#collapse-add, #button-add, .dash-dropdown-content, [data-radix-popper-content-wrapper]"
+        )
+      ) {
+        return;
+      }
+      document.getElementById("button-add").click();
+    });
+
     document.addEventListener("pointerdown", function (event) {
       var handle = event.target.closest(".sv-splitter");
       if (handle && SPLITTERS[handle.id]) {
