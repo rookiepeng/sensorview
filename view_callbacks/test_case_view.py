@@ -256,7 +256,7 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         for path, frame_ids in frame_ids_by_file(
             add_file_value, file, manifest.frame_key
         ):
-            stem = manifest.stem_of(os.path.basename(path))
+            stem = manifest.stem_of(path)
             for frame_id in frame_ids:
                 owners.setdefault(str(frame_id), []).append(stem)
         return owners
@@ -434,11 +434,12 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
         cat_keys = [key for key in cat_keys if key in new_data.columns]
         all_keys = num_keys + cat_keys
 
-        # Sidecars are keyed on a log's basename. The primary log owns the
+        # Sidecars are keyed on a log's path within the case. The primary log owns the
         # per-load choices -- which streams and curve sources the pickers offer
         # -- while per-frame data resolves against whichever log recorded that
         # frame, so combining logs keeps each one's cloud, pose, and curves.
-        stem = manifest.stem_of(json.loads(file)["name"])
+        primary = json.loads(file)
+        stem = manifest.stem_of(os.path.join(primary["path"], primary["name"]))
         frame_list = _setup_data_cache(
             new_data,
             config,

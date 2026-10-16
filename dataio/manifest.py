@@ -39,7 +39,7 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import json
 import os
@@ -655,9 +655,35 @@ class Manifest:
             file_name: Table file name or path.
 
         Returns:
-            Stem used to locate that log's sidecars.
+            Stem used to locate that log's sidecars. A log in a subfolder of the
+            case keeps that folder as a ``/``-separated prefix, which locates its
+            sidecars and keeps same-named logs in different folders apart.
         """
-        return log_stem(file_name, self.table_suffix)
+        stem = log_stem(file_name, self.table_suffix)
+        directory = os.path.dirname(file_name)
+        if not directory:
+            return stem
+
+        try:
+            relative = os.path.relpath(directory, self.case_dir)
+        except ValueError:
+            return stem
+        if relative == "." or relative == ".." or relative.startswith(".." + os.sep):
+            return stem
+        return f"{relative.replace(os.sep, '/')}/{stem}"
+
+    def _stem_location(self, stem: str) -> Tuple[str, str]:
+        """
+        Split a stem into the folder holding its sidecars and its basename.
+
+        Args:
+            stem: Log stem, possibly with a subfolder prefix.
+
+        Returns:
+            Tuple of (directory, basename).
+        """
+        directory, base = os.path.split(stem)
+        return os.path.join(self.case_dir, directory), base
 
     def _sidecar_path(self, stem: str, suffix: str) -> str:
         """
@@ -801,8 +827,9 @@ class Manifest:
         if not self.curve or not stem:
             return []
 
+        directory, stem = self._stem_location(stem)
         try:
-            entries = sorted(os.listdir(self.case_dir))
+            entries = sorted(os.listdir(directory))
         except OSError:
             return []
 
@@ -844,7 +871,7 @@ class Manifest:
                     {
                         "id": source_id,
                         "label": source_id.replace("_", " ").title(),
-                        "file": os.path.join(self.case_dir, name),
+                        "file": os.path.join(directory, name),
                     },
                 )
 
@@ -1090,8 +1117,9 @@ class Manifest:
         if not self.image or not stem:
             return []
 
+        directory, stem = self._stem_location(stem)
         try:
-            entries = sorted(os.listdir(self.case_dir))
+            entries = sorted(os.listdir(directory))
         except OSError:
             return []
 
@@ -1120,7 +1148,7 @@ class Manifest:
                     {
                         "id": stream_id,
                         "label": label,
-                        "file": os.path.join(self.case_dir, name),
+                        "file": os.path.join(directory, name),
                     },
                 )
 

@@ -146,7 +146,7 @@ def register_api_routes(app: dash.Dash) -> None:
             mimetype="application/json",
         )
 
-    @app.server.route("/api/camera/<session>/<stem>/<stream_id>", methods=["GET"])
+    @app.server.route("/api/camera/<session>/<path:stem>/<stream_id>", methods=["GET"])
     def get_camera_stream(session: str, stem: str, stream_id: str):
         """
         Serve a camera mp4 for the browser's video element.

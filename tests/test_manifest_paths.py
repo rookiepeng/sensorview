@@ -49,6 +49,34 @@ class TestLogStem:
         assert log_stem("drive.01.parquet") == "drive.01"
 
 
+class TestLogsInSubfolders:
+    def test_stem_of_keeps_the_subfolder(self, make_case, v2_manifest):
+        case = make_case(v2_manifest)
+        manifest = Manifest.load(case)
+        path = os.path.join(case, "run1", "drive_01.parquet")
+        assert manifest.stem_of(path) == "run1/drive_01"
+
+    def test_stem_of_leaves_a_top_level_log_bare(self, make_case, v2_manifest):
+        case = make_case(v2_manifest)
+        manifest = Manifest.load(case)
+        assert manifest.stem_of(os.path.join(case, "drive_01.parquet")) == "drive_01"
+
+    def test_sidecars_resolve_in_the_logs_own_folder(self, make_case, v2_manifest):
+        case = make_case(v2_manifest)
+        run = os.path.join(case, "run1")
+        os.makedirs(run)
+        for name in ("drive_01.curve.h5", "drive_01.mp4"):
+            open(os.path.join(run, name), "w").close()
+        manifest = Manifest.load(case)
+
+        assert manifest.has_curve("run1/drive_01") is True
+        assert manifest.has_image("run1/drive_01") is True
+        assert manifest.has_curve("drive_01") is False
+        assert manifest.cloud_path("run1/drive_01").endswith(
+            os.path.join("run1", "drive_01.cloud.h5")
+        )
+
+
 class TestSuffixSourceId:
     @pytest.mark.parametrize(
         "suffix, expected",
