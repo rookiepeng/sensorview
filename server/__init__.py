@@ -10,8 +10,8 @@ four modules are one pipeline, read top to bottom:
   by the above
 - :mod:`~server.routes`      the plain HTTP endpoints the browser fetches
   outside Dash's callback protocol
-- :mod:`~server.desktop`     serves a wired app with waitress and shows it in a
-  native window
+- :mod:`~server.desktop`     what the Dash layouts ask about a native shell.
+  A shim since Electron took the window over; see ``src/main``
 
 Nothing is re-exported here on purpose. :mod:`~server.desktop` is imported by
 :mod:`layouts.modal_layout`, which :mod:`~server.dash_app` pulls in while

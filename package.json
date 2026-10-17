@@ -1,0 +1,36 @@
+{
+  "name": "sensorview",
+  "productName": "SensorView",
+  "version": "13.0.0-alpha.0",
+  "description": "Desktop inspector for radar and lidar logs",
+  "author": "Zhengyu Peng",
+  "license": "GPL-3.0",
+  "private": true,
+  "type": "module",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "smoke": "electron-vite build && node scripts/smoke.mjs",
+    "dist": "electron-vite build && electron-builder --win"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "electron": "44.9.0",
+    "electron-builder": "26.15.3",
+    "electron-vite": "6.0.0",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "vitest": "5.0.5"
+  }
+}

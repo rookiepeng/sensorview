@@ -43,3 +43,27 @@ jobs:
     # Configuration lives in pytest.ini, which confines discovery to tests/.
     - name: Run pytest
       run: pytest
+
+  vitest:
+    name: vitest
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Set up Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: "24"
+        cache: npm
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Typecheck
+      run: npm run typecheck
+
+    # Configuration lives in vitest.config.ts, which confines discovery to
+    # test/ -- the Python suite is tests/, and the two do not overlap.
+    - name: Run vitest
+      run: npm test

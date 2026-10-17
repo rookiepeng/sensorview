@@ -1,8 +1,17 @@
-"""SensorView Entry Point
+"""SensorView Dash dev server.
 
-Start the app here::
+Serves the Dash views for the Electron window to load while the renderer is
+being ported::
 
-    python main.py
+    python main.py                 # http://127.0.0.1:8050
+    npm run dev                    # the window, in a second terminal
+
+Hosting those views in a native window used to be this file's job, through
+:mod:`server.desktop`. It is now ``src/main/index.ts``: one Chromium instead of
+four OS webviews, and native dialogs and downloads that behave the same way on
+every platform.
+
+This file goes away with the last Dash view.
 
 Author: Zhengyu Peng
 License: GPL-3.0
@@ -10,51 +19,24 @@ Copyright (C) 2019 - PRESENT
 """
 
 import os
-import sys
-
-from multiprocessing import freeze_support
-
-from server import desktop
 
 from server.dash_app import app
-from settings import APP_TITLE
 
-# The Dash dev server instead of the desktop window: hot reload and in-browser
-# tracebacks, served on every interface. Asked for rather than edited in place,
-# so a dev run never has to be committed and reverted:
-#     python main.py --debug
-#     SENSORVIEW_DEBUG=1 python main.py
-# The flag is what a launch configuration can pass; the variable is what a
-# shell or a container can set.
-DEBUG = os.environ.get("SENSORVIEW_DEBUG") == "1" or "--debug" in sys.argv[1:]
-
-# Port the dev server listens on. The desktop shell uses PORT below instead.
-DEBUG_PORT = int(os.environ.get("SENSORVIEW_DEBUG_PORT", "8050"))
-
-# Loopback port the desktop shell serves on. Only the webview connects to it.
-PORT = 8521
+# Loopback by default -- the only thing that should reach these views is the
+# Electron window on this machine. Set SENSORVIEW_HOST=0.0.0.0 to reach them
+# from a browser on another device.
+HOST = os.environ.get("SENSORVIEW_HOST", "127.0.0.1")
+PORT = int(os.environ.get("SENSORVIEW_PORT", "8050"))
 
 
 def main() -> None:
     """
-    Serve the app.
+    Serve the Dash views.
 
     Returns:
         None
     """
-    if DEBUG:
-        app.run(debug=True, threaded=True, processes=1, host="0.0.0.0", port=DEBUG_PORT)
-        return
-
-    # Spawned background-callback workers re-import this module, so the
-    # freeze support has to be in place before anything else starts.
-    freeze_support()
-
-    # Serves on loopback with waitress and shows it in an OS webview. For a
-    # deployment, drop the window and serve on a public interface instead:
-    #     from waitress import serve
-    #     serve(app.server, listen="*:8000")
-    desktop.run(app.server, title=APP_TITLE, port=PORT)
+    app.run(debug=True, threaded=True, processes=1, host=HOST, port=PORT)
 
 
 if __name__ == "__main__":

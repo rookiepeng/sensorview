@@ -9,8 +9,8 @@
 /coverage
 
 # production
-# PyInstaller writes its work tree to /build and the bundled app to /dist.
-/build
+# electron-builder reads its resources from /build -- which is checked in, it
+# holds the app icon -- and writes the packaged app to /dist.
 /dist
 
 # misc
@@ -50,3 +50,7 @@ data/*
 /temp
 config.json
 /.claude
+
+# Electron / Node
+node_modules/
+out/

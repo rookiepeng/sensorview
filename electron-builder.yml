@@ -1,0 +1,30 @@
+appId: com.rookiepeng.sensorview
+productName: SensorView
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  # A native addon has to be a real file on disk for dlopen; inside the asar
+  # it is not. Added ahead of the dependency so the entry is never the thing
+  # that is missing when the Parquet reader lands.
+  - '**/node_modules/nodejs-polars*/**'
+  - '**/node_modules/@napi-rs/**'
+  # Spawned as a child process, so it must be executable on disk.
+  - '**/node_modules/ffmpeg-static/**'
+  # Emscripten fetches the .wasm from beside its own .js, which asar-relative
+  # paths do not always satisfy.
+  - '**/node_modules/h5wasm/dist/**'
+win:
+  target:
+    - nsis
+    - portable
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  target:
+    - AppImage
+  category: Science

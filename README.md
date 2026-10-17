@@ -220,41 +220,76 @@ table has to be converted first — see
 
 ### Running the Application
 
+> **The front end is being rewritten.** The window is Electron; the views are
+> still Dash and are being ported to React a panel at a time. Until that
+> finishes, running the app means starting both. See *Migration* below.
+
 #### Desktop app
+
+Two terminals:
 
 ```bash
 python main.py
 ```
 
-Waitress serves the app on `127.0.0.1:8521` and pywebview shows it in a native
-window -- WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux. Closing
-the window ends the process.
-
-The window brings native dialogs with it: the browse button beside the data path
-in the open dialog, and a save dialog for every export, which asks where the
-file should go rather than dropping it in the downloads folder. Served to a
-browser instead, the browse button is disabled and the path is typed.
-
-On Linux the GTK bindings are system packages rather than wheels, so a window
-there needs `pip install "pywebview[gtk]"` alongside `gir1.2-webkit2-4.1` and
-`python3-gi`. Without them SensorView opens in the default browser instead, and
-has to be stopped with Ctrl+C rather than by closing the window.
-
-#### Development
-
-Set `DEBUG = True` in `main.py` for the Dash dev server with hot reload.
-
-#### Server
-
-`server/dash_app.py` exposes a wired `app` that any WSGI server can host, so a
-deployment skips `main.py` and its window entirely:
-
-```python
-from waitress import serve
-from server.dash_app import app
-
-serve(app.server, listen="*:8000")
+```bash
+npm install
+SENSORVIEW_DASH=1 npm run dev
 ```
+
+The first serves the Dash views on `127.0.0.1:8050`; the second opens the
+Electron window onto them. Closing the window leaves the server running.
+
+The window brings native dialogs with it -- one Chromium on every platform,
+rather than the four OS webviews the previous shell reached through, so there
+is nothing to install beside it on Linux.
+
+#### Just the views
+
+```bash
+python main.py
+```
+
+and open `http://127.0.0.1:8050` in a browser. The browse button beside the
+data path is disabled there, because choosing a folder needs the native shell;
+type the path instead.
+
+#### Checks
+
+```bash
+npm run typecheck     # tsc over src/ and test/
+npm test              # vitest: src/shared and src/data
+npm run smoke         # the spine, inside real Electron
+pytest                # the Python that is still here
+```
+
+`npm run smoke` is the one worth knowing about. It runs the built main process
+headless and checks that the data utility process forks and answers, and that
+the `sv://` scheme honours HTTP Range -- which is what lets the camera panel
+seek an mp4, and which fails in ways only a real Electron run reveals.
+
+#### Packaging
+
+```bash
+npm run dist          # NSIS installer + portable exe into dist/
+```
+
+### Migration
+
+The port is staged so each step leaves something runnable:
+
+| | |
+|---|---|
+| **P0** | Electron shell around the Dash views *(done)* |
+| **P1** | The data layer in TypeScript: Parquet, HDF5, video |
+| **P2** | React shell and the 3D canvas, natively |
+| **P3–P5** | Inspector, analysis dock, exports |
+| **P6** | The last of the Python goes |
+
+`src/main` is the window, `src/preload` the bridge, `src/shared` the contract
+both sides are typed against, `src/data` the readers, `src/renderer` the UI.
+`server/desktop.py` is a shim now -- it answers "no native shell here", which
+is the path the layouts already had for being served to a browser.
 
 ## Architecture
 
@@ -295,9 +330,7 @@ See `requirements.txt` for the complete list:
 - **diskcache**: server-side FanoutCache for session and frame data
 - **orjson**: high-performance JSON serialization for API responses
 - **kaleido**: static image export for plots
-- **pywebview**: native window shell for the desktop app
-- **waitress**: WSGI server behind that window
-- **waitress**: production WSGI server (optional)
+- **Electron**: the window, native dialogs, and the `sv://` media scheme
 
 ## Development
 
@@ -307,7 +340,7 @@ Two modules sit at the root; everything else is a package named for what it owns
 
 | Module | Role |
 |---|---|
-| `main.py` | **The entry point.** The only module with a `__main__`; `python main.py` runs the app. |
+| `main.py` | The Dash dev server the Electron window loads during the migration. |
 | `settings.py` | The Dash instance, the disk caches, and the shared constants every module reads. |
 | `server/` | Assembling the app and putting it in front of a user; see below. |
 | `layouts/` | The component tree, one module per region of the shell. |
@@ -330,7 +363,8 @@ Everything that exists to assemble the app and serve it, in the order it happens
   — the frame buffer, the transport readout, and the dock's slot bookkeeping
 - `routes`: the plain HTTP endpoints the browser fetches outside Dash's callback
   protocol
-- `desktop`: serves a wired app with waitress and shows it in a native window.
+- `desktop`: what the layouts ask about a native shell. A shim since Electron
+  took the window over.
   Imported by `main.py`, never run directly
 
 ### Layout Package (`layouts/`)
