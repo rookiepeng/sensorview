@@ -30,9 +30,16 @@ from frame_sources import (
     get_frame_stem,
     get_log_stems,
     get_manifest,
+    get_cloud_points,
     get_cloud_trace,
     playable_image_file,
 )
+
+from viz.gl_pack import pack_batch, pack_cloud, pack_reset
+
+# Shared by the JSON and binary buffer routes so the two advance in lockstep
+# and the client can keep one `local-buffer-index` for both.
+MAX_BATCH_SIZE = 40
 
 
 def register_api_routes(app: dash.Dash) -> None:
@@ -82,7 +89,6 @@ def register_api_routes(app: dash.Dash) -> None:
         # Cap the number of frames returned per request to prevent huge JSON responses
         # that cause browser memory spikes. storeBuffer polls on an interval and will
         # pick up remaining frames in subsequent requests.
-        MAX_BATCH_SIZE = 40
         end_index = min(
             start_index + 1 + MAX_BATCH_SIZE, latest_server_buffer_index + 1
         )
@@ -144,6 +150,98 @@ def register_api_routes(app: dash.Dash) -> None:
         return Response(
             orjson.dumps({"trace": trace}, option=orjson.OPT_SERIALIZE_NUMPY),
             mimetype="application/json",
+        )
+
+    @app.server.route("/api/data3d/<session>/<start_index_str>", methods=["GET"])
+    def get_gl_data_by_index(session: str, start_index_str: str) -> Response:
+        """
+        Serve buffered frames packed for the WebGL renderer.
+
+        The binary twin of ``/api/data``: same index semantics, same batch cap,
+        so one ``local-buffer-index`` tracks both and the renderer can be
+        switched at any moment without one side being behind.
+
+        The payload is ``viz.gl_pack``'s batch container rather than JSON. Most
+        of the saving is the hover text, which as JSON is a parsed string per
+        point and here is one UTF-8 blob with an offset table.
+
+        Args:
+            session: Session identifier.
+            start_index_str: Last index the client already holds.
+
+        Returns:
+            ``application/octet-stream``: the reset sentinel when the buffer
+            restarted, an empty batch when there is nothing new, otherwise the
+            frames after ``start_index``.
+        """
+        latest = cache_get(session, CACHE_KEYS["figure_idx"])
+        start_index = int(start_index_str)
+        if latest is None:
+            latest = -1
+
+        def binary(payload: bytes) -> Response:
+            return Response(
+                payload,
+                mimetype="application/octet-stream",
+                headers={"Cache-Control": "no-store"},
+            )
+
+        if start_index > latest:
+            return binary(pack_reset())
+
+        if start_index == latest:
+            return binary(pack_batch([]))
+
+        end_index = min(start_index + 1 + MAX_BATCH_SIZE, latest + 1)
+
+        frames = []
+        for idx in range(start_index + 1, end_index):
+            blob = cache_get(session, CACHE_KEYS["gl_bundle"], str(idx))
+            if blob is None:
+                # A frame the packer could not write. Stopping here rather than
+                # skipping it keeps the client's indices contiguous -- it will
+                # ask again from the last one it got.
+                break
+            frames.append(blob)
+
+        return binary(pack_batch(frames))
+
+    @app.server.route("/api/cloud3d/<session>/<int:frame_idx>", methods=["GET"])
+    def get_gl_cloud_frame(session: str, frame_idx: int) -> Response:
+        """
+        Serve the point-cloud backdrop packed for the WebGL renderer.
+
+        Resolved exactly as ``/api/cloud`` is, but built from the raw point
+        array rather than the Plotly trace -- which skips the per-axis
+        contiguous copies that exist only so orjson can serialize them.
+
+        Args:
+            session: Session identifier.
+            frame_idx: Slider position.
+
+        Returns:
+            ``application/octet-stream``: the cloud blob, with a count of zero
+            when the dataset has no cloud or that frame is missing.
+        """
+        empty = Response(pack_cloud(None, None), mimetype="application/octet-stream")
+
+        manifest = get_manifest(session)
+        stem = get_frame_stem(session, frame_idx)
+        if manifest is None or not stem or not manifest.has_cloud(stem):
+            return empty
+
+        frame_list = cache_get(session, CACHE_KEYS["frame_list"])
+        if frame_list is None or frame_idx < 0 or frame_idx >= len(frame_list):
+            return empty
+
+        points = get_cloud_points(manifest, stem, frame_list[frame_idx])
+        if points is None:
+            return empty
+
+        return Response(
+            pack_cloud(points, manifest.cloud_display()),
+            mimetype="application/octet-stream",
+            headers={"Cache-Control": "no-store"},
         )
 
     @app.server.route("/api/camera/<session>/<path:stem>/<stream_id>", methods=["GET"])

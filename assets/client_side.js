@@ -16,6 +16,61 @@
 // are 0103's. `file-loaded-trigger` counts loads, so it changes whenever the frame
 // list can, and entries from earlier loads are dropped outright rather than left to
 // age out of a cache the new load is competing for.
+// Which slider position the GL renderer currently has on screen. The buffer
+// fills behind the user, so the callback below re-fires as it advances; this is
+// what keeps that from redrawing the same frame once a second.
+// Each packed frame is sliced out as its own ArrayBuffer before going into
+// IndexedDB, so a frame can be read back on its own rather than dragging the
+// whole batch with it. The copy happens once, here; everything downstream is
+// views onto what this produced.
+function splitGLBatch(buffer) {
+  if (!buffer || buffer.byteLength < 8) return [];
+  const view = new DataView(buffer);
+  const magic = String.fromCharCode(
+    view.getUint8(0), view.getUint8(1), view.getUint8(2), view.getUint8(3)
+  );
+  if (magic !== "SVB1") return [];
+
+  const count = view.getUint32(4, true);
+  if (count === 0xffffffff) return null; // reset sentinel
+  if (count === 0) return [];
+
+  const parts = [];
+  let cursor = 8 + count * 4;
+  for (let i = 0; i < count; i++) {
+    const length = view.getUint32(8 + i * 4, true);
+    parts.push(buffer.slice(cursor, cursor + length));
+    cursor += length;
+  }
+  return parts;
+}
+
+// One batched IndexedDB write, awaited. Both buffer branches go through it so
+// there is a single place that knows the worker's message shape.
+function storeItems(items) {
+  return new Promise((resolve, reject) => {
+    const requestId = `store_${Date.now()}_${Math.random()}`;
+    const onMessage = (event) => {
+      if (event.data.requestId !== requestId) return;
+      window.dbWorker.removeEventListener("message", onMessage);
+      if (event.data.status === "success") {
+        resolve(event.data);
+      } else {
+        reject(new Error(event.data.message));
+      }
+    };
+    window.dbWorker.addEventListener("message", onMessage);
+    window.dbWorker.postMessage({
+      action: "storeBatch",
+      payload: items,
+      requestId: requestId,
+    });
+  });
+}
+
+const GL_DRAWN = { index: null };
+const GL_REDRAW = { n: 0 };
+
 const CLOUD_CACHE = new Map();
 const CLOUD_CACHE_LIMIT = 240;
 let CLOUD_CACHE_LOAD = null;
@@ -52,6 +107,93 @@ async function getCloudTrace(session, loadCount, logFile, frameIndex) {
   }
   CLOUD_CACHE.set(key, trace);
   return trace;
+}
+
+// One request to the IndexedDB worker, as a promise. The worker answers every
+// request on the same port, so the id is what keeps two in-flight reads from
+// taking each other's reply -- which is exactly what happened before request
+// ids existed here.
+function workerRequest(action, payload, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    if (!window.dbWorker) {
+      reject(new Error("worker not started"));
+      return;
+    }
+    const requestId = `${action}_${Date.now()}_${Math.random()}`;
+    const timer = setTimeout(() => {
+      window.dbWorker.removeEventListener("message", onMessage);
+      reject(new Error(`${action} timed out`));
+    }, timeoutMs || 4000);
+
+    const onMessage = (event) => {
+      if (event.data.requestId !== requestId) return;
+      clearTimeout(timer);
+      window.dbWorker.removeEventListener("message", onMessage);
+      if (event.data.status === "success") {
+        resolve(event.data.result);
+      } else {
+        reject(new Error(event.data.message || "worker error"));
+      }
+    };
+
+    window.dbWorker.addEventListener("message", onMessage);
+    window.dbWorker.postMessage({ action, payload, requestId });
+  });
+}
+
+// A packed frame out of the buffer. Returns the shape `svGL.setFrame` wants --
+// the buffer plus where the frame starts in it, which is zero here because
+// `storeGLBatch` already sliced each frame into its own buffer.
+async function getGLFrame(session, index) {
+  if (index < 0) {
+    return null;
+  }
+  try {
+    const record = await workerRequest("getById", `${session}_gl_${index}`);
+    const buffer = record && record.data;
+    if (!buffer || !(buffer instanceof ArrayBuffer) || buffer.byteLength < 8) {
+      return null;
+    }
+    return { buffer, base: 0 };
+  } catch (error) {
+    return null;
+  }
+}
+
+// The packed backdrop, cached exactly as the JSON one is -- same key, same
+// bound, same clear on a new load. Only the wire format differs, so the two
+// never need to be held at once.
+async function getCloudBuffer(session, loadCount, logFile, frameIndex) {
+  if (session == null || frameIndex == null) {
+    return null;
+  }
+
+  if (CLOUD_CACHE_LOAD !== loadCount) {
+    CLOUD_CACHE.clear();
+    CLOUD_CACHE_LOAD = loadCount;
+  }
+
+  const key = `bin/${session}/${loadCount ?? ""}/${logFile ?? ""}/${frameIndex}`;
+  if (CLOUD_CACHE.has(key)) {
+    return CLOUD_CACHE.get(key);
+  }
+
+  let buffer = null;
+  try {
+    const response = await fetch(`/api/cloud3d/${session}/${frameIndex}`);
+    if (response.ok) {
+      buffer = await response.arrayBuffer();
+    }
+  } catch (error) {
+    console.warn(`Cloud frame ${frameIndex} unavailable:`, error);
+    return null;
+  }
+
+  if (CLOUD_CACHE.size >= CLOUD_CACHE_LIMIT) {
+    CLOUD_CACHE.delete(CLOUD_CACHE.keys().next().value);
+  }
+  CLOUD_CACHE.set(key, buffer);
+  return buffer;
 }
 
 // Plotly holds a record of the camera in the figure's own layout and restores it
@@ -119,13 +261,68 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       }
     },
 
-    storeBuffer: async function (n_intervals, local_index, session, max_val) {
+    storeBuffer: async function (
+      n_intervals,
+      local_index,
+      session,
+      max_val,
+      renderer_mode
+    ) {
       if (!n_intervals)
         return [0, dash_clientside.no_update, dash_clientside.no_update];
 
       try {
-        const response = await fetch(`/api/data/${session}/${local_index}`);
-        const dataArray = await response.json();
+        // Only the format the active renderer reads. Both forms of a frame
+        // are roughly the same size -- the hover text dominates either way --
+        // so fetching both would double the buffering a session pays for, to
+        // keep a fallback warm that is rarely switched to. Toggling instead
+        // rewinds `local-buffer-index`, and the other format fills in.
+        const wantGL = renderer_mode === "gl" && window.svGLAvailable === true;
+
+        const response = await fetch(
+          wantGL
+            ? `/api/data3d/${session}/${local_index}`
+            : `/api/data/${session}/${local_index}`
+        );
+
+        const glBuffer = wantGL ? await response.arrayBuffer() : null;
+        const dataArray = wantGL ? null : await response.json();
+
+        if (wantGL) {
+          const parts = splitGLBatch(glBuffer);
+          if (parts === null) {
+            // Reset sentinel: the server's buffer restarted under us.
+            console.log("Reset signal received, clearing IndexedDB session data");
+            window.dbWorker.postMessage({ action: "clearSession", payload: session });
+            return [0, "Reset signal received", -1];
+          }
+          if (parts.length === 0) {
+            return [dash_clientside.no_update, "No new data available", local_index];
+          }
+
+          const firstIndex = local_index + 1;
+          const items = parts.map((part, offset) => ({
+            // The same `${session}_` prefix the JSON frames use, so the
+            // worker's session sweep and two-day cleanup cover these unchanged.
+            id: `${session}_gl_${firstIndex + offset}`,
+            data: part,
+            timestamp: Date.now(),
+          }));
+
+          try {
+            await storeItems(items);
+          } catch (error) {
+            console.error("Error storing GL frames:", error);
+            return [dash_clientside.no_update, `Error: ${error.message}`, local_index];
+          }
+
+          const lastIndex = firstIndex + parts.length - 1;
+          return [
+            (lastIndex / max_val) * 100,
+            `Stored ${parts.length} GL frames up to index ${lastIndex}`,
+            lastIndex,
+          ];
+        }
 
         if (!dataArray || dataArray.length === 0) {
           // console.log('No new data available');
@@ -172,6 +369,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
           });
           lastValidIndex = item.index;
         }
+
 
         if (validItems.length === 0) {
           return [
@@ -227,10 +425,106 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       }
     },
 
+    // The palette is resolved server-side (layouts/app_layout.py) so the two
+    // renderers colour a point identically. Handed over once, as soon as both
+    // the store and the scene exist.
+    glPalette: function (palette) {
+      if (palette && window.svGLReady) {
+        window.svGLReady.then(function (gl) {
+          if (gl) {
+            gl.setPalette(palette);
+          }
+        });
+      }
+      return window.dash_clientside.no_update;
+    },
+
+    // In GL mode the colormap is a uniform swap, so it never leaves the
+    // browser; the server-side patch callback stands down (see
+    // view_callbacks/scatter_3d_view.py).
+    glColormap: function (colormap, mode) {
+      if (mode === "gl" && window.svGL) {
+        window.svGL.setColormap(colormap);
+      }
+      return window.dash_clientside.no_update;
+    },
+
+    // Size-vary does not change the buffered frame, only how it is drawn, so
+    // in GL mode it redraws from the frame already in hand.
+    glSizeVary: function (size_vary, mode) {
+      if (mode === "gl" && window.svGL) {
+        window.svGL.setSizeVary(Array.isArray(size_vary) && size_vary.length > 0);
+      }
+      return window.dash_clientside.no_update;
+    },
+
+    // Flips the stylesheet into HUD mode and parks the scene when it is not
+    // the renderer in use. CSS does all the showing and hiding.
+    glRendererMode: function (n_clicks, mode) {
+      const ctx = window.dash_clientside.callback_context;
+      const clicked =
+        ctx.triggered.length > 0 && ctx.triggered[0].prop_id.includes("renderer-toggle");
+
+      let next = mode === "plotly" ? "plotly" : "gl";
+      if (clicked && n_clicks > 0) {
+        next = next === "gl" ? "plotly" : "gl";
+      }
+
+      // The store holds what the user asked for; availability only decides
+      // what is actually applied. Writing the fallback back into the store
+      // would turn one load without a GL context -- a driver reset, a machine
+      // they opened it on once -- into a permanent silent downgrade.
+      const gl = next === "gl" && window.svGLAvailable === true;
+      const root = document.documentElement;
+      root.classList.toggle("sv-renderer-gl", gl);
+      root.classList.toggle("sv-renderer-plotly", !gl);
+
+      if (window.svGLReady) {
+        window.svGLReady.then(function (handle) {
+          if (!handle) {
+            return;
+          }
+          handle.setActive(gl);
+          if (gl) {
+            // Nothing the renderer has drawn survives a spell as the inactive
+            // one, and the buffer may have stopped advancing long ago, so ask
+            // for the current frame rather than waiting to be pushed one.
+            GL_DRAWN.index = null;
+            const clientside = window.dash_clientside;
+            if (clientside && typeof clientside.set_props === "function") {
+              GL_REDRAW.n += 1;
+              clientside.set_props("gl-redraw", { data: GL_REDRAW.n });
+            }
+          }
+        });
+      }
+      // Plotly only resizes on a window resize, so the fallback needs one when
+      // it comes back from being display:none with no size.
+      window.dispatchEvent(new Event("resize"));
+
+      // The buffer holds the format the previous renderer read. Rewinding it
+      // makes `storeBuffer` refill in the new one; re-storing a frame is
+      // idempotent, so nothing is lost by doing it on every toggle.
+      if (clicked && n_clicks > 0) {
+        const clientside = window.dash_clientside;
+        if (clientside && typeof clientside.set_props === "function") {
+          clientside.set_props("local-buffer-index", { data: -1 });
+        }
+      }
+
+      return next;
+    },
+
+    // Argument order follows the registration in server/clientside.py: every
+    // Input in declaration order, then every State. `local_index` moved from
+    // State to Input so the buffer advancing can drive a redraw, which moves it
+    // up here with the other inputs.
     retrieveBuffer: async function (
       slider_arg,
       stop_clicks,
       decay,
+      local_index,
+      gl_redraw,
       enable_size_vary,
       session,
       ispaused,
@@ -240,10 +534,10 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       key_dict,
       dark_template,
       light_template,
-      local_index,
       remote_trigger,
       log_file,
-      load_count
+      load_count,
+      renderer_mode
     ) {
       // Check if triggered by play-stop button while playing
       const triggered = dash_clientside.callback_context.triggered.map(
@@ -253,8 +547,88 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         ispaused = true;
       }
 
+      // One callback drives both renderers rather than two racing to read the
+      // same buffer: the fetch below is the expensive part and neither needs
+      // it twice. `svGLAvailable` has the last word, so a machine without
+      // WebGL keeps drawing even with "gl" left in local storage.
+      const useGL =
+        renderer_mode === "gl" && window.svGLAvailable === true && window.svGL;
+
+      // A filter or axis change resets the buffer to -1 and refills it. The
+      // frame at a given slider position is then a different frame, so what GL
+      // has already drawn stops counting as drawn.
+      if (local_index === -1) {
+        GL_DRAWN.index = null;
+      }
+
       if (slider_arg > local_index) {
+        // Not buffered yet. Plotly has a server-side fallback that rebuilds the
+        // figure for exactly this case; GL does not, and does not need one --
+        // `local-buffer-index` is an input here, so this fires again the moment
+        // the buffer reaches this frame. Until then the scene says so, rather
+        // than staying blank with nothing to explain it.
+        if (useGL) {
+          window.svGL.setPending(true);
+          return [dash_clientside.no_update, dash_clientside.no_update];
+        }
         return [dash_clientside.no_update, remote_trigger + 1];
+      }
+
+      // Driven by the buffer advancing rather than by the user: only act if it
+      // has brought a frame GL has not drawn yet, or this would redraw on every
+      // poll while the buffer fills.
+      if (
+        triggered.length > 0 &&
+        triggered[0].includes("local-buffer-index") &&
+        (!useGL || GL_DRAWN.index === slider_arg)
+      ) {
+        return [dash_clientside.no_update, dash_clientside.no_update];
+      }
+
+      if (useGL) {
+        // Self-contained: the buffer now holds one format at a time, so this
+        // must not reach for the JSON bundles -- in GL mode they were never
+        // stored. Everything the scene needs is in the packed frames.
+        const packed = [];
+        for (let i = 0; i <= Math.max(decay, 0); i++) {
+          const part = await getGLFrame(session, slider_arg - i);
+          if (!part) {
+            break;
+          }
+          packed.push(part);
+        }
+
+        if (!packed.length) {
+          // The index says the frame is buffered but it is not readable yet --
+          // the worker's write may still be settling. Say so and wait; the
+          // next buffer tick fires this again.
+          window.svGL.setPending(true);
+          return [dash_clientside.no_update, dash_clientside.no_update];
+        }
+
+        const glCloud = await getCloudBuffer(
+          session,
+          load_count,
+          log_file,
+          slider_arg
+        );
+
+        GL_DRAWN.index = slider_arg;
+        window.svGL.setPending(false);
+        window.svGL.setFrame({
+          index: slider_arg,
+          glBundles: packed,
+          cloudBuffer: glCloud,
+          colormap: colormap,
+          sizeVary: Array.isArray(enable_size_vary) && enable_size_vary.length > 0,
+          // Hover text is only in the frame when the view is paused, which is
+          // the same contract the Plotly path has always had.
+          paused: ispaused,
+        });
+
+        // The Plotly figure is not touched: it is hidden in this mode, and the
+        // exports rebuild from the dataset rather than reading it back.
+        return [dash_clientside.no_update, dash_clientside.no_update];
       }
 
       try {

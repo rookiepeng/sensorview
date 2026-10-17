@@ -448,6 +448,35 @@ async function clearSessionData(sessionPrefix) {
 }
 
 // Handle messages from the main thread
+/* Gather the ArrayBuffers in a result so they can be transferred rather than
+   copied. Only the shapes this worker actually returns are walked -- a single
+   record, or an array of them -- and each buffer is listed once, since
+   transferring the same buffer twice throws. */
+function collectBuffers(value, out, depth) {
+  depth = depth || 0;
+  if (!value || depth > 3) return;
+
+  if (value instanceof ArrayBuffer) {
+    if (out.indexOf(value) === -1) out.push(value);
+    return;
+  }
+  if (ArrayBuffer.isView(value)) {
+    if (out.indexOf(value.buffer) === -1) out.push(value.buffer);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) collectBuffers(value[i], out, depth + 1);
+    return;
+  }
+  if (typeof value === "object") {
+    for (const key in value) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) {
+        collectBuffers(value[key], out, depth + 1);
+      }
+    }
+  }
+}
+
 self.onmessage = async function(e) {
   try {
     const { action, payload, requestId } = e.data;
@@ -491,12 +520,22 @@ self.onmessage = async function(e) {
         throw new Error(`Unknown action: ${action}`);
     }
     
+    // Packed GL frames come back as ArrayBuffers. Transferring rather than
+    // structured-cloning them hands the memory to the main thread instead of
+    // copying it, which for a frame of a hundred thousand points is the
+    // difference between free and a megabyte per scrub step. The worker's own
+    // reference is neutered by the transfer, which is fine -- it re-reads from
+    // IndexedDB -- but the main thread must then keep the buffer alive for as
+    // long as it has views onto it.
+    const transfer = [];
+    collectBuffers(result, transfer);
+
     self.postMessage({
       status: "success",
       action: action,
       requestId: requestId,
       result: result
-    });
+    }, transfer);
   } catch (error) {
     self.postMessage({
       status: "error", 

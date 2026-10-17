@@ -17,6 +17,7 @@ License: GPL-3.0
 Copyright (C) 2019 - PRESENT
 """
 
+import mimetypes
 import os
 
 import dash
@@ -113,6 +114,10 @@ CACHE_KEYS = {
     "config": "CONFIG",
     "figure_idx": "FIGURE_IDX",
     "figure_bundle": "FIGURE_BUNDLE",
+    # The same frame packed for the WebGL renderer: typed arrays rather than
+    # trace dictionaries. Written beside the Plotly bundle, never instead of
+    # it, so either renderer can be switched to at any moment.
+    "gl_bundle": "GL_BUNDLE",
     "filter_kwargs": "FILTGER_KWARGS",
     "selected_data_left": "SELECTED_DATA_LEFT",
     "selected_data_right": "SELECTED_DATA_RIGHT",
@@ -134,9 +139,28 @@ dash_cache = FanoutCache(DASH_CACHE_PATH, timeout=120, shards=4, eviction_policy
 background_callback_manager = SafeDiskcacheManager(dash_cache)
 
 
+# Windows resolves .mjs from the registry, where it is usually either absent or
+# text/plain, and a browser hard-blocks a module script served with a non-JS
+# type. Nothing here is named .mjs today (see assets/gl/VENDOR.md), but three.js
+# could ship one in a future release, and the failure would be a blank canvas
+# with one console line.
+mimetypes.add_type("text/javascript", ".mjs")
+
+# Everything under `assets/` is served, but only what Dash *walks* gets a
+# `<script>` tag -- and the vendored three.js modules must not get one. They are
+# ES modules; a classic script tag throws on their first `import`. They are
+# reached by dynamic import from `assets/gl_bootstrap.js` instead, which is a
+# plain script and does get tagged.
+#
+# `.mjs` is the name that looks right and is not: Dash's asset walk tests
+# `endswith("js")`, so it is picked up regardless, and then runs into the MIME
+# problem above. `.esm.js` is ignored here and serves as application/javascript.
+ASSETS_IGNORE = r"\.esm\.js$"
+
 app = dash.Dash(
     __name__,
     meta_tags=[{"name": "viewport", "content": "width=device-width,initial-scale=1"}],
+    assets_ignore=ASSETS_IGNORE,
 )
 
 # options for dropdown components with all the keys

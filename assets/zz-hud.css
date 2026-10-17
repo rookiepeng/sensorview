@@ -1,0 +1,467 @@
+/* SensorView -- WebGL renderer and HUD layout
+ *
+ * The scene as the page's background rather than a pane among panes: a fixed
+ * canvas spanning the viewport at the bottom of the stacking order, with every
+ * panel floating over it as glass.
+ *
+ * The file name is load-bearing. Dash serves assets alphabetically and the
+ * later sheet wins, so these rules have to sort after `workbench.css` to
+ * override it without `!important` -- which `workbench-hud.css` would not do
+ * ("-" sorts before "."). See the header of `workbench.css` for the same
+ * reasoning applied to Bootstrap.
+ *
+ * Nothing here applies until `.sv-renderer-gl` is on <html>, which
+ * `glRendererMode` in `assets/client_side.js` puts there. In Plotly mode the
+ * app looks and behaves exactly as it did.
+ *
+ * Stacking, bottom to top:
+ *     0  #gl-stage            the scene
+ *     1  #gl-labels           CSS2D tick text, click-through
+ *     2  .sv-canvas           the Plotly fallback graph
+ *     5  .sv-splitter
+ *     6  HUD furniture, .sv-canvas-tools, collapsed panel heads
+ *     7  .sv-canvas-popover
+ *    10  floating glass panels: rail, inspector, transport, dock
+ *    20  .sv-topbar
+ *    30  .sv-combine-panel
+ *    40  #gl-tooltip
+ *  2000  .sv-loading-overlay
+ */
+
+/* ── Scene colours ───────────────────────────────────────────────────────── */
+
+/* The floor and the axis stubs, after movens-link's 3D view. These are read
+   back by `sv_scene.esm.js` through getComputedStyle rather than duplicated in
+   JavaScript, so the scene and the chrome cannot drift -- and a theme change
+   reaches the floor on the same repaint as everything else.
+
+   The ground is a shade off the page background rather than a contrasting
+   slab: the plane is meant to read as the surface the cloud stands on, and it
+   fades into the background at its rim, so a strong colour would only draw a
+   hard edge where the fade is supposed to hide one. */
+[data-bs-theme="dark"] {
+    --sv-view-ground: #232f3d;
+    --sv-view-grid: #42607a;
+    --sv-ax-x: #ff5f5f;
+    --sv-ax-y: #4fd06a;
+    --sv-ax-z: #4e9eff;
+}
+
+[data-bs-theme="light"] {
+    --sv-view-ground: #d5dce7;
+    --sv-view-grid: #8296ab;
+    --sv-ax-x: #d93a3a;
+    --sv-ax-y: #1f9c42;
+    --sv-ax-z: #1266cc;
+}
+
+/* ── The scene layer ─────────────────────────────────────────────────────── */
+
+#gl-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: none;
+}
+
+.sv-renderer-gl #gl-stage {
+    display: block;
+}
+
+#gl-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#gl-labels {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Axis text inherits the theme, so a flip costs nothing here. That is the
+   reason these are DOM elements through CSS2DRenderer rather than sprite
+   textures, which would each need regenerating on a theme or DPI change. */
+.sv-gl-tick {
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+/* Ticks lie in the ground plane now, among the grid lines they label rather
+   than beside a cage. Tabular figures so a column of them does not jitter as
+   the digits change, and a slight shadow so a number crossing a bright patch
+   of cloud stays readable. */
+.sv-gl-tick-ground {
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 3px var(--sv-bg), 0 0 3px var(--sv-bg);
+}
+
+.sv-gl-axis-title {
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+    color: var(--sv-text);
+    font-size: var(--sv-font-sm);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 4px var(--sv-bg), 0 0 4px var(--sv-bg);
+}
+
+/* ── HUD mode ────────────────────────────────────────────────────────────── */
+
+/* Every structural wrapper stops catching the pointer, so an orbit drag
+   reaches the canvas through the gaps between panels; the panels take it back
+   below. Enumerated in one rule on purpose: a wrapper left opaque to the
+   pointer swallows drags over a region that looks empty, which is the hardest
+   fault here to spot. */
+.sv-renderer-gl .sv-workspace,
+.sv-renderer-gl .sv-upper,
+.sv-renderer-gl .sv-center,
+.sv-renderer-gl .sv-stage,
+.sv-renderer-gl .sv-canvas,
+.sv-renderer-gl .sv-dock-wrap {
+    pointer-events: none;
+    background: transparent;
+}
+
+.sv-renderer-gl .sv-rail,
+.sv-renderer-gl .sv-inspector,
+.sv-renderer-gl .sv-transport,
+.sv-renderer-gl .sv-dock,
+.sv-renderer-gl .sv-topbar,
+.sv-renderer-gl .sv-splitter,
+.sv-renderer-gl .sv-canvas-tools,
+.sv-renderer-gl .sv-canvas-popover,
+.sv-hud {
+    pointer-events: auto;
+}
+
+/* Hidden, not unmounted: Dash keeps feeding the Plotly graph in its own mode,
+   and remounting on every toggle would cost a full redraw. */
+.sv-renderer-gl .sv-canvas .dash-graph {
+    display: none;
+}
+
+/* One glass recipe for every floating surface -- the same one the canvas tool
+   cluster has always used, so the HUD extends the existing idiom rather than
+   introducing a second one. */
+.sv-renderer-gl .sv-topbar,
+.sv-renderer-gl .sv-rail,
+.sv-renderer-gl .sv-inspector,
+.sv-renderer-gl .sv-transport,
+.sv-renderer-gl .sv-dock,
+.sv-hud {
+    background: color-mix(in srgb, var(--sv-surface) 86%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+    border-color: color-mix(in srgb, var(--sv-border) 70%, transparent);
+}
+
+/* Panels pull back from the window edges so the scene reads as continuous
+   behind them rather than as a window cut into a frame. */
+.sv-renderer-gl .sv-rail {
+    margin: var(--sv-gap) 0 var(--sv-gap) var(--sv-gap);
+    border: 1px solid;
+    border-radius: var(--sv-radius);
+}
+
+.sv-renderer-gl .sv-inspector {
+    margin: var(--sv-gap) var(--sv-gap) var(--sv-gap) 0;
+    border: 1px solid;
+    border-radius: var(--sv-radius);
+}
+
+.sv-renderer-gl .sv-transport,
+.sv-renderer-gl .sv-dock {
+    margin: 0 var(--sv-gap) var(--sv-gap);
+    border: 1px solid;
+    border-radius: var(--sv-radius);
+}
+
+.sv-renderer-gl .sv-rail,
+.sv-renderer-gl .sv-inspector,
+.sv-renderer-gl .sv-transport,
+.sv-renderer-gl .sv-dock {
+    z-index: 10;
+}
+
+/* There is no join to draw any more, only a handle. */
+.sv-renderer-gl .sv-splitter {
+    background: transparent;
+}
+
+.sv-renderer-gl .sv-splitter:hover {
+    background: color-mix(in srgb, var(--sv-accent) 50%, transparent);
+}
+
+/* Collapsed, a panel keeps a narrow glass strip instead of vanishing to a
+   floating pill, so the way back is always in the same place rather than
+   moving to the corner. */
+.sv-renderer-gl .sv-rail.sv-collapsed,
+.sv-renderer-gl .sv-inspector.sv-collapsed {
+    flex-basis: 44px !important;
+    width: 44px !important;
+    overflow: hidden;
+}
+
+.sv-renderer-gl .sv-rail.sv-collapsed .sv-rail-body,
+.sv-renderer-gl .sv-inspector.sv-collapsed .sv-inspector-body,
+.sv-renderer-gl .sv-rail.sv-collapsed .sv-panel-title,
+.sv-renderer-gl .sv-inspector.sv-collapsed .sv-panel-title,
+.sv-renderer-gl .sv-inspector.sv-collapsed .sv-panel-chips {
+    display: none;
+}
+
+.sv-renderer-gl .sv-rail.sv-collapsed .sv-panel-head,
+.sv-renderer-gl .sv-inspector.sv-collapsed .sv-panel-head {
+    position: static;
+    justify-content: center;
+    padding: 6px 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+/* The tool cluster no longer has to dodge a collapsed rail: the strip holds
+   its own column, so the corner is free. */
+.sv-renderer-gl .sv-upper:has(.sv-rail.sv-collapsed) .sv-canvas-tools {
+    left: 12px;
+}
+
+/* No WebGL, no choice to offer. */
+.sv-no-webgl .sv-renderer-toggle {
+    display: none;
+}
+
+/* ── HUD furniture ───────────────────────────────────────────────────────── */
+
+/* Built by assets/gl/sv_hud.esm.js out of the frame the renderer already
+   holds, so none of it costs a Dash callback. Positioned against #gl-stage,
+   which is the viewport. */
+
+.sv-hud {
+    position: absolute;
+    z-index: 6;
+    border: 1px solid;
+    border-radius: var(--sv-radius);
+    padding: 7px 9px;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text);
+}
+
+/* Below the canvas tool cluster, which already occupies the top-left of the
+   stage -- the two would otherwise land on the same pixel. */
+#gl-camera-presets {
+    top: calc(var(--sv-topbar-h) + 52px);
+    display: flex;
+    gap: 3px;
+    padding: 4px;
+}
+
+.sv-gl-preset {
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--sv-text-dim);
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--sv-ease), color var(--sv-ease);
+}
+
+.sv-gl-preset:hover {
+    background: var(--sv-accent-soft);
+    color: var(--sv-accent);
+}
+
+#gl-colorbar {
+    top: calc(var(--sv-topbar-h) + 10px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 180px;
+}
+
+.sv-gl-colorbar-label {
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-gl-colorbar-strip {
+    display: flex;
+    gap: 6px;
+    height: 132px;
+}
+
+.sv-gl-colorbar-gradient {
+    width: 12px;
+    border: 1px solid var(--sv-border);
+    border-radius: 3px;
+}
+
+.sv-gl-colorbar-ticks {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: var(--sv-text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+#gl-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 200px;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.sv-gl-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 3px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background var(--sv-ease), opacity var(--sv-ease);
+}
+
+.sv-gl-legend-row:hover {
+    background: var(--sv-accent-soft);
+}
+
+/* Switched off reads as dimmed rather than gone, so the row is still there to
+   click back on -- the affordance a Plotly legend entry has. */
+.sv-gl-legend-off {
+    opacity: 0.4;
+}
+
+.sv-gl-legend-off .sv-gl-legend-name {
+    text-decoration: line-through;
+}
+
+.sv-gl-legend-swatch {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.sv-gl-legend-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#gl-readout {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    color: var(--sv-text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.sv-gl-readout-row {
+    display: flex;
+    gap: 8px;
+}
+
+.sv-gl-readout-key {
+    width: 44px;
+    color: var(--sv-text-faint);
+}
+
+#gl-stats {
+    padding: 3px 7px;
+    color: var(--sv-text-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Software rendering is worth surfacing: it is the one configuration in which
+   the GL renderer is slower than the Plotly one it replaces. */
+.sv-gl-stats-warn {
+    color: var(--sv-warn);
+}
+
+#gl-notice {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 320px;
+    padding: 12px 16px;
+    color: var(--sv-warn);
+    text-align: center;
+}
+
+#gl-tooltip {
+    position: fixed;
+    z-index: 40;
+    max-width: 320px;
+    padding: 7px 9px;
+    pointer-events: none;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    background: color-mix(in srgb, var(--sv-surface) 94%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+    color: var(--sv-text);
+    font-size: var(--sv-font-xs);
+    line-height: 1.45;
+    /* Hover text is set with textContent, not innerHTML, so the breaks that
+       were `<br>` for Plotly have to come from here. */
+    white-space: pre-line;
+}
+
+/* The HUD has to clear the floating panels, and those are user-draggable --
+   so their widths are measured rather than assumed, and written here by
+   `Hud.reflow()`. A CSS-only version would have to trust `--sv-rail-w` and
+   `--sv-inspector-w`, which go stale the moment a splitter is dragged. */
+#gl-stage {
+    --sv-hud-left: 12px;
+    --sv-hud-right: 24px;
+    --sv-hud-bottom: 24px;
+}
+
+#gl-colorbar,
+#gl-legend {
+    right: var(--sv-hud-right);
+}
+
+#gl-camera-presets,
+#gl-readout,
+#gl-stats {
+    left: var(--sv-hud-left);
+}
+
+#gl-legend {
+    bottom: calc(var(--sv-hud-bottom) + 20px);
+}
+
+/* Stacked under the camera presets rather than in the bottom-left corner,
+   which is where the z-axis ticks land. */
+#gl-readout {
+    top: calc(var(--sv-topbar-h) + 97px);
+}
+
+#gl-stats {
+    bottom: var(--sv-hud-bottom);
+}
+
+/* Below this the left column has no room for the range readout next to a
+   rail and a scene; the colorbar and legend still fit. */
+@media (max-width: 900px) {
+    #gl-readout {
+        display: none;
+    }
+}

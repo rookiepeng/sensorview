@@ -44,6 +44,39 @@ once. View settings float over the plot instead of docking above it, since
 they're touched only a few times a session. Axis and reference-column mapping
 live behind the sliders button.
 
+### Renderers
+
+Two of them, switched from the button beside the colormap picker.
+
+**WebGL** (default) draws the scene with three.js and is the HUD: the canvas
+spans the whole viewport and every panel floats over it as glass, so the cloud
+is the background of the window rather than a pane among panes. There is no
+box cage — the extent is given by a ground plane at zero height that fades into
+the page background at its rim, with the range labels lying in that plane and
+three short coloured axes out of the origin, after the 3D view in
+[movens-link](https://github.com/rookidroid/movens-link). The floor is centred
+on the data's origin rather than the middle of the filter box, so it reads as
+ground around the sensor even when the box is far off-centre. It owns its own
+camera, so no figure update can move the view. Over the scene sit a colorbar, a
+clickable legend, the axis ranges, camera presets, and a frame-rate and
+point-count readout. Hover and click-to-hide work through GPU colour picking --
+one pixel is rendered and read back per pointer move, so cost does not grow with
+the number of points.
+
+**Plotly** is the original `Scatter3d`, kept as the fallback. It has the modebar
+and works without WebGL; a machine with no WebGL2 context is switched to it
+automatically and the toggle is hidden. The exports render Plotly figures
+either way, rebuilt server-side rather than read back off the page.
+
+The renderers read the same buffered frames, in whichever form they want them:
+Plotly takes the trace dictionaries, WebGL takes a packed binary frame whose
+sections become typed arrays with no parsing and no copy. Only the active
+renderer's form is fetched, and switching rewinds the buffer to refill.
+
+three.js is vendored under `assets/gl/` rather than installed -- this project
+has no bundler and is not getting one. See `assets/gl/VENDOR.md`, which also
+explains why those files are named `.esm.js` and must never be script-tagged.
+
 ### Filter Rail
 
 Filters are generated per column from the manifest — a range slider for each
@@ -91,8 +124,9 @@ looked for.
 - **Session Isolation**: each browser session gets its own cache namespace
 - **Data Buffering**: a WebWorker pre-fetches frames into IndexedDB so scrubbing
   does not wait on the server
-- **Dark/Light Theme**: chrome and Plotly templates switch together; the choice
-  persists in `localStorage`
+- **Dark/Light Theme**: chrome, Plotly templates and the WebGL scene switch
+  together — the scene reads its colours back off the same CSS custom
+  properties, so the two cannot drift. The choice persists in `localStorage`
 - **Export**: current plot as PNG or HTML, all frames as an HTML video, or the
   filtered data itself as Parquet for the current frame or all frames
 
@@ -311,6 +345,21 @@ One module per region of the shell:
 - `inspector_layout`: the camera and curve sections of the right dock
 - `analysis_dock_layout`: the two-slot bottom dock and the six panes it hosts
 - `modal_layout`: the open-dataset dialog and the load-failure dialog
+
+### WebGL Renderer (`assets/gl/`)
+
+Plain ES modules, loaded by dynamic import from `assets/gl_bootstrap.js` -- the
+one classic script of the set, and the only one Dash script-tags:
+
+- `sv_scene`: the handle everything else talks to; scene graph, camera, and the
+  on-demand render loop
+- `sv_points`: the pooled point layers and their display and pick shaders
+- `sv_axes`: grid cage, ticks, and the CSS2D labels that re-theme for free
+- `sv_pick`: GPU colour picking, the tooltip, and the click that hides a point
+- `sv_decode` / `sv_binary`: the two buffer formats, decoded to one shape
+- `sv_color`: colormap lookup textures, built from the palette the server ships
+- `sv_hud`: the colorbar, legend, readout and stats drawn over the scene
+- `gl_pack.py` (in `viz/`) is the server half of `sv_binary`
 
 ### Callback Architecture
 

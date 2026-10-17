@@ -33,13 +33,35 @@ from dash import html
 import dash_bootstrap_components as dbc
 
 import plotly.io as pio
+from plotly import colors
 
+from layouts.layout_constants import colorscales
 from layouts.modal_layout import get_modal_layout, get_error_modal
 from layouts.topbar_layout import get_topbar_layout
 from layouts.filter_panel_layout import get_filter_rail_layout
 from layouts.canvas_layout import get_canvas_layout, get_transport_layout
 from layouts.inspector_layout import get_inspector_layout
 from layouts.analysis_dock_layout import get_analysis_dock_layout
+
+
+def _gl_palette():
+    """
+    Resolve Plotly's own palettes for the WebGL renderer.
+
+    The two renderers have to colour a point identically -- the toggle between
+    them is meant to change the drawing, not the data -- and the only way to be
+    sure of that is for both to read the same table. So the colorscales behind
+    every `colormap-3d` option, and the categorical colorway that
+    `get_scatter3d_data` leaves Plotly to assign, are resolved here and shipped
+    to the browser rather than re-typed in JavaScript.
+
+    Returns:
+        dict: ``colorscales`` keyed by name, and the ``colorway`` list.
+    """
+    return {
+        "colorscales": {name: colors.get_colorscale(name) for name in colorscales},
+        "colorway": list(pio.templates["plotly"].layout.colorway),  # type: ignore
+    }
 
 
 def _stores():
@@ -77,6 +99,20 @@ def _stores():
         ),
         dcc.Store(id="local-buffer-index", data=-1),
         dcc.Store(id="worker-status"),
+        # Which renderer draws the point cloud. Kept in local storage so the
+        # choice survives a reload, the way the theme does.
+        dcc.Store(id="renderer-mode", data="gl", storage_type="local"),
+        dcc.Store(id="gl-palette", data=_gl_palette()),
+        # The WebGL equivalent of Plotly's `clickData`: written by the picker,
+        # read by the same click-to-hide callback.
+        dcc.Store(id="gl-click"),
+        dcc.Store(id="gl-frame-ack", data=0),
+        # Bumped once the renderer is mounted and again whenever it becomes the
+        # active one. The buffer can finish filling before three.js has
+        # finished importing, and the buffer only pushes frames while it is
+        # still advancing -- so without this the first frame after a fast load
+        # would have nothing to draw it.
+        dcc.Store(id="gl-redraw", data=0),
         dcc.Download(id="download"),
     ]
 
@@ -135,6 +171,18 @@ def get_app_layout():
                 "update-loading-view",
                 "Applying changes",
                 class_name="sv-loading-overlay sv-loading-deferred",
+            ),
+            # The scene is the background plane of the whole window, not a
+            # pane among panes: a fixed layer at the bottom of the stack, with
+            # every panel floating over it. `.sv-canvas` stays in the flex
+            # chain above as a transparent spacer, so the panel geometry and
+            # the Plotly fallback are untouched by this.
+            html.Div(
+                [
+                    html.Canvas(id="gl-canvas"),
+                    html.Div(id="gl-labels"),
+                ],
+                id="gl-stage",
             ),
             get_topbar_layout(),
             html.Div(

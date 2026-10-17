@@ -62,6 +62,10 @@ def get_clientside_callbacks(app: dash.Dash) -> None:
         State("local-buffer-index", "data"),
         State("session-id", "data"),
         State("slider-frame", "max"),
+        # Which format to fill the buffer with. Both forms of a frame cost
+        # about the same on the wire, so only the active renderer's is fetched
+        # and a toggle rewinds the index to refill.
+        State("renderer-mode", "data"),
         prevent_initial_call=True,
     )
 
@@ -77,6 +81,14 @@ def get_clientside_callbacks(app: dash.Dash) -> None:
         Input("slider-frame", "value"),
         Input("play-stop-button", "n_clicks"),
         Input("decay-slider", "value"),
+        # The buffer fills behind the user, and the WebGL renderer has no
+        # server-side fallback to draw an unbuffered frame -- so it waits here
+        # for the buffer to reach the frame instead. The callback returns
+        # immediately when there is nothing new to draw.
+        Input("local-buffer-index", "data"),
+        # Raised when the WebGL renderer becomes ready or becomes active, so a
+        # frame already sitting in a full buffer still reaches it.
+        Input("gl-redraw", "data"),
         State("size-vary-switch", "value"),
         State("session-id", "data"),
         State("interval-component", "disabled"),
@@ -86,7 +98,6 @@ def get_clientside_callbacks(app: dash.Dash) -> None:
         State("key-dict", "data"),
         State("dark-template", "data"),
         State("light-template", "data"),
-        State("local-buffer-index", "data"),
         State("trigger-remote-figure", "data"),
         # Identifies the log the backdrop belongs to, so switching logs inside one
         # session does not keep serving the previous log's cloud out of the cache.
@@ -95,7 +106,53 @@ def get_clientside_callbacks(app: dash.Dash) -> None:
         # selection but renumbers the slider, so the log name alone would let the
         # backdrop cached for a position outlive the frame it was fetched for.
         State("file-loaded-trigger", "data"),
+        # Which renderer to hand the frame to. One callback rather than two,
+        # because the IndexedDB read is the expensive part of this and neither
+        # renderer needs it done twice.
+        State("renderer-mode", "data"),
         prevent_initial_call=True,
+    )
+
+    # The WebGL renderer's own wiring. All three are clientside because none of
+    # them needs the dataset: the palette is already in a store, a colormap is a
+    # shader uniform, and the renderer switch is a class on <html>.
+    app.clientside_callback(
+        dash.ClientsideFunction(
+            namespace="clientside_callback", function_name="glPalette"
+        ),
+        Output("gl-frame-ack", "data"),
+        Input("gl-palette", "data"),
+    )
+
+    app.clientside_callback(
+        dash.ClientsideFunction(
+            namespace="clientside_callback", function_name="glColormap"
+        ),
+        Output("gl-frame-ack", "data", allow_duplicate=True),
+        Input("colormap-3d", "value"),
+        State("renderer-mode", "data"),
+        prevent_initial_call=True,
+    )
+
+    app.clientside_callback(
+        dash.ClientsideFunction(
+            namespace="clientside_callback", function_name="glSizeVary"
+        ),
+        Output("gl-frame-ack", "data", allow_duplicate=True),
+        Input("size-vary-switch", "value"),
+        State("renderer-mode", "data"),
+        prevent_initial_call=True,
+    )
+
+    # Fires on load as well as on click, so the stored choice is applied to the
+    # document before the first frame arrives.
+    app.clientside_callback(
+        dash.ClientsideFunction(
+            namespace="clientside_callback", function_name="glRendererMode"
+        ),
+        Output("renderer-mode", "data"),
+        Input("renderer-toggle", "n_clicks"),
+        State("renderer-mode", "data"),
     )
 
     # This clientside callback function disables the interval component based on

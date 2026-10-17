@@ -81,6 +81,23 @@ def _canvas_tools():
                 target="3d-config-more-button",
                 placement="bottom",
             ),
+            # The renderer switch sits with the other view settings rather than
+            # in the top bar: it changes how this plot is drawn and nothing
+            # else. Hidden outright on a machine without WebGL -- see
+            # `assets/gl_bootstrap.js`, which sets `.sv-no-webgl`.
+            dbc.Button(
+                html.I(className="bi bi-badge-3d"),
+                id="renderer-toggle",
+                color="transparent",
+                n_clicks=0,
+                className="sv-icon-btn sv-renderer-toggle",
+            ),
+            dbc.Tooltip(
+                "Switch between the WebGL and Plotly renderers. WebGL draws far "
+                "more points and keeps its own camera; Plotly keeps the modebar.",
+                target="renderer-toggle",
+                placement="bottom",
+            ),
         ],
         className="sv-canvas-tools",
     )

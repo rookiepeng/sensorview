@@ -55,6 +55,11 @@
     window.requestAnimationFrame(function () {
       refitPending = false;
       window.dispatchEvent(new Event("resize"));
+      /* The GL canvas spans the viewport rather than a pane, so a panel drag
+         does not change its size -- but a window resize does, and this is the
+         one place that knows a layout change has settled. It early-returns
+         when the dimensions are unchanged, so calling it here is free. */
+      if (window.svGL) window.svGL.resize();
     });
   }
 
@@ -289,6 +294,10 @@
     } catch (error) {
       /* Private browsing: the theme just will not persist. */
     }
+    /* The scene reads its colours back off the custom properties the attribute
+       above just switched, so this has to come after it -- and it carries no
+       palette of its own, which is what keeps the two from drifting. */
+    if (window.svGL) window.svGL.setTheme(dark);
     refitPlots();
   }
 

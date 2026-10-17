@@ -24,6 +24,7 @@ from dash.dcc import send_file  # pyright: ignore[reportPrivateImportUsage]
 from dash.dependencies import Input, Output, State, ALL
 from dash.exceptions import PreventUpdate
 import plotly.graph_objs as go
+import plotly.io as pio
 
 import numpy as np
 
@@ -51,6 +52,7 @@ from viz.viz import get_animation_data
 from viz.graph_data import get_reference_traces
 from viz.graph_data import get_scatter3d_data
 from viz.graph_layout import get_scatter3d_layout
+from viz.gl_pack import pack_frame
 
 
 def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
@@ -194,6 +196,10 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
 
         # The layout is loop-invariant: nothing in it varies per frame.
         base_layout = get_scatter3d_layout(**fig_kwargs)
+        # Plotly assigns categorical colours from the template's colorway; the
+        # GL pack resolves them so the browser does not have to carry a second
+        # copy of the same palette.
+        colorway = list(pio.templates["plotly"].layout.colorway)
         ref_source = fig_kwargs.get("ref_source")
         # An unplaced reference is the same traces on every frame, so it is
         # built once rather than per frame in the loop below.
@@ -277,6 +283,29 @@ def get_scatter_3d_view_background_callbacks(app: dash.Dash) -> None:
             cache_set(
                 frame_bundle, session_id, CACHE_KEYS["figure_bundle"], str(slider_arg)
             )
+
+            # The same frame again, packed for the WebGL renderer. Written from
+            # the traces just built rather than recomputed, so the two forms
+            # cannot describe different frames. A packing failure must not take
+            # the buffer down with it -- the Plotly bundle above is already
+            # stored, and the GL path falls back to reading that.
+            try:
+                cache_set(
+                    pack_frame(
+                        slider_arg,
+                        fig,
+                        hover_strings,
+                        ref_fig,
+                        base_layout,
+                        colorway,
+                    ),
+                    session_id,
+                    CACHE_KEYS["gl_bundle"],
+                    str(slider_arg),
+                )
+            except Exception as error:  # noqa: BLE001 - see comment above
+                print("GL pack failed for frame " + str(slider_arg) + ": " + str(error))
+
             cache_set(slider_arg, session_id, CACHE_KEYS["figure_idx"])
 
             percent = slider_arg / len(frame_list) * 100

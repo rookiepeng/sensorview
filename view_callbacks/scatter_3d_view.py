@@ -43,6 +43,95 @@ from viz.frame_figure import process_overlay_frame
 from viz.frame_figure import process_single_frame
 
 
+def _build_current_figure(
+    overlay_enable: list,
+    slider_arg: int,
+    load_hover: bool,
+    decay: int,
+    cat_values: List[List[str]],
+    num_values: List[Tuple[float, float]],
+    visible_list: list,
+    colormap: str,
+    c_key: str,
+    size_vary: str,
+    darkmode: list,
+    session_id: str,
+    file: str,
+    file_list: list,
+) -> dict:
+    """
+    Rebuild the 3D figure for the current frame and control state.
+
+    The one place a Plotly figure is assembled from the dataset for the live
+    view. Three callers need it: the server-side fallback for a frame the
+    browser buffer has not reached, and the HTML and PNG exports -- which used
+    to read the live figure back out of the browser, and so had nothing to
+    export the moment a renderer other than Plotly drove the canvas.
+
+    Args:
+        overlay_enable: Overlay mode state (empty=disabled).
+        slider_arg: Current frame index.
+        load_hover: Whether to build hover text. The live view only pays for it
+            while paused; an export always wants it.
+        decay: Number of past frames to trail.
+        cat_values: List of lists containing categorical filter values.
+        num_values: List of (min, max) tuples for numerical filter ranges.
+        visible_list: List of visible data elements.
+        colormap: Selected colormap name.
+        c_key: Color mapping column name.
+        size_vary: Size variation enable state.
+        darkmode: Dark mode state (empty=disabled).
+        session_id: Session identifier.
+        file: Current file path (JSON string).
+        file_list: All loaded file paths.
+
+    Returns:
+        The figure dictionary, with the theme template applied.
+
+    Raises:
+        PreventUpdate: If the session has no cached configuration.
+    """
+    config = cache_get(session_id, CACHE_KEYS["config"])
+    if config is None:
+        raise PreventUpdate
+
+    if overlay_enable:
+        fig = process_overlay_frame(
+            slider_arg,
+            config,
+            cat_values,
+            num_values,
+            colormap,
+            visible_list,
+            c_key,
+            size_vary,
+            session_id,
+            file,
+            file_list,
+        )
+    else:
+        fig = process_single_frame(
+            config,
+            cat_values,
+            num_values,
+            colormap,
+            visible_list,
+            c_key,
+            size_vary,
+            decay,
+            session_id,
+            slider_arg,
+            load_hover,
+        )
+
+    if darkmode:
+        fig["layout"]["template"] = pio.templates["plotly_dark"]
+    else:
+        fig["layout"]["template"] = pio.templates["plotly"]
+
+    return fig
+
+
 def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     """
     Register interactive callbacks for 3D scatter plot view.
@@ -171,45 +260,24 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Raises:
             PreventUpdate: If configuration is unavailable.
         """
-        config = cache_get(session_id, CACHE_KEYS["config"])
-        if config is None:
-            raise PreventUpdate
-
-        if overlay_enable:
-            fig = process_overlay_frame(
+        return {
+            "scatter3d": _build_current_figure(
+                overlay_enable,
                 slider_arg,
-                config,
+                ispaused,
+                decay,
                 cat_values,
                 num_values,
-                colormap,
                 visible_list,
+                colormap,
                 c_key,
                 size_vary,
+                darkmode,
                 session_id,
                 file,
                 file_list,
             )
-        else:
-            fig = process_single_frame(
-                config,
-                cat_values,
-                num_values,
-                colormap,
-                visible_list,
-                c_key,
-                size_vary,
-                decay,
-                session_id,
-                slider_arg,
-                ispaused,
-            )
-
-        if darkmode:
-            fig["layout"]["template"] = pio.templates["plotly_dark"]
-        else:
-            fig["layout"]["template"] = pio.templates["plotly"]
-
-        return {"scatter3d": fig}
+        }
 
     @app.callback(
         output={
@@ -220,20 +288,30 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         state={
             "fig": State("scatter3d", "figure"),
+            "renderer_mode": State("renderer-mode", "data"),
         },
         prevent_initial_call=True,
     )
-    def colormap_change_callback(colormap: str, fig: dict) -> dict:
+    def colormap_change_callback(colormap: str, fig: dict, renderer_mode: str) -> dict:
         """
         Update the colormap of the 3D scatter plot.
 
         Args:
             colormap: Name of the selected colormap.
             fig: Current figure dictionary.
+            renderer_mode: Which renderer is drawing the canvas.
 
         Returns:
             Dictionary with updated figure containing new colormap.
+
+        Raises:
+            PreventUpdate: When the WebGL renderer is drawing the canvas.
         """
+        if renderer_mode == "gl":
+            # The WebGL renderer handles this clientside; there is no Plotly
+            # figure on screen to patch.
+            raise PreventUpdate
+
         for trace in fig["data"]:
             # Empty-frame placeholder traces have no "marker" key; skip them
             if "marker" in trace:
@@ -250,20 +328,30 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         state={
             "fig": State("scatter3d", "figure"),
+            "renderer_mode": State("renderer-mode", "data"),
         },
         prevent_initial_call=True,
     )
-    def darkmode_change_callback(darkmode: list, fig: dict) -> dict:
+    def darkmode_change_callback(darkmode: list, fig: dict, renderer_mode: str) -> dict:
         """
         Toggle dark mode for the 3D scatter plot.
 
         Args:
             darkmode: Dark mode enable state (non-empty = enabled).
             fig: Current figure dictionary.
+            renderer_mode: Which renderer is drawing the canvas.
 
         Returns:
             Dictionary with updated figure containing new theme.
+
+        Raises:
+            PreventUpdate: When the WebGL renderer is drawing the canvas.
         """
+        if renderer_mode == "gl":
+            # The WebGL renderer handles this clientside; there is no Plotly
+            # figure on screen to patch.
+            raise PreventUpdate
+
         if darkmode:
             fig["layout"]["template"] = pio.templates["plotly_dark"]
         else:
@@ -282,11 +370,12 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             "fig": State("scatter3d", "figure"),
             "session_id": State("session-id", "data"),
             "c_key": State("c-picker-3d", "value"),
+            "renderer_mode": State("renderer-mode", "data"),
         },
         prevent_initial_call=True,
     )
     def size_vary_callback(
-        size_vary: list, fig: dict, session_id: str, c_key: str
+        size_vary: list, fig: dict, session_id: str, c_key: str, renderer_mode: str
     ) -> dict:
         """
         Toggle point size variation for categorical data visualization.
@@ -298,13 +387,19 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
             fig: Current figure data and layout.
             session_id: Session identifier.
             c_key: Color mapping column name.
+            renderer_mode: Which renderer is drawing the canvas.
 
         Returns:
             Dictionary with figure containing modified marker sizes.
 
         Raises:
-            PreventUpdate: If configuration is unavailable.
+            PreventUpdate: If configuration is unavailable, or the WebGL
+                renderer is drawing the canvas.
         """
+        if renderer_mode == "gl":
+            # The WebGL renderer handles this clientside; there is no Plotly
+            # figure on screen to patch.
+            raise PreventUpdate
 
         config = cache_get(session_id, CACHE_KEYS["config"])
         if config is None or "keys" not in config:
@@ -334,6 +429,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         },
         inputs={
             "click_data": Input("scatter3d", "clickData"),
+            "gl_click": Input("gl-click", "data"),
         },
         state={
             "trigger_input": State("visible-table-change-trigger", "data"),
@@ -344,6 +440,7 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
     )
     def visible_table_change_callback(
         click_data: dict,
+        gl_click: dict,
         trigger_input: int,
         click_hide: list,
         session_id: str,
@@ -351,8 +448,15 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         """
         Handle visibility changes from click interactions on data points.
 
+        Takes a click from either renderer. Plotly reports one as `clickData`
+        on the graph; the WebGL picker writes the same fact into the `gl-click`
+        store. Only the way the point was identified differs -- everything
+        below this, including the trigger the rest of the app watches, is one
+        path for both.
+
         Args:
-            click_data: Data from click event containing point information.
+            click_data: Plotly click event containing point information.
+            gl_click: WebGL picker result, ``{"id": ..., "n": ...}``.
             trigger_input: Current trigger state value.
             click_hide: Click-to-hide feature state (empty=disabled).
             session_id: Session identifier.
@@ -363,18 +467,22 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         Raises:
             PreventUpdate: If click-to-hide is not enabled or click data is invalid.
         """
+        if dash.ctx.triggered_id == "gl-click":
+            point_id = (gl_click or {}).get("id")
+        elif click_data and click_data.get("points"):
+            point_id = click_data["points"][0].get("id")
+        else:
+            point_id = None
+
+        # The picker carries ids through a Float64Array, so an id that is a
+        # whole number can still arrive as 12.0 -- which misses an integer
+        # index. Plotly's path already sends an int, so this only ever narrows.
+        if isinstance(point_id, float) and point_id.is_integer():
+            point_id = int(point_id)
+
         visible_table = cache_get(session_id, CACHE_KEYS["visible_table"])
-        if click_hide and visible_table is not None and click_data is not None:
-            point_id = (
-                click_data.get("points", [{}])[0].get("id")
-                if click_data.get("points")
-                else None
-            )
-            if (
-                point_id is not None
-                and "_VIS_" in visible_table
-                and point_id in visible_table["_VIS_"]
-            ):
+        if click_hide and visible_table is not None and point_id is not None:
+            if "_VIS_" in visible_table and point_id in visible_table["_VIS_"]:
                 if visible_table["_VIS_"][point_id] == "visible":
                     visible_table.at[point_id, "_VIS_"] = "hidden"
                 else:
@@ -695,11 +803,38 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-scatter3d-html", "n_clicks")},
         state={
-            "fig": State("scatter3d", "figure"),
+            "overlay_enable": State("overlay-switch", "value"),
+            "slider_arg": State("slider-frame", "value"),
+            "decay": State("decay-slider", "value"),
+            "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
+            "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
+            "visible_list": State("visible-picker", "value"),
+            "colormap": State("colormap-3d", "value"),
+            "c_key": State("c-picker-3d", "value"),
+            "size_vary": State("size-vary-switch", "value"),
+            "darkmode": State("darkmode-switch", "value"),
+            "session_id": State("session-id", "data"),
+            "file": State("current-file", "data"),
+            "file_list": State("file-add", "value"),
         },
         prevent_initial_call=True,
     )
-    def export_3d_scatter_html(btn: int, fig: dict) -> dict:
+    def export_3d_scatter_html(
+        btn: int,
+        overlay_enable: list,
+        slider_arg: int,
+        decay: int,
+        cat_values: List[List[str]],
+        num_values: List[Tuple[float, float]],
+        visible_list: list,
+        colormap: str,
+        c_key: str,
+        size_vary: str,
+        darkmode: list,
+        session_id: str,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
         Export current 3D scatter plot to interactive HTML file.
 
@@ -707,16 +842,49 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         Args:
             btn: Button click count (must be > 0).
-            fig: Current figure data and layout.
+            overlay_enable: Overlay mode state (empty=disabled).
+            slider_arg: Current frame index.
+            decay: Number of past frames to trail.
+            cat_values: List of lists containing categorical filter values.
+            num_values: List of (min, max) tuples for numerical filter ranges.
+            visible_list: List of visible data elements.
+            colormap: Selected colormap name.
+            c_key: Color mapping column name.
+            size_vary: Size variation enable state.
+            darkmode: Dark mode state (empty=disabled).
+            session_id: Session identifier.
+            file: Current file path (JSON string).
+            file_list: All loaded file paths.
 
         Returns:
             Dictionary with download response for browser.
 
         Raises:
-            PreventUpdate: If button not clicked.
+            PreventUpdate: If button not clicked, or the session has no config.
         """
         if btn == 0:
             raise PreventUpdate
+
+        # Rebuilt from the dataset rather than read back from the browser, so
+        # an export does not depend on a Plotly figure being live on the page.
+        # Hover is always built here: an export is static, and the live view
+        # only carries hover while paused.
+        fig = _build_current_figure(
+            overlay_enable,
+            slider_arg,
+            True,
+            decay,
+            cat_values,
+            num_values,
+            visible_list,
+            colormap,
+            c_key,
+            size_vary,
+            darkmode,
+            session_id,
+            file,
+            file_list,
+        )
 
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
@@ -735,11 +903,38 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
         output={"download": Output("download", "data", allow_duplicate=True)},
         inputs={"btn": Input("export-scatter3d-png", "n_clicks")},
         state={
-            "fig": State("scatter3d", "figure"),
+            "overlay_enable": State("overlay-switch", "value"),
+            "slider_arg": State("slider-frame", "value"),
+            "decay": State("decay-slider", "value"),
+            "cat_values": State({"type": "filter-dropdown", "index": ALL}, "value"),
+            "num_values": State({"type": "filter-slider", "index": ALL}, "value"),
+            "visible_list": State("visible-picker", "value"),
+            "colormap": State("colormap-3d", "value"),
+            "c_key": State("c-picker-3d", "value"),
+            "size_vary": State("size-vary-switch", "value"),
+            "darkmode": State("darkmode-switch", "value"),
+            "session_id": State("session-id", "data"),
+            "file": State("current-file", "data"),
+            "file_list": State("file-add", "value"),
         },
         prevent_initial_call=True,
     )
-    def export_3d_scatter_png(btn: int, fig: dict) -> dict:
+    def export_3d_scatter_png(
+        btn: int,
+        overlay_enable: list,
+        slider_arg: int,
+        decay: int,
+        cat_values: List[List[str]],
+        num_values: List[Tuple[float, float]],
+        visible_list: list,
+        colormap: str,
+        c_key: str,
+        size_vary: str,
+        darkmode: list,
+        session_id: str,
+        file: str,
+        file_list: list,
+    ) -> dict:
         """
         Export current 3D scatter plot to high-resolution PNG image.
 
@@ -747,19 +942,54 @@ def get_scatter_3d_view_callbacks(app: dash.Dash) -> None:
 
         Args:
             btn: Button click count (must be > 0).
-            fig: Current figure data and layout.
+            overlay_enable: Overlay mode state (empty=disabled).
+            slider_arg: Current frame index.
+            decay: Number of past frames to trail.
+            cat_values: List of lists containing categorical filter values.
+            num_values: List of (min, max) tuples for numerical filter ranges.
+            visible_list: List of visible data elements.
+            colormap: Selected colormap name.
+            c_key: Color mapping column name.
+            size_vary: Size variation enable state.
+            darkmode: Dark mode state (empty=disabled).
+            session_id: Session identifier.
+            file: Current file path (JSON string).
+            file_list: All loaded file paths.
 
         Returns:
             Dictionary with download response containing PNG file.
 
         Raises:
-            PreventUpdate: If button not clicked.
+            PreventUpdate: If button not clicked, or the session has no config.
 
         Note:
-            Requires plotly kaleido for image export.
+            Requires plotly kaleido for image export. This renders the Plotly
+            figure, not the WebGL viewport, so the image is Plotly's drawing of
+            the same data whichever renderer is on screen.
         """
         if btn == 0:
             raise PreventUpdate
+
+        # Rebuilt from the dataset rather than read back from the browser, so
+        # an export does not depend on a Plotly figure being live on the page.
+        # Hover is always built here: an export is static, and the live view
+        # only carries hover while paused.
+        fig = _build_current_figure(
+            overlay_enable,
+            slider_arg,
+            True,
+            decay,
+            cat_values,
+            num_values,
+            visible_list,
+            colormap,
+            c_key,
+            size_vary,
+            darkmode,
+            session_id,
+            file,
+            file_list,
+        )
 
         now = datetime.datetime.now()
         timestamp = now.strftime("%Y%m%d_%H%M%S")
