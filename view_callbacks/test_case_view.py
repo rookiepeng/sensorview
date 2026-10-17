@@ -650,8 +650,14 @@ def get_test_case_view_callbacks(app: dash.Dash) -> None:
     # re-fires on `file-loaded-trigger` -- so a newly loaded log refreshes the
     # view being looked at instead of switching it off.
 
+    # The load callback above owns this output -- it is what raises the modal --
+    # so closing it is a duplicate writer and has to say so. Without the flag
+    # Dash rejects the pair at startup and *no* callback on the page is wired
+    # up, which looks like an app that renders but does nothing.
     @app.callback(
-        output={"is_open": Output("error-modal", "is_open")},
+        output={
+            "is_open": Output("error-modal", "is_open", allow_duplicate=True),
+        },
         inputs={"_close": Input("close-error-modal", "n_clicks")},
         prevent_initial_call=True,
     )
