@@ -66,6 +66,7 @@ export function installWebBridge(): void {
       get: async () => ok(readSettings()),
       set: async (patch) => ok(writeSettings({ ...readSettings(), ...patch }))
     },
+    initialCase: null,
     platform: 'browser'
   }
 

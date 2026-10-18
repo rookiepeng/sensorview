@@ -15,6 +15,7 @@ import { FilterRail } from './components/FilterRail'
 import { GlStage } from './components/GlStage'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
+import { buildFrame } from './buildFrame'
 import { fixtureFrame } from './fixture'
 import type { ScenePayload } from './frame'
 import { useStore } from './store'
@@ -29,9 +30,12 @@ export function App() {
   const hidden = useStore((s) => s.hidden)
   const toggleHidden = useStore((s) => s.toggleHidden)
   const openCase = useStore((s) => s.openCase)
+  const table = useStore((s) => s.table)
+  const axes = useStore((s) => s.axes)
+  const keys = useStore((s) => s.keys)
 
-  // Browser mode has no case dialog worth using, so it starts on the fixture.
-  // In Electron the top bar's breadcrumb opens one.
+  // Browser mode has no readers behind it, so it starts on the fixture. In
+  // Electron the top bar's breadcrumb opens a real case.
   useEffect(() => {
     if (window.sensorview.platform === 'browser') {
       openCase('(fixture)', 60)
@@ -47,7 +51,52 @@ export function App() {
     }
     const frames = []
     for (let i = 0; i <= decay && frame - i >= 0; i++) {
-      frames.push(fixtureFrame(frame - i, { categorical: sizeVary, hidden }))
+      frames.push(
+        table
+          ? buildFrame(table, frame - i, {
+              ...axes,
+              // Click-to-hide, applied as a filter rather than by rebuilding
+              // the table: the rows are still there, they are just not drawn.
+              filters: { numeric: [], categorical: [] },
+              keys,
+              withHover: !playing
+            })
+          : fixtureFrame(frame - i, { categorical: sizeVary, hidden })
+      )
+    }
+
+    // Hiding a row is a mask over the built frame, so a click costs a rebuild
+    // of one frame rather than a re-read of anything.
+    if (table && hidden.size > 0) {
+      for (const built of frames) {
+        for (const group of built.groups) {
+          const keep: number[] = []
+          for (let i = 0; i < group.count; i++) {
+            if (!hidden.has(group.ids![i]!)) {
+              keep.push(i)
+            }
+          }
+          if (keep.length === group.count) {
+            continue
+          }
+          const position = new Float32Array(keep.length * 3)
+          const ids = new Float64Array(keep.length)
+          const value = group.value ? new Float32Array(keep.length) : null
+          keep.forEach((src, dst) => {
+            position.set(group.position.subarray(src * 3, src * 3 + 3), dst * 3)
+            ids[dst] = group.ids![src]!
+            if (value) {
+              value[dst] = group.value![src]!
+            }
+          })
+          const original = group.hover
+          group.position = position
+          group.ids = ids
+          group.value = value
+          group.count = keep.length
+          group.hover = (row) => original(keep[row] ?? -1)
+        }
+      }
     }
     return {
       frames,
@@ -57,7 +106,7 @@ export function App() {
       // which is the contract the Dash buffer had for the same reason.
       paused: !playing
     }
-  }, [frame, frameCount, decay, colormap, sizeVary, playing, hidden])
+  }, [frame, frameCount, decay, colormap, sizeVary, playing, hidden, table, axes, keys])
 
   return (
     <div className="sv-shell">

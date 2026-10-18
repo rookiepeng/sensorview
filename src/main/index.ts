@@ -174,7 +174,14 @@ if (!app.requestSingleInstanceLock()) {
     const smokeFile = process.env.SENSORVIEW_SMOKE
     if (smokeFile) {
       const { runSmoke } = await import('./smoke')
-      app.exit(await runSmoke(smokeFile, data, process.env.SENSORVIEW_SMOKE_URL))
+      app.exit(
+        await runSmoke(
+          smokeFile,
+          data,
+          join(here, '../renderer/index.html'),
+          process.env.SENSORVIEW_SMOKE_URL
+        )
+      )
       return
     }
 

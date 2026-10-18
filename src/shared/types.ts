@@ -90,6 +90,36 @@ export interface DataMethods {
     params: { path: string; dataset: string }
     result: { position: Float32Array; count: number } | null
   }
+
+  /** What is in a case directory: its logs and its column metadata. */
+  scanCase: {
+    params: { dir: string }
+    result: {
+      dir: string
+      name: string
+      frameKey: string
+      keys: Record<string, unknown>
+      logs: Array<{
+        stem: string
+        file: string
+        hasCloud: boolean
+        hasCurve: boolean
+        hasImage: boolean
+        hasReference: boolean
+      }>
+    }
+  }
+
+  /**
+   * The cloud frame for one slider position of a log.
+   *
+   * Resolved here rather than in the renderer so a path is never built from
+   * something the renderer said -- the same property the Flask routes had.
+   */
+  logCloudFrame: {
+    params: { dir: string; stem: string; frameId: number }
+    result: { position: Float32Array; count: number } | null
+  }
 }
 
 export type DataMethod = keyof DataMethods
@@ -115,6 +145,15 @@ export interface SensorViewBridge {
     get(): Promise<Result<Settings>>
     set(patch: Partial<Settings>): Promise<Result<Settings>>
   }
+
+  /**
+   * A case to open as soon as the app is up, or null.
+   *
+   * Set from SENSORVIEW_OPEN_CASE. It exists so the end-to-end check can drive
+   * a real case without a file dialog, and it is the hook an "open this folder"
+   * command-line argument would use.
+   */
+  initialCase: string | null
 
   /**
    * Which host this is running under.

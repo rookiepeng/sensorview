@@ -15,6 +15,7 @@ const bridge: SensorViewBridge = {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (patch) => ipcRenderer.invoke('settings:set', patch)
   },
+  initialCase: process.env.SENSORVIEW_OPEN_CASE || null,
   platform: process.platform
 }
 

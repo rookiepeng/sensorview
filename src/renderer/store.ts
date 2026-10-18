@@ -12,11 +12,21 @@
 
 import { create } from 'zustand'
 
+import type { Table } from '@shared/table'
+
 import type { ScenePayload } from './frame'
 
 export interface CaseState {
   /** Directory of the open case, or null. */
   dir: string | null
+  /** The open log, once its table has been read. */
+  table: Table | null
+  /** Stem of the open log. */
+  stem: string | null
+  /** Column metadata from the manifest, driving labels and hover. */
+  keys: Record<string, { description?: string; unit?: string; decimal?: number; type?: string }>
+  /** Axis and colour columns. */
+  axes: { x: string; y: string; z: string; colour: string }
   /** Slider position, which indexes the frame list -- not a frame id. */
   frame: number
   /** How many frames the open case has. */
@@ -37,6 +47,14 @@ export interface CaseState {
 
 export interface Actions {
   openCase(dir: string, frameCount: number): void
+  openLog(payload: {
+    dir: string
+    stem: string
+    table: Table
+    keys: CaseState['keys']
+    axes: CaseState['axes']
+  }): void
+  setAxis(axis: keyof CaseState['axes'], column: string): void
   closeCase(): void
   setFrame(frame: number): void
   stepFrame(delta: number): void
@@ -50,6 +68,10 @@ export interface Actions {
 
 const initial: CaseState = {
   dir: null,
+  table: null,
+  stem: null,
+  keys: {},
+  axes: { x: 'X', y: 'Y', z: 'Z', colour: 'X' },
   frame: 0,
   frameCount: 0,
   decay: 0,
@@ -64,6 +86,12 @@ export const useStore = create<CaseState & Actions>((set) => ({
   ...initial,
 
   openCase: (dir, frameCount) => set({ ...initial, dir, frameCount }),
+
+  openLog: ({ dir, stem, table, keys, axes }) =>
+    set({ ...initial, dir, stem, table, keys, axes, frameCount: table.frameIds.length }),
+
+  setAxis: (axis, column) => set((s) => ({ axes: { ...s.axes, [axis]: column } })),
+
   closeCase: () => set({ ...initial }),
 
   // Clamped rather than guarded at the call sites: loading a shorter case with

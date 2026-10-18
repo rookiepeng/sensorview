@@ -11,7 +11,9 @@
 import type { DataMethod, Result } from '../shared/types'
 import { fail, ok } from '../shared/types'
 import { frameIds, readTable } from './parquet'
-import { readCloudFrame } from './hdf5'
+import { hdf5Id, readCloudFrame } from './hdf5'
+import { Manifest } from './manifest'
+import { scanCase } from './caseScan'
 
 type Handler = (params: any) => Promise<Result<unknown>> | Result<unknown>
 
@@ -22,7 +24,22 @@ const handlers: Record<DataMethod, Handler> = {
 
   readTable: ({ path, columns }) => ok(readTable(path, columns)),
 
-  cloudFrame: async ({ path, dataset }) => ok(await readCloudFrame(path, dataset))
+  cloudFrame: async ({ path, dataset }) => ok(await readCloudFrame(path, dataset)),
+
+  scanCase: async ({ dir }) => ok(await scanCase(dir)),
+
+  logCloudFrame: async ({ dir, stem, frameId }) => {
+    const manifest = await Manifest.load(dir)
+    const path = manifest.cloudPath(stem)
+    if (!path) {
+      return ok(null)
+    }
+    const dataset = manifest
+      .cloudDatasetPattern()
+      .replace('{frame_id}', hdf5Id(frameId))
+      .replace(/^\//, '')
+    return ok(await readCloudFrame(path, dataset, manifest.cloudColumns()))
+  }
 }
 
 interface Call {

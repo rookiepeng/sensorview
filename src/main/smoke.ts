@@ -29,6 +29,10 @@ function expect(condition: unknown, message: string): void {
 /**
  * @param media An existing media file to exercise Range against.
  * @param data The client for the forked data process.
+ * @param rendererHtml The built renderer's entry, passed in rather than
+ *     derived: this module is bundled into a chunk, so its own __dirname is
+ *     `out/main/chunks` and every relative path from here is wrong by one
+ *     level -- in a way that only shows at runtime.
  * @param pageUrl Optional page to load in a hidden window -- the Dash dev server
  *     while the views still live there. Checks that the window can actually
  *     reach and render it, which is the one thing the transitional setup
@@ -37,6 +41,7 @@ function expect(condition: unknown, message: string): void {
 export async function runSmoke(
   media: string,
   data: DataClient,
+  rendererHtml: string,
   pageUrl?: string
 ): Promise<number> {
   const { dirname } = await import('node:path')
@@ -173,6 +178,48 @@ export async function runSmoke(
     });
 
     checks.push({
+      name: 'a case lists its logs and sidecars',
+      run: async () => {
+        const result = await data.call('scanCase', { dir: caseDir })
+        expect(result.ok, `scanCase failed: ${result.error}`)
+        const summary = result.data!
+        expect(summary.logs.length === 5, `expected 5 logs, got ${summary.logs.length}`)
+
+        // The pose sidecar is Parquet like the table; without the exclusion it
+        // would be listed as a log with none of the manifest's columns.
+        const posed = summary.logs.filter((log) => log.stem.endsWith('.reference'))
+        expect(posed.length === 0, 'a reference sidecar was listed as a log')
+
+        const first = summary.logs[0]!
+        expect(first.hasCloud, `${first.stem} should have a cloud`)
+        expect(first.hasCurve, `${first.stem} should have curves`)
+        expect(first.hasImage, `${first.stem} should have an image stream`)
+        expect(first.hasReference, `${first.stem} should have a pose`)
+        expect(summary.frameKey === 'Frame', `frame key was ${summary.frameKey}`)
+        return `${summary.logs.length} logs, keys on "${summary.frameKey}"`
+      }
+    });
+
+    checks.push({
+      name: 'a cloud frame resolves through the manifest',
+      run: async () => {
+        // The path is built from the manifest's pattern and the session's own
+        // case directory, never from anything the renderer said -- the
+        // property the Flask routes had and the reason this is not just a
+        // file read.
+        const result = await data.call('logCloudFrame', {
+          dir: caseDir,
+          stem: 'scene_0061',
+          frameId: 0
+        })
+        expect(result.ok, `logCloudFrame failed: ${result.error}`)
+        expect(result.data !== null, 'no cloud came back')
+        expect(result.data!.count === 11120, `got ${result.data!.count} points`)
+        return `${result.data!.count} points via the manifest pattern`
+      }
+    });
+
+    checks.push({
       name: 'h5wasm reads a gzip-chunked cloud frame',
       run: async () => {
         const result = await data.call('cloudFrame', { path: cloud, dataset: 'frame_0' })
@@ -191,6 +238,113 @@ export async function runSmoke(
         return `${frame!.count} points, ${(frame!.position.byteLength / 1024).toFixed(0)} KB`
       }
     });
+  }
+
+  // The renderer, opening the real case end to end. Everything above checks a
+  // layer; this checks that the layers meet -- the table crossing the process
+  // boundary as typed arrays, the frame index surviving it, and the scene
+  // drawing what came out.
+  if (caseDir) {
+    checks.push({
+      name: 'the renderer opens the case and draws it',
+      run: async () => {
+        const { dirname: dirOf, join: joinPath } = await import('node:path')
+        const probe = new BrowserWindow({
+          show: false,
+          width: 1280,
+          height: 800,
+          webPreferences: {
+            preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
+            contextIsolation: true,
+            sandbox: true
+          }
+        })
+        try {
+          process.env.SENSORVIEW_OPEN_CASE = caseDir
+          await probe.loadFile(rendererHtml)
+
+          // The app opens the case itself; wait for the scene to say what it
+          // drew. This is the check that the layers meet -- a table that
+          // crossed the boundary intact but produced no geometry would pass
+          // every other check here.
+          // No backslash escapes inside the injected source: this is a
+          // TypeScript template literal, so an escape sequence is processed
+          // here and arrives as the character it denotes -- a newline landing
+          // inside a string literal there, which then does not parse.
+          const drew = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const deadline = Date.now() + 20000
+               while (Date.now() < deadline) {
+                 const error = document.querySelector('.sv-topbar-error')
+                 if (error) return { error: error.textContent }
+                 const stats = document.getElementById('gl-stats')
+                 const text = stats ? stats.textContent || '' : ''
+                 // Wait for a frame with something in it. The scene renders
+                 // once while empty before the case has loaded, and taking
+                 // that as the answer is how this check would pass without
+                 // ever drawing the data.
+                 const words = text.split(/[^0-9a-zA-Z.]+/)
+                 const at = words.indexOf('pts')
+                 const drawn = at > 0 ? parseFloat(words[at - 1]) : 0
+                 if (drawn > 0) {
+                   const legend = document.getElementById('gl-legend')
+                   return {
+                     stats: text,
+                     legend: legend ? legend.children.length : 0,
+                     ticks: document.querySelectorAll('.sv-gl-tick').length,
+                     groups: document.querySelectorAll('.sv-gl-legend-row').length
+                   }
+                 }
+                 await new Promise(r => setTimeout(r, 200))
+               }
+               return { error: 'the scene never reported drawing anything' }
+             })()`
+          )
+
+          expect(!drew.error, `renderer: ${drew.error}`)
+          // "idle | 12.0k pts | 27 draws" -- the number before "pts".
+          const words = String(drew.stats).split(/\s+/)
+          const at = words.indexOf('pts')
+          const drawn = at > 0 ? parseFloat(words[at - 1]!) : 0
+          expect(drawn > 0, `drew no points: "${drew.stats}"`)
+          expect(drew.ticks > 0, 'the axes drew no tick labels')
+          expect(drew.legend > 0, 'the legend is empty')
+
+          // And the readers agree with what is on screen.
+          const summary = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const scan = await window.sensorview.data('scanCase', { dir: ${JSON.stringify(caseDir)} })
+               if (!scan.ok) return { error: scan.error }
+               const log = scan.data.logs[0]
+               const read = await window.sensorview.data('readTable', { path: log.file })
+               if (!read.ok) return { error: read.error }
+               return {
+                 logs: scan.data.logs.length,
+                 stem: log.stem,
+                 rows: read.data.rows,
+                 columns: read.data.columns.length,
+                 numeric: read.data.columns.filter(c => c.kind === 'number').length,
+                 firstValues: Array.from(read.data.columns.find(c => c.name === 'X').values.slice(0, 3))
+               }
+             })()`
+          )
+
+          expect(!summary.error, `renderer could not read the case: ${summary.error}`)
+          expect(summary.rows === 19756, `renderer saw ${summary.rows} rows`)
+          expect(summary.columns === 16, `renderer saw ${summary.columns} columns`)
+          // Typed arrays have to survive the structured clone across the
+          // boundary; a plain object would arrive as {"0": .., "1": ..} and
+          // every coordinate would silently be undefined.
+          expect(
+            summary.firstValues.every((v: number) => Number.isFinite(v)),
+            `X arrived as ${JSON.stringify(summary.firstValues)}`
+          )
+          return `${summary.rows} rows -> ${drew.stats}, ${drew.groups} groups, ${drew.ticks} ticks`
+        } finally {
+          probe.destroy()
+        }
+      }
+    })
   }
 
   if (pageUrl) {
