@@ -1,3 +1,5 @@
+import type { Palette } from '@shared/palette'
+
 // Types for the scene module.
 //
 // The GL modules are still JavaScript -- they were moved across from the Dash
@@ -22,7 +24,7 @@ export interface Scene {
   setActive(on: boolean): void
   /** Re-read the palette from the document's custom properties. */
   setTheme(): void
-  setPalette(palette: unknown): void
+  setPalette(palette: Palette): void
   setColormap(name: string): void
   /** Show a message over the scene, or clear it with null. */
   setPending(pending: boolean): void

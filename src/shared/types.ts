@@ -8,6 +8,8 @@
 // Nothing here may import from electron, react or node: it is compiled into
 // all three processes and into the tests.
 
+import type { ColumnMeta } from './table'
+
 /**
  * Every call across the boundary answers with one of these.
  *
@@ -98,7 +100,7 @@ export interface DataMethods {
       dir: string
       name: string
       frameKey: string
-      keys: Record<string, unknown>
+      keys: Record<string, ColumnMeta>
       logs: Array<{
         stem: string
         file: string

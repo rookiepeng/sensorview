@@ -537,6 +537,96 @@ body {
     margin: 14px 0;
 }
 
+/* ── Rail controls ──────────────────────────────────────────── */
+
+.sv-rail-body select {
+    width: 100%;
+    padding: 4px 6px;
+    background: var(--sv-surface-2);
+    color: inherit;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+}
+
+.sv-rail-body input[type='range'] {
+    width: 100%;
+    accent-color: var(--sv-accent);
+}
+
+.sv-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 12px;
+    cursor: pointer;
+}
+
+.sv-switch-row input {
+    accent-color: var(--sv-accent);
+}
+
+.sv-field-value {
+    display: block;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.sv-rail-note {
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-faint);
+    margin: 0 0 10px;
+}
+
+.sv-filter {
+    margin-bottom: 14px;
+}
+
+/* The two thumbs of a range stack rather than overlap. An overlaid pair looks
+   like one control until the thumbs meet, at which point only the one on top
+   can be grabbed -- the bug is invisible until the range is narrow, which is
+   exactly when the control matters. */
+.sv-range {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sv-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.sv-chip {
+    padding: 2px 8px;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    background: transparent;
+    border: 1px solid var(--sv-border);
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.sv-chip-on {
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-color: var(--sv-accent);
+}
+
+.sv-text-btn {
+    padding: 0 4px;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.sv-text-btn:hover {
+    color: var(--sv-accent);
+}
+
 /* ── Canvas: the 3D view owns everything left over ───────────────────── */
 .sv-canvas {
     position: relative;

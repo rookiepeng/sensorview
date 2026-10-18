@@ -25,6 +25,16 @@ body {
 }
 
 body {
+    /* Bootstrap's reboot set this and nothing else did, so dropping Bootstrap
+       dropped the page to the user-agent default -- which on Windows is a
+       serif, and every label and readout in the app rendered in it. The stack
+       is reboot's own, minus the Bootstrap variable indirection. */
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+        Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    font-size: 0.875rem;
+    line-height: 1.5;
+
     /* The scene is a fixed layer behind the shell; a scrollbar here would both
        be meaningless and change the viewport the canvas sizes itself to. */
     overflow: hidden;

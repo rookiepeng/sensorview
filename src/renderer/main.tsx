@@ -8,6 +8,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
+// Bootstrap Icons, the one piece of Bootstrap worth keeping: the HUD's camera
+// presets, the rail's funnel and the theme toggle are all `bi bi-*` glyphs,
+// and without the font they render as empty boxes -- which is how they looked
+// once the Dash stylesheet went.
+import 'bootstrap-icons/font/bootstrap-icons.css'
+
 import './styles/reset.css'
 import './styles/app.css'
 import './styles/hud.css'

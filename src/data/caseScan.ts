@@ -8,6 +8,8 @@
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 
+import type { ColumnMeta } from '../shared/table'
+
 import { Manifest, tableSidecarSuffixes } from './manifest'
 
 export interface LogSummary {
@@ -27,7 +29,7 @@ export interface CaseSummary {
   frameKey: string
   logs: LogSummary[]
   /** Column metadata driving the filters and hover text. */
-  keys: Record<string, unknown>
+  keys: Record<string, ColumnMeta>
 }
 
 async function exists(path: string | null): Promise<boolean> {

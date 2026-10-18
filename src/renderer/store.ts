@@ -12,7 +12,12 @@
 
 import { create } from 'zustand'
 
-import type { Table } from '@shared/table'
+import {
+  initialFilters,
+  type ColumnMeta,
+  type FilterState,
+  type Table
+} from '@shared/table'
 
 import type { ScenePayload } from './frame'
 
@@ -23,8 +28,10 @@ export interface CaseState {
   table: Table | null
   /** Stem of the open log. */
   stem: string | null
-  /** Column metadata from the manifest, driving labels and hover. */
-  keys: Record<string, { description?: string; unit?: string; decimal?: number; type?: string }>
+  /** Column metadata from the manifest, driving labels, hover and the rail. */
+  keys: Record<string, ColumnMeta>
+  /** Per-column filters, one per declared key. */
+  filters: FilterState
   /** Axis and colour columns. */
   axes: { x: string; y: string; z: string; colour: string }
   /** Slider position, which indexes the frame list -- not a frame id. */
@@ -55,6 +62,9 @@ export interface Actions {
     axes: CaseState['axes']
   }): void
   setAxis(axis: keyof CaseState['axes'], column: string): void
+  setNumericFilter(column: string, min: number, max: number): void
+  setCategoryFilter(column: string, allowed: string[]): void
+  resetFilters(): void
   closeCase(): void
   setFrame(frame: number): void
   stepFrame(delta: number): void
@@ -71,6 +81,7 @@ const initial: CaseState = {
   table: null,
   stem: null,
   keys: {},
+  filters: { numeric: [], categorical: [] },
   axes: { x: 'X', y: 'Y', z: 'Z', colour: 'X' },
   frame: 0,
   frameCount: 0,
@@ -88,9 +99,44 @@ export const useStore = create<CaseState & Actions>((set) => ({
   openCase: (dir, frameCount) => set({ ...initial, dir, frameCount }),
 
   openLog: ({ dir, stem, table, keys, axes }) =>
-    set({ ...initial, dir, stem, table, keys, axes, frameCount: table.frameIds.length }),
+    set({
+      ...initial,
+      dir,
+      stem,
+      table,
+      keys,
+      axes,
+      filters: initialFilters(table, keys),
+      frameCount: table.frameIds.length
+    }),
 
   setAxis: (axis, column) => set((s) => ({ axes: { ...s.axes, [axis]: column } })),
+
+  // Each setter replaces one entry and leaves the rest identical, so a frame
+  // rebuild compares the array by reference and the untouched filters cost
+  // nothing. Dragging a slider is the hot path here.
+  setNumericFilter: (column, min, max) =>
+    set((s) => ({
+      filters: {
+        ...s.filters,
+        numeric: s.filters.numeric.map((entry) =>
+          entry.column === column ? { column, min, max } : entry
+        )
+      }
+    })),
+
+  setCategoryFilter: (column, allowed) =>
+    set((s) => ({
+      filters: {
+        ...s.filters,
+        categorical: s.filters.categorical.map((entry) =>
+          entry.column === column ? { column, allowed } : entry
+        )
+      }
+    })),
+
+  resetFilters: () =>
+    set((s) => ({ filters: s.table ? initialFilters(s.table, s.keys) : initial.filters })),
 
   closeCase: () => set({ ...initial }),
 

@@ -249,17 +249,37 @@ export async function runSmoke(
       name: 'the renderer opens the case and draws it',
       run: async () => {
         const { dirname: dirOf, join: joinPath } = await import('node:path')
+        // Shown only when a shot was asked for: capturePage on a window that
+        // was never shown comes back blank, because there is no compositor
+        // output to read.
+        const shotPath = process.env.SENSORVIEW_SMOKE_SHOT
         const probe = new BrowserWindow({
-          show: false,
+          show: Boolean(shotPath),
           width: 1280,
           height: 800,
           webPreferences: {
             preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
             contextIsolation: true,
-            sandbox: true
+            sandbox: true,
+            // Load-bearing, and the reason this check once failed only with
+            // --shot: a shown window that something else covers is occluded,
+            // and Chromium stops an occluded window's compositor, so
+            // requestAnimationFrame never fires and the scene stops advancing.
+            // A hidden window is never occluded, which is why the invisible
+            // run passed. The real window sets this for the same reason.
+            backgroundThrottling: false
           }
         })
         try {
+          // Set SENSORVIEW_SMOKE_VERBOSE to see what the page says. The
+          // single-object form of this event, not the old positional one --
+          // under the positional signature the message is undefined and this
+          // prints nothing, which looks exactly like a silent page.
+          if (process.env.SENSORVIEW_SMOKE_VERBOSE) {
+            probe.webContents.on('console-message', (event) => {
+              console.log(`      renderer: ${event.message}`)
+            })
+          }
           process.env.SENSORVIEW_OPEN_CASE = caseDir
           await probe.loadFile(rendererHtml)
 
@@ -287,6 +307,7 @@ export async function runSmoke(
                  const at = words.indexOf('pts')
                  const drawn = at > 0 ? parseFloat(words[at - 1]) : 0
                  if (drawn > 0) {
+                   console.log('scene settled: ' + text)
                    const legend = document.getElementById('gl-legend')
                    return {
                      stats: text,
@@ -297,7 +318,17 @@ export async function runSmoke(
                  }
                  await new Promise(r => setTimeout(r, 200))
                }
-               return { error: 'the scene never reported drawing anything' }
+               const stats = document.getElementById('gl-stats')
+               const canvas = document.querySelector('canvas')
+               return {
+                 error: 'the scene never reported drawing anything'
+                   + ' | stats=' + JSON.stringify(stats ? stats.textContent : null)
+                   + ' | canvas=' + (canvas ? canvas.width + 'x' + canvas.height : 'none')
+                   + ' | legend=' + document.querySelectorAll('.sv-gl-legend-row').length
+                   + ' | chips=' + document.querySelectorAll('.sv-chip').length
+                   + ' | crumb=' + JSON.stringify(
+                       (document.querySelector('.sv-crumb-file') || {}).textContent || null)
+               }
              })()`
           )
 
@@ -309,6 +340,12 @@ export async function runSmoke(
           expect(drawn > 0, `drew no points: "${drew.stats}"`)
           expect(drew.ticks > 0, 'the axes drew no tick labels')
           expect(drew.legend > 0, 'the legend is empty')
+
+          if (shotPath) {
+            const { writeFile } = await import('node:fs/promises')
+            const image = await probe.webContents.capturePage()
+            await writeFile(shotPath, image.toPNG())
+          }
 
           // And the readers agree with what is on screen.
           const summary = await probe.webContents.executeJavaScript(
@@ -329,6 +366,37 @@ export async function runSmoke(
              })()`
           )
 
+          // And a filter reaches the scene. Clicking off one category is the
+          // shortest path from a control to a redraw, and it is the part of
+          // the chain -- rail to store to frame build to GPU -- that nothing
+          // else here touches.
+          const filtered = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const chips = Array.from(document.querySelectorAll('.sv-chip-on'))
+               if (chips.length < 2) return { error: 'no categorical filter to flip' }
+               const before = document.getElementById('gl-stats').textContent
+               chips[0].click()
+               const deadline = Date.now() + 5000
+               while (Date.now() < deadline) {
+                 const after = document.getElementById('gl-stats').textContent
+                 if (after !== before) return { before: before, after: after }
+                 await new Promise(r => setTimeout(r, 100))
+               }
+               return { error: 'the scene did not redraw after a filter change' }
+             })()`
+          )
+
+          expect(!filtered.error, `filter: ${filtered.error}`)
+          const pointsIn = (text: string) => {
+            const parts = String(text).split(/\s+/)
+            const at = parts.indexOf('pts')
+            return at > 0 ? parseFloat(parts[at - 1]!) : 0
+          }
+          expect(
+            pointsIn(filtered.after) < pointsIn(filtered.before),
+            `turning a category off did not remove points: ${filtered.before} -> ${filtered.after}`
+          )
+
           expect(!summary.error, `renderer could not read the case: ${summary.error}`)
           expect(summary.rows === 19756, `renderer saw ${summary.rows} rows`)
           expect(summary.columns === 16, `renderer saw ${summary.columns} columns`)
@@ -339,7 +407,10 @@ export async function runSmoke(
             summary.firstValues.every((v: number) => Number.isFinite(v)),
             `X arrived as ${JSON.stringify(summary.firstValues)}`
           )
-          return `${summary.rows} rows -> ${drew.stats}, ${drew.groups} groups, ${drew.ticks} ticks`
+          return (
+            `${summary.rows} rows -> ${drew.groups} groups, ${drew.ticks} ticks, ` +
+            `${pointsIn(filtered.before)} pts -> ${pointsIn(filtered.after)} with one category off`
+          )
         } finally {
           probe.destroy()
         }

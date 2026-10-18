@@ -350,3 +350,63 @@ export function rangeOf(table: Table, name: string): [number, number] {
   }
   return Number.isFinite(min) ? [min, max] : [0, 0]
 }
+
+/**
+ * What the manifest says about one column.
+ *
+ * `type` is what decides whether a column gets a range slider or a
+ * multi-select, and it is the manifest's word rather than the data's: a
+ * categorical column stored as small integers is still categorical, and
+ * reading the Parquet dtype instead would give it a slider.
+ */
+export interface ColumnMeta {
+  description?: string
+  unit?: string
+  decimal?: number
+  type?: string
+}
+
+/**
+ * The filters a freshly opened log starts on: everything passes.
+ *
+ * Driven by the manifest rather than by the columns present, because that is
+ * what decides which controls the rail shows -- the Dash rail generated one
+ * per declared key and nothing for an undeclared column, and a column the
+ * manifest does not describe is one the author did not mean to filter on.
+ *
+ * Note that a numeric filter sitting at the full data range is not the same as
+ * no filter: NaN fails both comparisons, so a row with no value in a filtered
+ * column drops out. That is the behaviour the sliders had, every column having
+ * had one, and it is why this returns a filter per declared key rather than an
+ * empty state.
+ *
+ * @param table The loaded log.
+ * @param keys The manifest's column metadata.
+ * @returns Filters admitting every row that has a value in every declared
+ *     column.
+ */
+export function initialFilters(table: Table, keys: Record<string, ColumnMeta>): FilterState {
+  const numeric: NumericFilter[] = []
+  const categorical: CategoryFilter[] = []
+
+  for (const [name, meta] of Object.entries(keys)) {
+    const column = table.columns.get(name)
+    if (!column || name === table.frameKey) {
+      // The slider column is the frame axis, not a filter: filtering it would
+      // hide frames rather than points, which the transport already does.
+      continue
+    }
+    if (meta.type === 'categorical' && column.kind === 'string') {
+      categorical.push({ column: name, allowed: [...column.levels] })
+    } else if (column.kind === 'number') {
+      const [min, max] = rangeOf(table, name)
+      numeric.push({ column: name, min, max })
+    } else if (column.kind === 'string') {
+      // Declared numerical but stored as text. The data wins here -- a range
+      // filter over level codes would compare meaningless numbers.
+      categorical.push({ column: name, allowed: [...column.levels] })
+    }
+  }
+
+  return { numeric, categorical }
+}

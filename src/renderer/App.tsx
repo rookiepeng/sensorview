@@ -33,6 +33,7 @@ export function App() {
   const table = useStore((s) => s.table)
   const axes = useStore((s) => s.axes)
   const keys = useStore((s) => s.keys)
+  const filters = useStore((s) => s.filters)
 
   // Browser mode has no readers behind it, so it starts on the fixture. In
   // Electron the top bar's breadcrumb opens a real case.
@@ -55,9 +56,7 @@ export function App() {
         table
           ? buildFrame(table, frame - i, {
               ...axes,
-              // Click-to-hide, applied as a filter rather than by rebuilding
-              // the table: the rows are still there, they are just not drawn.
-              filters: { numeric: [], categorical: [] },
+              filters,
               keys,
               withHover: !playing
             })
@@ -106,7 +105,7 @@ export function App() {
       // which is the contract the Dash buffer had for the same reason.
       paused: !playing
     }
-  }, [frame, frameCount, decay, colormap, sizeVary, playing, hidden, table, axes, keys])
+  }, [frame, frameCount, decay, colormap, sizeVary, playing, hidden, table, axes, keys, filters])
 
   return (
     <div className="sv-shell">

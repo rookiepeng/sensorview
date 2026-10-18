@@ -1,9 +1,13 @@
 // Run the end-to-end spine check inside Electron.
 //
-//   node scripts/smoke.mjs [media-file] [--url <page>] [--case <dir>] [--packaged]
+//   node scripts/smoke.mjs [media-file] [--url <page>] [--case <dir>] [--shot <png>]
+//                            [--packaged]
 //
 // --case adds the native-module spike: polars against the real table and
 // h5wasm against the real cloud, through the forked data process.
+//
+// --shot writes a PNG of the probe window once it has drawn the case, which
+// is the only way to look at the renderer without starting it by hand.
 //
 // --packaged runs dist/win-unpacked instead of the dev build, which is the
 // only configuration where an asar or a missing runtime can show up.
@@ -30,10 +34,11 @@ const flag = (name) => {
 }
 const url = flag('--url')
 const caseDir = flag('--case')
+const shot = flag('--shot')
 const packaged = args.includes('--packaged')
 
 const consumed = new Set()
-for (const name of ['--url', '--case']) {
+for (const name of ['--url', '--case', '--shot']) {
   const at = args.indexOf(name)
   if (at !== -1) {
     consumed.add(at).add(at + 1)
@@ -69,7 +74,8 @@ const child = spawn(electron, packaged ? [] : ['.'], {
     ...process.env,
     SENSORVIEW_SMOKE: media,
     ...(url ? { SENSORVIEW_SMOKE_URL: url } : {}),
-    ...(caseDir ? { SENSORVIEW_SMOKE_CASE: resolve(caseDir) } : {})
+    ...(caseDir ? { SENSORVIEW_SMOKE_CASE: resolve(caseDir) } : {}),
+    ...(shot ? { SENSORVIEW_SMOKE_SHOT: resolve(shot) } : {})
   }
 })
 child.on('exit', (code) => process.exit(code ?? 1))

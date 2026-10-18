@@ -15,17 +15,10 @@ import {
   filterAll,
   frameRows,
   rangeOf,
+  type ColumnMeta,
   type FilterState,
   type Table
 } from '@shared/table'
-
-/** How a column is formatted in hover text, from the manifest's `keys`. */
-export interface KeyMeta {
-  description?: string
-  unit?: string
-  decimal?: number
-  type?: string
-}
 
 export interface BuildOptions {
   x: string
@@ -35,7 +28,7 @@ export interface BuildOptions {
   colour: string
   filters: FilterState
   /** Column metadata, for hover text and labels. */
-  keys: Record<string, KeyMeta>
+  keys: Record<string, ColumnMeta>
   /** Hover text is only built when the view is standing still. */
   withHover: boolean
 }
@@ -47,7 +40,7 @@ const EMPTY_LAYOUT: SceneLayout = {
   title: ''
 }
 
-function label(name: string, keys: Record<string, KeyMeta>): string {
+function label(name: string, keys: Record<string, ColumnMeta>): string {
   const meta = keys[name]
   if (!meta) {
     return name
@@ -93,7 +86,7 @@ function padded(range: [number, number]): [number, number] {
 function hoverReader(
   table: Table,
   rows: Int32Array,
-  keys: Record<string, KeyMeta>
+  keys: Record<string, ColumnMeta>
 ): (row: number) => string | null {
   const columns = [...table.columns.values()].filter((column) => column.name !== table.frameKey)
 

@@ -12,6 +12,8 @@ import { useEffect, useRef } from 'react'
 
 import { create, type Scene } from '@gl/sv_scene.esm.js'
 
+import { PALETTE } from '@shared/palette'
+
 import type { ScenePayload } from '../frame'
 
 export interface GlStageProps {
@@ -41,6 +43,9 @@ export function GlStage({ payload, onPick, software }: GlStageProps) {
       onPick: (event) => pick.current?.(event.id)
     })
     scene.current = instance
+    // Before the first frame: the colorway decides every categorical colour,
+    // and the scene falls back to one flat blue without it.
+    instance.setPalette(PALETTE)
     instance.setTheme()
 
     // The scene sizes itself to its host, and only a real resize changes that.

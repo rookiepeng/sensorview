@@ -32,7 +32,7 @@ import { Axes } from "./sv_axes.esm.js";
 import { Hud } from "./sv_hud.esm.js";
 import { LineLayer, MeshLayer, PointLayer } from "./sv_points.esm.js";
 import { Picker } from "./sv_pick.esm.js";
-import { lutTexture, setPalette } from "./sv_color.esm.js";
+import { categoryColor, lutTexture, setPalette } from "./sv_color.esm.js";
 
 // Plotly draws a scatter3d marker noticeably fatter than its nominal `size`.
 // This is the factor that makes a point the same weight in both renderers, so
@@ -469,7 +469,13 @@ export function create(host, options = {}) {
           sizeScale: SIZE_SCALE,
           cRange: frame.cRange,
           lut,
-          rgb: group.rgb || [160, 160, 160],
+          // A categorical group with no colour of its own takes the one the
+          // legend already shows for it. Both read `categoryColor` at the same
+          // index, so the swatch and the points cannot drift apart -- which
+          // they did while this fell through to grey.
+          rgb:
+            group.rgb ||
+            (frame.cType === "categorical" ? categoryColor(index) : [160, 160, 160]),
         });
       });
     });
