@@ -5,15 +5,15 @@
 // the glass, both unchanged from the Dash app -- the layout was already right,
 // it was only ever the framework underneath that was being replaced.
 //
-// The analysis dock is P4; its region is absent rather than stubbed, so the
-// grid does not reserve space for something that is not there yet. The
-// inspector returns null for a log with neither a recording nor curves, which
-// is the same idea one level down.
+// Each region draws nothing when it has nothing: the inspector for a log with
+// neither a recording nor curves, the dock until a case is open. A region that
+// reserved its space empty would make the scene smaller to say nothing.
 
 import { useEffect, useMemo } from 'react'
 
 import { FilterRail } from './components/FilterRail'
 import { GlStage } from './components/GlStage'
+import { AnalysisDock } from './components/AnalysisDock'
 import { Inspector } from './components/Inspector'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
@@ -23,6 +23,7 @@ import { useReference } from './useReference'
 import { fixtureFrame } from './fixture'
 import type { ScenePayload } from './frame'
 import { useStore } from './store'
+import { useTheme } from './useTheme'
 import { parseColor } from '@gl/sv_color.esm.js'
 
 export function App() {
@@ -39,6 +40,7 @@ export function App() {
   const axes = useStore((s) => s.axes)
   const keys = useStore((s) => s.keys)
   const stem = useStore((s) => s.stem)
+  const theme = useTheme()
   const filters = useStore((s) => s.filters)
   const cloud = useStore((s) => s.cloud)
   const cloudDisplay = useStore((s) => s.cloudDisplay)
@@ -197,6 +199,7 @@ export function App() {
           <div id="inspector-splitter" className="sv-splitter sv-splitter-col" />
           <Inspector />
         </div>
+        <AnalysisDock theme={theme} />
       </div>
     </div>
   )

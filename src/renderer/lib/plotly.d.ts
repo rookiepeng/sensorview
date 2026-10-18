@@ -18,3 +18,28 @@ declare module 'plotly.js/lib/scatter' {
   const trace: unknown
   export default trace
 }
+
+declare module 'plotly.js/lib/histogram' {
+  const trace: unknown
+  export default trace
+}
+
+declare module 'plotly.js/lib/histogram2dcontour' {
+  const trace: unknown
+  export default trace
+}
+
+declare module 'plotly.js/lib/heatmap' {
+  const trace: unknown
+  export default trace
+}
+
+declare module 'plotly.js/lib/violin' {
+  const trace: unknown
+  export default trace
+}
+
+declare module 'plotly.js/lib/parcats' {
+  const trace: unknown
+  export default trace
+}

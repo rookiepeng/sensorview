@@ -11,6 +11,7 @@ import type { CurvePlot, ImageStream } from '@shared/types'
 import { CameraPanel } from './CameraPanel'
 import { CurvePanel, growYRanges } from './CurvePanel'
 import { useStore } from '../store'
+import { useTheme } from '../useTheme'
 
 export function Inspector() {
   const dir = useStore((s) => s.dir)
@@ -23,7 +24,7 @@ export function Inspector() {
   const [plots, setPlots] = useState<CurvePlot[]>([])
   const [yRanges, setYRanges] = useState<Record<string, [number, number]>>({})
   const [collapsed, setCollapsed] = useState(false)
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
+  const theme = useTheme()
 
   // Recordings are resolved once per log, not per frame: resolving can
   // transcode, and the result is a property of the file.
@@ -71,19 +72,6 @@ export function Inspector() {
     }
   }, [dir, stem, table, frame])
 
-  useEffect(() => {
-    const read = () =>
-      setTheme(
-        document.documentElement.getAttribute('data-bs-theme') === 'light' ? 'light' : 'dark'
-      )
-    read()
-    const observer = new MutationObserver(read)
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-bs-theme']
-    })
-    return () => observer.disconnect()
-  }, [])
 
   // Nothing to inspect: no dock at all, rather than an empty one taking 380px
   // from the scene.

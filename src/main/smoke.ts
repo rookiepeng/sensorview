@@ -537,7 +537,7 @@ export async function runSmoke(
 
           // The inspector and the reference, both of which only exist once
           // the renderer, the data process and the sv:// handler all agree.
-          const dock = await probe.webContents.executeJavaScript(
+          const inspector = await probe.webContents.executeJavaScript(
             `(async () => {
                const deadline = Date.now() + 20000
                while (Date.now() < deadline) {
@@ -567,12 +567,12 @@ export async function runSmoke(
              })()`
           )
 
-          expect(!dock.error, `inspector: ${dock.error}`)
+          expect(!inspector.error, `inspector: ${inspector.error}`)
           // A video that decoded a frame proves the whole sv:// path: the
           // renderer asked, main checked the path against the opened case,
           // and the Range request came back as 206.
-          expect(dock.ready > 0, 'no recording decoded a frame')
-          expect(dock.traces > 0, 'the curve plots drew no traces')
+          expect(inspector.ready > 0, 'no recording decoded a frame')
+          expect(inspector.traces > 0, 'the curve plots drew no traces')
 
           // And the reference mesh reached the scene. Counted off the draw
           // calls, which rise by one for the mesh and one for its wireframe.
@@ -589,6 +589,90 @@ export async function runSmoke(
           )
           expect(posed > 8, `the reference drew nothing: ${posed} draws`)
 
+          // Every dock view, one after another. Each is a different trace
+          // type with a different binning path behind it, and a view that
+          // throws takes the React tree with it -- so this cycles the picker
+          // rather than trusting the one that happens to be on screen.
+          const dock = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const settle = async () => {
+                 for (let i = 0; i < 60; i++) {
+                   await new Promise(r => setTimeout(r, 250))
+                   const pane = document.querySelector('.sv-pane-graph.js-plotly-plot')
+                   if (pane && pane.data && pane.data.length) return pane
+                 }
+                 return null
+               }
+               const picker = document.querySelector('.sv-slot-picker select')
+               if (!picker) return { error: 'no dock' }
+               const views = Array.from(picker.options)
+                 .map(o => o.value)
+                 .filter(v => v.length > 0)
+
+               const drawn = {}
+               for (const view of views) {
+                 const started = performance.now()
+                 picker.value = view
+                 picker.dispatchEvent(new Event('change', { bubbles: true }))
+                 const pane = await settle()
+                 const took = Math.round(performance.now() - started)
+                 if (!pane) return { error: 'the ' + view + ' view drew nothing' }
+                 // A trace that exists is not a trace that rendered. Plotly
+                 // replaces a pane it cannot draw with a notice, and the
+                 // scattergl one looked fine until this looked for marks.
+                 // What each trace type actually puts in the DOM. Counted
+                 // rather than assumed: a trace that exists is not a trace
+                 // that rendered, which is how the scattergl notice hid.
+                 const marks = pane.querySelectorAll(
+                   '.scatterlayer .point, .scatterlayer .points path,'
+                   + ' .heatmaplayer image, .contourlayer .contour,'
+                   + ' .barlayer .point, .violinlayer .trace,'
+                   + ' .parcats .paths path, .parcats .dimension'
+                 ).length
+                 const notice = pane.querySelector('.no-webgl, .nowebgl')
+                 if (notice) {
+                   return {
+                     error: view + ': ' + notice.textContent.trim()
+                   }
+                 }
+                 const trace = pane.data[0]
+                 const points = trace.x ? trace.x.length
+                   : (trace.dimensions ? trace.dimensions[0].values.length : 0)
+                 drawn[view] = {
+                   traces: pane.data.length,
+                   type: trace.type,
+                   points: points,
+                   marks: marks,
+                   ms: took
+                 }
+               }
+               return { views: views, drawn: drawn }
+             })()`
+          )
+
+          expect(!dock.error, `dock: ${dock.error}`)
+          expect(dock.views.length === 5, `expected five views, got ${dock.views.length}`)
+          for (const view of dock.views) {
+            const drawn = dock.drawn[view]!
+            expect(drawn.traces > 0, `the ${view} view built no traces`)
+            expect(drawn.points > 0, `the ${view} view drew no points`)
+            expect(drawn.marks > 0, `the ${view} view built traces but rendered nothing`)
+          }
+          // The whole filtered table, not the frame on the slider -- a
+          // histogram of one frame's few hundred detections says nothing, and
+          // that is the distinction a port would quietly lose.
+          expect(
+            dock.drawn.histogram.points > 10000,
+            `the dock drew ${dock.drawn.histogram.points} rows, not the whole table`
+          )
+          // The scatter is SVG, one node per point. Fine at this size and the
+          // thing that will stop being fine first, so it is measured rather
+          // than assumed.
+          expect(
+            dock.drawn.scatter.ms < 8000,
+            `the scatter took ${dock.drawn.scatter.ms}ms for ${dock.drawn.scatter.points} points`
+          )
+
           // Shot last, with the cloud on and the category put back, so the
           // picture is the view in full rather than mid-check.
           if (shotPath) {
@@ -597,9 +681,16 @@ export async function runSmoke(
               `(async () => {
                  const off = document.querySelector('.sv-chip:not(.sv-chip-on)')
                  if (off) off.click()
+                 const pickers = Array.from(document.querySelectorAll('.sv-slot-picker select'))
+                 const choose = (at, view) => {
+                   pickers[at].value = view
+                   pickers[at].dispatchEvent(new Event('change', { bubbles: true }))
+                 }
+                 choose(0, 'scatter')
+                 choose(1, 'heatmap')
                  const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
                  buttons[buttons.length - 1].click()
-                 await new Promise(r => setTimeout(r, 600))
+                 await new Promise(r => setTimeout(r, 2500))
                })()`
             )
             const image = await probe.webContents.capturePage()
@@ -621,8 +712,9 @@ export async function runSmoke(
             `${pointsIn(filtered.before)} pts -> ${pointsIn(filtered.after)} with one category off, ` +
             `${pointsIn(clouded.after)} with the cloud on; ` +
             `${switched.logs} logs, ${switched.was} -> ${switched.now}; ` +
-            `${dock.ready}/${dock.videos} videos at ${dock.size}, ` +
-            `${dock.traces} traces in ${dock.plots} plots`
+            `${inspector.ready}/${inspector.videos} videos at ${inspector.size}, ` +
+            `${inspector.traces} traces in ${inspector.plots} plots; ` +
+            `dock ${dock.views.map((v: string) => `${v} ${dock.drawn[v].marks} marks`).join(', ')}`
           )
         } finally {
           probe.destroy()

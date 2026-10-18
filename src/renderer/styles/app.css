@@ -20,7 +20,7 @@
     --sv-transport-h: 46px;
     --sv-rail-w: 288px;
     --sv-inspector-w: 380px;
-    --sv-dock-h: 50vh;
+    --sv-dock-h: 34vh;
     --sv-dock-tabs-h: 38px;
     /* Floor for a pane's plot area. The figures reserve 120px of vertical
        margin for their axes, so anything much below this leaves a drawing area
@@ -1280,6 +1280,53 @@ body {
     flex-wrap: wrap;
     margin-bottom: 8px;
 }
+
+/* One labelled select. The label sits above rather than beside it, so a strip
+   of five pickers stays on one row -- a second row costs a fifth of the plot's
+   height, which is the whole reason the strip is this tight. */
+.sv-pane-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.sv-pane-field .sv-section-label {
+    margin-bottom: 0;
+}
+
+.sv-dock select,
+.sv-pane-field select {
+    padding: 2px 6px;
+    background: var(--sv-surface-2);
+    color: inherit;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    max-width: 180px;
+}
+
+.sv-dock .sv-switch-row {
+    margin-bottom: 0;
+    font-size: var(--sv-font-xs);
+    align-self: end;
+}
+
+/* The plot takes everything the control strip left. Plotly sizes itself to
+   this box, so it needs a real height rather than one that depends on the
+   figure it is about to draw. */
+.sv-pane-graph {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+}
+
+.sv-pane-graph.js-plotly-plot,
+.sv-pane-graph .plot-container {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
 
 .sv-pane-controls .input-group {
     width: auto;

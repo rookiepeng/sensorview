@@ -10,8 +10,23 @@
 
 import Plotly from 'plotly.js/lib/core'
 
+// `scatter` covers the curve panel's lines and the dock's 2D scatter. The
+// WebGL `scattergl` is deliberately absent: it reports no WebGL in this
+// renderer despite a working context, so nothing may quietly reach for it.
 import scatter from 'plotly.js/lib/scatter'
+import histogram from 'plotly.js/lib/histogram'
+import histogram2dcontour from 'plotly.js/lib/histogram2dcontour'
+import heatmap from 'plotly.js/lib/heatmap'
+import violin from 'plotly.js/lib/violin'
+import parcats from 'plotly.js/lib/parcats'
 
-Plotly.register([scatter])
+Plotly.register([
+  scatter,
+  histogram,
+  histogram2dcontour,
+  heatmap,
+  violin,
+  parcats
+])
 
 export default Plotly
