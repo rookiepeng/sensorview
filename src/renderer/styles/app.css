@@ -1682,3 +1682,61 @@ body {
 .sv-menu-item .sv-menu-marks {
     font-size: var(--sv-font-xs);
 }
+
+/* ── Combining logs ──────────────────────────────────────────────────── */
+
+/* A combine row is a checkbox, a name that opens the log alone, and what the
+   log carries. Three targets in a menu row, so the name takes the space and
+   the rest sit at the ends. */
+.sv-menu-combine {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+}
+
+.sv-menu-combine input {
+    flex: 0 0 auto;
+    accent-color: var(--sv-accent);
+}
+
+.sv-menu-open {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+.sv-menu-open:hover .sv-menu-label {
+    text-decoration: underline;
+}
+
+/* Which log leads. Everything with room for one answer -- the cloud, the
+   pose, an export -- reads the primary, so it is worth saying which it is. */
+.sv-menu-primary {
+    flex: 0 0 auto;
+    padding: 0 5px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: 999px;
+}
+
+/* The breadcrumb names the primary and counts the rest: it is a path, and
+   three stems in it stop reading as one. */
+.sv-crumb-more {
+    flex: 0 0 auto;
+    padding: 0 5px;
+    font-size: var(--sv-font-xs);
+    font-weight: 650;
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: 999px;
+}

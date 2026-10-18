@@ -156,7 +156,7 @@ export interface DataMethods {
    * category filter an integer comparison.
    */
   readTable: {
-    params: { path: string; columns?: string[] }
+    params: { path: string | string[]; columns?: string[] }
     result: {
       rows: number
       columns: Array<{
@@ -179,6 +179,20 @@ export interface DataMethods {
   scanCase: {
     params: { dir: string }
     result: CaseSummary
+  }
+
+  /**
+   * Which logs recorded each frame id.
+   *
+   * Read by projection rather than by loading the tables: it is one column
+   * per file, and on a multi-GB table the difference is opening a case in a
+   * second or in a minute. Keyed by the id's string form, because the ids
+   * come back from the scan as scalars and are matched against the ones the
+   * loaded table carries.
+   */
+  logFrameOwners: {
+    params: { dir: string; stems: string[] }
+    result: Record<string, string[]>
   }
 
   /**

@@ -12,7 +12,8 @@ import { useStore } from './store'
 
 export function useReference(): void {
   const dir = useStore((s) => s.dir)
-  const stem = useStore((s) => s.stem)
+  const primary = useStore((s) => s.stem)
+  const ownerSets = useStore((s) => s.ownerSets)
   const table = useStore((s) => s.table)
   const frame = useStore((s) => s.frame)
   const setReference = useStore((s) => s.setReference)
@@ -22,12 +23,15 @@ export function useReference(): void {
 
   useEffect(() => {
     setReferenceBounds(null)
-    if (!dir || !stem) {
+    // The bounds widen the axis box for the whole load, so they come from
+    // the primary: a box fitted to one log's journey and then widened by
+    // another's would be the union of two unrelated drives.
+    if (!dir || !primary) {
       return
     }
     let current = true
     void window.sensorview
-      .data('logReferenceBounds', { dir, stem })
+      .data('logReferenceBounds', { dir, stem: primary })
       .then((result) => {
         if (current && result.ok) {
           setReferenceBounds(result.data ?? null)
@@ -36,10 +40,12 @@ export function useReference(): void {
     return () => {
       current = false
     }
-  }, [dir, stem, setReferenceBounds])
+  }, [dir, primary, setReferenceBounds])
 
   useEffect(() => {
     const frameId = table?.frameIds[frame]
+    // One pose can be drawn, so it is the frame's own leading log's.
+    const stem = ownerSets[frame]?.[0] ?? primary
     if (!dir || !stem || frameId === undefined) {
       return
     }
@@ -55,5 +61,5 @@ export function useReference(): void {
         // stranding the reference at its last known pose.
         setReference(result.ok ? (result.data ?? null) : null)
       })
-  }, [dir, stem, table, frame, setReference])
+  }, [dir, ownerSets, primary, table, frame, setReference])
 }

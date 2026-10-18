@@ -47,6 +47,29 @@ export function frameIds(path: string, frameKey: string): number[] {
 }
 
 /**
+ * Scan one or more Parquet files as a single frame.
+ *
+ * Combined logs need not carry the same columns -- a case can hold a radar
+ * log and a lidar one -- so a differing schema falls back to a diagonal
+ * concat, which keeps the union and null-fills the rest. Tried in that order
+ * because the fast path is the common one and the fallback reads every
+ * file's schema to work out the union.
+ */
+function scanAll(paths: string[]): pl.LazyDataFrame {
+  if (paths.length === 1) {
+    return pl.scanParquet(paths[0]!)
+  }
+  try {
+    return pl.scanParquet(paths as never)
+  } catch {
+    return pl.concat(
+      paths.map((one) => pl.scanParquet(one)),
+      { how: 'diagonal' }
+    )
+  }
+}
+
+/**
  * Collapse a length-one List or Array column to its scalar.
  *
  * Exporters routinely write `["sensor_1"]` where they meant `"sensor_1"`, and
@@ -74,11 +97,15 @@ function scalarize(df: pl.DataFrame): pl.DataFrame {
  * level codes plus a dictionary, which is what makes an `isin` filter a
  * integer comparison instead of a string one.
  *
- * @param path File to read.
+ * Several paths are concatenated, which is what combining logs means -- the
+ * rows of each one after another, with a frame id the only thing left tying a
+ * row back to the log it came from.
+ *
+ * @param path File to read, or files to combine.
  * @param columns Columns to read, or all of them.
  */
-export function readTable(path: string, columns?: string[]): TableData {
-  let scan = pl.scanParquet(path)
+export function readTable(path: string | string[], columns?: string[]): TableData {
+  let scan = scanAll(Array.isArray(path) ? path : [path])
   if (columns?.length) {
     scan = scan.select(...columns.map((name) => pl.col(name)))
   }

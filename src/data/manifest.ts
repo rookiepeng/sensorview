@@ -553,6 +553,16 @@ export class Manifest {
     return normalize(join(this.caseDir, `${stem}${suffix}`))
   }
 
+  /**
+   * The table a stem names.
+   *
+   * The same path `scanCase` listed the log from, derived rather than
+   * remembered: a stem plus the manifest's table suffix is what a log is.
+   */
+  tablePath(stem: string): string | null {
+    return stem ? this.sidecarPath(stem, this.tableSuffix) : null
+  }
+
   /* ───────────────────────────────────────────────────────────── cloud ─── */
 
   get cloudSuffix(): string {

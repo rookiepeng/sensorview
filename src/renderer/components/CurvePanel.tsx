@@ -94,7 +94,12 @@ function Plot({
   return (
     <div className="sv-curve">
       <span className="sv-section-label">{plot.label}</span>
-      <PlotlyFigure data={data} layout={layout} className="sv-curve-graph" />
+      <PlotlyFigure
+        data={data}
+        layout={layout}
+        className="sv-curve-graph"
+        revision={plot.id}
+      />
     </div>
   )
 }

@@ -1,81 +1,157 @@
 // The right-hand dock: what the open frame looks like, beside what it is.
 //
-// Two sections, each present only when the log has something to fill it. A
-// section with an empty body is worse than no section: it says the log has a
-// camera that is not working, rather than that it has none.
+// Two sections, each present only when something fills it. A section with an
+// empty body is worse than no section: it says the log has a camera that is
+// not working, rather than that it has none.
+//
+// These are the two panels that show every log that recorded a position
+// rather than only the one that leads it. Combining logs collapses shared
+// frame ids onto one slider position, and the whole point of keeping the
+// owner set rather than a single stem is that these two can draw all of them;
+// the cloud, the pose and the exports have room for one answer and take the
+// head of the set.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
+import { positionsOf, stemRuns } from '@shared/logs'
 import type { CurvePlot, ImageStream } from '@shared/types'
 
-import { CameraPanel } from './CameraPanel'
+import { CameraPanel, type ClipSource } from './CameraPanel'
 import { CurvePanel, growYRanges } from './CurvePanel'
 import { useStore } from '../store'
 import { useTheme } from '../useTheme'
 
 export function Inspector() {
   const dir = useStore((s) => s.dir)
-  const stem = useStore((s) => s.stem)
+  const stems = useStore((s) => s.stems)
+  const ownerSets = useStore((s) => s.ownerSets)
   const table = useStore((s) => s.table)
   const frame = useStore((s) => s.frame)
-  const frameCount = useStore((s) => s.frameCount)
 
-  const [streams, setStreams] = useState<ImageStream[]>([])
+  const [streams, setStreams] = useState<Record<string, ImageStream[]>>({})
   const [plots, setPlots] = useState<CurvePlot[]>([])
   const [yRanges, setYRanges] = useState<Record<string, [number, number]>>({})
   const [collapsed, setCollapsed] = useState(false)
   const theme = useTheme()
 
+  // Which slider positions each log owns, compressed into runs. Derived once
+  // per load rather than per frame: a long log has thousands of positions and
+  // the only question asked of them is which of its own frames this is.
+  const runs = useMemo(() => {
+    const out: Record<string, ReturnType<typeof stemRuns>> = {}
+    for (const stem of stems) {
+      out[stem] = stemRuns(positionsOf(ownerSets, stem))
+    }
+    return out
+  }, [stems, ownerSets])
+
   // Recordings are resolved once per log, not per frame: resolving can
   // transcode, and the result is a property of the file.
   useEffect(() => {
-    setStreams([])
-    if (!dir || !stem) {
+    setStreams({})
+    if (!dir || stems.length === 0) {
       return
     }
     let current = true
-    void window.sensorview.data('logImageStreams', { dir, stem }).then((result) => {
-      if (current && result.ok && result.data) {
-        setStreams(result.data)
+    void Promise.all(
+      stems.map(async (stem) => {
+        const result = await window.sensorview.data('logImageStreams', { dir, stem })
+        return [stem, result.ok && result.data ? result.data : []] as const
+      })
+    ).then((pairs) => {
+      if (current) {
+        setStreams(Object.fromEntries(pairs))
       }
     })
     return () => {
       current = false
     }
-  }, [dir, stem])
+  }, [dir, stems])
 
-  // The curves are per frame. Ranges reset with the log, because a new log's
-  // values have nothing to do with the last one's.
+  // Ranges reset with the load, because a different log's values have
+  // nothing to do with the last one's.
   useEffect(() => {
     setYRanges({})
     setPlots([])
-  }, [dir, stem])
+  }, [dir, stems])
 
+  // Curves are per frame, and per log that recorded it.
   useEffect(() => {
     const frameId = table?.frameIds[frame]
-    if (!dir || !stem || frameId === undefined) {
+    const owners = ownerSets[frame] ?? stems
+    if (!dir || owners.length === 0 || frameId === undefined) {
       return
     }
     let current = true
-    void window.sensorview
-      .data('logCurves', { dir, stem, frameId })
-      .then((result) => {
-        if (!current || !result.ok || !result.data) {
-          return
-        }
-        setPlots(result.data)
-        setYRanges((ranges) => growYRanges(ranges, result.data!))
+    void Promise.all(
+      owners.map(async (stem) => {
+        const result = await window.sensorview.data('logCurves', { dir, stem, frameId })
+        const found = result.ok && result.data ? result.data : []
+        // Named by their log whenever more than one is loaded -- not only
+        // when two share this position. Scrubbing across the boundary
+        // between two logs otherwise changes which log is on screen with
+        // nothing on screen saying so.
+        return stems.length > 1
+          ? found.map((plot) => ({
+              ...plot,
+              id: `${stem}:${plot.id}`,
+              label: `${stem} · ${plot.label}`
+            }))
+          : found
       })
+    ).then((perLog) => {
+      if (!current) {
+        return
+      }
+      const all = perLog.flat()
+      setPlots(all)
+      setYRanges((ranges) => growYRanges(ranges, all))
+    })
     return () => {
       // Scrubbing starts a read per position; only the newest may land.
       current = false
     }
-  }, [dir, stem, table, frame])
+  }, [dir, stems, ownerSets, table, frame])
 
+  // One clip per log that recorded this position, each carrying its own frame
+  // number within its own recording. A log that recorded nothing here is
+  // absent rather than seeked somewhere arbitrary.
+  const clips = useMemo<ClipSource[]>(() => {
+    const owners = ownerSets[frame] ?? stems
+    const out: ClipSource[] = []
+    for (const stem of owners) {
+      const own = runs[stem]
+      if (!own) {
+        continue
+      }
+      const positions = own.reduce((total, run) => total + run.count, 0)
+      let local: number | null = null
+      for (const run of own) {
+        if (frame >= run.start && frame < run.start + run.count) {
+          local = run.localStart + (frame - run.start)
+          break
+        }
+      }
+      if (local === null) {
+        continue
+      }
+      for (const stream of streams[stem] ?? []) {
+        out.push({
+          key: `${stem}:${stream.id}`,
+          // Named by the log whenever several are loaded, by the camera
+          // when one is: that is the thing that tells the pictures apart,
+          // and it is what says which log a position belongs to.
+          label: stems.length > 1 ? `${stem} · ${stream.label}` : stream.label,
+          stream,
+          local,
+          localTotal: positions
+        })
+      }
+    }
+    return out
+  }, [ownerSets, frame, stems, runs, streams])
 
-  // Nothing to inspect: no dock at all, rather than an empty one taking 380px
-  // from the scene.
-  if (streams.length === 0 && plots.length === 0) {
+  if (clips.length === 0 && plots.length === 0) {
     return null
   }
 
@@ -97,13 +173,13 @@ export function Inspector() {
       </div>
 
       <div className="sv-inspector-body">
-        {streams.length > 0 && (
+        {clips.length > 0 && (
           <section className="sv-subsection" id="subview-camera-section">
             <div className="sv-subsection-head">
               <span className="sv-section-label">Camera</span>
             </div>
             <div className="sv-subsection-body">
-              <CameraPanel streams={streams} frame={frame} frameCount={frameCount} />
+              <CameraPanel clips={clips} />
             </div>
           </section>
         )}

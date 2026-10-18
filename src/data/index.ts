@@ -43,6 +43,24 @@ const handlers: Record<DataMethod, Handler> = {
     return ok(await readCloudFrame(path, dataset, manifest.cloudColumns()))
   },
 
+  logFrameOwners: async ({ dir, stems }) => {
+    const manifest = await Manifest.load(dir)
+    const owners: Record<string, string[]> = {}
+    for (const stem of stems) {
+      // The table beside the stem, by the manifest's own suffix -- the same
+      // path `scanCase` listed it from.
+      const path = manifest.tablePath(stem)
+      if (!path) {
+        continue
+      }
+      for (const id of frameIds(path, manifest.frameKey)) {
+        const key = String(id)
+        ;(owners[key] ??= []).push(stem)
+      }
+    }
+    return ok(owners)
+  },
+
   logImageStreams: async ({ dir, stem }) => {
     const manifest = await Manifest.load(dir)
     const streams = await manifest.imageStreams(stem)

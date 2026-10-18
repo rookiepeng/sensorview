@@ -171,6 +171,25 @@ export function ExportMenu() {
         onProgress: (done, total) => setBusy(`Animation ${done}/${total}`),
         show: async (at) => {
           setFrame(at)
+
+          // The cloud is a read per frame through the data process, and it
+          // does not land within a repaint. Waiting only for the paint
+          // recorded each frame with the previous frame's cloud under it --
+          // which looks like a lag of one frame and is a different picture
+          // from the one on screen.
+          const state = useStore.getState()
+          if (state.cloudOn && state.cloudDisplay) {
+            const wanted = state.table?.frameIds[at]
+            const until = Date.now() + 5000
+            while (Date.now() < until) {
+              const now = useStore.getState().cloud
+              if (now && now.frameId === wanted) {
+                break
+              }
+              await new Promise((resolve) => setTimeout(resolve, 20))
+            }
+          }
+
           // Two frames: one for React to push the payload into the scene, one
           // for the scene's own on-demand loop to draw it. Recording after a
           // single frame captures the previous frame's pixels.

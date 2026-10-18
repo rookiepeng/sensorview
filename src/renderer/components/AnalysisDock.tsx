@@ -44,6 +44,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   const filters = useStore((s) => s.filters)
   const keys = useStore((s) => s.keys)
   const colormap = useStore((s) => s.colormap)
+  const stems = useStore((s) => s.stems)
 
   const [collapsed, setCollapsed] = useState(false)
   const [slots, setSlots] = useState<[SlotState, SlotState]>([
@@ -164,6 +165,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
                   theme={theme}
                   numeric={numeric}
                   categorical={categorical}
+                  stems={stems}
                   onChange={(patch) => set(index, patch)}
                 />
               </div>
@@ -217,6 +219,7 @@ function Pane({
   theme,
   numeric,
   categorical,
+  stems,
   onChange
 }: {
   slot: SlotState
@@ -227,6 +230,7 @@ function Pane({
   theme: 'dark' | 'light'
   numeric: string[]
   categorical: string[]
+  stems: string[]
   onChange: (patch: Partial<SlotState>) => void
 }) {
   const figure = useMemo(
@@ -246,6 +250,7 @@ function Pane({
   )
 
   const view = slot.view!
+  const revision = [stems.join('+'), view, slot.x, slot.y, slot.colour].join('|')
   const wantsY = view === 'scatter' || view === 'heatmap' || view === 'violin'
   const xChoices = view === 'violin' ? categorical : numeric
 
@@ -311,7 +316,16 @@ function Pane({
           ))}
       </div>
 
-      <PlotlyFigure data={figure.data} layout={figure.layout} className="sv-pane-graph" />
+      <PlotlyFigure
+        data={figure.data}
+        layout={figure.layout}
+        className="sv-pane-graph"
+        // The axes follow what the figure is of. A zoom has to survive a
+        // slider tick -- that is the whole reason uirevision exists -- and
+        // must not survive a change of view, of column, or of which logs are
+        // loaded, each of which is a different extent entirely.
+        revision={revision}
+      />
     </div>
   )
 }

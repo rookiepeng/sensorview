@@ -347,6 +347,7 @@ export async function runSmoke(
           }
         })
         let exports = 'exports not run'
+        let multi = 'combining not run'
         try {
           // Set SENSORVIEW_SMOKE_VERBOSE to see what the page says. The
           // single-object form of this event, not the old positional one --
@@ -521,7 +522,10 @@ export async function runSmoke(
                if (!picker) return { error: 'no breadcrumb' }
                picker.click()
                await new Promise(r => setTimeout(r, 200))
-               const items = Array.from(document.querySelectorAll('.sv-menu-item'))
+               // The name is a button inside the row now: the row also
+               // carries the combine checkbox, and clicking it must not be
+               // the same thing as opening the log alone.
+               const items = Array.from(document.querySelectorAll('.sv-breadcrumb .sv-menu-open'))
                if (items.length < 2) return { error: 'the picker listed ' + items.length + ' logs' }
                const other = items.find(i => i.textContent.indexOf(was) === -1)
                if (!other) return { error: 'every entry is the open log' }
@@ -681,6 +685,131 @@ export async function runSmoke(
             `the scatter took ${dock.drawn.scatter.ms}ms for ${dock.drawn.scatter.points} points`
           )
 
+          // Combining logs. The case's logs number their frames end to end
+          // rather than overlapping, so combining two makes one slider of
+          // both -- and the second log's camera must be seeked by its own
+          // frame number, not by the slider position. That is the failure
+          // the plan calls out: silent, and with a plausible picture.
+          const combined = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const openMenu = async () => {
+                 const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
+                 const picker = buttons[buttons.length - 1]
+                 if (!document.querySelector('.sv-breadcrumb .sv-menu')) {
+                   picker.click()
+                   await new Promise(r => setTimeout(r, 200))
+                 }
+                 return Array.from(document.querySelectorAll('.sv-menu-combine'))
+               }
+
+               const rows = await openMenu()
+               if (rows.length < 2) return { error: 'fewer than two logs' }
+               const nameOf = function (row) {
+                 return row.querySelector('.sv-menu-label').textContent
+               }
+               const open = rows.find(function (r) { return r.querySelector('input').checked })
+               const other = rows.find(function (r) { return !r.querySelector('input').checked })
+               if (!open || !other) return { error: 'nothing to combine' }
+
+               other.querySelector('input').click()
+
+               const deadline = Date.now() + 30000
+               let total = 0
+               while (Date.now() < deadline) {
+                 await new Promise(r => setTimeout(r, 250))
+                 const label = document.querySelector('.sv-transport-count, .sv-frame-count')
+                 const crumb = document.querySelector('.sv-crumb-more')
+                 if (crumb) {
+                   const slider = document.querySelector('.sv-transport input[type=range]')
+                   total = slider ? Number(slider.max) + 1 : 0
+                   if (total > 0) break
+                 }
+               }
+               if (total === 0) return { error: 'the combination never loaded' }
+
+               const slider = document.querySelector('.sv-transport input[type=range]')
+               const setFrame = async function (at) {
+                 const setter = Object.getOwnPropertyDescriptor(
+                   window.HTMLInputElement.prototype, 'value').set
+                 setter.call(slider, String(at))
+                 slider.dispatchEvent(new Event('input', { bubbles: true }))
+                 await new Promise(r => setTimeout(r, 900))
+               }
+
+               const seenAt = async function (at) {
+                 await setFrame(at)
+                 const videos = Array.from(document.querySelectorAll('video.sv-video'))
+                 const labels = Array.from(document.querySelectorAll('.sv-video-label'))
+                   .map(function (l) { return l.textContent })
+                 return {
+                   labels: labels,
+                   times: videos.map(function (v) { return v.currentTime }),
+                   durations: videos.map(function (v) { return v.duration })
+                 }
+               }
+
+               const first = await seenAt(0)
+               const late = await seenAt(total - 2)
+               return {
+                 total: total,
+                 names: [nameOf(open), nameOf(other)],
+                 first: first,
+                 late: late
+               }
+             })()`
+          )
+
+          expect(!combined.error, `combine: ${combined.error}`)
+          // Two logs of 39 and 40 frames, end to end.
+          expect(
+            combined.total === 79,
+            `combined slider has ${combined.total} positions, expected 79`
+          )
+          // Each position shows the log that recorded it, and only that one.
+          // Which log that is at position 0 follows the frame ids, not the
+          // order the logs were loaded in -- the primary leads a shared
+          // position, but it does not own the start of the slider.
+          const stemOf = (labels: string[]) =>
+            new Set(labels.map((label) => label.split(' · ')[0]))
+          const atStart = stemOf(combined.first.labels)
+          const atEnd = stemOf(combined.late.labels)
+
+          expect(
+            combined.first.labels.length > 0 && atStart.size === 1,
+            `position 0 showed ${combined.first.labels.join(', ')}`
+          )
+          expect(
+            combined.late.labels.length > 0 && atEnd.size === 1,
+            `the last position showed ${combined.late.labels.join(', ')}`
+          )
+          // The two ends belong to different logs, which is the whole point
+          // of combining them -- and what makes the seek below a real test.
+          expect(
+            [...atStart][0] !== [...atEnd][0],
+            `both ends showed ${[...atStart][0]}, so the logs did not combine`
+          )
+          for (const stem of [...atStart, ...atEnd]) {
+            expect(
+              combined.names.includes(stem),
+              `the camera showed ${stem}, which is not one of the combined logs`
+            )
+          }
+          // And it is seeked by its own frame. Position 77 is the second
+          // log's frame 38 of 40, so the clip sits near its end -- where
+          // seeking by the slider position would put it past the end and
+          // clamp it there, which looks the same for the last frame and
+          // wrong for every other one. Checked near the end precisely
+          // because that is where the two agree least.
+          const where = combined.late.times[0] / combined.late.durations[0]
+          expect(
+            where > 0.9 && where <= 1,
+            `the second log's clip sat at ${(where * 100).toFixed(0)}% of its duration`
+          )
+          multi =
+            `combined ${combined.names.join(' + ')} into ${combined.total} frames, ` +
+            `${[...atStart][0]} then ${[...atEnd][0]}, ` +
+            `the second at ${(where * 100).toFixed(0)}% of its own clip`
+
           // The exports, through the real save path: the renderer builds the
           // bytes and main writes them, which is the half a renderer-side
           // mock would leave unchecked.
@@ -710,9 +839,11 @@ export async function runSmoke(
                  for (let at = 0; at < labels.length; at++) {
                    const fresh = await openMenu()
                    fresh[at].click()
-                   // The animation walks every frame, so this waits well past
-                   // what the quick ones need.
-                   const deadline = Date.now() + 120000
+                   // The animation walks every frame of every combined log,
+                   // reading a cloud for each, so it is minutes rather than
+                   // seconds. The others are near-instant; one budget covers
+                   // both rather than a table of them.
+                   const deadline = Date.now() + 420000
                    while (Date.now() < deadline) {
                      await new Promise(r => setTimeout(r, 250))
                      const note = document.querySelector('.sv-export-note')
@@ -727,7 +858,11 @@ export async function runSmoke(
                      }
                    }
                    if (done.length !== at + 1) {
-                     return { error: labels[at] + ' never finished' }
+                     const note = document.querySelector('.sv-export-note')
+                     return {
+                       error: labels[at] + ' never finished, last said '
+                         + JSON.stringify(note ? note.textContent : null)
+                     }
                    }
                  }
                  return { done: done }
@@ -853,7 +988,7 @@ export async function runSmoke(
             `${inspector.ready}/${inspector.videos} videos at ${inspector.size}, ` +
             `${inspector.traces} traces in ${inspector.plots} plots; ` +
             `dock ${dock.views.map((v: string) => `${v} ${dock.drawn[v].marks} marks`).join(', ')}; ` +
-            exports
+            `${multi}; ${exports}`
           )
         } finally {
           probe.destroy()

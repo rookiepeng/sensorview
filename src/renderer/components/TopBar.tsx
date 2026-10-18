@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { buildTable, type Column } from '@shared/table'
+import { buildFrameOwners } from '@shared/logs'
 import type { CaseSummary, LogSummary } from '@shared/types'
 
 import { ExportMenu } from './ExportMenu'
@@ -15,6 +16,7 @@ import { useStore } from '../store'
 export function TopBar() {
   const dir = useStore((s) => s.dir)
   const stem = useStore((s) => s.stem)
+  const stems = useStore((s) => s.stems)
   const openLog = useStore((s) => s.openLog)
   const summary = useStore((s) => s.summary)
   const setSummary = useStore((s) => s.setSummary)
@@ -67,54 +69,73 @@ export function TopBar() {
     }
 
     setSummary(scan.data)
-    await openOne(scan.data, first)
+    await openLogs(scan.data, [first])
   }
 
   /**
-   * Read one log of an already-scanned case.
+   * Read one or more logs of an already-scanned case.
    *
    * Takes the summary rather than reading it from the store, because the one
    * caller that has just scanned a case would otherwise race its own write.
+   *
+   * Combining concatenates the rows, so a frame id becomes the only thing
+   * tying a slider position back to the log whose sidecars hold its cloud,
+   * pose, curves and video. The owner map is read by projection before the
+   * tables are: one column per file rather than the files themselves.
+   *
+   * @param scan The case.
+   * @param chosen The logs to open, primary first.
    */
-  async function openOne(scan: CaseSummary, log: LogSummary) {
+  async function openLogs(scan: CaseSummary, chosen: LogSummary[]) {
     setError(null)
-    const read = await window.sensorview.data('readTable', { path: log.file })
+    if (chosen.length === 0) {
+      return
+    }
+    const primary = chosen[0]!
+    const stems = chosen.map((log) => log.stem)
+
+    const read = await window.sensorview.data('readTable', {
+      path: chosen.map((log) => log.file)
+    })
     if (!read.ok || !read.data) {
       setError(read.error ?? 'could not read the table')
       return
     }
 
+    // Only worth asking when there is more than one log: with one, every
+    // frame belongs to it, which is what `buildFrameOwners` assumes for a
+    // null map anyway.
+    let owners: Record<string, string[]> | null = null
+    if (chosen.length > 1) {
+      const result = await window.sensorview.data('logFrameOwners', {
+        dir: scan.dir,
+        stems
+      })
+      if (result.ok && result.data) {
+        owners = result.data
+      }
+    }
+
     try {
       const table = buildTable(read.data.rows, read.data.columns as Column[], scan.frameKey)
+      const { ownerSets } = buildFrameOwners(table.frameIds, owners, primary.stem)
       openLog({
         dir: scan.dir,
-        stem: log.stem,
+        stem: primary.stem,
+        stems,
+        ownerSets,
         table,
         keys: scan.keys,
         axes: pickAxes(table, scan.frameKey),
-        // Case-wide styling, but only for a log that has a cloud beside it --
-        // otherwise the rail offers a switch for a file that is not there.
-        cloudDisplay: log.hasCloud ? scan.cloud : null
+        // Case-wide styling, but only when some open log has a cloud beside
+        // it -- otherwise the rail offers a switch for a file that is not
+        // there.
+        cloudDisplay: chosen.some((log) => log.hasCloud) ? scan.cloud : null
       })
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
     }
   }
-
-  useEffect(() => {
-    if (!picking) {
-      return
-    }
-    const close = (event: MouseEvent) => {
-      if (!menu.current?.contains(event.target as Node)) {
-        setPicking(false)
-      }
-    }
-    // Captured, so a click on something that stops propagation still closes
-    // the menu rather than leaving it open over the thing just clicked.
-    document.addEventListener('mousedown', close, true)
-    return () => document.removeEventListener('mousedown', close, true)
-  }, [picking])
 
   function flipTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -152,36 +173,85 @@ export function TopBar() {
           <span className={`sv-crumb sv-crumb-file${stem ? '' : ' sv-crumb-empty'}`}>
             {stem ?? 'open a case …'}
           </span>
+          {/* Combined logs are named by a count rather than a list: the
+              breadcrumb is a path, and three stems in it stop reading as
+              one. */}
+          {stems.length > 1 && (
+            <span className="sv-crumb-more">+{stems.length - 1}</span>
+          )}
           {logs.length > 1 && <i className="bi bi-chevron-down sv-crumb-caret" />}
         </button>
 
         {picking && summary && (
           <div className="sv-menu" role="menu">
-            {logs.map((log) => (
-              <button
-                type="button"
-                role="menuitemradio"
-                aria-checked={log.stem === stem}
-                key={log.stem}
-                className={`sv-menu-item${log.stem === stem ? ' sv-menu-item-on' : ''}`}
-                onClick={() => {
-                  setPicking(false)
-                  if (log.stem !== stem) {
-                    void openOne(summary, log)
-                  }
-                }}
-              >
-                <span className="sv-menu-label">{log.stem}</span>
-                {/* What this log has beside its table, so the choice is made
-                    on what is in it rather than on the name alone. */}
-                <span className="sv-menu-marks">
-                  {log.hasCloud && <i className="bi bi-cloud" title="point cloud" />}
-                  {log.hasImage && <i className="bi bi-camera-video" title="camera" />}
-                  {log.hasCurve && <i className="bi bi-graph-up" title="curves" />}
-                  {log.hasReference && <i className="bi bi-car-front" title="reference pose" />}
-                </span>
-              </button>
-            ))}
+            {logs.map((log) => {
+              const at = stems.indexOf(log.stem)
+              const open = at !== -1
+              return (
+                <div
+                  key={log.stem}
+                  className={`sv-menu-item sv-menu-combine${open ? ' sv-menu-item-on' : ''}`}
+                >
+                  {/* Two targets per row. The checkbox combines a log with
+                      what is already open; the label opens it alone and
+                      makes it primary. One control could not say both, and
+                      combining is the thing that needs explaining -- so the
+                      common choice stays a plain click on the name. */}
+                  <input
+                    type="checkbox"
+                    checked={open}
+                    aria-label={`Combine ${log.stem}`}
+                    title={open ? 'Remove from the combination' : 'Combine with the open logs'}
+                    onChange={() => {
+                      const next = open
+                        ? stems.filter((name) => name !== log.stem)
+                        : [...stems, log.stem]
+                      // Removing the last one would leave nothing loaded,
+                      // which is not a state the rest of the app has.
+                      if (next.length === 0) {
+                        return
+                      }
+                      setPicking(false)
+                      void openLogs(
+                        summary,
+                        next
+                          .map((name) => logs.find((entry) => entry.stem === name))
+                          .filter((entry): entry is LogSummary => Boolean(entry))
+                      )
+                    }}
+                  />
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={log.stem === stem}
+                    className="sv-menu-open"
+                    onClick={() => {
+                      setPicking(false)
+                      if (stems.length !== 1 || log.stem !== stem) {
+                        void openLogs(summary, [log])
+                      }
+                    }}
+                  >
+                    <span className="sv-menu-label">{log.stem}</span>
+                  </button>
+                  {/* Which log leads. Everything with room for one answer --
+                      the cloud, the pose, an export -- reads the primary. */}
+                  {at === 0 && stems.length > 1 && (
+                    <span className="sv-menu-primary" title="Primary log">
+                      1st
+                    </span>
+                  )}
+                  {/* What this log has beside its table, so the choice is
+                      made on what is in it rather than on the name alone. */}
+                  <span className="sv-menu-marks">
+                    {log.hasCloud && <i className="bi bi-cloud" title="point cloud" />}
+                    {log.hasImage && <i className="bi bi-camera-video" title="camera" />}
+                    {log.hasCurve && <i className="bi bi-graph-up" title="curves" />}
+                    {log.hasReference && <i className="bi bi-car-front" title="reference pose" />}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

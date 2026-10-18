@@ -17,7 +17,8 @@ import { useStore } from './store'
 
 export function useCloud(): void {
   const dir = useStore((s) => s.dir)
-  const stem = useStore((s) => s.stem)
+  const ownerSets = useStore((s) => s.ownerSets)
+  const primary = useStore((s) => s.stem)
   const table = useStore((s) => s.table)
   const frame = useStore((s) => s.frame)
   const cloudOn = useStore((s) => s.cloudOn)
@@ -28,6 +29,10 @@ export function useCloud(): void {
 
   useEffect(() => {
     const frameId = table?.frameIds[frame]
+    // The log that leads this position, not the primary of the whole load:
+    // with logs combined, a position the primary never recorded belongs to
+    // whichever log did, and that is where its cloud is.
+    const stem = ownerSets[frame]?.[0] ?? primary
     if (!cloudOn || !cloudDisplay || !dir || !stem || frameId === undefined) {
       return
     }
@@ -45,5 +50,5 @@ export function useCloud(): void {
             : null
         )
       })
-  }, [dir, stem, table, frame, cloudOn, cloudDisplay, setCloud])
+  }, [dir, ownerSets, primary, table, frame, cloudOn, cloudDisplay, setCloud])
 }

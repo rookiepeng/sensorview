@@ -36,8 +36,19 @@ export interface CaseState {
   summary: CaseSummary | null
   /** The open log, once its table has been read. */
   table: Table | null
-  /** Stem of the open log. */
+  /** Stem of the primary log -- the one views with room for one answer use. */
   stem: string | null
+  /** Every open log's stem, primary first. */
+  stems: string[]
+  /**
+   * Every log that recorded each slider position, the primary first.
+   *
+   * Combining logs concatenates their rows, so a frame id is the only thing
+   * tying a position back to the log whose sidecars hold its cloud, pose,
+   * curves and video -- and two logs are free to number their frames the
+   * same way.
+   */
+  ownerSets: string[][]
   /** Column metadata from the manifest, driving labels, hover and the rail. */
   keys: Record<string, ColumnMeta>
   /** Per-column filters, one per declared key. */
@@ -84,6 +95,8 @@ export interface Actions {
   openLog(payload: {
     dir: string
     stem: string
+    stems: string[]
+    ownerSets: string[][]
     table: Table
     keys: CaseState['keys']
     axes: CaseState['axes']
@@ -113,6 +126,8 @@ const initial: CaseState = {
   summary: null,
   table: null,
   stem: null,
+  stems: [],
+  ownerSets: [],
   keys: {},
   filters: { numeric: [], categorical: [] },
   cloudDisplay: null,
@@ -138,7 +153,7 @@ export const useStore = create<CaseState & Actions>((set) => ({
 
   setSummary: (summary) => set({ summary }),
 
-  openLog: ({ dir, stem, table, keys, axes, cloudDisplay }) =>
+  openLog: ({ dir, stem, stems, ownerSets, table, keys, axes, cloudDisplay }) =>
     set((s) => ({
       ...initial,
       // Everything about the log resets; the case does not. Spreading
@@ -146,6 +161,8 @@ export const useStore = create<CaseState & Actions>((set) => ({
       summary: s.summary,
       dir,
       stem,
+      stems,
+      ownerSets,
       table,
       keys,
       axes,
