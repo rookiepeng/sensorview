@@ -80,8 +80,9 @@ export function TopBar() {
         dir: caseDir,
         stem: first.stem,
         table,
-        keys: summary.data.keys as never,
-        axes: pickAxes(table, summary.data.frameKey)
+        keys: summary.data.keys,
+        axes: pickAxes(table, summary.data.frameKey),
+        cloudDisplay: first.hasCloud ? summary.data.cloud : null
       })
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))

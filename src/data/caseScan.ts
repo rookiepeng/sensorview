@@ -8,6 +8,7 @@
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 
+import type { CloudDisplay } from '../shared/types'
 import type { ColumnMeta } from '../shared/table'
 
 import { Manifest, tableSidecarSuffixes } from './manifest'
@@ -30,6 +31,13 @@ export interface CaseSummary {
   logs: LogSummary[]
   /** Column metadata driving the filters and hover text. */
   keys: Record<string, ColumnMeta>
+  /**
+   * How the cloud is drawn, or null when the case declares none.
+   *
+   * Carried with the case rather than with each frame: it is fixed for the
+   * whole case, and asking per frame would be a round trip for a constant.
+   */
+  cloud: CloudDisplay | null
 }
 
 async function exists(path: string | null): Promise<boolean> {
@@ -87,6 +95,7 @@ export async function scanCase(dir: string): Promise<CaseSummary> {
     name: manifest.name,
     frameKey: manifest.frameKey,
     logs,
-    keys: manifest.keys
+    keys: manifest.keys,
+    cloud: manifest.cloud ? (manifest.cloudDisplay() as unknown as CloudDisplay) : null
   }
 }

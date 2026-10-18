@@ -10,6 +10,14 @@
 
 import type { ColumnMeta } from './table'
 
+/** How a case draws its cloud. Fixed per case, from the manifest. */
+export interface CloudDisplay {
+  color: string
+  size: number
+  opacity: number
+  name: string
+}
+
 /**
  * Every call across the boundary answers with one of these.
  *
@@ -101,6 +109,7 @@ export interface DataMethods {
       name: string
       frameKey: string
       keys: Record<string, ColumnMeta>
+      cloud: CloudDisplay | null
       logs: Array<{
         stem: string
         file: string

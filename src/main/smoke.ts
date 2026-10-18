@@ -341,12 +341,6 @@ export async function runSmoke(
           expect(drew.ticks > 0, 'the axes drew no tick labels')
           expect(drew.legend > 0, 'the legend is empty')
 
-          if (shotPath) {
-            const { writeFile } = await import('node:fs/promises')
-            const image = await probe.webContents.capturePage()
-            await writeFile(shotPath, image.toPNG())
-          }
-
           // And the readers agree with what is on screen.
           const summary = await probe.webContents.executeJavaScript(
             `(async () => {
@@ -387,15 +381,63 @@ export async function runSmoke(
           )
 
           expect(!filtered.error, `filter: ${filtered.error}`)
+          // "idle | 11.7k pts | 9 draws". The HUD abbreviates a thousand and
+          // up, so reading the number without the suffix makes a cloud of
+          // 11,700 points smaller than a frame of 582.
           const pointsIn = (text: string) => {
             const parts = String(text).split(/\s+/)
             const at = parts.indexOf('pts')
-            return at > 0 ? parseFloat(parts[at - 1]!) : 0
+            if (at <= 0) {
+              return 0
+            }
+            const word = parts[at - 1]!
+            return parseFloat(word) * (word.endsWith('k') ? 1000 : 1)
           }
           expect(
             pointsIn(filtered.after) < pointsIn(filtered.before),
             `turning a category off did not remove points: ${filtered.before} -> ${filtered.after}`
           )
+
+          // The cloud, which is the only thing in the view that costs a read
+          // per frame. Switching it on has to reach the HDF5 reader in the
+          // data process and come back as geometry.
+          const clouded = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const rows = Array.from(document.querySelectorAll('.sv-switch-row'))
+               const row = rows.find(r => (r.textContent || '').indexOf('LIDAR') !== -1)
+               if (!row) return { error: 'no cloud switch -- the case declares none?' }
+               const before = document.getElementById('gl-stats').textContent
+               row.querySelector('input').click()
+               const deadline = Date.now() + 15000
+               while (Date.now() < deadline) {
+                 const after = document.getElementById('gl-stats').textContent
+                 if (after !== before) return { before: before, after: after }
+                 await new Promise(r => setTimeout(r, 200))
+               }
+               return { error: 'the cloud never reached the scene' }
+             })()`
+          )
+
+          expect(!clouded.error, `cloud: ${clouded.error}`)
+          expect(
+            pointsIn(clouded.after) > pointsIn(clouded.before),
+            `the cloud added no points: ${clouded.before} -> ${clouded.after}`
+          )
+
+          // Shot last, with the cloud on and the category put back, so the
+          // picture is the view in full rather than mid-check.
+          if (shotPath) {
+            const { writeFile } = await import('node:fs/promises')
+            await probe.webContents.executeJavaScript(
+              `(async () => {
+                 const off = document.querySelector('.sv-chip:not(.sv-chip-on)')
+                 if (off) off.click()
+                 await new Promise(r => setTimeout(r, 600))
+               })()`
+            )
+            const image = await probe.webContents.capturePage()
+            await writeFile(shotPath, image.toPNG())
+          }
 
           expect(!summary.error, `renderer could not read the case: ${summary.error}`)
           expect(summary.rows === 19756, `renderer saw ${summary.rows} rows`)
@@ -409,7 +451,8 @@ export async function runSmoke(
           )
           return (
             `${summary.rows} rows -> ${drew.groups} groups, ${drew.ticks} ticks, ` +
-            `${pointsIn(filtered.before)} pts -> ${pointsIn(filtered.after)} with one category off`
+            `${pointsIn(filtered.before)} pts -> ${pointsIn(filtered.after)} with one category off, ` +
+            `${pointsIn(clouded.after)} with the cloud on`
           )
         } finally {
           probe.destroy()

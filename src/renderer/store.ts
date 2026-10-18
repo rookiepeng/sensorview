@@ -12,6 +12,7 @@
 
 import { create } from 'zustand'
 
+import type { CloudDisplay } from '@shared/types'
 import {
   initialFilters,
   type ColumnMeta,
@@ -32,6 +33,13 @@ export interface CaseState {
   keys: Record<string, ColumnMeta>
   /** Per-column filters, one per declared key. */
   filters: FilterState
+  /** How this case draws its cloud, or null when it declares none. */
+  cloudDisplay: CloudDisplay | null
+  /** Whether the cloud is drawn. Off until the user asks: it is the one thing
+   *  here that costs a read per frame. */
+  cloudOn: boolean
+  /** The cloud already read, and which frame it belongs to. */
+  cloud: { frameId: number; position: Float32Array; count: number } | null
   /** Axis and colour columns. */
   axes: { x: string; y: string; z: string; colour: string }
   /** Slider position, which indexes the frame list -- not a frame id. */
@@ -60,7 +68,10 @@ export interface Actions {
     table: Table
     keys: CaseState['keys']
     axes: CaseState['axes']
+    cloudDisplay: CloudDisplay | null
   }): void
+  setCloudOn(on: boolean): void
+  setCloud(cloud: CaseState['cloud']): void
   setAxis(axis: keyof CaseState['axes'], column: string): void
   setNumericFilter(column: string, min: number, max: number): void
   setCategoryFilter(column: string, allowed: string[]): void
@@ -82,6 +93,9 @@ const initial: CaseState = {
   stem: null,
   keys: {},
   filters: { numeric: [], categorical: [] },
+  cloudDisplay: null,
+  cloudOn: false,
+  cloud: null,
   axes: { x: 'X', y: 'Y', z: 'Z', colour: 'X' },
   frame: 0,
   frameCount: 0,
@@ -98,7 +112,7 @@ export const useStore = create<CaseState & Actions>((set) => ({
 
   openCase: (dir, frameCount) => set({ ...initial, dir, frameCount }),
 
-  openLog: ({ dir, stem, table, keys, axes }) =>
+  openLog: ({ dir, stem, table, keys, axes, cloudDisplay }) =>
     set({
       ...initial,
       dir,
@@ -106,6 +120,7 @@ export const useStore = create<CaseState & Actions>((set) => ({
       table,
       keys,
       axes,
+      cloudDisplay,
       filters: initialFilters(table, keys),
       frameCount: table.frameIds.length
     }),
@@ -165,6 +180,12 @@ export const useStore = create<CaseState & Actions>((set) => ({
       }
       return { hidden }
     }),
+
+  // Turning the cloud off drops what was read with it: the frame it belongs
+  // to will have moved on by the time it is turned back on, and a stale cloud
+  // under a live frame is worse than none.
+  setCloudOn: (cloudOn) => set(cloudOn ? { cloudOn } : { cloudOn, cloud: null }),
+  setCloud: (cloud) => set({ cloud }),
 
   setPayload: (payload) => set({ payload })
 }))

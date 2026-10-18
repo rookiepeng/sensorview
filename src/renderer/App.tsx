@@ -16,9 +16,11 @@ import { GlStage } from './components/GlStage'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
+import { useCloud } from './useCloud'
 import { fixtureFrame } from './fixture'
 import type { ScenePayload } from './frame'
 import { useStore } from './store'
+import { parseColor } from '@gl/sv_color.esm.js'
 
 export function App() {
   const frame = useStore((s) => s.frame)
@@ -34,6 +36,12 @@ export function App() {
   const axes = useStore((s) => s.axes)
   const keys = useStore((s) => s.keys)
   const filters = useStore((s) => s.filters)
+  const cloud = useStore((s) => s.cloud)
+  const cloudDisplay = useStore((s) => s.cloudDisplay)
+
+  // Keeps the cloud in step with the frame. Nothing is returned: the read
+  // lands in the store, which is what the payload below is built from.
+  useCloud()
 
   // Browser mode has no readers behind it, so it starts on the fixture. In
   // Electron the top bar's breadcrumb opens a real case.
@@ -62,6 +70,22 @@ export function App() {
             })
           : fixtureFrame(frame - i, { categorical: sizeVary, hidden })
       )
+    }
+
+    // The scene reads the cloud from the live frame only -- a decayed cloud
+    // would be a second 11,000-point layer per trailed frame, and the Python
+    // did not draw one either.
+    const live = frames[0]
+    if (live && cloudDisplay && cloud && cloud.frameId === table?.frameIds[frame]) {
+      const [r, g, b] = parseColor(cloudDisplay.color)
+      live.cloud = {
+        position: cloud.position,
+        count: cloud.count,
+        rgb: [r!, g!, b!],
+        size: cloudDisplay.size,
+        opacity: cloudDisplay.opacity,
+        name: cloudDisplay.name
+      }
     }
 
     // Hiding a row is a mask over the built frame, so a click costs a rebuild
@@ -105,7 +129,21 @@ export function App() {
       // which is the contract the Dash buffer had for the same reason.
       paused: !playing
     }
-  }, [frame, frameCount, decay, colormap, sizeVary, playing, hidden, table, axes, keys, filters])
+  }, [
+    frame,
+    frameCount,
+    decay,
+    colormap,
+    sizeVary,
+    playing,
+    hidden,
+    table,
+    axes,
+    keys,
+    filters,
+    cloud,
+    cloudDisplay
+  ])
 
   return (
     <div className="sv-shell">

@@ -60,6 +60,9 @@ export function FilterRail() {
   const setSizeVary = useStore((s) => s.setSizeVary)
   const hidden = useStore((s) => s.hidden)
   const dir = useStore((s) => s.dir)
+  const cloudDisplay = useStore((s) => s.cloudDisplay)
+  const cloudOn = useStore((s) => s.cloudOn)
+  const setCloudOn = useStore((s) => s.setCloudOn)
 
   const table = useStore((s) => s.table)
   const keys = useStore((s) => s.keys)
@@ -102,6 +105,19 @@ export function FilterRail() {
           />
           <span>Size varies with category</span>
         </label>
+
+        {/* Only when the case has one. A dead switch is worse than no switch:
+            it says the cloud is off rather than absent. */}
+        {cloudDisplay && (
+          <label className="sv-switch-row">
+            <input
+              type="checkbox"
+              checked={cloudOn}
+              onChange={(event) => setCloudOn(event.target.checked)}
+            />
+            <span>{cloudDisplay.name}</span>
+          </label>
+        )}
 
         <div className="sv-field">
           <span className="sv-section-label">Colormap</span>
