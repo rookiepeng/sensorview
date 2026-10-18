@@ -15,7 +15,7 @@
 // not, which matches the Plotly figure: the cloud sets `hoverinfo: "skip"` and
 // the trail's hover text is never attached.
 
-import { Group, Scene, WebGLRenderTarget } from "./three.esm.js";
+import { Group, Scene, WebGLRenderTarget } from "three";
 
 // How far the pointer may travel between press and release and still count as
 // a click rather than the end of an orbit drag.
@@ -27,7 +27,8 @@ const MOVE_SLOP = 2;
 export class Picker {
   /**
    * @param {Object} options `renderer`, `camera`, `canvas`, `hud`,
-   *     `getFrame()`, `isPaused()`, `requestRender()`.
+   *     `getFrame()`, `isPaused()`, `requestRender()`, and `onPick({id, n})`
+   *     to be told which row was clicked.
    */
   constructor(options) {
     this.renderer = options.renderer;
@@ -37,6 +38,7 @@ export class Picker {
     this.getFrame = options.getFrame;
     this.isPaused = options.isPaused;
     this.requestRender = options.requestRender;
+    this.onPick = options.onPick;
 
     this.scene = new Scene();
     this.root = new Group();
@@ -260,17 +262,14 @@ export class Picker {
     if (!Number.isFinite(id) || id < 0) {
       return;
     }
-
-    const clientside = window.dash_clientside;
-    if (!clientside || typeof clientside.set_props !== "function") {
+    if (typeof this.onPick !== "function") {
       return;
     }
 
     this.clicks = (this.clicks || 0) + 1;
-    // A store rather than a synthetic event: `visible_table_change_callback`
-    // takes this alongside Plotly's own `clickData`, and branches on which one
-    // fired. The counter makes two clicks on the same point two updates.
-    clientside.set_props("gl-click", { data: { id, n: this.clicks } });
+    // The counter is what makes two clicks on the same point two events: the
+    // id alone would look unchanged to anything comparing by value.
+    this.onPick({ id, n: this.clicks });
   }
 
   dispose() {

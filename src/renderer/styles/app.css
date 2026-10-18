@@ -50,19 +50,6 @@
     --sv-warn: #f0a020;
     --sv-danger: #e5484d;
     --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
-
-    /* Bootstrap's own surfaces, so dbc controls inherit the console palette. */
-    --bs-body-bg: var(--sv-bg);
-    --bs-body-color: var(--sv-text);
-    --bs-border-color: var(--sv-border);
-    --bs-secondary-bg: var(--sv-surface-2);
-    --bs-tertiary-bg: var(--sv-surface-3);
-    --bs-secondary-color: var(--sv-text-dim);
-    --bs-emphasis-color: #fff;
-    --bs-primary: var(--sv-accent);
-    --bs-primary-rgb: 76, 159, 254;
-    --bs-link-color: var(--sv-accent);
-    --bs-link-hover-color: #7bb8ff;
 }
 
 [data-bs-theme="light"] {
@@ -81,15 +68,6 @@
     --sv-danger: #c53030;
     --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
 
-    --bs-body-bg: var(--sv-bg);
-    --bs-body-color: var(--sv-text);
-    --bs-border-color: var(--sv-border);
-    --bs-secondary-bg: var(--sv-surface-2);
-    --bs-tertiary-bg: var(--sv-surface-3);
-    --bs-secondary-color: var(--sv-text-dim);
-    --bs-primary: var(--sv-accent);
-    --bs-primary-rgb: 11, 100, 208;
-    --bs-link-color: var(--sv-accent);
 }
 
 /* ── Page frame ───────────────────────────────────────────────────────────

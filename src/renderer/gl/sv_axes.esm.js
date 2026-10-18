@@ -32,8 +32,8 @@ import {
   LineSegments,
   Mesh,
   MeshBasicMaterial,
-} from "./three.esm.js";
-import { CSS2DObject } from "./CSS2DRenderer.esm.js";
+} from "three";
+import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 const AXES = ["x", "y", "z"];
 

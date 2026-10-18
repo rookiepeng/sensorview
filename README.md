@@ -220,39 +220,43 @@ table has to be converted first — see
 
 ### Running the Application
 
-> **The front end is being rewritten.** The window is Electron; the views are
-> still Dash and are being ported to React a panel at a time. Until that
-> finishes, running the app means starting both. See *Migration* below.
+> **The front end is being rewritten.** The 3D canvas is React and three.js;
+> the inspector, the analysis dock and the exports are still Dash and are being
+> ported a panel at a time. See *Migration* below.
 
 #### Desktop app
 
-Two terminals:
-
-```bash
-python main.py
-```
-
 ```bash
 npm install
-SENSORVIEW_DASH=1 npm run dev
+npm run dev
 ```
 
-The first serves the Dash views on `127.0.0.1:8050`; the second opens the
-Electron window onto them. Closing the window leaves the server running.
+One Chromium on every platform, rather than the four OS webviews the previous
+shell reached through, so there is nothing to install beside it on Linux.
 
-The window brings native dialogs with it -- one Chromium on every platform,
-rather than the four OS webviews the previous shell reached through, so there
-is nothing to install beside it on Linux.
+Until the readers land (P1) the scene is driven by a fixture, so it opens with
+synthetic frames rather than a case.
 
-#### Just the views
+#### The UI in a browser
+
+```bash
+npm run web
+```
+
+The renderer in a plain tab on `127.0.0.1:5180`, with hot reload. It is the
+same code: the renderer only ever calls `window.sensorview`, which the preload
+installs inside Electron and `src/renderer/lib/webBridge.ts` installs here.
+
+#### The remaining Dash views
 
 ```bash
 python main.py
 ```
 
-and open `http://127.0.0.1:8050` in a browser. The browse button beside the
-data path is disabled there, because choosing a folder needs the native shell;
-type the path instead.
+and open `http://127.0.0.1:8050`. These are a **reference**, not the app: the
+chrome moved to `src/renderer/styles` with the port, so they render unstyled.
+The figures and callbacks still work, which is what makes them useful to
+compare a ported panel against. They go away with P3-P5.
 
 #### Checks
 
@@ -281,8 +285,8 @@ The port is staged so each step leaves something runnable:
 | | |
 |---|---|
 | **P0** | Electron shell around the Dash views *(done)* |
+| **P2** | React shell and the 3D canvas, natively *(done, on a fixture)* |
 | **P1** | The data layer in TypeScript: Parquet, HDF5, video |
-| **P2** | React shell and the 3D canvas, natively |
 | **P3–P5** | Inspector, analysis dock, exports |
 | **P6** | The last of the Python goes |
 

@@ -7,7 +7,7 @@
 // the colours move. Re-typing Plotly's tables in JS would make that agreement a
 // thing to maintain rather than a thing that is true by construction.
 
-import { DataTexture, RGBAFormat, UnsignedByteType, LinearFilter, ClampToEdgeWrapping } from "./three.esm.js";
+import { DataTexture, RGBAFormat, UnsignedByteType, LinearFilter, ClampToEdgeWrapping } from "three";
 
 // Width of the generated lookup texture. 256 is the usual choice: finer than
 // any colormap's own stop count, and one texel per byte of the normalized

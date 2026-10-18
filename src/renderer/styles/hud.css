@@ -4,20 +4,17 @@
  * canvas spanning the viewport at the bottom of the stacking order, with every
  * panel floating over it as glass.
  *
- * The file name is load-bearing. Dash serves assets alphabetically and the
- * later sheet wins, so these rules have to sort after `workbench.css` to
- * override it without `!important` -- which `workbench-hud.css` would not do
- * ("-" sorts before "."). See the header of `workbench.css` for the same
- * reasoning applied to Bootstrap.
+ * Imported after `app.css`, which is what lets it override the panel rules
+ * there without `!important`. Under Dash this was arranged by filename,
+ * because assets were served alphabetically; an import order is better in
+ * every way and is the one thing a bundler makes free.
  *
- * Nothing here applies until `.sv-renderer-gl` is on <html>, which
- * `glRendererMode` in `assets/client_side.js` puts there. In Plotly mode the
- * app looks and behaves exactly as it did.
+ * There is no longer a second renderer to gate this on: the scene is how the
+ * canvas looks, so these rules are unconditional.
  *
  * Stacking, bottom to top:
  *     0  #gl-stage            the scene
  *     1  #gl-labels           CSS2D tick text, click-through
- *     2  .sv-canvas           the Plotly fallback graph
  *     5  .sv-splitter
  *     6  HUD furniture, .sv-canvas-tools, collapsed panel heads
  *     7  .sv-canvas-popover
@@ -61,11 +58,6 @@
     position: fixed;
     inset: 0;
     z-index: 0;
-    display: none;
-}
-
-.sv-renderer-gl #gl-stage {
-    display: block;
 }
 
 #gl-canvas {
@@ -119,42 +111,36 @@
    below. Enumerated in one rule on purpose: a wrapper left opaque to the
    pointer swallows drags over a region that looks empty, which is the hardest
    fault here to spot. */
-.sv-renderer-gl .sv-workspace,
-.sv-renderer-gl .sv-upper,
-.sv-renderer-gl .sv-center,
-.sv-renderer-gl .sv-stage,
-.sv-renderer-gl .sv-canvas,
-.sv-renderer-gl .sv-dock-wrap {
+.sv-workspace,
+.sv-upper,
+.sv-center,
+.sv-stage,
+.sv-canvas,
+.sv-dock-wrap {
     pointer-events: none;
     background: transparent;
 }
 
-.sv-renderer-gl .sv-rail,
-.sv-renderer-gl .sv-inspector,
-.sv-renderer-gl .sv-transport,
-.sv-renderer-gl .sv-dock,
-.sv-renderer-gl .sv-topbar,
-.sv-renderer-gl .sv-splitter,
-.sv-renderer-gl .sv-canvas-tools,
-.sv-renderer-gl .sv-canvas-popover,
+.sv-rail,
+.sv-inspector,
+.sv-transport,
+.sv-dock,
+.sv-topbar,
+.sv-splitter,
+.sv-canvas-tools,
+.sv-canvas-popover,
 .sv-hud {
     pointer-events: auto;
-}
-
-/* Hidden, not unmounted: Dash keeps feeding the Plotly graph in its own mode,
-   and remounting on every toggle would cost a full redraw. */
-.sv-renderer-gl .sv-canvas .dash-graph {
-    display: none;
 }
 
 /* One glass recipe for every floating surface -- the same one the canvas tool
    cluster has always used, so the HUD extends the existing idiom rather than
    introducing a second one. */
-.sv-renderer-gl .sv-topbar,
-.sv-renderer-gl .sv-rail,
-.sv-renderer-gl .sv-inspector,
-.sv-renderer-gl .sv-transport,
-.sv-renderer-gl .sv-dock,
+.sv-topbar,
+.sv-rail,
+.sv-inspector,
+.sv-transport,
+.sv-dock,
 .sv-hud {
     background: color-mix(in srgb, var(--sv-surface) 86%, transparent);
     backdrop-filter: blur(8px);
@@ -165,61 +151,61 @@
 
 /* Panels pull back from the window edges so the scene reads as continuous
    behind them rather than as a window cut into a frame. */
-.sv-renderer-gl .sv-rail {
+.sv-rail {
     margin: var(--sv-gap) 0 var(--sv-gap) var(--sv-gap);
     border: 1px solid;
     border-radius: var(--sv-radius);
 }
 
-.sv-renderer-gl .sv-inspector {
+.sv-inspector {
     margin: var(--sv-gap) var(--sv-gap) var(--sv-gap) 0;
     border: 1px solid;
     border-radius: var(--sv-radius);
 }
 
-.sv-renderer-gl .sv-transport,
-.sv-renderer-gl .sv-dock {
+.sv-transport,
+.sv-dock {
     margin: 0 var(--sv-gap) var(--sv-gap);
     border: 1px solid;
     border-radius: var(--sv-radius);
 }
 
-.sv-renderer-gl .sv-rail,
-.sv-renderer-gl .sv-inspector,
-.sv-renderer-gl .sv-transport,
-.sv-renderer-gl .sv-dock {
+.sv-rail,
+.sv-inspector,
+.sv-transport,
+.sv-dock {
     z-index: 10;
 }
 
 /* There is no join to draw any more, only a handle. */
-.sv-renderer-gl .sv-splitter {
+.sv-splitter {
     background: transparent;
 }
 
-.sv-renderer-gl .sv-splitter:hover {
+.sv-splitter:hover {
     background: color-mix(in srgb, var(--sv-accent) 50%, transparent);
 }
 
 /* Collapsed, a panel keeps a narrow glass strip instead of vanishing to a
    floating pill, so the way back is always in the same place rather than
    moving to the corner. */
-.sv-renderer-gl .sv-rail.sv-collapsed,
-.sv-renderer-gl .sv-inspector.sv-collapsed {
+.sv-rail.sv-collapsed,
+.sv-inspector.sv-collapsed {
     flex-basis: 44px !important;
     width: 44px !important;
     overflow: hidden;
 }
 
-.sv-renderer-gl .sv-rail.sv-collapsed .sv-rail-body,
-.sv-renderer-gl .sv-inspector.sv-collapsed .sv-inspector-body,
-.sv-renderer-gl .sv-rail.sv-collapsed .sv-panel-title,
-.sv-renderer-gl .sv-inspector.sv-collapsed .sv-panel-title,
-.sv-renderer-gl .sv-inspector.sv-collapsed .sv-panel-chips {
+.sv-rail.sv-collapsed .sv-rail-body,
+.sv-inspector.sv-collapsed .sv-inspector-body,
+.sv-rail.sv-collapsed .sv-panel-title,
+.sv-inspector.sv-collapsed .sv-panel-title,
+.sv-inspector.sv-collapsed .sv-panel-chips {
     display: none;
 }
 
-.sv-renderer-gl .sv-rail.sv-collapsed .sv-panel-head,
-.sv-renderer-gl .sv-inspector.sv-collapsed .sv-panel-head {
+.sv-rail.sv-collapsed .sv-panel-head,
+.sv-inspector.sv-collapsed .sv-panel-head {
     position: static;
     justify-content: center;
     padding: 6px 0;
@@ -231,13 +217,8 @@
 
 /* The tool cluster no longer has to dodge a collapsed rail: the strip holds
    its own column, so the corner is free. */
-.sv-renderer-gl .sv-upper:has(.sv-rail.sv-collapsed) .sv-canvas-tools {
+.sv-upper:has(.sv-rail.sv-collapsed) .sv-canvas-tools {
     left: 12px;
-}
-
-/* No WebGL, no choice to offer. */
-.sv-no-webgl .sv-renderer-toggle {
-    display: none;
 }
 
 /* ── HUD furniture ───────────────────────────────────────────────────────── */

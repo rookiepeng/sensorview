@@ -1,16 +1,16 @@
 // The GL scene: the one object the rest of the app talks to.
 //
-// `gl_bootstrap.js` calls `create()` and parks the result on `window.svGL`.
-// Everything else -- the clientside callbacks, `workbench.js`, the toggle --
-// goes through the handle returned here, so this file is the whole surface of
-// the renderer and nothing outside `assets/gl/` imports three.js.
+// `create(host)` returns the whole surface of the renderer. Nothing outside
+// `src/renderer/gl/` imports three.js, and nothing in here knows that React
+// exists -- the seam is a host element in and a handle out, which is what lets
+// the scene keep its own render loop instead of being redrawn by a component.
 //
 // Two decisions shape the rest:
 //
 // Rendering is on demand. There is no free-running animation loop: a frame is
-// drawn when something changes it and when orbit damping is still settling, and
-// otherwise not at all. A continuously spinning loop would compete with six
-// Plotly panes and a video element for the same main thread, and cost battery
+// drawn when something changes it and while orbit damping is still settling,
+// and otherwise not at all. A loop that always spins would compete with the
+// dock's charts and a video element for the same main thread, and cost battery
 // in a window that is usually sitting still.
 //
 // Geometry is pooled, in `sv_points.esm.js`. Playback steps several frames a
@@ -24,17 +24,15 @@ import {
   Scene,
   Vector3,
   WebGLRenderer,
-} from "./three.esm.js";
-import { OrbitControls } from "./OrbitControls.esm.js";
-import { CSS2DRenderer } from "./CSS2DRenderer.esm.js";
+} from "three";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 import { Axes } from "./sv_axes.esm.js";
 import { Hud } from "./sv_hud.esm.js";
 import { LineLayer, MeshLayer, PointLayer } from "./sv_points.esm.js";
 import { Picker } from "./sv_pick.esm.js";
 import { lutTexture, setPalette } from "./sv_color.esm.js";
-import { decodeCloud, decodeFrame } from "./sv_decode.esm.js";
-import { decodeCloudBinary, decodeFrameBinary } from "./sv_binary.esm.js";
 
 // Plotly draws a scatter3d marker noticeably fatter than its nominal `size`.
 // This is the factor that makes a point the same weight in both renderers, so
@@ -49,17 +47,21 @@ const EYE = new Vector3(1.25, 1.25, 1.25).normalize();
 const FOV = 50;
 
 /**
- * Build the renderer.
+ * Build the renderer inside a host element.
  *
- * Mounting waits for Dash to put `#gl-canvas` in the document, which happens
- * after this module is imported.
- *
+ * @param {HTMLElement} host Element to fill; the canvas and the label layer
+ *     are created inside it. Must be positioned, since the labels are
+ *     absolutely placed over the canvas.
+ * @param {Object} [options] `software` when the WebGL context turned out to be
+ *     a software rasteriser, which the stats readout surfaces; `onPick` to be
+ *     told which point was clicked.
  * @returns {Object} The scene handle.
  */
-export function create() {
+export function create(host, options = {}) {
   const state = {
     mounted: false,
-    active: false,
+    active: true,
+    software: options.software === true,
     frame: null,
     colormap: "Portland",
     paused: true,
@@ -85,6 +87,7 @@ export function create() {
   let refMarker = null;
   let canvas = null;
   let stage = null;
+  let owned = [];
 
   // slots[0] is the live frame; slots[i>0] are decay trails, oldest last.
   const slots = [];
@@ -147,19 +150,41 @@ export function create() {
       fps: state.fps,
       points,
       calls: renderer.info.render.calls,
-      software: window.svGLSoftware === true,
+      software: state.software === true,
     });
   }
 
   /* ----------------------------------------------------------------- mount */
 
-  function mount() {
-    canvas = document.getElementById("gl-canvas");
-    const labels = document.getElementById("gl-labels");
-    stage = document.getElementById("gl-stage");
-    if (!canvas || !labels || !stage) {
+  /**
+   * Build the scene inside a host element.
+   *
+   * The host is handed in rather than looked up. Under Dash the DOM arrived
+   * after this module ran, so mounting meant polling for three ids with a
+   * MutationObserver; a React ref is synchronous, so the caller simply has the
+   * element. The canvas and the label layer are created here rather than
+   * written in markup, because they are this module's business and nothing
+   * else should be able to restyle them by accident.
+   *
+   * @param {HTMLElement} host Element to fill. Must be positioned.
+   * @returns {boolean} Whether the scene mounted.
+   */
+  function mount(host) {
+    if (!host) {
       return false;
     }
+    stage = host;
+
+    canvas = document.createElement("canvas");
+    canvas.id = "gl-canvas";
+    const labels = document.createElement("div");
+    labels.id = "gl-labels";
+    host.append(canvas, labels);
+    // Remembered so dispose can take back exactly what mount added. React's
+    // StrictMode mounts twice in development, so a dispose that misses one of
+    // these leaves an orphan behind -- and `getElementById` then answers with
+    // the dead one.
+    owned = [canvas, labels];
 
     renderer = new WebGLRenderer({
       canvas,
@@ -227,24 +252,13 @@ export function create() {
       getSlots: () => slots,
       isPaused: () => state.paused,
       requestRender,
+      onPick: options.onPick,
     });
 
     state.mounted = true;
     resize();
     applyTheme(document.documentElement.getAttribute("data-bs-theme") !== "light");
     return true;
-  }
-
-  function whenReady() {
-    if (mount()) {
-      return;
-    }
-    const observer = new MutationObserver(() => {
-      if (mount()) {
-        observer.disconnect();
-      }
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
   /* -------------------------------------------------------------- geometry */
@@ -408,31 +422,24 @@ export function create() {
    *     `sizeVary`, `paused`.
    */
   function setFrame(payload) {
-    if (!state.mounted || !payload) {
-      return;
-    }
-
-    const binary = payload.glBundles && payload.glBundles.length;
-    if (!binary && !(payload.bundles && payload.bundles.length)) {
+    if (!state.mounted || !payload || !payload.frames || !payload.frames.length) {
       return;
     }
 
     // Kept so a control that changes how the frame is drawn -- size-vary, a
-    // context restore -- can redraw it without waiting for the slider to move
-    // and refill the buffer.
+    // context restore -- can redraw it without the caller having to rebuild.
     state.payload = payload;
 
     state.colormap = payload.colormap || state.colormap;
     state.paused = payload.paused !== false;
 
-    const frames = binary
-      ? payload.glBundles.map((part) => decodeFrameBinary(part.buffer, part.base))
-      : payload.bundles.map((bundle, i) => decodeFrame(bundle, payload.index - i));
-
+    // Already in the shape the scene wants. There used to be two decoders here
+    // -- one for Plotly trace dicts off the wire, one for a packed binary
+    // frame -- because the data crossed a network boundary as JSON and the
+    // hover text had to be kept out of it. The caller builds this directly
+    // now, so the frame has one representation instead of four.
+    const frames = payload.frames;
     const live = frames[0];
-    live.cloud = payload.cloudBuffer
-      ? decodeCloudBinary(payload.cloudBuffer)
-      : decodeCloud(payload.cloudTrace);
     state.frame = live;
 
     applyLayout(live.layout);
@@ -528,6 +535,10 @@ export function create() {
     state.width = width;
     state.height = height;
 
+    // Re-applied rather than set once at mount: a window dragged to a monitor
+    // with a different scale factor changes this, and the scene would stay at
+    // the old one and look soft.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(width, height, false);
     labelRenderer.setSize(width, height);
     camera.aspect = width / Math.max(height, 1);
@@ -566,18 +577,23 @@ export function create() {
     requestRender();
   }
 
+  /**
+   * Park or resume the render loop.
+   *
+   * It does not hide anything: the host element belongs to whoever passed it
+   * in, and a renderer reaching up to restyle its container is how a layout
+   * ends up with two owners. Parking matters because the loop is on demand --
+   * an inactive scene should cost nothing, not merely be invisible.
+   */
   function setActive(on) {
     state.active = Boolean(on);
-    if (stage) {
-      stage.style.display = state.active ? "" : "none";
-    }
     if (state.active) {
       resize();
       requestRender();
     }
   }
 
-  whenReady();
+  mount(host);
 
   return {
     setFrame,
@@ -617,5 +633,22 @@ export function create() {
     preset: setPreset,
     isMounted: () => state.mounted,
     isActive: () => state.active,
+    /** Tear the scene down and give its GPU resources back. */
+    dispose: () => {
+      state.active = false;
+      state.mounted = false;
+      picker?.dispose();
+      axes?.dispose();
+      hud?.dispose();
+      slots.forEach((slot) => slot.layers.forEach((layer) => layer.dispose()));
+      slots.length = 0;
+      cloudLayer?.dispose();
+      meshLayer?.dispose();
+      lineLayer?.dispose();
+      refMarker?.dispose();
+      renderer?.dispose();
+      owned.forEach((element) => element.remove());
+      owned = [];
+    },
   };
 }

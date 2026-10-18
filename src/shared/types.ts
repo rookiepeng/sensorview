@@ -86,8 +86,15 @@ export interface SensorViewBridge {
     set(patch: Partial<Settings>): Promise<Result<Settings>>
   }
 
-  /** Platform, for the few places the UI has to care. */
-  platform: NodeJS.Platform
+  /**
+   * Which host this is running under.
+   *
+   * `'browser'` is the `npm run web` target -- the renderer in a plain tab
+   * against a fixture. It is a real value rather than a missing one so the few
+   * places that must care can branch on it honestly instead of sniffing for
+   * the absence of something.
+   */
+  platform: NodeJS.Platform | 'browser'
 }
 
 declare global {

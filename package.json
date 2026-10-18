@@ -15,16 +15,20 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "smoke": "electron-vite build && node scripts/smoke.mjs",
-    "dist": "electron-vite build && electron-builder --win"
+    "dist": "electron-vite build && electron-builder --win",
+    "web": "vite --config vite.web.config.ts"
   },
   "dependencies": {
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "three": "^0.180.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "6.1.2",
     "electron": "44.9.0",
     "electron-builder": "26.15.3",

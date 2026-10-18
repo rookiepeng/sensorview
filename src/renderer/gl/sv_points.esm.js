@@ -25,7 +25,7 @@ import {
   LineSegments,
   LineBasicMaterial,
   NormalBlending,
-} from "./three.esm.js";
+} from "three";
 
 const VERTEX_SHADER = `
 attribute float aSize;
