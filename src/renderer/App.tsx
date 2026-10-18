@@ -35,6 +35,7 @@ export function App() {
   const table = useStore((s) => s.table)
   const axes = useStore((s) => s.axes)
   const keys = useStore((s) => s.keys)
+  const stem = useStore((s) => s.stem)
   const filters = useStore((s) => s.filters)
   const cloud = useStore((s) => s.cloud)
   const cloudDisplay = useStore((s) => s.cloudDisplay)
@@ -147,7 +148,7 @@ export function App() {
 
   return (
     <div className="sv-shell">
-      <GlStage payload={payload} onPick={toggleHidden} />
+      <GlStage payload={payload} onPick={toggleHidden} subject={stem} />
 
       <TopBar />
 

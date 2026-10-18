@@ -637,6 +637,18 @@ export function create(host, options = {}) {
     },
     resize,
     preset: setPreset,
+    /**
+     * Let the next frame frame itself again.
+     *
+     * The camera is fitted once and then left alone, so that a frame arriving
+     * does not throw away where the user has moved to. A new log is a new box
+     * though, and keeping the old camera leaves its data off-screen. The flag
+     * is cleared rather than the camera moved here, because the distance to
+     * fit is computed from the layout that has not arrived yet.
+     */
+    reframe: () => {
+      state.framed = false;
+    },
     isMounted: () => state.mounted,
     isActive: () => state.active,
     /** Tear the scene down and give its GPU resources back. */

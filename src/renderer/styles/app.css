@@ -159,14 +159,97 @@ body {
     color: var(--sv-text);
     font-size: var(--sv-font-sm);
     line-height: 1.3;
-    cursor: pointer;
+    position: relative;
     transition: border-color var(--sv-ease), background var(--sv-ease);
 }
 
 .sv-breadcrumb:hover {
-    background: var(--sv-surface-3);
     border-color: var(--sv-border-strong);
+}
+
+/* Each half of the breadcrumb is its own target -- the case name reopens the
+   dialog, the stem picks among the logs -- so each lights on its own. A single
+   hover over the whole chip would say they do the same thing. */
+.sv-crumb-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 1px 5px;
+    margin: -1px -2px;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: inherit;
+}
+
+.sv-crumb-btn:hover:not(:disabled) {
+    background: var(--sv-surface-3);
+}
+
+.sv-crumb-btn:disabled {
+    cursor: default;
+}
+
+.sv-crumb-caret {
+    flex: 0 0 auto;
+    font-size: 0.65rem !important;
+}
+
+/* Hung off the breadcrumb rather than the window: it is a menu for that
+   control, and anchoring it anywhere else would need the chip's position
+   measured and kept in step with the top bar's own layout. */
+.sv-menu {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    z-index: 40;
+    min-width: 100%;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 4px;
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border-strong);
+    border-radius: var(--sv-radius);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 45%);
+}
+
+.sv-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 5px 8px;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.sv-menu-item:hover {
+    background: var(--sv-surface-3);
     color: var(--sv-text);
+}
+
+.sv-menu-item-on {
+    color: var(--sv-accent);
+    font-weight: 600;
+}
+
+.sv-menu-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-menu-marks {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 6px;
+    color: var(--sv-text-faint);
 }
 
 .sv-breadcrumb .bi {

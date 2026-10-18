@@ -424,6 +424,41 @@ export async function runSmoke(
             `the cloud added no points: ${clouded.before} -> ${clouded.after}`
           )
 
+          // Switching logs. A case here holds five, and the picker has to
+          // reach the reader for the one chosen rather than redrawing the
+          // table already in memory -- so this asserts the scene changed and
+          // the breadcrumb followed it.
+          const switched = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const crumb = document.querySelector('.sv-crumb-file')
+               const was = crumb ? crumb.textContent : null
+               const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
+               const picker = buttons[buttons.length - 1]
+               if (!picker) return { error: 'no breadcrumb' }
+               picker.click()
+               await new Promise(r => setTimeout(r, 200))
+               const items = Array.from(document.querySelectorAll('.sv-menu-item'))
+               if (items.length < 2) return { error: 'the picker listed ' + items.length + ' logs' }
+               const other = items.find(i => i.textContent.indexOf(was) === -1)
+               if (!other) return { error: 'every entry is the open log' }
+               const before = document.getElementById('gl-stats').textContent
+               other.click()
+               const deadline = Date.now() + 20000
+               while (Date.now() < deadline) {
+                 const now = document.querySelector('.sv-crumb-file')
+                 const after = document.getElementById('gl-stats').textContent
+                 if (now && now.textContent !== was && after !== before) {
+                   return { logs: items.length, was: was, now: now.textContent, after: after }
+                 }
+                 await new Promise(r => setTimeout(r, 200))
+               }
+               return { error: 'the other log never opened' }
+             })()`
+          )
+
+          expect(!switched.error, `log picker: ${switched.error}`)
+          expect(pointsIn(switched.after) > 0, `the other log drew nothing: ${switched.after}`)
+
           // Shot last, with the cloud on and the category put back, so the
           // picture is the view in full rather than mid-check.
           if (shotPath) {
@@ -432,6 +467,8 @@ export async function runSmoke(
               `(async () => {
                  const off = document.querySelector('.sv-chip:not(.sv-chip-on)')
                  if (off) off.click()
+                 const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
+                 buttons[buttons.length - 1].click()
                  await new Promise(r => setTimeout(r, 600))
                })()`
             )
@@ -452,7 +489,8 @@ export async function runSmoke(
           return (
             `${summary.rows} rows -> ${drew.groups} groups, ${drew.ticks} ticks, ` +
             `${pointsIn(filtered.before)} pts -> ${pointsIn(filtered.after)} with one category off, ` +
-            `${pointsIn(clouded.after)} with the cloud on`
+            `${pointsIn(clouded.after)} with the cloud on; ` +
+            `${switched.logs} logs, ${switched.was} -> ${switched.now}`
           )
         } finally {
           probe.destroy()

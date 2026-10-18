@@ -12,7 +12,7 @@
 
 import { create } from 'zustand'
 
-import type { CloudDisplay } from '@shared/types'
+import type { CaseSummary, CloudDisplay } from '@shared/types'
 import {
   initialFilters,
   type ColumnMeta,
@@ -25,6 +25,15 @@ import type { ScenePayload } from './frame'
 export interface CaseState {
   /** Directory of the open case, or null. */
   dir: string | null
+  /**
+   * The open case, which outlives the log inside it.
+   *
+   * Kept so that switching logs reads a table and nothing else -- the
+   * directory, the manifest and the column metadata are the case's, not the
+   * log's, and re-reading them per switch would be work for an answer that
+   * cannot have changed.
+   */
+  summary: CaseSummary | null
   /** The open log, once its table has been read. */
   table: Table | null
   /** Stem of the open log. */
@@ -62,6 +71,7 @@ export interface CaseState {
 
 export interface Actions {
   openCase(dir: string, frameCount: number): void
+  setSummary(summary: CaseSummary | null): void
   openLog(payload: {
     dir: string
     stem: string
@@ -89,6 +99,7 @@ export interface Actions {
 
 const initial: CaseState = {
   dir: null,
+  summary: null,
   table: null,
   stem: null,
   keys: {},
@@ -112,9 +123,14 @@ export const useStore = create<CaseState & Actions>((set) => ({
 
   openCase: (dir, frameCount) => set({ ...initial, dir, frameCount }),
 
+  setSummary: (summary) => set({ summary }),
+
   openLog: ({ dir, stem, table, keys, axes, cloudDisplay }) =>
-    set({
+    set((s) => ({
       ...initial,
+      // Everything about the log resets; the case does not. Spreading
+      // `initial` over the summary would empty the picker on every switch.
+      summary: s.summary,
       dir,
       stem,
       table,
@@ -123,7 +139,7 @@ export const useStore = create<CaseState & Actions>((set) => ({
       cloudDisplay,
       filters: initialFilters(table, keys),
       frameCount: table.frameIds.length
-    }),
+    })),
 
   setAxis: (axis, column) => set((s) => ({ axes: { ...s.axes, [axis]: column } })),
 

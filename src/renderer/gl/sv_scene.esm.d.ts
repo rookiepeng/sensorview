@@ -33,6 +33,8 @@ export interface Scene {
   resize(): void
   /** Move the camera to a named view: iso, top, front, side. */
   preset(id: string): void
+  /** Fit the camera to the next frame, as the first frame is fitted. */
+  reframe(): void
   isMounted(): boolean
   isActive(): boolean
   /** Tear down and release GPU resources. */

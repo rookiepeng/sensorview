@@ -10,6 +10,35 @@
 
 import type { ColumnMeta } from './table'
 
+/** One log in a case: a table file, and which sidecars it has. */
+export interface LogSummary {
+  /** Stem the sidecars are keyed on. */
+  stem: string
+  /** Table file, absolute. */
+  file: string
+  hasCloud: boolean
+  hasCurve: boolean
+  hasImage: boolean
+  hasReference: boolean
+}
+
+/**
+ * What is in a case directory.
+ *
+ * Read once when the case opens and kept: switching between a case's logs
+ * reads a table, not the directory again.
+ */
+export interface CaseSummary {
+  dir: string
+  name: string
+  frameKey: string
+  /** Column metadata driving the filters and hover text. */
+  keys: Record<string, ColumnMeta>
+  /** How the cloud is drawn, or null when the case declares none. */
+  cloud: CloudDisplay | null
+  logs: LogSummary[]
+}
+
 /** How a case draws its cloud. Fixed per case, from the manifest. */
 export interface CloudDisplay {
   color: string
@@ -104,21 +133,7 @@ export interface DataMethods {
   /** What is in a case directory: its logs and its column metadata. */
   scanCase: {
     params: { dir: string }
-    result: {
-      dir: string
-      name: string
-      frameKey: string
-      keys: Record<string, ColumnMeta>
-      cloud: CloudDisplay | null
-      logs: Array<{
-        stem: string
-        file: string
-        hasCloud: boolean
-        hasCurve: boolean
-        hasImage: boolean
-        hasReference: boolean
-      }>
-    }
+    result: CaseSummary
   }
 
   /**

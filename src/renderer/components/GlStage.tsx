@@ -22,9 +22,17 @@ export interface GlStageProps {
   onPick?: (row: number) => void
   /** True when the WebGL context turned out to be a software rasteriser. */
   software?: boolean
+  /**
+   * What the scene is showing -- the open log's stem.
+   *
+   * Changing it refits the camera. Within one log the camera is the user's
+   * and a new frame must not move it; a different log is a different box, and
+   * keeping the old camera leaves its data off-screen.
+   */
+  subject?: string | null
 }
 
-export function GlStage({ payload, onPick, software }: GlStageProps) {
+export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
   const host = useRef<HTMLDivElement>(null)
   const scene = useRef<Scene | null>(null)
 
@@ -58,6 +66,12 @@ export function GlStage({ payload, onPick, software }: GlStageProps) {
       scene.current = null
     }
   }, [software])
+
+  // Before the frame effect below, so the frame that arrives with a new
+  // subject is the one that fits the camera.
+  useEffect(() => {
+    scene.current?.reframe()
+  }, [subject])
 
   useEffect(() => {
     if (payload) {
