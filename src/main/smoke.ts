@@ -535,6 +535,60 @@ export async function runSmoke(
           expect(!switched.error, `log picker: ${switched.error}`)
           expect(pointsIn(switched.after) > 0, `the other log drew nothing: ${switched.after}`)
 
+          // The inspector and the reference, both of which only exist once
+          // the renderer, the data process and the sv:// handler all agree.
+          const dock = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const deadline = Date.now() + 20000
+               while (Date.now() < deadline) {
+                 const videos = Array.from(document.querySelectorAll('video.sv-video'))
+                 const plots = document.querySelectorAll('.sv-curve-graph.js-plotly-plot')
+                 const ready = videos.filter(v => v.readyState >= 1 && v.videoWidth > 0)
+                 if (ready.length > 0 && plots.length > 0) {
+                   const traces = document.querySelectorAll('.sv-curve-graph .scatterlayer .trace')
+                   return {
+                     videos: videos.length,
+                     ready: ready.length,
+                     size: ready[0].videoWidth + 'x' + ready[0].videoHeight,
+                     seeked: ready[0].currentTime,
+                     plots: plots.length,
+                     traces: traces.length
+                   }
+                 }
+                 await new Promise(r => setTimeout(r, 250))
+               }
+               const videos = Array.from(document.querySelectorAll('video.sv-video'))
+               return {
+                 error: 'the inspector never filled'
+                   + ' | videos=' + videos.length
+                   + ' | readyState=' + videos.map(v => v.readyState).join(',')
+                   + ' | plots=' + document.querySelectorAll('.sv-curve-graph.js-plotly-plot').length
+               }
+             })()`
+          )
+
+          expect(!dock.error, `inspector: ${dock.error}`)
+          // A video that decoded a frame proves the whole sv:// path: the
+          // renderer asked, main checked the path against the opened case,
+          // and the Range request came back as 206.
+          expect(dock.ready > 0, 'no recording decoded a frame')
+          expect(dock.traces > 0, 'the curve plots drew no traces')
+
+          // And the reference mesh reached the scene. Counted off the draw
+          // calls, which rise by one for the mesh and one for its wireframe.
+          const posed = await probe.webContents.executeJavaScript(
+            `(() => {
+               // No backslash escapes in here: this is a TypeScript template
+               // literal, so a regex like /[backslash]s+/ arrives with the
+               // escape already processed and matches the letter instead.
+               const text = document.getElementById('gl-stats').textContent || ''
+               const parts = text.split(' ')
+               const at = parts.indexOf('draws')
+               return at > 0 ? parseInt(parts[at - 1], 10) : 0
+             })()`
+          )
+          expect(posed > 8, `the reference drew nothing: ${posed} draws`)
+
           // Shot last, with the cloud on and the category put back, so the
           // picture is the view in full rather than mid-check.
           if (shotPath) {
@@ -566,7 +620,9 @@ export async function runSmoke(
             `${summary.rows} rows -> ${drew.groups} groups, ${drew.ticks} ticks, ` +
             `${pointsIn(filtered.before)} pts -> ${pointsIn(filtered.after)} with one category off, ` +
             `${pointsIn(clouded.after)} with the cloud on; ` +
-            `${switched.logs} logs, ${switched.was} -> ${switched.now}`
+            `${switched.logs} logs, ${switched.was} -> ${switched.now}; ` +
+            `${dock.ready}/${dock.videos} videos at ${dock.size}, ` +
+            `${dock.traces} traces in ${dock.plots} plots`
           )
         } finally {
           probe.destroy()

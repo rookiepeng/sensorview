@@ -12,7 +12,7 @@
 
 import { create } from 'zustand'
 
-import type { CaseSummary, CloudDisplay } from '@shared/types'
+import type { CaseSummary, CloudDisplay, ReferenceFrame } from '@shared/types'
 import {
   initialFilters,
   type ColumnMeta,
@@ -49,6 +49,15 @@ export interface CaseState {
   cloudOn: boolean
   /** The cloud already read, and which frame it belongs to. */
   cloud: { frameId: number; position: Float32Array; count: number } | null
+  /** Where the reference sits in the open frame, or null when it has no row. */
+  reference: ReferenceFrame | null
+  /**
+   * The reference's extent across the whole log.
+   *
+   * The axis box is fixed from the filters, so without this a reference that
+   * travels outside them is clipped away rather than widening them.
+   */
+  referenceBounds: Record<'x' | 'y' | 'z', [number, number]> | null
   /** Axis and colour columns. */
   axes: { x: string; y: string; z: string; colour: string }
   /** Slider position, which indexes the frame list -- not a frame id. */
@@ -81,6 +90,8 @@ export interface Actions {
     cloudDisplay: CloudDisplay | null
   }): void
   setCloudOn(on: boolean): void
+  setReference(reference: ReferenceFrame | null): void
+  setReferenceBounds(bounds: CaseState['referenceBounds']): void
   setCloud(cloud: CaseState['cloud']): void
   setAxis(axis: keyof CaseState['axes'], column: string): void
   setNumericFilter(column: string, min: number, max: number): void
@@ -107,6 +118,8 @@ const initial: CaseState = {
   cloudDisplay: null,
   cloudOn: false,
   cloud: null,
+  reference: null,
+  referenceBounds: null,
   axes: { x: 'X', y: 'Y', z: 'Z', colour: 'X' },
   frame: 0,
   frameCount: 0,
@@ -202,6 +215,8 @@ export const useStore = create<CaseState & Actions>((set) => ({
   // under a live frame is worse than none.
   setCloudOn: (cloudOn) => set(cloudOn ? { cloudOn } : { cloudOn, cloud: null }),
   setCloud: (cloud) => set({ cloud }),
+  setReference: (reference) => set({ reference }),
+  setReferenceBounds: (referenceBounds) => set({ referenceBounds }),
 
   setPayload: (payload) => set({ payload })
 }))

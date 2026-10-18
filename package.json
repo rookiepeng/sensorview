@@ -23,6 +23,7 @@
     "ffmpeg-static": "^5.2.0",
     "h5wasm": "^0.10.3",
     "nodejs-polars": "^0.26.1",
+    "plotly.js": "^3.1.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "three": "^0.180.0",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "@types/node": "26.6.5",
+    "@types/plotly.js": "^3.0.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/three": "^0.180.0",

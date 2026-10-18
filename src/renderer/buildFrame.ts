@@ -31,6 +31,14 @@ export interface BuildOptions {
   keys: Record<string, ColumnMeta>
   /** Hover text is only built when the view is standing still. */
   withHover: boolean
+  /**
+   * The reference's extent across the log, when it has a pose sidecar.
+   *
+   * The box is fixed for the log rather than fitted per frame, so a reference
+   * that drives outside the detections' extent has to widen it here or it is
+   * clipped away at the edge of the scene.
+   */
+  refBounds?: Record<'x' | 'y' | 'z', [number, number]> | null
 }
 
 const EMPTY_LAYOUT: SceneLayout = {
@@ -219,9 +227,9 @@ export function buildFrame(table: Table, position: number, options: BuildOptions
   // re-fitted every frame would make the scene breathe as the slider moves,
   // which is why the Python fixed it with `autorange: False`.
   const ranges = {
-    x: padded(axisRange(table, options, 'x')),
-    y: padded(axisRange(table, options, 'y')),
-    z: padded(axisRange(table, options, 'z'))
+    x: padded(widened(axisRange(table, options, 'x'), options, 'x')),
+    y: padded(widened(axisRange(table, options, 'y'), options, 'y')),
+    z: padded(widened(axisRange(table, options, 'z'), options, 'z'))
   }
 
   const cRange: [number, number] = numeric ? rangeOf(table, options.colour) : [0, 1]
@@ -248,6 +256,33 @@ export function buildFrame(table: Table, position: number, options: BuildOptions
     }
   }
 }
+
+/**
+ * Widen an axis to contain the reference.
+ *
+ * Only when that axis is showing the matching position column: a plot of RCS
+ * against range has nothing to do with where the vehicle drove, and widening
+ * it by metres of easting would flatten the data to a line.
+ */
+function widened(
+  range: [number, number],
+  options: BuildOptions,
+  axis: 'x' | 'y' | 'z'
+): [number, number] {
+  const bounds = options.refBounds?.[axis]
+  if (!bounds || options[axis] !== DEFAULT_POSITION[axis]) {
+    return range
+  }
+  return [Math.min(range[0], bounds[0]), Math.max(range[1], bounds[1])]
+}
+
+/**
+ * The columns the reference's own x/y/z mean.
+ *
+ * A pose is in the log's position columns by definition, so widening an axis
+ * by it only makes sense while that axis is showing one of them.
+ */
+const DEFAULT_POSITION = { x: 'X', y: 'Y', z: 'Z' } as const
 
 /** The range of one axis: its filter's bounds when it has one, else the data's. */
 function axisRange(table: Table, options: BuildOptions, axis: 'x' | 'y' | 'z'): [number, number] {

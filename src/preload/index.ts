@@ -6,11 +6,13 @@
 
 import { contextBridge, ipcRenderer } from 'electron'
 
+import { mediaUrl } from '../shared/media'
 import type { SensorViewBridge } from '../shared/types'
 
 const bridge: SensorViewBridge = {
   data: (method, params) => ipcRenderer.invoke('data:call', method, params),
   openCase: () => ipcRenderer.invoke('case:open'),
+  mediaUrl,
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
     set: (patch) => ipcRenderer.invoke('settings:set', patch)

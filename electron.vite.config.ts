@@ -31,6 +31,11 @@ export default defineConfig({
   },
   renderer: {
     plugins: [react()],
+    // Plotly still reaches for Node's `global`, which no browser has and
+    // Vite does not shim. Without this the renderer throws at import and the
+    // page comes up blank -- no error visible anywhere but the console.
+    define: { global: 'globalThis' },
+
     resolve: {
       alias: {
         '@shared': resolve('src/shared'),

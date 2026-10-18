@@ -66,6 +66,10 @@ export function installWebBridge(): void {
       get: async () => ok(readSettings()),
       set: async (patch) => ok(writeSettings({ ...readSettings(), ...patch }))
     },
+    // No protocol handler in a browser tab, so a media path is not
+    // addressable there. The inspector shows nothing rather than a
+    // broken element.
+    mediaUrl: () => '',
     initialCase: null,
     platform: 'browser'
   }

@@ -15,6 +15,7 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 
 import { DataClient, dataEntry } from './dataClient'
 import { allowRoot, registerHandler, registerScheme } from './protocol'
+import { videoCacheDir } from '../data/video'
 import { SettingsStore } from './store'
 import { fail, ok, type Settings } from '../shared/types'
 
@@ -166,6 +167,10 @@ if (!app.requestSingleInstanceLock()) {
 
   void app.whenReady().then(async () => {
     registerHandler()
+    // Transcodes are written outside any case folder, so the cache is a root
+    // of its own. Narrow on purpose: the directory this app writes into, not
+    // the temp directory it sits in.
+    allowRoot(videoCacheDir())
     registerIpc()
 
     // Headless end-to-end check of the protocol and the data process. Runs

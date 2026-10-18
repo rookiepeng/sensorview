@@ -33,7 +33,16 @@ export function mimeFor(path: string): string {
  * lowercases its host, which would corrupt a case-sensitive path elsewhere.
  */
 export function mediaUrl(path: string): string {
-  return `${SCHEME}://media/${Buffer.from(path, 'utf8').toString('base64url')}`
+  // Plain base64 made URL-safe by hand, rather than Buffer's 'base64url'.
+  // This runs in a sandboxed preload too, and the Buffer there is a polyfill
+  // that does not know that encoding -- it throws, which took the whole
+  // renderer down with it when the camera panel first called this.
+  const encoded = Buffer.from(path, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+  return `${SCHEME}://media/${encoded}`
 }
 
 /** Recover the path from an `sv://` URL, or null if it is not one. */
@@ -47,7 +56,10 @@ export function decodeMediaUrl(url: string): string | null {
     if (!encoded) {
       return null
     }
-    const decoded = Buffer.from(encoded, 'base64url').toString('utf8')
+    const decoded = Buffer.from(
+      encoded.replace(/-/g, '+').replace(/_/g, '/'),
+      'base64'
+    ).toString('utf8')
     return decoded.length > 0 ? decoded : null
   } catch {
     return null

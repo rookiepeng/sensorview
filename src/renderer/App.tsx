@@ -5,18 +5,21 @@
 // the glass, both unchanged from the Dash app -- the layout was already right,
 // it was only ever the framework underneath that was being replaced.
 //
-// The inspector and the analysis dock are P3 and P4; their regions are absent
-// rather than stubbed, so the grid does not reserve space for something that
-// is not there yet.
+// The analysis dock is P4; its region is absent rather than stubbed, so the
+// grid does not reserve space for something that is not there yet. The
+// inspector returns null for a log with neither a recording nor curves, which
+// is the same idea one level down.
 
 import { useEffect, useMemo } from 'react'
 
 import { FilterRail } from './components/FilterRail'
 import { GlStage } from './components/GlStage'
+import { Inspector } from './components/Inspector'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
 import { useCloud } from './useCloud'
+import { useReference } from './useReference'
 import { fixtureFrame } from './fixture'
 import type { ScenePayload } from './frame'
 import { useStore } from './store'
@@ -39,10 +42,13 @@ export function App() {
   const filters = useStore((s) => s.filters)
   const cloud = useStore((s) => s.cloud)
   const cloudDisplay = useStore((s) => s.cloudDisplay)
+  const reference = useStore((s) => s.reference)
+  const referenceBounds = useStore((s) => s.referenceBounds)
 
   // Keeps the cloud in step with the frame. Nothing is returned: the read
   // lands in the store, which is what the payload below is built from.
   useCloud()
+  useReference()
 
   // Browser mode has no readers behind it, so it starts on the fixture. In
   // Electron the top bar's breadcrumb opens a real case.
@@ -67,6 +73,10 @@ export function App() {
               ...axes,
               filters,
               keys,
+              // The box has to contain the reference's whole journey, not
+              // just the detections: it is fixed for the log, and a pose
+              // outside it would simply be clipped.
+              refBounds: referenceBounds,
               withHover: !playing
             })
           : fixtureFrame(frame - i, { categorical: sizeVary, hidden })
@@ -77,6 +87,26 @@ export function App() {
     // would be a second 11,000-point layer per trailed frame, and the Python
     // did not draw one either.
     const live = frames[0]
+    if (live && reference) {
+      const rgb = parseColor(reference.color) as [number, number, number]
+      live.ref = {
+        mesh: reference.mesh
+          ? {
+              position: reference.mesh,
+              // Expanded triangles rather than indexed: the mesh is twenty
+              // of them, and `flatShading` wants per-face normals anyway.
+              index: new Uint32Array(0),
+              rgb,
+              opacity: reference.opacity
+            }
+          : null,
+        edges: reference.edges
+          ? { position: reference.edges, rgb: parseColor(reference.edgeColor) as [number, number, number] }
+          : null,
+        marker: null,
+        name: reference.name
+      }
+    }
     if (live && cloudDisplay && cloud && cloud.frameId === table?.frameIds[frame]) {
       const [r, g, b] = parseColor(cloudDisplay.color)
       live.cloud = {
@@ -143,7 +173,9 @@ export function App() {
     keys,
     filters,
     cloud,
-    cloudDisplay
+    cloudDisplay,
+    reference,
+    referenceBounds
   ])
 
   return (
@@ -162,6 +194,8 @@ export function App() {
             </div>
             <Transport />
           </div>
+          <div id="inspector-splitter" className="sv-splitter sv-splitter-col" />
+          <Inspector />
         </div>
       </div>
     </div>

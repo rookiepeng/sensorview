@@ -960,6 +960,9 @@ body {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+    /* Once the plots no longer fit the section, it scrolls rather than
+       letting them draw over one another. */
+    overflow-y: auto;
 }
 
 .sv-subsection-head {
@@ -1111,6 +1114,40 @@ body {
     height: 100% !important;
     overflow: hidden !important;
 }
+
+/* One curve plot. Several stack in the section, each taking an equal share of
+   whatever the camera above left over -- so a log with one plot gets a tall
+   one rather than a short one with empty space under it. */
+.sv-curve {
+    display: flex;
+    flex-direction: column;
+    /* `flex: 1 1 0` divides the section evenly and then lets each plot's own
+       min-height push past its share, which draws the second plot's heading
+       over the first. Growing from a basis the plot actually fits in keeps
+       them stacked, and the section scrolls once they no longer fit. */
+    flex: 1 0 auto;
+    min-height: 170px;
+}
+
+.sv-curve + .sv-curve {
+    margin-top: 8px;
+}
+
+.sv-curve-graph {
+    width: 100%;
+    flex: 1 1 auto;
+    /* Enough for the axis and a readable trace; past that the plot takes
+       whatever the dock has spare. */
+    min-height: 150px;
+}
+
+.sv-curve-graph .js-plotly-plot,
+.sv-curve-graph .plot-container {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
 
 /* ── Bottom dock: the six analysis charts ────────────────────────────── */
 .sv-dock-wrap {

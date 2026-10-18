@@ -247,6 +247,15 @@ export interface SensorViewBridge {
    */
   openCase(): Promise<Result<string | null>>
 
+  /**
+   * The `sv://` URL for a file the data layer handed over.
+   *
+   * Encoding only. Whether the URL resolves is main's decision, taken from
+   * the set of directories the user has opened -- the renderer can ask for
+   * any path and widen nothing.
+   */
+  mediaUrl(path: string): string
+
   settings: {
     get(): Promise<Result<Settings>>
     set(patch: Partial<Settings>): Promise<Result<Settings>>
