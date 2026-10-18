@@ -1,0 +1,151 @@
+{
+ "path": "data/NuScenes/scene_0061.radar_front.h5",
+ "pattern": "/frame_{frame_id}/{name}",
+ "signals": [
+  "rate_compensated",
+  "rate_measured",
+  "rate_zero",
+  "rcs_mean",
+  "rcs_peak"
+ ],
+ "samples": [
+  {
+   "name": "rate_compensated",
+   "n": 66,
+   "hasX": true,
+   "x": [
+    1.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "y": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "yLast": null
+  },
+  {
+   "name": "rate_measured",
+   "n": 66,
+   "hasX": true,
+   "x": [
+    1.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "y": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "yLast": null
+  },
+  {
+   "name": "rate_zero",
+   "n": 66,
+   "hasX": true,
+   "x": [
+    1.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "y": [
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "yLast": 0.0
+  },
+  {
+   "name": "rcs_mean",
+   "n": 66,
+   "hasX": true,
+   "x": [
+    1.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "y": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "yLast": null
+  },
+  {
+   "name": "rcs_peak",
+   "n": 66,
+   "hasX": true,
+   "x": [
+    1.0,
+    3.0,
+    5.0,
+    7.0
+   ],
+   "y": [
+    null,
+    null,
+    null,
+    null
+   ],
+   "yLast": null
+  }
+ ],
+ "orientations": [
+  {
+   "label": "rows are samples",
+   "shape": [
+    3,
+    2
+   ],
+   "x": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "y": [
+    10.0,
+    20.0,
+    30.0
+   ]
+  },
+  {
+   "label": "columns are samples",
+   "shape": [
+    2,
+    3
+   ],
+   "x": [
+    1.0,
+    2.0,
+    3.0
+   ],
+   "y": [
+    10.0,
+    20.0,
+    30.0
+   ]
+  },
+  {
+   "label": "one dimension",
+   "shape": [
+    3
+   ],
+   "x": null,
+   "y": [
+    5.0,
+    6.0,
+    7.0
+   ]
+  }
+ ]
+}

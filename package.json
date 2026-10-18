@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "bootstrap-icons": "^1.13.1",
+    "ffmpeg-static": "^5.2.0",
     "h5wasm": "^0.10.3",
     "nodejs-polars": "^0.26.1",
     "react": "19.3.1",

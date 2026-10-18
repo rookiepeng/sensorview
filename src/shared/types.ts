@@ -39,6 +39,51 @@ export interface CaseSummary {
   logs: LogSummary[]
 }
 
+/** One camera recording beside a log, resolved to something playable. */
+export interface ImageStream {
+  id: string
+  label: string
+  /** Absolute path of the file to play -- the source, or a transcode of it. */
+  file: string
+  /** Frames in the recording, measured by demuxing. Null when unreadable. */
+  frames: number | null
+}
+
+/** One trace of a curve plot, read for one frame. */
+export interface CurveTrace {
+  name: string
+  label: string
+  color?: string
+  dash?: string
+  width?: number
+  /** Sample positions, or null to plot against the sample index. */
+  x: Float32Array | null
+  y: Float32Array
+}
+
+/** One plot of a curve sidecar, for one frame. */
+export interface CurvePlot {
+  id: string
+  label: string
+  xLabel: string
+  yLabel: string
+  traces: CurveTrace[]
+}
+
+/** Where the reference sits in one frame, and how it is drawn. */
+export interface ReferenceFrame {
+  pose: { x: number; y: number; z: number; yaw: number; pitch: number; roll: number }
+  /** Triangle vertices in world space, already posed. */
+  mesh: Float32Array | null
+  /** Line segment endpoints in world space, already posed. */
+  edges: Float32Array | null
+  name: string
+  color: string
+  opacity: number
+  edgeColor: string
+  edgeWidth: number
+}
+
 /** How a case draws its cloud. Fixed per case, from the manifest. */
 export interface CloudDisplay {
   color: string
@@ -134,6 +179,41 @@ export interface DataMethods {
   scanCase: {
     params: { dir: string }
     result: CaseSummary
+  }
+
+  /**
+   * A log's camera recordings, each resolved to a playable file.
+   *
+   * Resolving means transcoding when the recorder's container is not one a
+   * browser plays, which is why this is here and not a property of the scan:
+   * it can take seconds, and only the inspector needs it.
+   */
+  logImageStreams: {
+    params: { dir: string; stem: string }
+    result: ImageStream[]
+  }
+
+  /** A log's curve plots, read for one frame. */
+  logCurves: {
+    params: { dir: string; stem: string; sourceId?: string; frameId: number }
+    result: CurvePlot[]
+  }
+
+  /** Where the reference sits in one frame, or null when it has no pose. */
+  logReference: {
+    params: { dir: string; stem: string; frameId: number }
+    result: ReferenceFrame | null
+  }
+
+  /**
+   * The reference's position extent across a whole log.
+   *
+   * The scene fixes its axis ranges from the filters, so a reference that
+   * travels outside them would be clipped away rather than widening them.
+   */
+  logReferenceBounds: {
+    params: { dir: string; stem: string }
+    result: Record<'x' | 'y' | 'z', [number, number]> | null
   }
 
   /**

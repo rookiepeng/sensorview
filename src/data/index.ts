@@ -11,9 +11,11 @@
 import type { DataMethod, Result } from '../shared/types'
 import { fail, ok } from '../shared/types'
 import { frameIds, readTable } from './parquet'
-import { hdf5Id, readCloudFrame } from './hdf5'
+import { curveDataset, hdf5Id, readCloudFrame, readCurve } from './hdf5'
 import { Manifest } from './manifest'
 import { scanCase } from './caseScan'
+import { poseEdges, poseMesh, ReferenceStore } from './referenceStore'
+import { playableFile, streamFrameCount } from './video'
 
 type Handler = (params: any) => Promise<Result<unknown>> | Result<unknown>
 
@@ -39,6 +41,124 @@ const handlers: Record<DataMethod, Handler> = {
       .replace('{frame_id}', hdf5Id(frameId))
       .replace(/^\//, '')
     return ok(await readCloudFrame(path, dataset, manifest.cloudColumns()))
+  },
+
+  logImageStreams: async ({ dir, stem }) => {
+    const manifest = await Manifest.load(dir)
+    const streams = await manifest.imageStreams(stem)
+    const resolved = []
+    for (const stream of streams) {
+      // Resolving can transcode, so it happens one at a time rather than as a
+      // fan-out: five recordings encoding at once would saturate the machine
+      // for a panel showing one of them.
+      const file = await playableFile(stream.file)
+      if (!file) {
+        continue
+      }
+      resolved.push({
+        id: stream.id,
+        label: stream.label,
+        file,
+        // Measured off the source, not the transcode: the two are
+        // frame-for-frame, and probing the source avoids forcing an encode
+        // just to answer this.
+        frames: await streamFrameCount(stream.file)
+      })
+    }
+    return ok(resolved)
+  },
+
+  logCurves: async ({ dir, stem, sourceId, frameId }) => {
+    const manifest = await Manifest.load(dir)
+    const path = await manifest.curvePath(stem, sourceId)
+    if (!path) {
+      return ok([])
+    }
+
+    const id = hdf5Id(frameId)
+    const plots = []
+    for (const plot of manifest.curvePlots()) {
+      const traces = []
+      for (const trace of (plot.traces ?? []) as Dict[]) {
+        // `curvePlots` has already filled `{name}` and left `{frame_id}`
+        // standing, because a plot definition is per log and the frame is
+        // per read. Filling it here is what makes the dataset addressable.
+        const dataset = curveDataset(trace.dataset as string, id)
+        const curve = await readCurve(path, dataset.replace(/^\//, ''))
+        if (!curve) {
+          // A plot whose trace is absent for this frame draws the traces that
+          // are present, rather than going blank.
+          continue
+        }
+        traces.push({
+          name: trace.name as string,
+          label: (trace.label as string) ?? (trace.name as string),
+          color: trace.color as string | undefined,
+          dash: trace.dash as string | undefined,
+          width: trace.width as number | undefined,
+          x: curve.x,
+          y: curve.y
+        })
+      }
+      if (traces.length > 0) {
+        plots.push({
+          id: plot.id as string,
+          label: (plot.label as string) ?? (plot.id as string),
+          xLabel: (plot.x_label as string) ?? '',
+          yLabel: (plot.y_label as string) ?? '',
+          traces
+        })
+      }
+    }
+    return ok(plots)
+  },
+
+  logReference: async ({ dir, stem, frameId }) => {
+    const { store, display } = await openReference(dir, stem)
+    const pose = store?.pose(frameId) ?? null
+    if (!store || !pose) {
+      return ok(null)
+    }
+
+    const vertices = (display.vertices as number[][]) ?? []
+    const faces = (display.faces as number[][]) ?? []
+    const edges = (display.edges as number[][]) ?? []
+
+    return ok({
+      pose,
+      mesh: faces.length > 0 ? poseMesh(vertices, faces, pose) : null,
+      edges: edges.length > 0 ? poseEdges(vertices, edges, pose) : null,
+      name: (display.name as string) ?? 'Reference',
+      color: (display.color as string) ?? '#ffffff',
+      opacity: (display.opacity as number) ?? 0.3,
+      edgeColor: (display.edge_color as string) ?? '#ffffff',
+      edgeWidth: (display.edge_width as number) ?? 1
+    })
+  },
+
+  logReferenceBounds: async ({ dir, stem }) => {
+    const { store } = await openReference(dir, stem)
+    return ok(store?.bounds() ?? null)
+  }
+}
+
+type Dict = Record<string, unknown>
+
+/** Open a log's reference sidecar with the mapping the manifest configured. */
+async function openReference(
+  dir: string,
+  stem: string
+): Promise<{ store: ReferenceStore | null; display: Dict }> {
+  const manifest = await Manifest.load(dir)
+  const path = manifest.referencePath(stem)
+  return {
+    store: path
+      ? ReferenceStore.open(path, {
+          columns: manifest.referenceColumns(),
+          frameKey: manifest.frameKey
+        })
+      : null,
+    display: manifest.referenceDisplay() as Dict
   }
 }
 

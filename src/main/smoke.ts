@@ -238,6 +238,82 @@ export async function runSmoke(
         return `${frame!.count} points, ${(frame!.position.byteLength / 1024).toFixed(0)} KB`
       }
     });
+
+    checks.push({
+      name: 'a recording resolves and counts its frames',
+      run: async () => {
+        const result = await data.call('logImageStreams', {
+          dir: caseDir,
+          stem: 'scene_0061'
+        })
+        expect(result.ok, `logImageStreams failed: ${result.error}`)
+        const streams = result.data!
+        expect(streams.length > 0, 'the log declares no camera')
+        const first = streams[0]!
+        // An mp4 goes through untouched; the count is demuxed rather than
+        // read off the container, which routinely declares nothing.
+        expect(first.file.endsWith('.mp4'), `not playable: ${first.file}`)
+        expect(
+          (first.frames ?? 0) > 0,
+          `ffmpeg counted no frames -- is ffmpeg-static unpacked? got ${first.frames}`
+        )
+        return `${streams.length} stream(s), "${first.label}" with ${first.frames} frames`
+      }
+    })
+
+    checks.push({
+      name: 'a curve plot reads its traces',
+      run: async () => {
+        const result = await data.call('logCurves', {
+          dir: caseDir,
+          stem: 'scene_0061',
+          frameId: 0
+        })
+        expect(result.ok, `logCurves failed: ${result.error}`)
+        const plots = result.data!
+        expect(plots.length > 0, 'no plots came back')
+        const traces = plots.flatMap((plot) => plot.traces)
+        expect(traces.length > 0, 'every plot came back empty')
+        const sample = traces[0]!
+        expect(sample.y.length > 0, 'a trace came back with no samples')
+        return `${plots.length} plots, ${traces.length} traces, ${sample.y.length} samples in "${sample.label}"`
+      }
+    })
+
+    checks.push({
+      name: 'the reference pose places its mesh',
+      run: async () => {
+        const result = await data.call('logReference', {
+          dir: caseDir,
+          stem: 'scene_0061',
+          frameId: 0
+        })
+        expect(result.ok, `logReference failed: ${result.error}`)
+        const reference = result.data
+        expect(reference !== null, 'no pose for frame 0')
+        expect(reference!.mesh !== null, 'the manifest declares a mesh but none was built')
+        // Three vertices per triangle, three floats per vertex.
+        expect(
+          reference!.mesh!.length % 9 === 0,
+          `mesh is not whole triangles: ${reference!.mesh!.length} floats`
+        )
+        expect(
+          reference!.mesh!.every((v) => Number.isFinite(v)),
+          'the posed mesh carries a non-finite coordinate'
+        )
+
+        const bounds = await data.call('logReferenceBounds', {
+          dir: caseDir,
+          stem: 'scene_0061'
+        })
+        expect(bounds.ok && bounds.data !== null, 'no reference bounds')
+        return (
+          `${reference!.mesh!.length / 9} triangles at ` +
+          `(${reference!.pose.x.toFixed(1)}, ${reference!.pose.y.toFixed(1)}), ` +
+          `yaw ${reference!.pose.yaw.toFixed(2)}`
+        )
+      }
+    })
   }
 
   // The renderer, opening the real case end to end. Everything above checks a

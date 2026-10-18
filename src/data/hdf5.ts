@@ -177,3 +177,111 @@ export async function cloudFrames(path: string): Promise<string[]> {
   const handle = await file(path)
   return handle.keys()
 }
+
+export interface Curve {
+  /** Sample positions, or null for a dataset that carries only values. */
+  x: Float32Array | null
+  y: Float32Array
+}
+
+/**
+ * Split an (N, 2) dataset into its x and y vectors.
+ *
+ * MATLAB writes column-major, so a 2xN array there reads back as (N, 2) here;
+ * both orientations are accepted so the same file works either way. A dataset
+ * that is neither is plotted against its sample index rather than refused --
+ * that is not a layout this reads, but it is worth drawing.
+ */
+export function splitXy(values: ArrayLike<number>, shape: number[]): Curve {
+  const toF32 = (source: ArrayLike<number>) =>
+    source instanceof Float32Array ? source : Float32Array.from(source)
+
+  if (shape.length === 2) {
+    const [rows, cols] = shape as [number, number]
+    if (cols === 2) {
+      const x = new Float32Array(rows)
+      const y = new Float32Array(rows)
+      for (let r = 0; r < rows; r++) {
+        x[r] = values[r * 2]!
+        y[r] = values[r * 2 + 1]!
+      }
+      return { x, y }
+    }
+    if (rows === 2) {
+      const x = new Float32Array(cols)
+      const y = new Float32Array(cols)
+      for (let c = 0; c < cols; c++) {
+        x[c] = values[c]!
+        y[c] = values[cols + c]!
+      }
+      return { x, y }
+    }
+  }
+
+  return { x: null, y: toF32(values) }
+}
+
+/**
+ * Fill `{frame_id}` and `{name}` into a dataset pattern.
+ *
+ * `{sensor_id}` is accepted too, for a file that holds several sensors in one
+ * tree; the sidecar-per-sensor layout this case uses leaves it unused.
+ */
+export function curveDataset(
+  pattern: string,
+  frameId: string,
+  name?: string,
+  sensorId?: string
+): string {
+  return pattern
+    .replace('{frame_id}', frameId)
+    .replace('{name}', name ?? '')
+    .replace('{sensor_id}', sensorId ?? '')
+}
+
+/**
+ * Read one named curve for one frame.
+ *
+ * @returns The curve, or null when the file has no such dataset -- a plot
+ *     whose trace is absent for this frame draws the traces that are present.
+ */
+export async function readCurve(
+  path: string,
+  dataset: string
+): Promise<Curve | null> {
+  const handle = await file(path)
+  const node = handle.get(dataset)
+  if (!node || !('shape' in node) || !node.shape) {
+    return null
+  }
+  const shape = node.shape as number[]
+  if (!shape.length || !shape[0]) {
+    return null
+  }
+  return splitXy(node.value as ArrayLike<number>, shape)
+}
+
+/**
+ * List the series names stored for a frame.
+ *
+ * The pattern up to `{name}` is the group holding one frame's series, so this
+ * lists that group. Used to check a manifest's plot config against the file
+ * rather than drawing a trace that is not there.
+ */
+export async function curveSignals(
+  path: string,
+  pattern: string,
+  frameId: string,
+  sensorId?: string
+): Promise<string[]> {
+  const handle = await file(path)
+  const group = curveDataset(pattern.split('{name}')[0]!, frameId, '', sensorId).replace(
+    /\/+$/,
+    ''
+  )
+  const node = handle.get(group || '/')
+  if (!node || !('keys' in node) || typeof node.keys !== 'function') {
+    return []
+  }
+  return (node.keys() as string[]).slice().sort()
+}
