@@ -26,7 +26,12 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from dataio.calibration import Calibration, apply_transform, rotation_matrix
+from dataio.manifest import Manifest, normalize_reference_display
 from frame_sources import _video_frame_for
+
+CASE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "NuScenes"
+)
 
 
 def main() -> None:
@@ -39,7 +44,7 @@ def main() -> None:
     # Seeded, so re-running produces the same fixture and a diff means a real
     # change rather than new random draws.
     rng = np.random.default_rng(7)
-    out = {"rotation": [], "transform": [], "video": []}
+    out = {"rotation": [], "transform": [], "video": [], "manifest": None}
 
     for _ in range(200):
         roll, pitch, yaw = rng.uniform(-np.pi, np.pi, 3)
@@ -73,6 +78,42 @@ def main() -> None:
         out["video"].append(
             [local, total, frames, _video_frame_for(local, total, frames)]
         )
+
+    # The manifest, read from the real case. Normalizing a hand-written block
+    # is where a port drifts quietly: a default filled in differently, a mesh
+    # edge derived in another order, a colour that falls back somewhere else.
+    # None of it raises; it just draws something slightly wrong.
+    if os.path.isdir(CASE):
+        manifest = Manifest.load(CASE)
+        stem = "scene_0061"
+        out["manifest"] = {
+            "name": manifest.name,
+            "frame_key": manifest.table.get("slider"),
+            "cloud_suffix": manifest.cloud_suffix,
+            "cloud_display": manifest.cloud_display(),
+            "cloud_columns": manifest.cloud_columns(),
+            "curve_suffixes": manifest.curve_suffixes,
+            "curve_sources": [
+                {
+                    "id": s["id"],
+                    "label": s["label"],
+                    "file": os.path.basename(s["file"]),
+                }
+                for s in manifest.curve_sources(stem)
+            ],
+            "curve_plots": manifest.curve_plots(),
+            "image_streams": [
+                {
+                    "id": s["id"],
+                    "label": s["label"],
+                    "file": os.path.basename(s["file"]),
+                }
+                for s in manifest.image_streams(stem)
+            ],
+            "reference_columns": manifest.reference_columns(),
+            "reference_display": normalize_reference_display(manifest.reference),
+            "stem_of": manifest.stem_of(os.path.join(CASE, "scene_0061.parquet")),
+        }
 
     json.dump(out, sys.stdout)
 

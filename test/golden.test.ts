@@ -13,10 +13,11 @@
 // become an ordinary regression fixture, which is still worth having.
 
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import { Manifest, normalizeReferenceDisplay } from '../src/data/manifest'
 import { Calibration, applyTransform, rotationMatrix } from '../src/shared/calibration'
 import { videoFrameFor } from '../src/shared/videoFrame'
 
@@ -29,6 +30,7 @@ interface Golden {
     result: number[]
   }>
   video: Array<[number, number, number, number]>
+  manifest: Record<string, any> | null
 }
 
 const golden: Golden = JSON.parse(
@@ -80,5 +82,44 @@ describe('videoFrameFor matches Python', () => {
       ([local, total, frames, expected]) => videoFrameFor(local, total, frames) !== expected
     )
     expect(wrong).toEqual([])
+  })
+})
+
+describe('the manifest port agrees with Python on the real case', () => {
+  const expected = golden.manifest
+
+  it('has a captured manifest to check against', () => {
+    // Guards the premise: without the case present the generator writes null,
+    // and every assertion below would vacuously pass.
+    expect(expected).not.toBeNull()
+  })
+
+  it('agrees on every normalized block', async () => {
+    const caseDir = join(__dirname, '..', 'data', 'NuScenes')
+    const manifest = await Manifest.load(caseDir)
+    const stem = 'scene_0061'
+
+    const strip = (entries: Array<{ id: string; label: string; file: string }>) =>
+      entries.map((e) => ({ id: e.id, label: e.label, file: basename(e.file) }))
+
+    const mine = {
+      name: manifest.name,
+      frame_key: manifest.table.slider,
+      cloud_suffix: manifest.cloudSuffix,
+      cloud_display: manifest.cloudDisplay(),
+      cloud_columns: manifest.cloudColumns(),
+      curve_suffixes: manifest.curveSuffixes,
+      curve_sources: strip(await manifest.curveSources(stem)),
+      curve_plots: manifest.curvePlots(),
+      image_streams: strip(await manifest.imageStreams(stem)),
+      reference_columns: manifest.referenceColumns(),
+      reference_display: normalizeReferenceDisplay(manifest.reference),
+      stem_of: manifest.stemOf(join(caseDir, 'scene_0061.parquet'))
+    }
+
+    // Compared whole rather than field by field: a key the port forgot to
+    // normalize is exactly the kind of omission a per-field assertion list
+    // also forgets.
+    expect(JSON.parse(JSON.stringify(mine))).toEqual(expected)
   })
 })
