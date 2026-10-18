@@ -15,6 +15,7 @@ import { create, type Scene } from '@gl/sv_scene.esm.js'
 import { PALETTE } from '@shared/palette'
 
 import type { ScenePayload } from '../frame'
+import { setScene } from '../sceneHandle'
 
 export interface GlStageProps {
   payload: ScenePayload | null
@@ -51,6 +52,8 @@ export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
       onPick: (event) => pick.current?.(event.id)
     })
     scene.current = instance
+    // Published for the exports, which read the canvas directly.
+    setScene(instance)
     // Before the first frame: the colorway decides every categorical colour,
     // and the scene falls back to one flat blue without it.
     instance.setPalette(PALETTE)
@@ -64,6 +67,7 @@ export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
       observer.disconnect()
       instance.dispose()
       scene.current = null
+      setScene(null)
     }
   }, [software])
 

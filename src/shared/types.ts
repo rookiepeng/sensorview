@@ -248,6 +248,23 @@ export interface SensorViewBridge {
   openCase(): Promise<Result<string | null>>
 
   /**
+   * Ask where to put an export, and write it there.
+   *
+   * The renderer makes the bytes and main decides where they land, so an
+   * export cannot write anywhere the user did not choose -- the same
+   * property the `sv://` allowlist gives reads.
+   *
+   * @returns The path written, or null when the dialog was dismissed.
+   */
+  saveFile(request: {
+    suggestedName: string
+    /** Text content, or base64 for a binary file. */
+    data: string
+    encoding: 'utf8' | 'base64'
+    filters?: Array<{ name: string; extensions: string[] }>
+  }): Promise<Result<string | null>>
+
+  /**
    * The `sv://` URL for a file the data layer handed over.
    *
    * Encoding only. Whether the URL resolves is main's decision, taken from

@@ -35,6 +35,10 @@ export interface Scene {
   preset(id: string): void
   /** Fit the camera to the next frame, as the first frame is fitted. */
   reframe(): void
+  /** A PNG data URL of the scene, rendered fresh. Empty before it mounts. */
+  snapshot(): string
+  /** The canvas, for a recorder to capture a stream of. */
+  canvas(): HTMLCanvasElement | null
   isMounted(): boolean
   isActive(): boolean
   /** Tear down and release GPU resources. */

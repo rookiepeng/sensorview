@@ -8,6 +8,7 @@
 // native. So this configuration is never packaged; `npm run dist` builds the
 // real renderer, which is empty until then.
 
+import { writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -17,7 +18,7 @@ import { DataClient, dataEntry } from './dataClient'
 import { allowRoot, registerHandler, registerScheme } from './protocol'
 import { videoCacheDir } from '../data/video'
 import { SettingsStore } from './store'
-import { fail, ok, type Settings } from '../shared/types'
+import { fail, ok, type Result, type Settings } from '../shared/types'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -142,9 +143,59 @@ async function openCase() {
   return ok(dir)
 }
 
+/**
+ * Write an export where the user says.
+ *
+ * The renderer builds the bytes and this chooses the destination, so an
+ * export can only ever land somewhere the user picked in a native dialog --
+ * the same shape as `sv://`, where the renderer may ask for any path and
+ * main decides which ones exist.
+ */
+async function saveFile(request: {
+  suggestedName: string
+  data: string
+  encoding: 'utf8' | 'base64'
+  filters?: Array<{ name: string; extensions: string[] }>
+}): Promise<Result<string | null>> {
+  // The end-to-end check cannot click a native dialog, and mocking this in
+  // the renderer would leave main's writer -- the part that actually touches
+  // the disk -- unchecked. So the check names a directory and the dialog is
+  // skipped. Only ever set by `scripts/smoke.mjs`; the app never sets it.
+  const smokeDir = process.env.SENSORVIEW_SMOKE_SAVE_DIR
+  if (smokeDir) {
+    const target = join(smokeDir, request.suggestedName)
+    try {
+      await writeFile(target, Buffer.from(request.data, request.encoding))
+    } catch (problem) {
+      return fail(500, String(problem))
+    }
+    return ok(target)
+  }
+
+  const win = BrowserWindow.getAllWindows()[0]
+  const result = win
+    ? await dialog.showSaveDialog(win, {
+        defaultPath: request.suggestedName,
+        filters: request.filters
+      })
+    : await dialog.showSaveDialog({ defaultPath: request.suggestedName })
+
+  if (result.canceled || !result.filePath) {
+    return ok(null)
+  }
+
+  try {
+    await writeFile(result.filePath, Buffer.from(request.data, request.encoding))
+  } catch (problem) {
+    return fail(500, String(problem))
+  }
+  return ok(result.filePath)
+}
+
 function registerIpc(): void {
   ipcMain.handle('data:call', (_event, method, params) => data.call(method, params))
   ipcMain.handle('case:open', () => openCase())
+  ipcMain.handle('file:save', (_event, request) => saveFile(request))
   ipcMain.handle('settings:get', async () => ok(await settings.get()))
   ipcMain.handle('settings:set', async (_event, patch: Partial<Settings>) =>
     ok(await settings.set(patch))

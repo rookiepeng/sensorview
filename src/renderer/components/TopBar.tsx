@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { buildTable, type Column } from '@shared/table'
 import type { CaseSummary, LogSummary } from '@shared/types'
 
+import { ExportMenu } from './ExportMenu'
 import { useStore } from '../store'
 
 export function TopBar() {
@@ -194,6 +195,7 @@ export function TopBar() {
       <div className="sv-topbar-spacer" />
 
       <div className="sv-topbar-actions">
+        <ExportMenu />
         <button
           type="button"
           className="sv-icon-btn"

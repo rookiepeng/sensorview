@@ -12,6 +12,7 @@ import type { SensorViewBridge } from '../shared/types'
 const bridge: SensorViewBridge = {
   data: (method, params) => ipcRenderer.invoke('data:call', method, params),
   openCase: () => ipcRenderer.invoke('case:open'),
+  saveFile: (request) => ipcRenderer.invoke('file:save', request),
   mediaUrl,
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),

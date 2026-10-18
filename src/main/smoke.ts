@@ -346,6 +346,7 @@ export async function runSmoke(
             backgroundThrottling: false
           }
         })
+        let exports = 'exports not run'
         try {
           // Set SENSORVIEW_SMOKE_VERBOSE to see what the page says. The
           // single-object form of this event, not the old positional one --
@@ -382,7 +383,13 @@ export async function runSmoke(
                  const words = text.split(/[^0-9a-zA-Z.]+/)
                  const at = words.indexOf('pts')
                  const drawn = at > 0 ? parseFloat(words[at - 1]) : 0
-                 if (drawn > 0) {
+                 // Points and labels, not points alone. The tick labels are
+                 // CSS2D elements placed after the draw that reports the
+                 // points, so reading on the first non-empty frame caught
+                 // the scene between the two -- which failed about one run
+                 // in five, and never on the same check twice.
+                 const ticks = document.querySelectorAll('.sv-gl-tick').length
+                 if (drawn > 0 && ticks > 0) {
                    console.log('scene settled: ' + text)
                    const legend = document.getElementById('gl-legend')
                    return {
@@ -400,6 +407,7 @@ export async function runSmoke(
                  error: 'the scene never reported drawing anything'
                    + ' | stats=' + JSON.stringify(stats ? stats.textContent : null)
                    + ' | canvas=' + (canvas ? canvas.width + 'x' + canvas.height : 'none')
+                   + ' | ticks=' + document.querySelectorAll('.sv-gl-tick').length
                    + ' | legend=' + document.querySelectorAll('.sv-gl-legend-row').length
                    + ' | chips=' + document.querySelectorAll('.sv-chip').length
                    + ' | crumb=' + JSON.stringify(
@@ -673,6 +681,136 @@ export async function runSmoke(
             `the scatter took ${dock.drawn.scatter.ms}ms for ${dock.drawn.scatter.points} points`
           )
 
+          // The exports, through the real save path: the renderer builds the
+          // bytes and main writes them, which is the half a renderer-side
+          // mock would leave unchecked.
+          const saveDir = process.env.SENSORVIEW_SMOKE_SAVE_DIR
+          if (saveDir) {
+            const exported = await probe.webContents.executeJavaScript(
+              `(async () => {
+                 // Idempotent: the button toggles, so clicking it while the
+                 // menu is already open closes it -- which is how the first
+                 // version of this found nothing to click.
+                 const openMenu = async () => {
+                   const button = document.querySelector('.sv-export .sv-icon-btn')
+                   if (!button) return null
+                   if (!document.querySelector('.sv-export .sv-menu')) {
+                     button.click()
+                     await new Promise(r => setTimeout(r, 200))
+                   }
+                   return Array.from(document.querySelectorAll('.sv-export .sv-menu-item'))
+                 }
+                 const items = await openMenu()
+                 if (!items || items.length === 0) return { error: 'no export menu' }
+                 const labels = items.map(function (i) {
+                   return i.querySelector('.sv-menu-label').textContent
+                 })
+
+                 const done = []
+                 for (let at = 0; at < labels.length; at++) {
+                   const fresh = await openMenu()
+                   fresh[at].click()
+                   // The animation walks every frame, so this waits well past
+                   // what the quick ones need.
+                   const deadline = Date.now() + 120000
+                   while (Date.now() < deadline) {
+                     await new Promise(r => setTimeout(r, 250))
+                     const note = document.querySelector('.sv-export-note')
+                     const text = note ? note.textContent : ''
+                     if (text && text.indexOf('Saved') === 0) {
+                       done.push(labels[at] + ' -> ' + text.slice(6))
+                       break
+                     }
+                     if (text && text.length > 0 && text.indexOf('…') === -1
+                         && text.indexOf('Saved') !== 0) {
+                       return { error: labels[at] + ': ' + text }
+                     }
+                   }
+                   if (done.length !== at + 1) {
+                     return { error: labels[at] + ' never finished' }
+                   }
+                 }
+                 return { done: done }
+               })()`
+            )
+
+            expect(!exported.error, `export: ${exported.error}`)
+            expect(
+              exported.done.length === 5,
+              `expected five exports, got ${exported.done.length}`
+            )
+
+            const { readdir, stat: statOf } = await import('node:fs/promises')
+            const written = await readdir(saveDir)
+            const sizes: Record<string, number> = {}
+            for (const name of written) {
+              sizes[name] = (await statOf(joinPath(saveDir, name))).size
+            }
+
+            const find = (suffix: string) => written.find((name) => name.endsWith(suffix))
+            const csv = find('_table.csv')
+            expect(Boolean(csv), `no CSV was written: ${written.join(', ')}`)
+            // 19,063 rows plus a header, so a file of a few bytes means an
+            // empty mask rather than a working export.
+            expect(sizes[csv!]! > 500_000, `the CSV is ${sizes[csv!]} bytes`)
+
+            const png = find('_scene.png')
+            expect(Boolean(png), 'no PNG was written')
+            expect(sizes[png!]! > 10_000, `the PNG is ${sizes[png!]} bytes -- a blank canvas?`)
+
+            const figure = find('_figure.html')
+            expect(Boolean(figure), 'no figure page was written')
+            // Self-contained means the library is in the file.
+            expect(
+              sizes[figure!]! > 3_000_000,
+              `the figure page is ${sizes[figure!]} bytes -- is Plotly inlined?`
+            )
+
+            const video = written.find((name) => name.includes('_animation.'))
+            expect(Boolean(video), 'no animation was written')
+            expect(sizes[video!]! > 10_000, `the animation is ${sizes[video!]} bytes`)
+
+            // And the self-contained page actually opens. A fresh window
+            // with no preload, no protocol handler and nothing of this app
+            // in it: if the file needs anything that is not inside it, this
+            // is where that shows up rather than on someone else's machine.
+            const reader = new BrowserWindow({
+              show: false,
+              webPreferences: { sandbox: true, nodeIntegration: false }
+            })
+            try {
+              await reader.loadFile(joinPath(saveDir, figure!))
+              const drew = await reader.webContents.executeJavaScript(
+                `(async () => {
+                   for (let i = 0; i < 40; i++) {
+                     await new Promise(r => setTimeout(r, 250))
+                     const plot = document.querySelector('.js-plotly-plot')
+                     if (plot) {
+                       // Whatever the dock happened to be showing when the
+                       // export ran, which is not always a scatter.
+                       const marks = plot.querySelectorAll(
+                         '.scatterlayer .point, .scatterlayer .points path,'
+                         + ' .heatmaplayer image, .contourlayer .contour,'
+                         + ' .barlayer .point, .violinlayer .trace,'
+                         + ' .parcats .paths path, .parcats .dimension'
+                       ).length
+                       if (marks > 0) return { marks: marks, plotly: typeof Plotly }
+                     }
+                   }
+                   return { error: 'the exported page drew nothing'
+                     + ' | Plotly=' + typeof Plotly }
+                 })()`
+              )
+              expect(!drew.error, `exported page: ${drew.error}`)
+              exports =
+                `${written.length} exports, CSV ${(sizes[csv!]! / 1024).toFixed(0)} KB, ` +
+                `video ${(sizes[video!]! / 1024).toFixed(0)} KB, ` +
+                `page reopens with ${drew.marks} marks`
+            } finally {
+              reader.destroy()
+            }
+          }
+
           // Shot last, with the cloud on and the category put back, so the
           // picture is the view in full rather than mid-check.
           if (shotPath) {
@@ -714,7 +852,8 @@ export async function runSmoke(
             `${switched.logs} logs, ${switched.was} -> ${switched.now}; ` +
             `${inspector.ready}/${inspector.videos} videos at ${inspector.size}, ` +
             `${inspector.traces} traces in ${inspector.plots} plots; ` +
-            `dock ${dock.views.map((v: string) => `${v} ${dock.drawn[v].marks} marks`).join(', ')}`
+            `dock ${dock.views.map((v: string) => `${v} ${dock.drawn[v].marks} marks`).join(', ')}; ` +
+            exports
           )
         } finally {
           probe.destroy()

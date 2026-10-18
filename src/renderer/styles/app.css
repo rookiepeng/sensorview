@@ -1651,3 +1651,34 @@ body {
 ._dash-loading-callback {
     color: var(--sv-accent);
 }
+
+/* ── Export ──────────────────────────────────────────────────────────── */
+.sv-export {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Hung from the right edge: the menu sits under a button in the top bar's
+   right-hand corner, and a left-anchored one would run off the window. */
+.sv-menu-right {
+    left: auto;
+    right: 0;
+}
+
+.sv-export-note {
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+    max-width: 30vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The hint beside each entry says what the export covers -- "the filtered
+   rows", "this frame" -- because that is the question someone asks before
+   clicking, and answering it in the menu is cheaper than a dialog. */
+.sv-menu-item .sv-menu-marks {
+    font-size: var(--sv-font-xs);
+}

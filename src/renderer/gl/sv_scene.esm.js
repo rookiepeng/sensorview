@@ -649,6 +649,45 @@ export function create(host, options = {}) {
     reframe: () => {
       state.framed = false;
     },
+    /**
+     * A PNG data URL of the scene as it stands.
+     *
+     * Renders first, in the same turn. Without `preserveDrawingBuffer` the
+     * colour buffer is thrown away once the browser composites, so reading
+     * the canvas at any other moment gives a blank image -- and setting that
+     * flag instead would cost a copy on every frame to serve an export taken
+     * once a session.
+     *
+     * The CSS2D axis labels are DOM, not canvas, so they are not in it. The
+     * export page says so rather than pretending the picture is complete.
+     *
+     * @returns {string} `data:image/png;base64,...`
+     */
+    /** The canvas itself, for an animation recorder to capture a stream of. */
+    canvas: () => canvas,
+    snapshot: () => {
+      if (!state.mounted) {
+        return "";
+      }
+      renderer.render(scene, camera);
+
+      // The canvas is transparent on purpose -- `--sv-bg` on the body is the
+      // scene's background, so the theme reaches it with no GL work. That
+      // makes a straight `toDataURL` a picture with no background at all,
+      // which composites onto white wherever it is opened and turns the dark
+      // theme's grid into black lines on paper. So the background is painted
+      // in here, once, on the way out.
+      const source = renderer.domElement;
+      const flat = document.createElement("canvas");
+      flat.width = source.width;
+      flat.height = source.height;
+      const paint = flat.getContext("2d");
+      const style = getComputedStyle(document.documentElement);
+      paint.fillStyle = (style.getPropertyValue("--sv-bg") || "#0a0c0f").trim();
+      paint.fillRect(0, 0, flat.width, flat.height);
+      paint.drawImage(source, 0, 0);
+      return flat.toDataURL("image/png");
+    },
     isMounted: () => state.mounted,
     isActive: () => state.active,
     /** Tear the scene down and give its GPU resources back. */

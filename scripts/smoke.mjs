@@ -1,6 +1,7 @@
 // Run the end-to-end spine check inside Electron.
 //
 //   node scripts/smoke.mjs [media-file] [--url <page>] [--case <dir>] [--shot <png>]
+//                            [--save-dir <dir>]
 //                            [--packaged]
 //
 // --case adds the native-module spike: polars against the real table and
@@ -8,6 +9,9 @@
 //
 // --shot writes a PNG of the probe window once it has drawn the case, which
 // is the only way to look at the renderer without starting it by hand.
+//
+// --save-dir runs the exports, writing into that directory instead of asking
+// where to put them -- a native save dialog cannot be clicked from here.
 //
 // --packaged runs dist/win-unpacked instead of the dev build, which is the
 // only configuration where an asar or a missing runtime can show up.
@@ -35,10 +39,11 @@ const flag = (name) => {
 const url = flag('--url')
 const caseDir = flag('--case')
 const shot = flag('--shot')
+const saveDir = flag('--save-dir')
 const packaged = args.includes('--packaged')
 
 const consumed = new Set()
-for (const name of ['--url', '--case', '--shot']) {
+for (const name of ['--url', '--case', '--shot', '--save-dir']) {
   const at = args.indexOf(name)
   if (at !== -1) {
     consumed.add(at).add(at + 1)
@@ -75,7 +80,8 @@ const child = spawn(electron, packaged ? [] : ['.'], {
     SENSORVIEW_SMOKE: media,
     ...(url ? { SENSORVIEW_SMOKE_URL: url } : {}),
     ...(caseDir ? { SENSORVIEW_SMOKE_CASE: resolve(caseDir) } : {}),
-    ...(shot ? { SENSORVIEW_SMOKE_SHOT: resolve(shot) } : {})
+    ...(shot ? { SENSORVIEW_SMOKE_SHOT: resolve(shot) } : {}),
+    ...(saveDir ? { SENSORVIEW_SMOKE_SAVE_DIR: resolve(saveDir) } : {})
   }
 })
 child.on('exit', (code) => process.exit(code ?? 1))

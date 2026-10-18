@@ -66,6 +66,22 @@ export function installWebBridge(): void {
       get: async () => ok(readSettings()),
       set: async (patch) => ok(writeSettings({ ...readSettings(), ...patch }))
     },
+    // A browser tab has no native save dialog, so an export falls back to
+    // the download the page can do for itself.
+    saveFile: async ({ suggestedName, data, encoding }) => {
+      const blob =
+        encoding === 'base64'
+          ? await (await fetch(`data:application/octet-stream;base64,${data}`)).blob()
+          : new Blob([data], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = suggestedName
+      link.click()
+      URL.revokeObjectURL(url)
+      return { ok: true, status: 200, data: suggestedName }
+    },
+
     // No protocol handler in a browser tab, so a media path is not
     // addressable there. The inspector shows nothing rather than a
     // broken element.
