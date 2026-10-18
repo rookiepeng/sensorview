@@ -123,6 +123,76 @@ export async function runSmoke(
     }
   ]
 
+  // The native-module spike. These are the checks that decide whether the data
+  // layer can be TypeScript at all: `nodejs-polars` is a native addon that has
+  // to `dlopen` from outside the asar, and `h5wasm` is an Emscripten build that
+  // fetches its .wasm from beside its own .js. Both load in `npm run dev` and
+  // can still fail in a packaged build, which is why this runs here rather
+  // than in vitest.
+  const caseDir = process.env.SENSORVIEW_SMOKE_CASE
+  if (caseDir) {
+    const { join } = await import('node:path')
+    const table = join(caseDir, 'scene_0061.parquet')
+    const cloud = join(caseDir, 'scene_0061.cloud.h5')
+
+    checks.push({
+      name: 'polars reads the table',
+      run: async () => {
+        const result = await data.call('readTable', { path: table })
+        expect(result.ok, `readTable failed: ${result.error}`)
+        const { rows, columns } = result.data!
+        expect(rows === 19756, `expected 19756 rows, got ${rows}`)
+        expect(columns.length === 16, `expected 16 columns, got ${columns.length}`)
+
+        const numeric = columns.filter((c) => c.kind === 'number').length
+        const text = columns.filter((c) => c.kind === 'string').length
+        expect(numeric === 11, `expected 11 numeric columns, got ${numeric}`)
+        expect(text === 5, `expected 5 categorical columns, got ${text}`)
+
+        const sensor = columns.find((c) => c.name === 'Sensor')
+        expect(sensor?.levels?.length === 5, `expected 5 sensors, got ${sensor?.levels?.length}`)
+        return `${rows} rows, ${numeric} numeric + ${text} categorical`
+      }
+    });
+
+    checks.push({
+      name: 'polars pushes the projection down',
+      run: async () => {
+        // One column out of sixteen. This is what makes opening a case fast on
+        // a table far larger than this one, and it is the main reason the
+        // reader is polars rather than a pure-JS Parquet parser.
+        const result = await data.call('frameIds', { path: table, frameKey: 'Frame' })
+        expect(result.ok, `frameIds failed: ${result.error}`)
+        const ids = result.data!
+        expect(ids.length === 39, `expected 39 frames, got ${ids.length}`)
+        expect(ids[0] === 0, `expected first frame 0, got ${ids[0]}`)
+        const ascending = ids.every((v, i) => i === 0 || v > ids[i - 1]!)
+        expect(ascending, 'frame ids are not ascending')
+        return `${ids.length} frames, ${ids[0]}..${ids[ids.length - 1]}`
+      }
+    });
+
+    checks.push({
+      name: 'h5wasm reads a gzip-chunked cloud frame',
+      run: async () => {
+        const result = await data.call('cloudFrame', { path: cloud, dataset: 'frame_0' })
+        expect(result.ok, `cloudFrame failed: ${result.error}`)
+        const frame = result.data
+        expect(frame !== null, 'no frame came back')
+        expect(frame!.count === 11120, `expected 11120 points, got ${frame!.count}`)
+        expect(
+          frame!.position.length === 11120 * 3,
+          `expected interleaved xyz, got ${frame!.position.length}`
+        )
+        expect(
+          Number.isFinite(frame!.position[0]!),
+          'first coordinate is not a finite number'
+        )
+        return `${frame!.count} points, ${(frame!.position.byteLength / 1024).toFixed(0)} KB`
+      }
+    });
+  }
+
   if (pageUrl) {
     checks.push({
       name: 'a window loads the views',

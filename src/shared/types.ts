@@ -60,6 +60,36 @@ export const DEFAULT_SETTINGS: Settings = {
 export interface DataMethods {
   /** Liveness check. Returns the data process's pid. */
   ping: { params: void; result: { pid: number } }
+
+  /** Frame ids present in a table, ascending. */
+  frameIds: { params: { path: string; frameKey: string }; result: number[] }
+
+  /**
+   * Read a table into columnar arrays.
+   *
+   * Numeric columns arrive as Float64Array with NaN for null; categoricals as
+   * Int32Array level codes plus their dictionary, which is what makes a
+   * category filter an integer comparison.
+   */
+  readTable: {
+    params: { path: string; columns?: string[] }
+    result: {
+      rows: number
+      columns: Array<{
+        name: string
+        kind: 'number' | 'string'
+        values?: Float64Array
+        codes?: Int32Array
+        levels?: string[]
+      }>
+    }
+  }
+
+  /** One cloud frame as interleaved xyz. */
+  cloudFrame: {
+    params: { path: string; dataset: string }
+    result: { position: Float32Array; count: number } | null
+  }
 }
 
 export type DataMethod = keyof DataMethods

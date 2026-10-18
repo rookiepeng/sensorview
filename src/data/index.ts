@@ -10,11 +10,19 @@
 
 import type { DataMethod, Result } from '../shared/types'
 import { fail, ok } from '../shared/types'
+import { frameIds, readTable } from './parquet'
+import { readCloudFrame } from './hdf5'
 
-type Handler = (params: never) => Promise<Result<unknown>> | Result<unknown>
+type Handler = (params: any) => Promise<Result<unknown>> | Result<unknown>
 
 const handlers: Record<DataMethod, Handler> = {
-  ping: () => ok({ pid: process.pid })
+  ping: () => ok({ pid: process.pid }),
+
+  frameIds: ({ path, frameKey }) => ok(frameIds(path, frameKey)),
+
+  readTable: ({ path, columns }) => ok(readTable(path, columns)),
+
+  cloudFrame: async ({ path, dataset }) => ok(await readCloudFrame(path, dataset))
 }
 
 interface Call {
