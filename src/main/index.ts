@@ -203,8 +203,12 @@ function registerIpc(): void {
 }
 
 // A second launch should raise the window that is already open, not start a
-// second copy pointed at the same cache directory.
-if (!app.requestSingleInstanceLock()) {
+// second copy pointed at the same cache directory. The end-to-end check is
+// not a launch and must never defer to one: it opens no window a user would
+// see, and quitting instead would have it exit 0 having run nothing -- which
+// reads as a pass, and did, until a stale process from an earlier run made it
+// happen.
+if (!process.env.SENSORVIEW_SMOKE && !app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   app.on('second-instance', () => {

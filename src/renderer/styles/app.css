@@ -1740,3 +1740,15 @@ body {
     background: var(--sv-accent-soft);
     border-radius: 999px;
 }
+
+/* The curve section's sensor picker, parked at the end of its heading. */
+.sv-subsection-head select {
+    margin-left: auto;
+    max-width: 160px;
+    padding: 1px 5px;
+    background: var(--sv-surface-2);
+    color: inherit;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    font-size: var(--sv-font-xs);
+}

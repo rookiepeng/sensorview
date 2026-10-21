@@ -64,6 +64,14 @@ export interface CurveTrace {
 /** One plot of a curve sidecar, for one frame. */
 export interface CurvePlot {
   id: string
+  /**
+   * The plot this is a copy of, when logs are combined.
+   *
+   * Each log draws its own band, but the bands share one y range so their
+   * levels can be read against each other -- which is the whole reason to
+   * put two logs on one slider.
+   */
+  rangeKey: string
   label: string
   xLabel: string
   yLabel: string
@@ -207,6 +215,18 @@ export interface DataMethods {
     result: ImageStream[]
   }
 
+  /**
+   * The curve sidecars a case's logs carry, as a union.
+   *
+   * Combined logs need not carry the same sensors, and a selector listing
+   * only the primary's would hide a sidecar the second log was combined in
+   * for.
+   */
+  logCurveSources: {
+    params: { dir: string; stems: string[] }
+    result: Array<{ id: string; label: string }>
+  }
+
   /** A log's curve plots, read for one frame. */
   logCurves: {
     params: { dir: string; stem: string; sourceId?: string; frameId: number }
@@ -220,13 +240,16 @@ export interface DataMethods {
   }
 
   /**
-   * The reference's position extent across a whole log.
+   * The reference's position extent across every open log.
    *
-   * The scene fixes its axis ranges from the filters, so a reference that
-   * travels outside them would be clipped away rather than widening them.
+   * The scene fixes its axis ranges once for the load, so a reference that
+   * travels outside them would be clipped rather than widening them -- and
+   * with logs combined the box has to cover wherever *any* of their
+   * references goes, or the second one is clipped the moment the slider
+   * reaches it.
    */
   logReferenceBounds: {
-    params: { dir: string; stem: string }
+    params: { dir: string; stems: string[] }
     result: Record<'x' | 'y' | 'z', [number, number]> | null
   }
 

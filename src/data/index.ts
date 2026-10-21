@@ -86,6 +86,19 @@ const handlers: Record<DataMethod, Handler> = {
     return ok(resolved)
   },
 
+  logCurveSources: async ({ dir, stems }) => {
+    const manifest = await Manifest.load(dir)
+    const seen = new Map<string, { id: string; label: string }>()
+    for (const stem of stems) {
+      for (const source of await manifest.curveSources(stem)) {
+        if (!seen.has(source.id)) {
+          seen.set(source.id, { id: source.id, label: source.label })
+        }
+      }
+    }
+    return ok([...seen.values()])
+  },
+
   logCurves: async ({ dir, stem, sourceId, frameId }) => {
     const manifest = await Manifest.load(dir)
     const path = await manifest.curvePath(stem, sourceId)
@@ -121,6 +134,7 @@ const handlers: Record<DataMethod, Handler> = {
       if (traces.length > 0) {
         plots.push({
           id: plot.id as string,
+          rangeKey: plot.id as string,
           label: (plot.label as string) ?? (plot.id as string),
           xLabel: (plot.x_label as string) ?? '',
           yLabel: (plot.y_label as string) ?? '',
@@ -154,9 +168,24 @@ const handlers: Record<DataMethod, Handler> = {
     })
   },
 
-  logReferenceBounds: async ({ dir, stem }) => {
-    const { store } = await openReference(dir, stem)
-    return ok(store?.bounds() ?? null)
+  logReferenceBounds: async ({ dir, stems }) => {
+    let merged: Record<string, [number, number]> | null = null
+    for (const stem of stems) {
+      const { store } = await openReference(dir, stem)
+      const bounds = store?.bounds()
+      if (!bounds) {
+        continue
+      }
+      if (!merged) {
+        merged = { ...bounds }
+        continue
+      }
+      for (const axis of ['x', 'y', 'z'] as const) {
+        const have = merged[axis]!
+        merged[axis] = [Math.min(have[0], bounds[axis][0]), Math.max(have[1], bounds[axis][1])]
+      }
+    }
+    return ok(merged as never)
   }
 }
 

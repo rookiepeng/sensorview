@@ -29,6 +29,8 @@ export function Inspector() {
   const frame = useStore((s) => s.frame)
 
   const [streams, setStreams] = useState<Record<string, ImageStream[]>>({})
+  const [sources, setSources] = useState<Array<{ id: string; label: string }>>([])
+  const [source, setSource] = useState<string | null>(null)
   const [plots, setPlots] = useState<CurvePlot[]>([])
   const [yRanges, setYRanges] = useState<Record<string, [number, number]>>({})
   const [collapsed, setCollapsed] = useState(false)
@@ -68,12 +70,35 @@ export function Inspector() {
     }
   }, [dir, stems])
 
-  // Ranges reset with the load, because a different log's values have
-  // nothing to do with the last one's.
+  // Which curve sidecars the open logs carry, as a union: combined logs need
+  // not carry the same sensors, and listing only the primary's would hide a
+  // sidecar the second log was combined in for.
+  useEffect(() => {
+    setSources([])
+    setSource(null)
+    if (!dir || stems.length === 0) {
+      return
+    }
+    let current = true
+    void window.sensorview
+      .data('logCurveSources', { dir, stems })
+      .then((result) => {
+        if (current && result.ok && result.data) {
+          setSources(result.data)
+          setSource(result.data[0]?.id ?? null)
+        }
+      })
+    return () => {
+      current = false
+    }
+  }, [dir, stems])
+
+  // Ranges reset with the load and with the sensor, because a different
+  // sidecar's values have nothing to do with the last one's.
   useEffect(() => {
     setYRanges({})
     setPlots([])
-  }, [dir, stems])
+  }, [dir, stems, source])
 
   // Curves are per frame, and per log that recorded it.
   useEffect(() => {
@@ -85,7 +110,12 @@ export function Inspector() {
     let current = true
     void Promise.all(
       owners.map(async (stem) => {
-        const result = await window.sensorview.data('logCurves', { dir, stem, frameId })
+        const result = await window.sensorview.data('logCurves', {
+          dir,
+          stem,
+          sourceId: source ?? undefined,
+          frameId
+        })
         const found = result.ok && result.data ? result.data : []
         // Named by their log whenever more than one is loaded -- not only
         // when two share this position. Scrubbing across the boundary
@@ -95,6 +125,8 @@ export function Inspector() {
           ? found.map((plot) => ({
               ...plot,
               id: `${stem}:${plot.id}`,
+              // `rangeKey` deliberately left as the plot's own id, so every
+              // log's band of a plot shares one y range.
               label: `${stem} · ${plot.label}`
             }))
           : found
@@ -111,7 +143,7 @@ export function Inspector() {
       // Scrubbing starts a read per position; only the newest may land.
       current = false
     }
-  }, [dir, stems, ownerSets, table, frame])
+  }, [dir, stems, ownerSets, table, frame, source])
 
   // One clip per log that recorded this position, each carrying its own frame
   // number within its own recording. A log that recorded nothing here is
@@ -188,6 +220,21 @@ export function Inspector() {
           <section className="sv-subsection sv-subsection--grow">
             <div className="sv-subsection-head">
               <span className="sv-section-label">Curves</span>
+              {/* Only when there is a choice: one sidecar needs no picker,
+                  and a select with a single option is furniture. */}
+              {sources.length > 1 && (
+                <select
+                  value={source ?? ''}
+                  aria-label="Curve source"
+                  onChange={(event) => setSource(event.target.value)}
+                >
+                  {sources.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.label}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="sv-subsection-body">
               <CurvePanel plots={plots} yRanges={yRanges} theme={theme} />

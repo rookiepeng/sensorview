@@ -13,6 +13,7 @@ import { useStore } from './store'
 export function useReference(): void {
   const dir = useStore((s) => s.dir)
   const primary = useStore((s) => s.stem)
+  const stems = useStore((s) => s.stems)
   const ownerSets = useStore((s) => s.ownerSets)
   const table = useStore((s) => s.table)
   const frame = useStore((s) => s.frame)
@@ -23,15 +24,15 @@ export function useReference(): void {
 
   useEffect(() => {
     setReferenceBounds(null)
-    // The bounds widen the axis box for the whole load, so they come from
-    // the primary: a box fitted to one log's journey and then widened by
-    // another's would be the union of two unrelated drives.
-    if (!dir || !primary) {
+    // Every open log's, merged. The box is fixed for the load, so one
+    // fitted to the primary alone clips the second log's reference the
+    // moment the slider reaches it.
+    if (!dir || stems.length === 0) {
       return
     }
     let current = true
     void window.sensorview
-      .data('logReferenceBounds', { dir, stem: primary })
+      .data('logReferenceBounds', { dir, stems })
       .then((result) => {
         if (current && result.ok) {
           setReferenceBounds(result.data ?? null)
@@ -40,7 +41,7 @@ export function useReference(): void {
     return () => {
       current = false
     }
-  }, [dir, primary, setReferenceBounds])
+  }, [dir, stems, setReferenceBounds])
 
   useEffect(() => {
     const frameId = table?.frameIds[frame]

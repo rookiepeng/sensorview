@@ -19,7 +19,14 @@ import { PlotlyFigure } from './PlotlyFigure'
 
 export interface CurvePanelProps {
   plots: CurvePlot[]
-  /** Fixed y ranges, keyed by plot id. Grown by the caller as frames arrive. */
+  /**
+   * Fixed y ranges, keyed by `rangeKey` rather than by `id`.
+   *
+   * Combined logs each draw their own band of a plot, and the bands share
+   * one range: a band scaled to its own log would put two signals side by
+   * side at different scales, which is the comparison this view exists to
+   * make possible.
+   */
   yRanges: Record<string, [number, number]>
   theme: 'dark' | 'light'
 }
@@ -28,7 +35,7 @@ export function CurvePanel({ plots, yRanges, theme }: CurvePanelProps) {
   return (
     <>
       {plots.map((plot) => (
-        <Plot key={plot.id} plot={plot} range={yRanges[plot.id]} theme={theme} />
+        <Plot key={plot.id} plot={plot} range={yRanges[plot.rangeKey]} theme={theme} />
       ))}
     </>
   )
@@ -139,12 +146,12 @@ export function growYRanges(
     // A little headroom, so a peak does not sit exactly on the frame.
     const pad = (max - min) * 0.05 || 0.5
     const found: [number, number] = [min - pad, max + pad]
-    const have = next[plot.id]
+    const have = next[plot.rangeKey]
     if (!have) {
-      next[plot.id] = found
+      next[plot.rangeKey] = found
       changed = true
     } else if (found[0] < have[0] || found[1] > have[1]) {
-      next[plot.id] = [Math.min(have[0], found[0]), Math.max(have[1], found[1])]
+      next[plot.rangeKey] = [Math.min(have[0], found[0]), Math.max(have[1], found[1])]
       changed = true
     }
   }

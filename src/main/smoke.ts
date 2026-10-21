@@ -304,7 +304,7 @@ export async function runSmoke(
 
         const bounds = await data.call('logReferenceBounds', {
           dir: caseDir,
-          stem: 'scene_0061'
+          stems: ['scene_0061']
         })
         expect(bounds.ok && bounds.data !== null, 'no reference bounds')
         return (
