@@ -16,6 +16,7 @@ import { filterAll, type Table } from '@shared/table'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
+import { CollapseButton, Picker, Switch } from './Controls'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
 
@@ -131,15 +132,12 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           ))}
 
           <div className="sv-dock-actions">
-            <button
-              type="button"
-              className="sv-icon-btn"
-              onClick={() => setCollapsed((on) => !on)}
-              aria-label={collapsed ? 'Expand the dock' : 'Collapse the dock'}
-              title={collapsed ? 'Expand' : 'Collapse'}
-            >
-              <i className={`bi bi-chevron-${collapsed ? 'up' : 'down'}`} />
-            </button>
+            <CollapseButton
+              collapsed={collapsed}
+              onToggle={() => setCollapsed((on) => !on)}
+              subject="dock"
+              edge="bottom"
+            />
           </div>
         </div>
 
@@ -287,14 +285,9 @@ function Pane({
           />
         )}
         {view === 'heatmap' && (
-          <label className="sv-switch-row">
-            <input
-              type="checkbox"
-              checked={slot.logScale}
-              onChange={(event) => onChange({ logScale: event.target.checked })}
-            />
-            <span>log counts</span>
-          </label>
+          <Switch checked={slot.logScale} onChange={(logScale) => onChange({ logScale })}>
+            Log counts
+          </Switch>
         )}
         {view === 'parcats' &&
           [0, 1, 2].map((at) => (
@@ -327,30 +320,5 @@ function Pane({
         revision={revision}
       />
     </div>
-  )
-}
-
-function Picker({
-  label,
-  value,
-  choices,
-  onChange
-}: {
-  label: string
-  value: string
-  choices: string[]
-  onChange: (value: string) => void
-}) {
-  return (
-    <label className="sv-pane-field">
-      <span className="sv-section-label">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {choices.map((choice) => (
-          <option key={choice} value={choice}>
-            {choice}
-          </option>
-        ))}
-      </select>
-    </label>
   )
 }

@@ -221,7 +221,7 @@ export function ExportMenu() {
         title={busy ? `${busy} — click to stop` : 'Export'}
         aria-label="Export"
       >
-        <i className={`bi bi-${busy ? 'stop-circle' : 'download'}`} />
+        <i className={`bi bi-${busy ? 'stop-circle' : 'download'}`} aria-hidden="true" />
       </button>
 
       {busy && <span className="sv-export-note">{busy}…</span>}

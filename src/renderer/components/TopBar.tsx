@@ -11,6 +11,7 @@ import { buildFrameOwners } from '@shared/logs'
 import type { CaseSummary, LogSummary } from '@shared/types'
 
 import { ExportMenu } from './ExportMenu'
+import { IconButton } from './Controls'
 import { useStore } from '../store'
 
 export function TopBar() {
@@ -177,9 +178,16 @@ export function TopBar() {
               breadcrumb is a path, and three stems in it stop reading as
               one. */}
           {stems.length > 1 && (
-            <span className="sv-crumb-more">+{stems.length - 1}</span>
+            <span
+              className="sv-crumb-more"
+              title={`${stems.length - 1} more log${stems.length === 2 ? '' : 's'} combined`}
+            >
+              +{stems.length - 1}
+            </span>
           )}
-          {logs.length > 1 && <i className="bi bi-chevron-down sv-crumb-caret" />}
+          {logs.length > 1 && (
+            <i className="bi bi-chevron-down sv-crumb-caret" aria-hidden="true" />
+          )}
         </button>
 
         {picking && summary && (
@@ -190,6 +198,7 @@ export function TopBar() {
               return (
                 <div
                   key={log.stem}
+                  role="none"
                   className={`sv-menu-item sv-menu-combine${open ? ' sv-menu-item-on' : ''}`}
                 >
                   {/* Two targets per row. The checkbox combines a log with
@@ -238,16 +247,17 @@ export function TopBar() {
                       the cloud, the pose, an export -- reads the primary. */}
                   {at === 0 && stems.length > 1 && (
                     <span className="sv-menu-primary" title="Primary log">
-                      1st
+                      <span aria-hidden="true">1st</span>
+                      <span className="sv-sr-only">Primary log</span>
                     </span>
                   )}
                   {/* What this log has beside its table, so the choice is
                       made on what is in it rather than on the name alone. */}
                   <span className="sv-menu-marks">
-                    {log.hasCloud && <i className="bi bi-cloud" title="point cloud" />}
-                    {log.hasImage && <i className="bi bi-camera-video" title="camera" />}
-                    {log.hasCurve && <i className="bi bi-graph-up" title="curves" />}
-                    {log.hasReference && <i className="bi bi-car-front" title="reference pose" />}
+                    {log.hasCloud && <Mark icon="cloud" name="point cloud" />}
+                    {log.hasImage && <Mark icon="camera-video" name="camera" />}
+                    {log.hasCurve && <Mark icon="graph-up" name="curves" />}
+                    {log.hasReference && <Mark icon="car-front" name="reference pose" />}
                   </span>
                 </div>
               )
@@ -267,17 +277,20 @@ export function TopBar() {
 
       <div className="sv-topbar-actions">
         <ExportMenu />
-        <button
-          type="button"
-          className="sv-icon-btn"
-          onClick={flipTheme}
+        <IconButton
+          icon={theme === 'dark' ? 'moon-fill' : 'sun-fill'}
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-          aria-label="Toggle theme"
-        >
-          <i className={theme === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill'} />
-        </button>
+          onClick={flipTheme}
+        />
       </div>
     </header>
+  )
+}
+
+/** One capability marker: a glyph for the eye, a word for everything else. */
+function Mark({ icon, name }: { icon: string; name: string }) {
+  return (
+    <i className={`bi bi-${icon}`} role="img" aria-label={name} title={name} />
   )
 }
 

@@ -17,6 +17,7 @@ import { positionsOf, stemRuns } from '@shared/logs'
 import type { CurvePlot, ImageStream } from '@shared/types'
 
 import { CameraPanel, type ClipSource } from './CameraPanel'
+import { PanelHead } from './Controls'
 import { CurvePanel, growYRanges } from './CurvePanel'
 import { useStore } from '../store'
 import { useTheme } from '../useTheme'
@@ -189,20 +190,16 @@ export function Inspector() {
 
   return (
     <aside className={`sv-inspector${collapsed ? ' sv-collapsed' : ''}`}>
-      <div className="sv-panel-head">
-        <span className="sv-panel-title">
-          <i className="bi bi-binoculars" /> Inspector
-        </span>
-        <button
-          type="button"
-          className="sv-icon-btn"
-          onClick={() => setCollapsed((on) => !on)}
-          aria-label={collapsed ? 'Expand the inspector' : 'Collapse the inspector'}
-          title={collapsed ? 'Expand' : 'Collapse'}
-        >
-          <i className={`bi bi-chevron-${collapsed ? 'left' : 'right'}`} />
-        </button>
-      </div>
+      <PanelHead
+        icon="binoculars"
+        title="Inspector"
+        collapse={{
+          collapsed,
+          onToggle: () => setCollapsed((on) => !on),
+          subject: 'inspector',
+          edge: 'right'
+        }}
+      />
 
       <div className="sv-inspector-body">
         {clips.length > 0 && (

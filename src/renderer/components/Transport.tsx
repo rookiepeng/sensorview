@@ -6,6 +6,7 @@
 
 import { useEffect } from 'react'
 
+import { IconButton } from './Controls'
 import { useStore } from '../store'
 
 // Matches the Dash transport's interval. Fast enough to read as motion, slow
@@ -38,36 +39,25 @@ export function Transport() {
   return (
     <div className="sv-transport">
       <div className="sv-transport-buttons">
-        <button
-          type="button"
-          className="sv-icon-btn"
+        <IconButton
+          icon="skip-backward-fill"
           title="Previous frame"
-          aria-label="Previous frame"
           onClick={() => stepFrame(-1)}
           disabled={frameCount === 0}
-        >
-          <i className="bi bi-skip-backward-fill" />
-        </button>
-        <button
-          type="button"
-          className="sv-icon-btn sv-transport-play"
+        />
+        <IconButton
+          icon={playing ? 'stop-fill' : 'play-fill'}
           title={playing ? 'Pause' : 'Play'}
-          aria-label={playing ? 'Pause' : 'Play'}
           onClick={togglePlaying}
           disabled={frameCount === 0}
-        >
-          <i className={playing ? 'bi bi-stop-fill' : 'bi bi-play-fill'} />
-        </button>
-        <button
-          type="button"
-          className="sv-icon-btn"
+          className="sv-transport-play"
+        />
+        <IconButton
+          icon="skip-forward-fill"
           title="Next frame"
-          aria-label="Next frame"
           onClick={() => stepFrame(1)}
           disabled={frameCount === 0}
-        >
-          <i className="bi bi-skip-forward-fill" />
-        </button>
+        />
       </div>
 
       <div className="sv-transport-slider">

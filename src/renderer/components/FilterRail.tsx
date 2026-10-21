@@ -10,6 +10,7 @@
 // still has the budget to spare. Under Dash each of those events was a network
 // round trip, which is what the whole caching apparatus was there to hide.
 
+import { PanelHead, Picker, Switch } from './Controls'
 import { useStore } from '../store'
 import { levelsOf, rangeOf, type ColumnMeta } from '@shared/table'
 
@@ -83,54 +84,41 @@ export function FilterRail() {
 
   return (
     <aside id="filter-sidebar-col" className="sv-rail">
-      <div className="sv-panel-head">
-        <span className="sv-panel-title">
-          <i className="bi bi-funnel" /> Filters
-        </span>
+      <PanelHead icon="funnel" title="Filters">
         {touched && (
           <button type="button" className="sv-text-btn" onClick={resetFilters}>
             Reset
           </button>
         )}
-      </div>
+      </PanelHead>
 
       <div className="sv-rail-body">
         <span className="sv-section-label">Display</span>
 
-        <label className="sv-switch-row">
-          <input
-            type="checkbox"
-            checked={sizeVary}
-            onChange={(event) => setSizeVary(event.target.checked)}
-          />
-          <span>Size varies with category</span>
-        </label>
+        <Switch checked={sizeVary} onChange={setSizeVary}>
+          Size varies with category
+        </Switch>
 
         {/* Only when the case has one. A dead switch is worse than no switch:
             it says the cloud is off rather than absent. */}
         {cloudDisplay && (
-          <label className="sv-switch-row">
-            <input
-              type="checkbox"
-              checked={cloudOn}
-              onChange={(event) => setCloudOn(event.target.checked)}
-            />
-            <span>{cloudDisplay.name}</span>
-          </label>
+          <Switch checked={cloudOn} onChange={setCloudOn}>
+            {/* The manifest names the cloud, and that name is the whole
+                label. A verb in front of it would be the same word twice
+                for every case that calls its cloud "Lidar". */}
+            {cloudDisplay.name || 'Point cloud'}
+          </Switch>
         )}
 
-        <div className="sv-field">
-          <span className="sv-section-label">Colormap</span>
-          <select value={colormap} onChange={(event) => setColormap(event.target.value)}>
-            {COLORMAPS.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Picker
+          label="Colormap"
+          value={colormap}
+          choices={COLORMAPS}
+          onChange={setColormap}
+          className="sv-field"
+        />
 
-        <div className="sv-field">
+        <label className="sv-field">
           <span className="sv-section-label">Decay</span>
           <input
             type="range"
@@ -138,11 +126,10 @@ export function FilterRail() {
             max={10}
             step={1}
             value={decay}
-            aria-label="Decay"
             onChange={(event) => setDecay(Number(event.target.value))}
           />
           <span className="sv-field-value">{decay}</span>
-        </div>
+        </label>
 
         <div className="sv-divider" />
 
@@ -210,10 +197,10 @@ export function FilterRail() {
             const allowed = new Set(entry.allowed)
             return (
               <div className="sv-filter" key={entry.column}>
-                <span className="sv-section-label">
+                <span className="sv-section-label" id={`chips-${entry.column}`}>
                   {labelOf(entry.column, keys[entry.column])}
                 </span>
-                <div className="sv-chips">
+                <div className="sv-chips" role="group" aria-labelledby={`chips-${entry.column}`}>
                   {levels.map((level) => (
                     <button
                       type="button"

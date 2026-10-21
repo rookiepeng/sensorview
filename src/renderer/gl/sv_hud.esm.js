@@ -58,7 +58,9 @@ export class Hud {
       button.className = "sv-gl-preset";
       button.title = preset.title;
       button.setAttribute("aria-label", preset.title);
-      button.innerHTML = `<i class="bi ${preset.icon}"></i>`;
+      // aria-hidden: the button is already named, and the glyph is its
+      // whole content -- announced, it would read the name twice.
+      button.innerHTML = `<i class="bi ${preset.icon}" aria-hidden="true"></i>`;
       button.addEventListener("click", () => {
         if (this.handlers.onPreset) {
           this.handlers.onPreset(preset.id);
