@@ -12,17 +12,17 @@
  * There is no longer a second renderer to gate this on: the scene is how the
  * canvas looks, so these rules are unconditional.
  *
- * Stacking, bottom to top:
- *     0  #gl-stage            the scene
- *     1  #gl-labels           CSS2D tick text, click-through
+ * Stacking, bottom to top. The numbers are `--sv-z-*` in app.css, so this
+ * list and the rules that use it cannot drift:
+ *     0  #gl-stage       the scene
+ *     1  #gl-labels      CSS2D tick text, click-through
  *     5  .sv-splitter
- *     6  HUD furniture, .sv-canvas-tools, collapsed panel heads
+ *     6  HUD furniture, collapsed panel heads
  *     7  .sv-canvas-popover
  *    10  floating glass panels: rail, inspector, transport, dock
  *    20  .sv-topbar
- *    30  .sv-combine-panel
- *    40  #gl-tooltip
- *  2000  .sv-loading-overlay
+ *    40  .sv-menu        hangs off a control in the top bar
+ *    50  #gl-tooltip     tracks the pointer, so it is never the thing covered
  */
 
 /* ── Scene colours ───────────────────────────────────────────────────────── */
@@ -42,6 +42,7 @@
     --sv-ax-x: #ff5f5f;
     --sv-ax-y: #4fd06a;
     --sv-ax-z: #4e9eff;
+    --sv-glass-border: color-mix(in srgb, var(--sv-border) 70%, transparent);
 }
 
 [data-bs-theme="light"] {
@@ -50,6 +51,7 @@
     --sv-ax-x: #d93a3a;
     --sv-ax-y: #1f9c42;
     --sv-ax-z: #1266cc;
+    --sv-glass-border: color-mix(in srgb, var(--sv-border) 70%, transparent);
 }
 
 /* ── The scene layer ─────────────────────────────────────────────────────── */
@@ -146,27 +148,26 @@
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     box-shadow: var(--sv-shadow);
-    border-color: color-mix(in srgb, var(--sv-border) 70%, transparent);
 }
 
 /* Panels pull back from the window edges so the scene reads as continuous
    behind them rather than as a window cut into a frame. */
 .sv-rail {
     margin: var(--sv-gap) 0 var(--sv-gap) var(--sv-gap);
-    border: 1px solid;
+    border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
 }
 
 .sv-inspector {
     margin: var(--sv-gap) var(--sv-gap) var(--sv-gap) 0;
-    border: 1px solid;
+    border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
 }
 
 .sv-transport,
 .sv-dock {
     margin: 0 var(--sv-gap) var(--sv-gap);
-    border: 1px solid;
+    border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
 }
 
@@ -174,7 +175,7 @@
 .sv-inspector,
 .sv-transport,
 .sv-dock {
-    z-index: 10;
+    z-index: var(--sv-z-panel);
 }
 
 /* There is no join to draw any more, only a handle. */
@@ -229,8 +230,8 @@
 
 .sv-hud {
     position: absolute;
-    z-index: 6;
-    border: 1px solid;
+    z-index: var(--sv-z-hud);
+    border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
     padding: 7px 9px;
     font-size: var(--sv-font-xs);
@@ -386,11 +387,11 @@
 
 #gl-tooltip {
     position: fixed;
-    z-index: 40;
+    z-index: var(--sv-z-tooltip);
     max-width: 320px;
     padding: 7px 9px;
     pointer-events: none;
-    border: 1px solid var(--sv-border);
+    border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
     background: color-mix(in srgb, var(--sv-surface) 94%, transparent);
     backdrop-filter: blur(8px);

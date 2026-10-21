@@ -35,14 +35,19 @@ const data = new DataClient(dataEntry(here))
 
 let win: BrowserWindow | null = null
 
-function createWindow(): void {
+/** `--sv-bg` for each theme, so the pre-paint surface is the one the
+ * renderer is about to draw. Kept in step with `styles/app.css` by hand:
+ * main cannot read a stylesheet it never loads. */
+const BACKGROUND: Record<string, string> = { dark: '#0a0c0f', light: '#eceef1' }
+
+function createWindow(theme: string): void {
   win = new BrowserWindow({
     width: 1600,
     height: 1000,
     minWidth: 960,
     minHeight: 600,
     show: false,
-    backgroundColor: '#0a0c0f',
+    backgroundColor: BACKGROUND[theme] ?? BACKGROUND.dark,
     title: app.getName(),
     webPreferences: {
       preload: join(here, '../preload/index.cjs'),
@@ -246,11 +251,14 @@ if (!process.env.SENSORVIEW_SMOKE && !app.requestSingleInstanceLock()) {
     }
 
     buildMenu()
-    createWindow()
+    // Read before the window exists: the renderer only learns the theme after
+    // it has mounted and asked over IPC, which is several frames too late to
+    // choose what the empty window is painted with.
+    createWindow((await settings.get()).theme)
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow()
+        void settings.get().then((stored) => createWindow(stored.theme))
       }
     })
   })

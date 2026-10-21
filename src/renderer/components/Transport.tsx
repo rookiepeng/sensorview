@@ -83,9 +83,17 @@ export function Transport() {
         />
       </div>
 
-      <div className="sv-frame-readout">
-        <b>{frame}</b>
-        <span> / {last}</span>
+      {/* An empty app and a single-frame log both used to read "0 / 0".
+          There is no position to report when nothing is open, so say that. */}
+      <div className={`sv-frame-readout${frameCount === 0 ? ' sv-frame-readout-empty' : ''}`}>
+        {frameCount === 0 ? (
+          <span>— / —</span>
+        ) : (
+          <>
+            <b>{frame}</b>
+            <span> / {last}</span>
+          </>
+        )}
       </div>
     </div>
   )

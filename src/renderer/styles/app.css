@@ -29,10 +29,32 @@
        splitter's own minimum is derived from this (see workbench.js). */
     --sv-pane-plot-min: 180px;
     --sv-radius: 6px;
+    /* Small inner elements -- menu rows, chips of chrome, swatches. Three
+       values (4px, 3px, 2px) used to do this job in two files. */
+    --sv-radius-sm: 4px;
+    --sv-radius-pill: 999px;
     --sv-gap: 10px;
     --sv-font-sm: 0.78rem;
     --sv-font-xs: 0.72rem;
+    /* Below --sv-font-xs: counts, badges, tick furniture. Replaces a cluster
+       of 0.6/0.62/0.65/0.7rem that differed by less than a pixel. */
+    --sv-font-2xs: 0.65rem;
+    --sv-weight-med: 600;
     --sv-ease: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Stacking, bottom to top. The ladder is documented at the head of
+       hud.css; these are the numbers it describes, so the two cannot drift.
+       Menus sit above the panels they hang from; the scene's hover tooltip
+       is above everything, because it tracks the pointer and must never be
+       the thing that is covered. */
+    --sv-z-labels: 1;
+    --sv-z-splitter: 5;
+    --sv-z-hud: 6;
+    --sv-z-popover: 7;
+    --sv-z-panel: 10;
+    --sv-z-topbar: 20;
+    --sv-z-menu: 40;
+    --sv-z-tooltip: 50;
 }
 
 [data-bs-theme="dark"] {
@@ -50,6 +72,7 @@
     --sv-warn: #f0a020;
     --sv-danger: #e5484d;
     --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
+    --sv-shadow-menu: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
 
 [data-bs-theme="light"] {
@@ -67,7 +90,7 @@
     --sv-warn: #b46b00;
     --sv-danger: #c53030;
     --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
-
+    --sv-shadow-menu: 0 12px 28px rgba(20, 30, 45, 0.22);
 }
 
 /* ── Page frame ───────────────────────────────────────────────────────────
@@ -112,7 +135,7 @@ body {
     background: var(--sv-surface);
     border-bottom: 1px solid var(--sv-border);
     position: relative;
-    z-index: 20;
+    z-index: var(--sv-z-topbar);
 }
 
 .sv-brand {
@@ -203,7 +226,7 @@ body {
     position: absolute;
     top: calc(100% + 5px);
     left: 0;
-    z-index: 40;
+    z-index: var(--sv-z-menu);
     min-width: 100%;
     max-height: 60vh;
     overflow-y: auto;
@@ -211,7 +234,7 @@ body {
     background: var(--sv-surface-2);
     border: 1px solid var(--sv-border-strong);
     border-radius: var(--sv-radius);
-    box-shadow: 0 10px 28px rgb(0 0 0 / 45%);
+    box-shadow: var(--sv-shadow-menu);
 }
 
 .sv-menu-item {
@@ -222,11 +245,15 @@ body {
     padding: 5px 8px;
     background: transparent;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--sv-radius-sm);
     color: var(--sv-text-dim);
     font-size: var(--sv-font-sm);
     text-align: left;
     white-space: nowrap;
+}
+
+.sv-menu-item {
+    transition: background var(--sv-ease), color var(--sv-ease);
 }
 
 .sv-menu-item:hover {
@@ -283,6 +310,31 @@ body {
     font-style: italic;
 }
 
+/* A read that failed, said where the thing that failed lives. Capped and
+   clipped: a main-process error can be a paragraph, and the breadcrumb beside
+   it must not move when one arrives. The full text is in the title. */
+.sv-topbar-error {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 38vw;
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--sv-danger) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sv-danger) 40%, transparent);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-danger);
+    font-size: var(--sv-font-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-topbar-error .bi {
+    flex: 0 0 auto;
+}
+
 .sv-topbar-spacer {
     flex: 1 1 auto;
 }
@@ -330,7 +382,6 @@ body {
 }
 
 .sv-icon-btn:hover,
-.sv-icon-btn:focus-visible,
 .sv-topbar-actions .dropdown > button.btn:hover {
     background: var(--sv-surface-3);
     border-color: var(--sv-border);
@@ -426,7 +477,7 @@ body {
     flex: 0 0 5px;
     position: relative;
     background: var(--sv-border);
-    z-index: 5;
+    z-index: var(--sv-z-splitter);
 }
 
 .sv-splitter::after {
@@ -687,8 +738,10 @@ body {
     color: var(--sv-text-dim);
     background: transparent;
     border: 1px solid var(--sv-border);
-    border-radius: 999px;
+    border-radius: var(--sv-radius-pill);
     cursor: pointer;
+    transition: background var(--sv-ease), color var(--sv-ease),
+        border-color var(--sv-ease);
 }
 
 .sv-chip-on {
@@ -706,8 +759,19 @@ body {
     cursor: pointer;
 }
 
+.sv-text-btn {
+    transition: color var(--sv-ease);
+}
+
 .sv-text-btn:hover {
     color: var(--sv-accent);
+}
+
+/* The categorical filter buttons had an on/off class and nothing else: no
+   hover, so a chip gave no sign it was a control until it was clicked. */
+.sv-chip:hover:not(.sv-chip-on) {
+    border-color: var(--sv-border-strong);
+    color: var(--sv-text);
 }
 
 /* ── Canvas: the 3D view owns everything left over ───────────────────── */
@@ -841,6 +905,27 @@ body {
 
 .sv-transport-slider .rc-slider {
     margin: 0;
+}
+
+/* The one control in the bar that is pressed repeatedly, and it used to be
+   pixel-identical to the two frame-step buttons beside it. */
+.sv-transport-play {
+    color: var(--sv-accent);
+}
+
+.sv-transport-play .bi {
+    font-size: 1.1rem;
+}
+
+.sv-transport-play:hover:not(:disabled) {
+    background: var(--sv-accent-soft);
+    border-color: transparent;
+    color: var(--sv-accent);
+}
+
+/* Nothing is open, so there is no position to report. */
+.sv-frame-readout-empty {
+    color: var(--sv-text-faint);
 }
 
 .sv-frame-readout {
@@ -1171,6 +1256,7 @@ body {
     min-height: 0;
     background: var(--sv-surface);
     border-top: 1px solid var(--sv-border);
+    transition: flex-basis var(--sv-ease), height var(--sv-ease);
 }
 
 .sv-dock.sv-collapsed {
@@ -1180,6 +1266,10 @@ body {
 
 .sv-dock.sv-collapsed .sv-dock-grid {
     display: none;
+}
+
+.sv-dock-grid {
+    transition: opacity var(--sv-ease);
 }
 
 /* Header: one picker per slot, each half the width so it reads as that pane's
@@ -1581,8 +1671,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .sv-loading-deferred {
-        animation-duration: 1ms;
+    *,
+    *::before,
+    *::after {
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
     }
 }
 
@@ -1592,6 +1687,88 @@ body {
     text-transform: uppercase;
     color: var(--sv-text-dim);
 }
+
+/* ── Interaction states ──────────────────────────────────────────────────
+   Nothing here sets `outline: none`; the point is the opposite. Without a
+   ring of our own, every unstyled control fell back to Chromium's default,
+   which is an amber double ring that belongs to no theme in this app. */
+
+:focus-visible {
+    outline: 2px solid var(--sv-accent);
+    outline-offset: 2px;
+    border-radius: var(--sv-radius-sm);
+}
+
+/* The scene takes the whole viewport, so a ring drawn flush against the
+   window edge would be clipped. Tuck the panel-edge controls' rings inward. */
+.sv-splitter:focus-visible {
+    outline-offset: -2px;
+}
+
+/* A disabled control used to look and feel exactly like a live one: the only
+   rule in the app was `cursor: default` on one crumb button. */
+button:disabled,
+input:disabled,
+select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.sv-crumb-btn:disabled {
+    opacity: 1;
+    cursor: default;
+}
+
+/* A press should be visible before its result is. */
+.sv-icon-btn:active:not(:disabled),
+.sv-chip:active,
+.sv-text-btn:active,
+.sv-menu-item:active {
+    transform: translateY(1px);
+}
+
+::selection {
+    background: var(--sv-accent-soft);
+    color: var(--sv-text);
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────
+   The selects and ranges were styled for colour and left alone for state. */
+
+select {
+    transition: border-color var(--sv-ease), background var(--sv-ease);
+}
+
+select:hover:not(:disabled) {
+    border-color: var(--sv-border-strong);
+}
+
+input[type="range"] {
+    accent-color: var(--sv-accent);
+}
+
+.sv-transport-slider input[type="range"] {
+    display: block;
+    width: 100%;
+    height: 18px;
+    cursor: pointer;
+}
+
+.sv-transport-slider input[type="range"]:disabled {
+    cursor: not-allowed;
+}
+
+/* ── Theme ───────────────────────────────────────────────────────────────
+   Deliberately not transitioned. A theme flip changes only custom properties
+   on <html>, and Chromium does not re-run style for a transition driven by
+   nothing else -- so a transitioned `background-color` or `border-color`
+   starts, never advances, and sticks on the *previous* theme's value for as
+   long as the app is open. Measured: with a 180ms border-color transition on
+   the rail, light theme kept the dark #242a33 border indefinitely; with no
+   transition it is correct on the first frame.
+
+   A cross-fade here would be nice. It is not worth a theme that only half
+   applies. */
 
 /* ── Scrollbars ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
@@ -1605,14 +1782,14 @@ body {
 
 ::-webkit-scrollbar-thumb {
     background: var(--sv-border-strong);
-    border-radius: 4px;
+    border-radius: var(--sv-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--sv-text-faint);
 }
 
-* {
+:root {
     scrollbar-width: thin;
     scrollbar-color: var(--sv-border-strong) transparent;
 }

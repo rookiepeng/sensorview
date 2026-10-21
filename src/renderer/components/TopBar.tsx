@@ -257,7 +257,8 @@ export function TopBar() {
       </div>
 
       {error && (
-        <span className="sv-topbar-error" role="status">
+        <span className="sv-topbar-error" role="alert" title={error}>
+          <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
           {error}
         </span>
       )}
