@@ -33,6 +33,9 @@ export interface GlStageProps {
   subject?: string | null
 }
 
+/** The floating panels the HUD has to stay clear of. */
+const PANELS = '.sv-rail, .sv-inspector, .sv-transport, .sv-dock'
+
 export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
   const host = useRef<HTMLDivElement>(null)
   const scene = useRef<Scene | null>(null)
@@ -59,11 +62,32 @@ export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
     instance.setPalette(PALETTE)
     instance.setTheme()
 
-    // The scene sizes itself to its host, and only a real resize changes that.
+    // The scene sizes itself to its host, and only a real resize changes
+    // that. `resize` also reflows the HUD, which is the reason the panels are
+    // watched as well: the HUD measures where they end, #gl-stage is fixed to
+    // the viewport, and so a collapse or a splitter drag changes nothing this
+    // would otherwise see. Watching them also follows the collapse animation
+    // frame by frame rather than measuring once, mid-slide.
     const observer = new ResizeObserver(() => instance.resize())
     observer.observe(host.current)
 
+    const watchPanels = () => {
+      for (const panel of document.querySelectorAll(PANELS)) {
+        observer.observe(panel)
+      }
+    }
+    watchPanels()
+    // The inspector is absent for a log with neither a recording nor curves,
+    // so it is often not in the document when this runs. Re-observing on a
+    // child change costs nothing -- observing an element twice is a no-op.
+    const appearing = new MutationObserver(watchPanels)
+    const workspace = document.querySelector('.sv-workspace')
+    if (workspace) {
+      appearing.observe(workspace, { childList: true, subtree: true })
+    }
+
     return () => {
+      appearing.disconnect()
       observer.disconnect()
       instance.dispose()
       scene.current = null

@@ -17,6 +17,8 @@ import { filterAll, type Table } from '@shared/table'
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
 import { CollapseButton, Picker, Switch } from './Controls'
+import { Splitter } from './Splitter'
+import { useLayout } from '../layout'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
 
@@ -47,7 +49,10 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   const colormap = useStore((s) => s.colormap)
   const stems = useStore((s) => s.stems)
 
-  const [collapsed, setCollapsed] = useState(false)
+  const collapsed = useLayout((s) => s.dockCollapsed)
+  const toggleCollapsed = useLayout((s) => s.toggle)
+  const dockH = useLayout((s) => s.dockH)
+  const setSize = useLayout((s) => s.setSize)
   const [slots, setSlots] = useState<[SlotState, SlotState]>([
     { ...EMPTY, view: 'histogram' },
     { ...EMPTY }
@@ -110,6 +115,22 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
 
   return (
     <div className="sv-dock-wrap">
+      {/* `.sv-dock-wrap:has(.sv-dock.sv-collapsed) .sv-splitter` has been in
+          app.css since the port, waiting for a handle to hide. */}
+      {!collapsed && (
+        <Splitter
+          id="dock-splitter"
+          axis="row"
+          label="Analysis dock height"
+          measure={() => document.querySelector('.sv-dock')?.getBoundingClientRect().height ?? 0}
+          onResize={(px) => setSize('dockH', px)}
+          onReset={() => setSize('dockH', null)}
+          value={dockH}
+          invert
+          min={218}
+          max={() => window.innerHeight * 0.6}
+        />
+      )}
       <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`}>
         <div className="sv-dock-head">
           {([0, 1] as const).map((index) => (
@@ -134,7 +155,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           <div className="sv-dock-actions">
             <CollapseButton
               collapsed={collapsed}
-              onToggle={() => setCollapsed((on) => !on)}
+              onToggle={() => toggleCollapsed('dockCollapsed')}
               subject="dock"
               edge="bottom"
             />

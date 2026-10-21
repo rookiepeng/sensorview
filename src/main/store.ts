@@ -6,7 +6,7 @@
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 
-import { DEFAULT_SETTINGS, type Settings } from '../shared/types'
+import { DEFAULT_SETTINGS, sanitiseLayout, type Settings } from '../shared/types'
 
 const MAX_RECENT = 10
 
@@ -34,8 +34,11 @@ export class SettingsStore {
       this.cached = {
         ...DEFAULT_SETTINGS,
         ...raw,
-        // Never trust the shape of a file a user can edit.
-        recent: Array.isArray(raw.recent) ? raw.recent.filter((p) => typeof p === 'string') : []
+        // Never trust the shape of a file a user can edit. Spreading `raw`
+        // over the defaults is only right for flat fields: a `layout` from an
+        // older file, or a hand-edited one, arrives partial.
+        recent: Array.isArray(raw.recent) ? raw.recent.filter((p) => typeof p === 'string') : [],
+        layout: sanitiseLayout(raw.layout)
       }
     } catch {
       this.cached = { ...DEFAULT_SETTINGS }

@@ -131,12 +131,62 @@ export interface Settings {
   theme: string
   /** Most recently opened case directories, newest first. */
   recent: string[]
+  /** Where the panels are, and whether they are open. */
+  layout: Layout
+}
+
+/**
+ * Panel geometry, as the settings file carries it.
+ *
+ * A size is pixels, or null for "whatever the stylesheet says" -- which is
+ * how a panel nobody has dragged keeps `--sv-rail-w` and its `34vh` dock
+ * without those numbers being written down a second time here.
+ */
+export interface Layout {
+  railW: number | null
+  inspectorW: number | null
+  dockH: number | null
+  railCollapsed: boolean
+  inspectorCollapsed: boolean
+  dockCollapsed: boolean
+}
+
+export const DEFAULT_LAYOUT: Layout = {
+  railW: null,
+  inspectorW: null,
+  dockH: null,
+  railCollapsed: false,
+  inspectorCollapsed: false,
+  dockCollapsed: false
+}
+
+/**
+ * Trust nothing that came off disk.
+ *
+ * `settings.json` is a file a user can edit, and a width of `"wide"` or
+ * `-4000` would wedge a panel somewhere no drag could reach. Anything that
+ * does not survive this becomes null, which is the stylesheet's own value.
+ * The renderer clamps the survivors again on its own bounds.
+ */
+export function sanitiseLayout(raw: unknown): Layout {
+  const it = (raw ?? {}) as Record<string, unknown>
+  const size = (v: unknown) =>
+    typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : null
+  return {
+    railW: size(it.railW),
+    inspectorW: size(it.inspectorW),
+    dockH: size(it.dockH),
+    railCollapsed: it.railCollapsed === true,
+    inspectorCollapsed: it.inspectorCollapsed === true,
+    dockCollapsed: it.dockCollapsed === true
+  }
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   dataPath: '',
   theme: 'dark',
-  recent: []
+  recent: [],
+  layout: DEFAULT_LAYOUT
 }
 
 /* ────────────────────────────────────────────────────────────── data ──── */

@@ -26,7 +26,7 @@
        margin for their axes, so anything much below this leaves a drawing area
        of a few pixels -- a shape Plotly still accepts and scattergl still
        allocates GL buffers for, but which is no longer a chart. The dock
-       splitter's own minimum is derived from this (see workbench.js). */
+       splitter's floor is this plus the head, in `BOUNDS` in App.tsx. */
     --sv-pane-plot-min: 180px;
     --sv-radius: 6px;
     /* Small inner elements -- menu rows, chips of chrome, swatches. Three
@@ -469,10 +469,11 @@ body {
 
 /* ── Splitters ───────────────────────────────────────────────────────────
    One handle for both axes: a 5px band between two regions, with a centered
-   grip so it reads as draggable before the pointer reaches it. The drag
-   itself is clientside (workbench.js), which writes an inline size onto the
-   region -- hence the !important on every collapsed rule, since a collapse
-   has to beat whatever the last drag left behind. */
+   grip so it reads as draggable before the pointer reaches it. The drag is
+   `components/Splitter.tsx`, which writes the region's own `--sv-*-w` token
+   onto the shell rather than an inline width -- hence the !important on the
+   collapsed rules, since a collapse has to beat whatever the last drag left
+   behind. */
 .sv-splitter {
     flex: 0 0 5px;
     position: relative;
@@ -520,54 +521,17 @@ body {
     flex-basis: 0;
 }
 
-/* ── Collapsed side panels ────────────────────────────────────────────────
-   A collapsed rail keeps no strip at all: it hands every pixel to the canvas
-   and leaves only its toggle, floating in the corner it collapsed into, so the
-   way back stays on screen without costing a column. */
-.sv-rail.sv-collapsed,
-.sv-inspector.sv-collapsed {
-    position: relative;
-    flex-basis: 0 !important;
-    width: 0 !important;
-    border: 0;
-    overflow: visible;
+/* An absent inspector, not a collapsed one: `Inspector` returns null for a
+   log with neither a recording nor curves, which leaves its handle as the
+   last thing in the row with nothing to resize. React cannot see that from
+   the shell, but the DOM can. */
+.sv-upper > .sv-splitter:last-child {
+    display: none;
 }
 
-/* Same chrome as the canvas tool cluster -- it is floating over the plot now,
-   so it reads as one of the overlays rather than as a panel header. */
-.sv-rail.sv-collapsed .sv-panel-head,
-.sv-inspector.sv-collapsed .sv-panel-head {
-    position: absolute;
-    top: 10px;
-    z-index: 6;
-    flex: none;
-    height: auto;
-    padding: 2px;
-    background: color-mix(in srgb, var(--sv-surface) 88%, transparent);
-    border: 1px solid var(--sv-border);
-    border-radius: var(--sv-radius);
-    backdrop-filter: blur(8px);
-    box-shadow: var(--sv-shadow);
-}
-
-.sv-rail.sv-collapsed .sv-panel-head {
-    left: 12px;
-}
-
-.sv-inspector.sv-collapsed .sv-panel-head {
-    right: 12px;
-}
-
-/* Both corners are already spoken for: the tool cluster starts where the left
-   icon lands, and Plotly's mode bar sits where the right one does. Each steps
-   aside only while the icon is actually there. */
-.sv-upper:has(.sv-rail.sv-collapsed) .sv-canvas-tools {
-    left: 58px;
-}
-
-.sv-stage:has(.sv-inspector.sv-collapsed) .sv-canvas .modebar {
-    right: 46px;
-}
+/* A collapsed panel keeps a narrow glass strip rather than vanishing, so the
+   way back is always in the same place. The rules are in hud.css, with the
+   rest of the glass. */
 
 /* ── Left rail: filters ─────────────────────────────────────────────────── */
 .sv-rail {

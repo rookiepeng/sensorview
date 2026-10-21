@@ -37,8 +37,15 @@ from visible — which is the point, since all of them describe the same frame.
 | **Analysis dock** | Two slots, each showing any one of the six statistical views |
 
 The rail, inspector, and dock each have a splitter on their inner edge; whatever
-they give up, the canvas takes. Collapse, drag and theme are the renderer's own:
-there is no server for them to be anything to.
+they give up, the canvas takes. Drag one, or focus it and use the arrow keys;
+double-click or press Home to put it back. Each of the three also collapses to a
+narrow strip from the chevron in its head. Where the panels are, and whether
+they are open, is remembered between runs. Collapse, drag and theme are the
+renderer's own: there is no server for them to be anything to.
+
+Space plays and pauses, the arrow keys step a frame, Shift and an arrow steps
+ten, and Home and End go to the ends of the log -- except while a control that
+wants those keys itself has focus.
 
 ### 3D Canvas
 

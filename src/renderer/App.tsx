@@ -12,12 +12,14 @@
 import { useEffect, useMemo } from 'react'
 
 import { FilterRail } from './components/FilterRail'
+import { Splitter } from './components/Splitter'
 import { GlStage } from './components/GlStage'
 import { AnalysisDock } from './components/AnalysisDock'
 import { Inspector } from './components/Inspector'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
+import { useLayout, useLayoutPersistence } from './layout'
 import { useCloud } from './useCloud'
 import { useHotkeys } from './useHotkeys'
 import { useReference } from './useReference'
@@ -26,6 +28,19 @@ import type { ScenePayload } from './frame'
 import { useStore } from './store'
 import { useTheme } from './useTheme'
 import { parseColor } from '@gl/sv_color.esm.js'
+
+/** Pixel bounds for each region. A floor that keeps a panel grabbable, and
+ *  a ceiling that keeps the scene the biggest thing on screen. The dock's
+ *  floor is its own head plus `--sv-pane-plot-min`, below which a figure is
+ *  axes and nothing else. */
+const BOUNDS = {
+  rail: { min: 200, max: () => Math.min(480, window.innerWidth * 0.4) },
+  inspector: { min: 280, max: () => Math.min(640, window.innerWidth * 0.5) },
+  dock: { min: 218, max: () => window.innerHeight * 0.6 }
+}
+
+const sizeOf = (selector: string, axis: 'width' | 'height') => () =>
+  document.querySelector(selector)?.getBoundingClientRect()[axis] ?? 0
 
 export function App() {
   const frame = useStore((s) => s.frame)
@@ -43,6 +58,11 @@ export function App() {
   const stem = useStore((s) => s.stem)
   const theme = useTheme()
   const filters = useStore((s) => s.filters)
+  const railW = useLayout((s) => s.railW)
+  const inspectorW = useLayout((s) => s.inspectorW)
+  const dockH = useLayout((s) => s.dockH)
+  const railCollapsed = useLayout((s) => s.railCollapsed)
+  const setSize = useLayout((s) => s.setSize)
   const cloud = useStore((s) => s.cloud)
   const cloudDisplay = useStore((s) => s.cloudDisplay)
   const reference = useStore((s) => s.reference)
@@ -56,6 +76,7 @@ export function App() {
   // Space, arrows, Home and End drive the transport. Mounted here because
   // this is the one component that is always on screen.
   useHotkeys()
+  useLayoutPersistence()
 
   // Browser mode has no readers behind it, so it starts on the fixture. In
   // Electron the top bar's breadcrumb opens a real case.
@@ -185,8 +206,18 @@ export function App() {
     referenceBounds
   ])
 
+  // A dragged size overrides the token the region already sizes itself from,
+  // so the geometry stays in app.css and this only supplies a number. Unset
+  // means the stylesheet's own value, which is how a panel nobody has touched
+  // keeps its 288px and its 34vh without those numbers being written here.
+  const sizes = {
+    ...(railW !== null && { '--sv-rail-w': `${railW}px` }),
+    ...(inspectorW !== null && { '--sv-inspector-w': `${inspectorW}px` }),
+    ...(dockH !== null && { '--sv-dock-h': `${dockH}px` })
+  } as React.CSSProperties
+
   return (
-    <div className="sv-shell">
+    <div className="sv-shell" style={sizes}>
       <GlStage payload={payload} onPick={toggleHidden} subject={stem} />
 
       <TopBar />
@@ -194,14 +225,39 @@ export function App() {
       <div className="sv-workspace">
         <div className="sv-upper">
           <FilterRail />
-          <div id="rail-splitter" className="sv-splitter sv-splitter-col" />
+          {!railCollapsed && (
+            <Splitter
+              id="rail-splitter"
+              axis="col"
+              label="Filter rail width"
+              measure={sizeOf('.sv-rail', 'width')}
+              onResize={(px) => setSize('railW', px)}
+              onReset={() => setSize('railW', null)}
+              value={railW}
+              {...BOUNDS.rail}
+            />
+          )}
           <div className="sv-center">
             <div className="sv-stage">
               <div className="sv-canvas" />
             </div>
             <Transport />
           </div>
-          <div id="inspector-splitter" className="sv-splitter sv-splitter-col" />
+          {/* The inspector draws nothing for a log with neither a recording
+              nor curves, and `.sv-upper > .sv-splitter:last-child` is what
+              takes its handle away with it -- React cannot see from here
+              whether the component returned null. */}
+          <Splitter
+            id="inspector-splitter"
+            axis="col"
+            label="Inspector width"
+            measure={sizeOf('.sv-inspector', 'width')}
+            onResize={(px) => setSize('inspectorW', px)}
+            onReset={() => setSize('inspectorW', null)}
+            value={inspectorW}
+            invert
+            {...BOUNDS.inspector}
+          />
           <Inspector />
         </div>
         <AnalysisDock theme={theme} />

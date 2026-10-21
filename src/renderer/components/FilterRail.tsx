@@ -11,6 +11,7 @@
 // round trip, which is what the whole caching apparatus was there to hide.
 
 import { PanelHead, Picker, Switch } from './Controls'
+import { useLayout } from '../layout'
 import { useStore } from '../store'
 import { levelsOf, rangeOf, type ColumnMeta } from '@shared/table'
 
@@ -53,6 +54,8 @@ function show(value: number, decimals: number | undefined): string {
 }
 
 export function FilterRail() {
+  const collapsed = useLayout((s) => s.railCollapsed)
+  const toggle = useLayout((s) => s.toggle)
   const decay = useStore((s) => s.decay)
   const setDecay = useStore((s) => s.setDecay)
   const colormap = useStore((s) => s.colormap)
@@ -83,9 +86,20 @@ export function FilterRail() {
       ))
 
   return (
-    <aside id="filter-sidebar-col" className="sv-rail">
-      <PanelHead icon="funnel" title="Filters">
-        {touched && (
+    <aside id="filter-sidebar-col" className={`sv-rail${collapsed ? ' sv-collapsed' : ''}`}>
+      {/* The inspector and the dock could both fold away; the rail could
+          not, though every rule for a collapsed one was already here. */}
+      <PanelHead
+        icon="funnel"
+        title="Filters"
+        collapse={{
+          collapsed,
+          onToggle: () => toggle('railCollapsed'),
+          subject: 'filter rail',
+          edge: 'left'
+        }}
+      >
+        {touched && !collapsed && (
           <button type="button" className="sv-text-btn" onClick={resetFilters}>
             Reset
           </button>

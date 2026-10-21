@@ -19,6 +19,7 @@ import type { CurvePlot, ImageStream } from '@shared/types'
 import { CameraPanel, type ClipSource } from './CameraPanel'
 import { PanelHead } from './Controls'
 import { CurvePanel, growYRanges } from './CurvePanel'
+import { useLayout } from '../layout'
 import { useStore } from '../store'
 import { useTheme } from '../useTheme'
 
@@ -34,7 +35,8 @@ export function Inspector() {
   const [source, setSource] = useState<string | null>(null)
   const [plots, setPlots] = useState<CurvePlot[]>([])
   const [yRanges, setYRanges] = useState<Record<string, [number, number]>>({})
-  const [collapsed, setCollapsed] = useState(false)
+  const collapsed = useLayout((s) => s.inspectorCollapsed)
+  const toggle = useLayout((s) => s.toggle)
   const theme = useTheme()
 
   // Which slider positions each log owns, compressed into runs. Derived once
@@ -195,7 +197,7 @@ export function Inspector() {
         title="Inspector"
         collapse={{
           collapsed,
-          onToggle: () => setCollapsed((on) => !on),
+          onToggle: () => toggle('inspectorCollapsed'),
           subject: 'inspector',
           edge: 'right'
         }}

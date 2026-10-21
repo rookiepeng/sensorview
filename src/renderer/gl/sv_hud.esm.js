@@ -112,7 +112,7 @@ export class Hud {
 
     const style = this.root.style;
     style.setProperty("--sv-hud-left", `${Math.round(edge("#filter-sidebar-col", "left")) + 12}px`);
-    style.setProperty("--sv-hud-right", `${Math.round(edge("#subview-panel", "right")) + 12}px`);
+    style.setProperty("--sv-hud-right", `${Math.round(edge(".sv-inspector", "right")) + 12}px`);
     style.setProperty("--sv-hud-bottom", `${Math.round(edge(".sv-transport", "bottom")) + 12}px`);
   }
 

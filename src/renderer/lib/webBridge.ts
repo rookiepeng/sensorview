@@ -9,14 +9,20 @@
 // A no-op inside Electron, where the preload got there first.
 
 import type { DataMethod, DataParams, DataResult, Result, SensorViewBridge, Settings } from '@shared/types'
-import { DEFAULT_SETTINGS, fail, ok } from '@shared/types'
+import { DEFAULT_SETTINGS, fail, ok, sanitiseLayout } from '@shared/types'
 
 const KEY = 'sensorview.settings'
 
 function readSettings(): Settings {
   try {
     const raw = localStorage.getItem(KEY)
-    return raw ? { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) } : { ...DEFAULT_SETTINGS }
+    if (!raw) {
+      return { ...DEFAULT_SETTINGS }
+    }
+    const stored = JSON.parse(raw) as Partial<Settings>
+    // As in the Electron store: `layout` is nested, so spreading is not
+    // enough to make a partial one whole.
+    return { ...DEFAULT_SETTINGS, ...stored, layout: sanitiseLayout(stored.layout) }
   } catch {
     // Private browsing, or a value someone edited by hand. Neither is worth
     // failing over; the defaults are a working app.

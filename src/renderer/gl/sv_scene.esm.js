@@ -557,7 +557,7 @@ export function create(host, options = {}) {
    *
    * Nothing is hard-coded here: the custom properties are read back off the
    * document, so the scene and the chrome cannot drift apart and a change to
-   * `workbench.css` reaches both.
+   * `app.css` and `hud.css` reach both.
    */
   function applyTheme() {
     if (!state.mounted) {
