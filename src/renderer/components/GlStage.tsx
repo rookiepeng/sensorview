@@ -21,7 +21,11 @@ export interface GlStageProps {
   payload: ScenePayload | null
   /** Called with the table row index of a clicked point. */
   onPick?: (row: number) => void
-  /** True when the WebGL context turned out to be a software rasteriser. */
+  /**
+   * True when the WebGL context turned out to be a software rasteriser,
+   * which the stats readout surfaces. Detected when not given -- nothing
+   * ever gave it, so the warning the scene can draw was never drawn.
+   */
   software?: boolean
   /**
    * What the scene is showing -- the open log's stem.
@@ -35,6 +39,32 @@ export interface GlStageProps {
 
 /** The floating panels the HUD has to stay clear of. */
 const PANELS = '.sv-rail, .sv-inspector, .sv-transport, .sv-dock'
+
+/**
+ * Whether this machine is drawing WebGL on the CPU.
+ *
+ * Worth saying out loud: a software rasteriser turns a 100k-point view into
+ * single-digit frames per second, and without the stats readout admitting
+ * it the app just looks slow. A remote session or a driver without hardware
+ * acceleration is the usual reason.
+ */
+function rasterisesInSoftware(): boolean {
+  try {
+    const probe = document.createElement('canvas').getContext('webgl2')
+    if (!probe) {
+      return false
+    }
+    const info = probe.getExtension('WEBGL_debug_renderer_info')
+    const name = info
+      ? String(probe.getParameter(info.UNMASKED_RENDERER_WEBGL))
+      : String(probe.getParameter(probe.RENDERER))
+    probe.getExtension('WEBGL_lose_context')?.loseContext()
+    return /swiftshader|llvmpipe|software|basic render/i.test(name)
+  } catch {
+    // A probe that cannot be made says nothing about the real context.
+    return false
+  }
+}
 
 export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
   const host = useRef<HTMLDivElement>(null)
@@ -51,7 +81,7 @@ export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
       return
     }
     const instance = create(host.current, {
-      software,
+      software: software ?? rasterisesInSoftware(),
       onPick: (event) => pick.current?.(event.id)
     })
     scene.current = instance

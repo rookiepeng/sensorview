@@ -19,6 +19,7 @@ import './styles/app.css'
 import './styles/hud.css'
 
 import { App } from './App'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { installWebBridge } from './lib/webBridge'
 
 // A no-op inside Electron, where the preload got there first. In a browser tab
@@ -29,6 +30,8 @@ installWebBridge()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>
 )

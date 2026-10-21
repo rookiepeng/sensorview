@@ -67,6 +67,8 @@ export function FilterRail() {
   const cloudDisplay = useStore((s) => s.cloudDisplay)
   const cloudOn = useStore((s) => s.cloudOn)
   const setCloudOn = useStore((s) => s.setCloudOn)
+  const cloudError = useStore((s) => s.cloudError)
+  const referenceError = useStore((s) => s.referenceError)
 
   const table = useStore((s) => s.table)
   const keys = useStore((s) => s.keys)
@@ -123,6 +125,9 @@ export function FilterRail() {
             {cloudDisplay.name || 'Point cloud'}
           </Switch>
         )}
+
+        {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
+        {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
 
         <Picker
           label="Colormap"

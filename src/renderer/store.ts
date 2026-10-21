@@ -60,6 +60,15 @@ export interface CaseState {
   cloudOn: boolean
   /** The cloud already read, and which frame it belongs to. */
   cloud: { frameId: number; position: Float32Array; count: number } | null
+  /**
+   * Why the last cloud read failed, if it did.
+   *
+   * A failed read used to be indistinguishable from an empty frame: the
+   * cloud blinked out and the rail's switch went on saying it was enabled.
+   */
+  cloudError: string | null
+  /** Why the last reference read failed, if it did. */
+  referenceError: string | null
   /** Where the reference sits in the open frame, or null when it has no row. */
   reference: ReferenceFrame | null
   /**
@@ -103,9 +112,9 @@ export interface Actions {
     cloudDisplay: CloudDisplay | null
   }): void
   setCloudOn(on: boolean): void
-  setReference(reference: ReferenceFrame | null): void
+  setReference(reference: ReferenceFrame | null, error?: string | null): void
   setReferenceBounds(bounds: CaseState['referenceBounds']): void
-  setCloud(cloud: CaseState['cloud']): void
+  setCloud(cloud: CaseState['cloud'], error?: string | null): void
   setAxis(axis: keyof CaseState['axes'], column: string): void
   setNumericFilter(column: string, min: number, max: number): void
   setCategoryFilter(column: string, allowed: string[]): void
@@ -133,6 +142,8 @@ const initial: CaseState = {
   cloudDisplay: null,
   cloudOn: false,
   cloud: null,
+  cloudError: null,
+  referenceError: null,
   reference: null,
   referenceBounds: null,
   axes: { x: 'X', y: 'Y', z: 'Z', colour: 'X' },
@@ -230,9 +241,10 @@ export const useStore = create<CaseState & Actions>((set) => ({
   // Turning the cloud off drops what was read with it: the frame it belongs
   // to will have moved on by the time it is turned back on, and a stale cloud
   // under a live frame is worse than none.
-  setCloudOn: (cloudOn) => set(cloudOn ? { cloudOn } : { cloudOn, cloud: null }),
-  setCloud: (cloud) => set({ cloud }),
-  setReference: (reference) => set({ reference }),
+  setCloudOn: (cloudOn) =>
+    set(cloudOn ? { cloudOn, cloudError: null } : { cloudOn, cloud: null, cloudError: null }),
+  setCloud: (cloud, error = null) => set({ cloud, cloudError: error }),
+  setReference: (reference, error = null) => set({ reference, referenceError: error }),
   setReferenceBounds: (referenceBounds) => set({ referenceBounds }),
 
   setPayload: (payload) => set({ payload })

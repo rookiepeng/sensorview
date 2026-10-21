@@ -4,7 +4,7 @@
 // is the only thing worth showing there, so clicking it is the obvious way to
 // change it rather than hiding that behind a separate button.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { buildTable, type Column } from '@shared/table'
 import { buildFrameOwners } from '@shared/logs'
@@ -24,6 +24,14 @@ export function TopBar() {
   const setSummary = useStore((s) => s.setSummary)
   const [theme, setTheme] = useState('dark')
   const [error, setError] = useState<string | null>(null)
+  // Opening a case is up to three IPC round trips and a whole-table build,
+  // with nothing on screen saying so: the breadcrumb kept the old case's
+  // name and stayed clickable, so a second click reopened the dialog
+  // mid-load.
+  const [busy, setBusy] = useState(false)
+  // And two overlapping reads raced to call `openLog`, last to finish
+  // winning regardless of which was asked for last.
+  const load_id = useRef(0)
   const picker = useMenu()
 
   useEffect(() => {
@@ -54,17 +62,30 @@ export function TopBar() {
     await load(chosen.data)
   }
 
+  /** True while this call is still the newest one. */
+  function claim(): () => boolean {
+    const mine = ++load_id.current
+    setBusy(true)
+    return () => mine === load_id.current
+  }
+
   /** Scan a case and open the first of its logs. */
   async function load(caseDir: string) {
     setError(null)
+    const mine = claim()
     const scan = await window.sensorview.data('scanCase', { dir: caseDir })
+    if (!mine()) {
+      return
+    }
     if (!scan.ok || !scan.data) {
+      setBusy(false)
       setError(scan.error ?? 'could not read the case')
       return
     }
 
     const first = scan.data.logs[0]
     if (!first) {
+      setBusy(false)
       setError('no logs in that folder')
       return
     }
@@ -92,13 +113,18 @@ export function TopBar() {
     if (chosen.length === 0) {
       return
     }
+    const mine = claim()
     const primary = chosen[0]!
     const stems = chosen.map((log) => log.stem)
 
     const read = await window.sensorview.data('readTable', {
       path: chosen.map((log) => log.file)
     })
+    if (!mine()) {
+      return
+    }
     if (!read.ok || !read.data) {
+      setBusy(false)
       setError(read.error ?? 'could not read the table')
       return
     }
@@ -112,11 +138,15 @@ export function TopBar() {
         dir: scan.dir,
         stems
       })
+      if (!mine()) {
+        return
+      }
       if (result.ok && result.data) {
         owners = result.data
       }
     }
 
+    setBusy(false)
     try {
       const table = buildTable(read.data.rows, read.data.columns as Column[], scan.frameKey)
       const { ownerSets } = buildFrameOwners(table.frameIds, owners, primary.stem)
@@ -158,20 +188,29 @@ export function TopBar() {
           picks among the logs already found. They read as one breadcrumb
           because they are one path. */}
       <div className="sv-breadcrumb" ref={picker.containerRef}>
-        <button type="button" className="sv-crumb-btn" onClick={choose} title={dir ?? undefined}>
+        <button
+          type="button"
+          className="sv-crumb-btn"
+          onClick={choose}
+          disabled={busy}
+          title={dir ?? undefined}
+        >
           <span className="sv-crumb">{name ?? 'No case'}</span>
         </button>
         <span className="sv-crumb-sep">/</span>
         <button
           type="button"
           className="sv-crumb-btn"
-          disabled={logs.length === 0}
+          disabled={busy || logs.length === 0}
           {...picker.triggerProps}
           onClick={() => (logs.length > 1 ? picker.toggle() : choose())}
           title={logs.length > 1 ? `${logs.length} logs in this case` : undefined}
         >
+          {/* The spinner replaces the caret rather than sitting beside it:
+              there is nothing to drop down while a case is being read. */}
+          {busy && <i className="bi bi-arrow-repeat sv-spin" aria-hidden="true" />}
           <span className={`sv-crumb sv-crumb-file${stem ? '' : ' sv-crumb-empty'}`}>
-            {stem ?? 'open a case …'}
+            {busy ? 'reading …' : (stem ?? 'Open a case …')}
           </span>
           {/* Combined logs are named by a count rather than a list: the
               breadcrumb is a path, and three stems in it stop reading as
@@ -184,7 +223,7 @@ export function TopBar() {
               +{stems.length - 1}
             </span>
           )}
-          {logs.length > 1 && (
+          {!busy && logs.length > 1 && (
             <i className="bi bi-chevron-down sv-crumb-caret" aria-hidden="true" />
           )}
         </button>

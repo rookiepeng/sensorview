@@ -35,6 +35,8 @@ export function Inspector() {
   const [source, setSource] = useState<string | null>(null)
   const [plots, setPlots] = useState<CurvePlot[]>([])
   const [yRanges, setYRanges] = useState<Record<string, [number, number]>>({})
+  // Why a section is empty, when the reason is not "this log has none".
+  const [failed, setFailed] = useState<{ camera?: string; curves?: string }>({})
   const collapsed = useLayout((s) => s.inspectorCollapsed)
   const toggle = useLayout((s) => s.toggle)
   const theme = useTheme()
@@ -58,14 +60,19 @@ export function Inspector() {
       return
     }
     let current = true
+    const problems: string[] = []
     void Promise.all(
       stems.map(async (stem) => {
         const result = await window.sensorview.data('logImageStreams', { dir, stem })
+        if (!result.ok) {
+          problems.push(`${stem}: ${result.error ?? 'could not read the recordings'}`)
+        }
         return [stem, result.ok && result.data ? result.data : []] as const
       })
     ).then((pairs) => {
       if (current) {
         setStreams(Object.fromEntries(pairs))
+        setFailed((was) => ({ ...was, camera: problems[0] }))
       }
     })
     return () => {
@@ -86,10 +93,17 @@ export function Inspector() {
     void window.sensorview
       .data('logCurveSources', { dir, stems })
       .then((result) => {
-        if (current && result.ok && result.data) {
+        if (!current) {
+          return
+        }
+        if (result.ok && result.data) {
           setSources(result.data)
           setSource(result.data[0]?.id ?? null)
         }
+        setFailed((was) => ({
+          ...was,
+          curves: result.ok ? undefined : (result.error ?? 'could not list the curve sources')
+        }))
       })
     return () => {
       current = false
@@ -111,6 +125,7 @@ export function Inspector() {
       return
     }
     let current = true
+    const trouble: string[] = []
     void Promise.all(
       owners.map(async (stem) => {
         const result = await window.sensorview.data('logCurves', {
@@ -119,6 +134,9 @@ export function Inspector() {
           sourceId: source ?? undefined,
           frameId
         })
+        if (!result.ok) {
+          trouble.push(`${stem}: ${result.error ?? 'could not read the curves'}`)
+        }
         const found = result.ok && result.data ? result.data : []
         // Named by their log whenever more than one is loaded -- not only
         // when two share this position. Scrubbing across the boundary
@@ -141,6 +159,7 @@ export function Inspector() {
       const all = perLog.flat()
       setPlots(all)
       setYRanges((ranges) => growYRanges(ranges, all))
+      setFailed((was) => ({ ...was, curves: trouble[0] ?? was.curves }))
     })
     return () => {
       // Scrubbing starts a read per position; only the newest may land.
@@ -186,7 +205,12 @@ export function Inspector() {
     return out
   }, [ownerSets, frame, stems, runs, streams])
 
-  if (clips.length === 0 && plots.length === 0) {
+  // A section with an empty body says the log has a camera that is not
+  // working, rather than that it has none -- which is why this draws nothing
+  // when there is nothing. A read that *failed* is the other case, and used
+  // to be indistinguishable from it: the panel simply never appeared.
+  const broken = failed.camera ?? failed.curves
+  if (clips.length === 0 && plots.length === 0 && !broken) {
     return null
   }
 
@@ -204,6 +228,8 @@ export function Inspector() {
       />
 
       <div className="sv-inspector-body">
+        {broken && <p className="sv-rail-note sv-rail-note-bad">{broken}</p>}
+
         {clips.length > 0 && (
           <section className="sv-subsection" id="subview-camera-section">
             <div className="sv-subsection-head">

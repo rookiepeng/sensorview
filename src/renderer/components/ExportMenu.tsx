@@ -10,7 +10,7 @@
 // missing, broke every export button silently. There is no flag now: main
 // opens a save dialog, and a dismissed dialog is a null rather than an error.
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { filterAll } from '@shared/table'
 
@@ -20,6 +20,9 @@ import { exportName, snapshotHtml, standaloneHtml, tableCsv } from '../export/ex
 import { getScene } from '../sceneHandle'
 import { useMenu } from '../useMenu'
 import { useStore } from '../store'
+
+/** Long enough to read a filename, short enough not to outlive its moment. */
+const NOTE_MS = 6000
 
 export function ExportMenu() {
   const table = useStore((s) => s.table)
@@ -34,6 +37,16 @@ export function ExportMenu() {
   const [busy, setBusy] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const cancelled = useRef(false)
+
+  // "Saved foo.csv" used to sit in the top bar until the next export, which
+  // made a stale success look like a live one.
+  useEffect(() => {
+    if (!note) {
+      return
+    }
+    const timer = setTimeout(() => setNote(null), NOTE_MS)
+    return () => clearTimeout(timer)
+  }, [note])
 
   if (!table) {
     return null

@@ -59,8 +59,12 @@ export function useReference(): void {
           return
         }
         // A frame the sidecar has no row for draws nothing, rather than
-        // stranding the reference at its last known pose.
-        setReference(result.ok ? (result.data ?? null) : null)
+        // stranding the reference at its last known pose -- but that is not
+        // the same answer as a read that failed, and it used to be.
+        setReference(
+          result.ok ? (result.data ?? null) : null,
+          result.ok ? null : (result.error ?? 'could not read the reference pose')
+        )
       })
   }, [dir, ownerSets, primary, table, frame, setReference])
 }

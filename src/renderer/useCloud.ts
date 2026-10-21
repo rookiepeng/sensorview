@@ -44,11 +44,14 @@ export function useCloud(): void {
         if (mine !== token.current) {
           return
         }
-        setCloud(
-          result.ok && result.data
-            ? { frameId, position: result.data.position, count: result.data.count }
-            : null
-        )
+        if (result.ok && result.data) {
+          setCloud({ frameId, position: result.data.position, count: result.data.count })
+          return
+        }
+        // A read that failed and a frame with no cloud both drew nothing,
+        // which left the rail's switch claiming a cloud that was never
+        // going to appear.
+        setCloud(null, result.ok ? null : (result.error ?? 'could not read the point cloud'))
       })
   }, [dir, ownerSets, primary, table, frame, cloudOn, cloudDisplay, setCloud])
 }

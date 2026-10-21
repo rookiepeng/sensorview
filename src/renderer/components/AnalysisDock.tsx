@@ -165,8 +165,23 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
         <div className="sv-dock-grid">
           {([0, 1] as const).map((index) => {
             const slot = slots[index]
-            if (!slot.view || !slot.x) {
+            if (!slot.view) {
               return null
+            }
+            // A view is chosen but the table has no column of the kind it
+            // needs -- a violin with nothing categorical, a histogram with
+            // nothing numeric. This used to draw a blank pane under a
+            // picker that said "Histogram", which reads as a broken figure.
+            if (!slot.x) {
+              return (
+                <div key={index} className={`sv-dock-pane sv-slot-${index === 0 ? 'a' : 'b'}`}>
+                  <p className="sv-rail-note">
+                    {slot.view === 'violin'
+                      ? 'This table has no categorical column for a violin plot.'
+                      : 'This table has no numeric column for this view.'}
+                  </p>
+                </div>
+              )
             }
             return (
               <div

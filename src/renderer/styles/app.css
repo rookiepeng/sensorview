@@ -1653,6 +1653,59 @@ body {
     color: var(--sv-text-dim);
 }
 
+/* The boundary's own screen. Centred on the window rather than docked into
+   the shell, because when this shows there is no shell. */
+.sv-crash {
+    position: fixed;
+    inset: 0;
+    z-index: var(--sv-z-tooltip);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px;
+    background: var(--sv-bg);
+    color: var(--sv-text);
+    text-align: center;
+}
+
+.sv-crash h1 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: var(--sv-weight-med);
+}
+
+.sv-crash p {
+    margin: 0;
+    max-width: 52ch;
+    color: var(--sv-danger);
+    font-size: var(--sv-font-sm);
+}
+
+.sv-crash-hint {
+    color: var(--sv-text-dim) !important;
+}
+
+/* A note the user needs rather than one they asked for: a read that failed
+   where the thing that failed lives, instead of a panel that simply never
+   appears. */
+.sv-rail-note-bad {
+    color: var(--sv-danger);
+}
+
+/* The one spinner in the app, for the only wait long enough to need one. */
+.sv-spin {
+    display: inline-block;
+    animation: sv-spin 900ms linear infinite;
+}
+
+@keyframes sv-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 /* Visible to a screen reader, to nothing else. For the few places where a
    glyph or an abbreviation carries meaning the markup has to spell out. */
 .sv-sr-only {
