@@ -18,7 +18,6 @@
  *     1  #gl-labels      CSS2D tick text, click-through
  *     5  .sv-splitter
  *     6  HUD furniture, collapsed panel heads
- *     7  .sv-canvas-popover
  *    10  floating glass panels: rail, inspector, transport, dock
  *    20  .sv-topbar
  *    40  .sv-menu        hangs off a control in the top bar
@@ -70,6 +69,7 @@
 
 #gl-labels {
     position: absolute;
+    z-index: var(--sv-z-labels);
     inset: 0;
     overflow: hidden;
     pointer-events: none;
@@ -129,8 +129,6 @@
 .sv-dock,
 .sv-topbar,
 .sv-splitter,
-.sv-canvas-tools,
-.sv-canvas-popover,
 .sv-hud {
     pointer-events: auto;
 }
@@ -216,12 +214,6 @@
     backdrop-filter: none;
 }
 
-/* The tool cluster no longer has to dodge a collapsed rail: the strip holds
-   its own column, so the corner is free. */
-.sv-upper:has(.sv-rail.sv-collapsed) .sv-canvas-tools {
-    left: 12px;
-}
-
 /* ── HUD furniture ───────────────────────────────────────────────────────── */
 
 /* Built by assets/gl/sv_hud.esm.js out of the frame the renderer already
@@ -300,6 +292,7 @@
 }
 
 #gl-legend {
+    overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
     gap: 2px;
