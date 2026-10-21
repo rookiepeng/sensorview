@@ -10,7 +10,7 @@
 // missing, broke every export button silently. There is no flag now: main
 // opens a save dialog, and a dismissed dialog is a null rather than an error.
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { filterAll } from '@shared/table'
 
@@ -18,6 +18,7 @@ import { maskedRows } from '../figures/common'
 import { recordScene, toBase64 } from '../export/animation'
 import { exportName, snapshotHtml, standaloneHtml, tableCsv } from '../export/exporters'
 import { getScene } from '../sceneHandle'
+import { useMenu } from '../useMenu'
 import { useStore } from '../store'
 
 export function ExportMenu() {
@@ -29,24 +30,10 @@ export function ExportMenu() {
   const frameCount = useStore((s) => s.frameCount)
   const setFrame = useStore((s) => s.setFrame)
 
-  const [open, setOpen] = useState(false)
+  const menu = useMenu()
   const [busy, setBusy] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
-  const menu = useRef<HTMLDivElement>(null)
   const cancelled = useRef(false)
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-    const close = (event: MouseEvent) => {
-      if (!menu.current?.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', close, true)
-    return () => document.removeEventListener('mousedown', close, true)
-  }, [open])
 
   if (!table) {
     return null
@@ -74,7 +61,9 @@ export function ExportMenu() {
   }
 
   async function run(label: string, job: () => Promise<void>) {
-    setOpen(false)
+    // Closing returns focus to the trigger, which is also the cancel button
+    // for the job about to start -- so the keyboard lands where it is needed.
+    menu.close()
     setBusy(label)
     setNote(null)
     try {
@@ -211,15 +200,17 @@ export function ExportMenu() {
     })
 
   return (
-    <div className="sv-export" ref={menu}>
+    <div className="sv-export" ref={menu.containerRef}>
       <button
         type="button"
         className="sv-icon-btn"
-        onClick={() => (busy ? (cancelled.current = true) : setOpen((on) => !on))}
-        aria-haspopup="menu"
-        aria-expanded={open}
+        onClick={() => (busy ? (cancelled.current = true) : menu.toggle())}
+        {...menu.triggerProps}
         title={busy ? `${busy} — click to stop` : 'Export'}
-        aria-label="Export"
+        // The same button is "open the menu" when idle and "stop" while a job
+        // runs. The name has to say which, or a job is cancelled by a button
+        // that still announces itself as Export.
+        aria-label={busy ? `Stop the ${busy} export` : 'Export'}
       >
         <i className={`bi bi-${busy ? 'stop-circle' : 'download'}`} aria-hidden="true" />
       </button>
@@ -231,8 +222,8 @@ export function ExportMenu() {
         </span>
       )}
 
-      {open && (
-        <div className="sv-menu sv-menu-right" role="menu">
+      {menu.open && (
+        <div className="sv-menu sv-menu-right" role="menu" ref={menu.menuRef}>
           <Item label="Table as CSV" hint="the filtered rows" onClick={exportCsv} />
           <Item label="Scene as PNG" hint="this frame" onClick={exportPng} />
           <Item label="Scene as HTML" hint="this frame, with a caption" onClick={exportHtml} />

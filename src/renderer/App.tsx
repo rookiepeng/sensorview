@@ -19,6 +19,7 @@ import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
 import { useCloud } from './useCloud'
+import { useHotkeys } from './useHotkeys'
 import { useReference } from './useReference'
 import { fixtureFrame } from './fixture'
 import type { ScenePayload } from './frame'
@@ -51,6 +52,10 @@ export function App() {
   // lands in the store, which is what the payload below is built from.
   useCloud()
   useReference()
+
+  // Space, arrows, Home and End drive the transport. Mounted here because
+  // this is the one component that is always on screen.
+  useHotkeys()
 
   // Browser mode has no readers behind it, so it starts on the fixture. In
   // Electron the top bar's breadcrumb opens a real case.
