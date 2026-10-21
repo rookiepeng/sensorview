@@ -347,7 +347,7 @@ export async function runSmoke(
           }
         })
         let exports = 'exports not run'
-        let multi = 'combining not run'
+        let multi: string
         try {
           // Set SENSORVIEW_SMOKE_VERBOSE to see what the page says. The
           // single-object form of this event, not the old positional one --

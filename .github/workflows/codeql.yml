@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   analyze:
-    name: Analyze Python
+    name: Analyze JavaScript
     runs-on: ubuntu-latest
 
     permissions:
@@ -35,9 +35,10 @@ jobs:
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
-        languages: python
-        # Python needs no compilation, so CodeQL reads the source directly
-        # instead of tracing a build.
+        languages: javascript-typescript
+        # No compilation to trace: CodeQL reads the TypeScript directly, and
+        # the build output in out/ would only have it scan the same code
+        # twice, once bundled.
         build-mode: none
 
     - name: Perform CodeQL analysis

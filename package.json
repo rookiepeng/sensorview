@@ -14,6 +14,7 @@
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
+    "lint": "eslint .",
     "smoke": "electron-vite build && node scripts/smoke.mjs",
     "dist": "electron-vite build && electron-builder --win",
     "web": "vite --config vite.web.config.ts"
@@ -23,13 +24,14 @@
     "ffmpeg-static": "^5.2.0",
     "h5wasm": "^0.10.3",
     "nodejs-polars": "^0.26.1",
-    "plotly.js": "^3.1.0",
+    "plotly.js": "^4.1.2",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "three": "^0.180.0",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "26.6.5",
     "@types/plotly.js": "^3.0.6",
     "@types/react": "19.3.0",
@@ -37,9 +39,12 @@
     "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "6.1.2",
     "electron": "44.9.0",
-    "electron-builder": "26.15.3",
+    "electron-builder": "^26.5.0",
     "electron-vite": "6.0.0",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "typescript": "5.9.3",
+    "typescript-eslint": "^8.72.0",
     "vite": "8.3.4",
     "vitest": "5.0.5"
   }
