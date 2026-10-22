@@ -119,6 +119,15 @@ export interface CaseState {
    */
   hiddenCount: number
   visibleRev: number
+  /**
+   * Whether clicking a point in the scene hides it.
+   *
+   * Off by default. The scene is something you spend the session dragging to
+   * look around, and a stray click that silently removes a detection -- with
+   * nothing on screen saying which -- is a bad default for a control that
+   * can only be noticed after it has fired.
+   */
+  clickToHide: boolean
   /** The frame currently handed to the scene, or null before the first. */
   payload: ScenePayload | null
 }
@@ -155,6 +164,7 @@ export interface Actions {
   setColormap(name: string): void
   setSizeVary(on: boolean): void
   toggleHidden(row: number): void
+  setClickToHide(on: boolean): void
   hideRows(rows: ArrayLike<number>): void
   showRows(rows: ArrayLike<number>): void
   showAllRows(): void
@@ -189,6 +199,7 @@ const initial: CaseState = {
   sizeVary: false,
   hiddenCount: 0,
   visibleRev: 0,
+  clickToHide: false,
   payload: null
 }
 
@@ -282,6 +293,8 @@ export const useStore = create<CaseState & Actions>((set) => ({
         visibleRev: s.visibleRev + 1
       }
     }),
+
+  setClickToHide: (clickToHide) => set({ clickToHide }),
 
   hideRows: (rows) => set((s) => mark(s, rows, 1)),
   showRows: (rows) => set((s) => mark(s, rows, 0)),

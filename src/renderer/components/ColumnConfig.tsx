@@ -108,6 +108,9 @@ export function ColumnConfig() {
 
       {open && (
         <div className="sv-menu sv-menu-right sv-config" role="menu">
+          {/* Axes only. Colour lives in the rail beside the colormap: it is
+              looked at while reading the scene, where this popover is for
+              what the dataset's columns mean, set once and left. */}
           <span className="sv-section-label">3D axes</span>
           <div className="sv-config-grid">
             {(['x', 'y', 'z'] as const).map((axis) => (
@@ -119,14 +122,6 @@ export function ColumnConfig() {
                 onChange={(column) => pickAxis(axis, column)}
               />
             ))}
-            {/* Colour takes any column -- a category is the common case --
-                and is not a manifest key, so it is not saved. */}
-            <Field
-              label="Colour"
-              value={axes.colour}
-              choices={every}
-              onChange={(column) => setAxis('colour', column)}
-            />
           </div>
 
           <div className="sv-divider" />

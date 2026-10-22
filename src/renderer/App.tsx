@@ -55,6 +55,7 @@ export function App() {
   // visibility changed, since it lives in a typed array a memo cannot see.
   const visibleRev = useStore((s) => s.visibleRev)
   const toggleHidden = useStore((s) => s.toggleHidden)
+  const clickToHide = useStore((s) => s.clickToHide)
   const openCase = useStore((s) => s.openCase)
   const table = useStore((s) => s.table)
   const axes = useStore((s) => s.axes)
@@ -201,7 +202,13 @@ export function App() {
 
   return (
     <div className="sv-shell" style={sizes}>
-      <GlStage payload={payload} onPick={toggleHidden} subject={stem} />
+      {/* No handler at all when the toggle is off, so a click reaches the
+          picker and does nothing rather than being read and discarded. */}
+      <GlStage
+        payload={payload}
+        onPick={clickToHide ? toggleHidden : undefined}
+        subject={stem}
+      />
 
       <TopBar />
 

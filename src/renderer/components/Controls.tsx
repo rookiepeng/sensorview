@@ -146,18 +146,28 @@ export function Picker({
   value,
   choices,
   onChange,
-  className = 'sv-pane-field'
+  className = 'sv-pane-field',
+  disabled = false,
+  hint
 }: {
   label: string
   value: string
   choices: readonly Choice[]
   onChange: (value: string) => void
   className?: string
+  /** Inert because something else supersedes it, not because it is broken. */
+  disabled?: boolean
+  /** One line saying why, shown under the control. */
+  hint?: string
 }) {
   return (
-    <label className={className}>
+    <label className={`${className}${disabled ? ' sv-field-off' : ''}`}>
       <span className="sv-section-label">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+      >
         {choices.map((choice) => {
           const [key, text] = typeof choice === 'string' ? [choice, choice] : [choice.value, choice.label]
           return (
@@ -167,6 +177,7 @@ export function Picker({
           )
         })}
       </select>
+      {hint && <span className="sv-field-value">{hint}</span>}
     </label>
   )
 }

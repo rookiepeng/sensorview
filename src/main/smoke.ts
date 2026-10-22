@@ -721,6 +721,23 @@ export async function runSmoke(
 
                const out = {}
 
+               // Click-to-hide is off until asked for: a stray click on the
+               // scene must not silently remove a detection.
+               const clickRow = Array.from(document.querySelectorAll('.sv-rail .sv-switch-row'))
+                 .find(r => (r.textContent || '').indexOf('Click a point') !== -1)
+               if (!clickRow) return { error: 'no click-to-hide toggle in the rail' }
+               out.clickToHide = clickRow.querySelector('input').checked
+
+               // Colour and colormap are in the rail, not behind the column
+               // config: they are read while reading the scene.
+               const rail = document.querySelector('.sv-rail')
+               const labels = Array.from(rail.querySelectorAll('.sv-section-label'))
+                 .map(l => l.textContent.trim().toLowerCase())
+               out.colourInRail = labels.indexOf('colour by') !== -1
+               out.colormapInRail = labels.indexOf('colormap') !== -1
+               out.colourAdjacent =
+                 labels.indexOf('colormap') === labels.indexOf('colour by') + 1
+
                // Both slots on a scatter, so the agreement below has two
                // views to agree between.
                const slots = Array.from(document.querySelectorAll('.sv-slot-picker select'))
@@ -813,6 +830,11 @@ export async function runSmoke(
           )
 
           expect(!views.error, `views: ${views.error}`)
+
+          expect(views.clickToHide === false, 'click-to-hide is on by default')
+          expect(views.colourInRail, 'the colour picker is not in the rail')
+          expect(views.colormapInRail, 'the colormap picker is not in the rail')
+          expect(views.colourAdjacent, 'colormap does not sit with the colour picker')
 
           // The control exists and does what it says.
           expect(

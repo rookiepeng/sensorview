@@ -67,11 +67,15 @@ export function FilterRail() {
   const overlay = useStore((s) => s.overlay)
   const setOverlay = useStore((s) => s.setOverlay)
   const colormap = useStore((s) => s.colormap)
+  const axes = useStore((s) => s.axes)
+  const setAxis = useStore((s) => s.setAxis)
   const setColormap = useStore((s) => s.setColormap)
   const sizeVary = useStore((s) => s.sizeVary)
   const setSizeVary = useStore((s) => s.setSizeVary)
   const hiddenCount = useStore((s) => s.hiddenCount)
   const showAllRows = useStore((s) => s.showAllRows)
+  const clickToHide = useStore((s) => s.clickToHide)
+  const setClickToHide = useStore((s) => s.setClickToHide)
   const setVisibility = useStore((s) => s.setVisibility)
   const dir = useStore((s) => s.dir)
   const cloudDisplay = useStore((s) => s.cloudDisplay)
@@ -139,12 +143,36 @@ export function FilterRail() {
         {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
         {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
 
+        {/* What the points are coloured by, and the ramp it is coloured
+            with. Together because they are one decision read as one: the
+            ramp only means anything against the column it maps. This was in
+            the column config, where nobody would look for it -- that
+            popover is for what the dataset's columns *mean*, which is a
+            thing set once. */}
+        {table && (
+          <Picker
+            label="Colour by"
+            value={axes.colour}
+            choices={[...table.columns.keys()]}
+            onChange={(column) => setAxis('colour', column)}
+            className="sv-field"
+          />
+        )}
+
         <Picker
           label="Colormap"
           value={colormap}
           choices={COLORMAPS}
           onChange={setColormap}
           className="sv-field"
+          // A categorical column takes its colours from the palette, not
+          // from a ramp, so the ramp has nothing to act on.
+          disabled={Boolean(table) && table!.columns.get(axes.colour)?.kind === 'string'}
+          hint={
+            table && table.columns.get(axes.colour)?.kind === 'string'
+              ? 'Categories use the palette'
+              : undefined
+          }
         />
 
         {/* Decay trails a fixed number of frames behind the current one;
@@ -214,9 +242,16 @@ export function FilterRail() {
             </div>
             <span className="sv-field-value">
               {hiddenCount > 0
-                ? `${hiddenCount} hidden by clicking or selecting`
+                ? `${hiddenCount} hidden`
                 : 'Everything starts out visible'}
             </span>
+
+            {/* Off by default. Lasso in a 2D view is the deliberate way to
+                hide a set of points; this makes the scene itself do it on a
+                single click, which is quick and easy to do by accident. */}
+            <Switch checked={clickToHide} onChange={setClickToHide}>
+              Click a point to hide it
+            </Switch>
             {hiddenCount > 0 && (
               <button type="button" className="sv-text-btn sv-rail-action" onClick={showAllRows}>
                 Show all again
