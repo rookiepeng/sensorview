@@ -169,7 +169,6 @@ export class Axes {
     this.labels = { x: "", y: "", z: "" };
     this.ticks = { x: [0], y: [0], z: [0] };
     this.planeZ = 0;
-    this.edge = "";
     this.theme = {
       ground: new Color("#111c21"),
       background: new Color("#0a0c0f"),
@@ -256,7 +255,6 @@ export class Axes {
     this._buildGrid();
     this._buildAxes();
     this._buildText();
-    this.edge = ""; // Force the next update() to place the text.
   }
 
   /**
@@ -520,21 +518,10 @@ export class Axes {
     });
     this.titleLabels.z.element.textContent = "";
     this.titleLabels.z.visible = false;
+
+    this._placeText();
   }
 
-  /**
-   * Re-place the text for the camera's current position.
-   *
-   * With no cage there is nothing to show or hide as the view swings round --
-   * only which edge of the floor the numbers sit along, so they stay on the
-   * side nearest the viewer instead of being read through the cloud. Driven by
-   * which quadrant the camera is in, so the work is skipped until it crosses
-   * an axis rather than run every frame.
-   *
-   * @param {Object} camera The scene camera.
-   * @param {Object} root The group carrying the data-to-world transform.
-   * @returns {boolean} Whether anything moved.
-   */
   /**
    * Choose a grid spacing for how close the camera is, and rebuild if it
    * has changed.
@@ -583,53 +570,61 @@ export class Axes {
     return true;
   }
 
-  update(camera, root, height) {
-    // A new spacing means new lines and new labels, and the labels then have
-    // to be placed -- so the edge is cleared and the work below runs even if
-    // the camera has not crossed into another quadrant.
-    const reticked = this.retick(camera, root, height);
-    if (reticked) {
-      this.edge = "";
-    }
-
-    const local = root.worldToLocal(camera.position.clone());
+  /**
+   * Place the text in the plane, along the lines through its centre.
+   *
+   * The numbers used to run along whichever edge of the floor was nearest
+   * the camera, which kept them off the cloud but put them a long way from
+   * the lines they label -- on a five-hundred-metre floor the reader is
+   * matching a number at one rim to a line in the middle. They sit on the
+   * centre lines now, the same two the coloured axis stubs come out of, so
+   * a tick is read against the grid line it names.
+   *
+   * Nothing here depends on where the camera is any more, so the quadrant
+   * the view was in -- and the rebuild when it crossed an axis -- is gone
+   * with it. Placement happens once per layout, in `_buildText`.
+   */
+  _placeText() {
     const r = this.ranges;
-    const mid = (axis) => (r[axis][0] + r[axis][1]) / 2;
+    const { centre } = this.floor || this._floorFrame();
+    const span = { x: r.x[1] - r.x[0], y: r.y[1] - r.y[0] };
 
-    const side = { x: local.x >= mid("x") ? 1 : 0, y: local.y >= mid("y") ? 1 : 0 };
-    const edge = `${side.x}${side.y}`;
-    if (edge === this.edge) {
-      return reticked;
-    }
-    this.edge = edge;
-
-    const span = { x: r.x[1] - r.x[0], y: r.y[1] - r.y[0], z: r.z[1] - r.z[0] };
-    // Just outside the floor on the near side, so the numbers sit on the apron
-    // rather than on top of the grid they label.
-    const nearY = r.y[side.y] + (side.y === 1 ? 1 : -1) * span.y * 0.035;
-    const nearX = r.x[side.x] + (side.x === 1 ? 1 : -1) * span.x * 0.035;
+    // From the ticks rather than `this.step`, which is still zero on the
+    // first build -- the spacing is chosen by the first `retick`, and the
+    // layout has already drawn a set of labels by then.
+    const ticksY = this.ticks.y;
+    const near = (ticksY.length > 1 ? Math.abs(ticksY[1] - ticksY[0]) : 1) / 2;
 
     this.tickLabels.forEach((label) => {
       const { axis, value } = label.userData;
       if (axis === "x") {
-        label.position.set(value, nearY, this.planeZ);
+        label.position.set(value, centre.y, this.planeZ);
       } else {
-        label.position.set(nearX, value, this.planeZ);
+        label.position.set(centre.x, value, this.planeZ);
       }
-      label.visible = true;
+      // Where the two lines cross, both runs have a label on the same spot.
+      // The one along x keeps it; the other would be the same point twice.
+      label.visible = !(axis === "y" && Math.abs(value - centre.y) < near);
     });
 
+    // At the far end of the line each one names, nudged off it so it does
+    // not land on the last tick: the title then reads as which way the
+    // numbers are going.
     this.titleLabels.x.position.set(
-      mid("x"),
-      r.y[side.y] + (side.y === 1 ? 1 : -1) * span.y * 0.1,
+      r.x[1] - span.x * 0.02,
+      centre.y + span.y * 0.04,
       this.planeZ
     );
     this.titleLabels.y.position.set(
-      r.x[side.x] + (side.x === 1 ? 1 : -1) * span.x * 0.1,
-      mid("y"),
+      centre.x + span.x * 0.04,
+      r.y[1] - span.y * 0.02,
       this.planeZ
     );
-    return true;
+  }
+
+  update(camera, root, height) {
+    // Only the spacing follows the camera now; where the text sits does not.
+    return this.retick(camera, root, height);
   }
 
   /**

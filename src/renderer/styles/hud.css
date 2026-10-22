@@ -87,13 +87,24 @@
     opacity: 0.85;
 }
 
-/* Ticks lie in the ground plane now, among the grid lines they label rather
-   than beside a cage. Tabular figures so a column of them does not jitter as
-   the digits change, and a slight shadow so a number crossing a bright patch
-   of cloud stays readable. */
+/* Ticks lie along the plane's centre lines, among the grid lines they label
+   rather than beside a cage. That puts them under the cloud rather than
+   clear of it, so a shadow is not enough on its own -- they carry a backing
+   dark enough to read a digit against a bright return. Tabular figures so a
+   row of them does not jitter as the digits change. */
 .sv-gl-tick-ground {
+    padding: 0 3px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--sv-bg) 72%, transparent);
     font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 3px var(--sv-bg), 0 0 3px var(--sv-bg);
+    text-shadow: 0 0 3px var(--sv-bg);
+}
+
+/* The titles sit on the same lines and want the same treatment. */
+.sv-gl-axis-title {
+    padding: 0 4px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--sv-bg) 72%, transparent);
 }
 
 .sv-gl-axis-title {
