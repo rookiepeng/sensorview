@@ -1045,11 +1045,16 @@ body {
    height it was given and the curves take the rest. Dragged back to the
    stylesheet's own answer -- double-click, or Home -- the class goes with
    the number and they share again. */
-.sv-inspector.sv-split .sv-card-camera {
+/* Matched to the rule above it, child combinator and all. That one carries
+   a `:not()`, which counts as a class, so a shorter selector here loses to
+   it however far down the file it sits -- and losing means the two cards go
+   on dividing the column by what they hold and the dragged height does
+   nothing at all. */
+.sv-inspector.sv-split .sv-stack > .sv-card-camera {
     flex: 0 0 var(--sv-camera-h);
 }
 
-.sv-inspector.sv-split .sv-card-curves {
+.sv-inspector.sv-split .sv-stack > .sv-card-curves {
     flex: 1 1 auto;
 }
 
