@@ -158,6 +158,15 @@ export interface Layout {
    * id that no longer exists simply never matches.
    */
   folded: string[]
+  /**
+   * How many panes the analysis dock shows, one or two.
+   *
+   * A layout question, asked once, rather than something inferred from a
+   * slot being set to nothing -- which is how it used to be said, and meant
+   * choosing "Empty" from a list of chart types to change the shape of the
+   * dock.
+   */
+  dockPanes: number
 }
 
 export const DEFAULT_LAYOUT: Layout = {
@@ -167,7 +176,8 @@ export const DEFAULT_LAYOUT: Layout = {
   railCollapsed: false,
   inspectorCollapsed: false,
   dockCollapsed: false,
-  folded: []
+  folded: [],
+  dockPanes: 2
 }
 
 /**
@@ -193,7 +203,8 @@ export function sanitiseLayout(raw: unknown): Layout {
     // reach is still a string being carried around for the life of the app.
     folded: Array.isArray(it.folded)
       ? it.folded.filter((id): id is string => typeof id === 'string').slice(0, 32)
-      : []
+      : [],
+    dockPanes: it.dockPanes === 1 ? 1 : 2
   }
 }
 

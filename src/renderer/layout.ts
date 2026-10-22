@@ -34,6 +34,8 @@ export interface LayoutState extends Layout {
   toggle: (key: 'railCollapsed' | 'inspectorCollapsed' | 'dockCollapsed') => void
   /** Fold a panel card away, or bring it back. */
   toggleFold: (id: string) => void
+  /** Show one analysis pane or two. */
+  setPanes: (count: number) => void
   /** Fold all three panels away, or put back the ones that were open. */
   focusScene: () => void
   /** Replace everything persisted, on the one read at startup. */
@@ -49,6 +51,7 @@ export const useLayout = create<LayoutState>((set) => ({
     set((s) => ({
       folded: s.folded.includes(id) ? s.folded.filter((name) => name !== id) : [...s.folded, id]
     })),
+  setPanes: (count) => set({ dockPanes: count === 1 ? 1 : 2 }),
   focusScene: () =>
     set((s) => {
       if (!s.railCollapsed || !s.inspectorCollapsed || !s.dockCollapsed) {
@@ -112,7 +115,8 @@ export function layoutOf(s: LayoutState): Layout {
     railCollapsed: s.railCollapsed,
     inspectorCollapsed: s.inspectorCollapsed,
     dockCollapsed: s.dockCollapsed,
-    folded: s.folded
+    folded: s.folded,
+    dockPanes: s.dockPanes
   }
 }
 

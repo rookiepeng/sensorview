@@ -37,7 +37,9 @@ export class Hud {
     this.hidden = new Set();
     this.root = container;
     /** How much of each edge the panels cover; `reflow` measures it. */
-    this.edges = { left: 0, right: 0, top: 0, bottom: 0 };
+    this.edges = { left: -1, right: -1, top: -1, bottom: -1 };
+    /** The last stats line written, so an unchanged one is not rewritten. */
+    this.statsLine = "";
 
     this.colorbar = div("sv-hud sv-gl-colorbar", container);
     this.colorbar.id = "gl-colorbar";
@@ -108,6 +110,16 @@ export class Hud {
 
   /**
    * Measure the panels and place the HUD clear of them.
+   *
+   * Writes nothing when nothing moved. That guard is load-bearing, not an
+   * optimisation: these are custom properties on the document element, and
+   * `.sv-center` is placed from them, so a write invalidates style for the
+   * whole page and resizes the transport and the dock -- which are observed,
+   * which calls this again. A frame arriving is the loudest caller, so
+   * without this every tick of playback pays for a document-wide recalc and
+   * a round of the resize observer.
+   *
+   * @returns {boolean} Whether any edge moved.
    */
   reflow() {
     // Edges, not widths: the panels carry a margin in HUD mode, so a width
@@ -135,20 +147,31 @@ export class Hud {
 
     // The transport is the lowest edge worth clearing: the dock sits under
     // it, so anything above the transport is above the dock too.
-    this.edges = {
+    const next = {
       left: Math.round(edge("#filter-sidebar-col", "left")),
       right: Math.round(edge(".sv-inspector", "right")),
       top: Math.round(edge(".sv-topbar", "top")),
       bottom: Math.round(edge(".sv-transport", "bottom")),
     };
+    const was = this.edges;
+    if (
+      was.left === next.left &&
+      was.right === next.right &&
+      was.top === next.top &&
+      was.bottom === next.bottom
+    ) {
+      return false;
+    }
+    this.edges = next;
 
     // On the document rather than the stage: `.sv-center` is placed from
     // these too, and it is not inside the stage.
     const style = document.documentElement.style;
-    style.setProperty("--sv-inset-l", `${this.edges.left}px`);
-    style.setProperty("--sv-inset-r", `${this.edges.right}px`);
-    style.setProperty("--sv-inset-t", `${this.edges.top}px`);
-    style.setProperty("--sv-inset-b", `${this.edges.bottom}px`);
+    style.setProperty("--sv-inset-l", `${next.left}px`);
+    style.setProperty("--sv-inset-r", `${next.right}px`);
+    style.setProperty("--sv-inset-t", `${next.top}px`);
+    style.setProperty("--sv-inset-b", `${next.bottom}px`);
+    return true;
   }
 
   /**
@@ -284,7 +307,15 @@ export class Hud {
     // to report -- and printing "0 fps" for a scene that is simply finished
     // reads as a stall. A number appears while the scene is actually moving.
     const rate = stats.fps >= 1 ? `${stats.fps.toFixed(0)} fps` : "idle";
-    this.stats.textContent = `${rate} · ${points} pts · ${stats.calls} draws`;
+    // Written only when it reads differently. This runs once per drawn
+    // frame, and a textContent write is a layout invalidation on an element
+    // overlapping the canvas -- paid sixty times a second to re-say what it
+    // already said.
+    const line = `${rate} · ${points} pts · ${stats.calls} draws`;
+    if (line !== this.statsLine) {
+      this.statsLine = line;
+      this.stats.textContent = line;
+    }
     this.stats.classList.toggle("sv-gl-stats-warn", Boolean(stats.software));
     if (stats.software) {
       this.stats.title =

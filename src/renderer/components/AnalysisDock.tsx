@@ -2,7 +2,10 @@
 //
 // Two rather than a grid of six, carried over from the Dash dock: the views
 // are for comparing, and two side by side at a readable size beats six at a
-// size where none of them can be read.
+// size where none of them can be read. How many are showing is said once, in
+// the head, rather than inferred from a slot set to "Empty" -- choosing a
+// chart type of "nothing" to change the shape of the dock is a question
+// answered in the wrong place.
 //
 // It sits at the foot of the centre column rather than across the whole
 // window. Full width it was taking a third of the rail's and the inspector's
@@ -21,14 +24,14 @@ import { filterAll, frameRows, type Table } from '@shared/table'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
-import { CollapseButton, Picker, Switch } from './Controls'
+import { CollapseButton, IconButton, Picker, Switch } from './Controls'
 import { Splitter } from './Splitter'
 import { BOUNDS, useLayout } from '../layout'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
 
 interface SlotState {
-  view: ViewId | null
+  view: ViewId
   x: string
   y: string
   colour: string
@@ -54,7 +57,7 @@ interface SlotState {
 }
 
 const EMPTY: SlotState = {
-  view: null,
+  view: 'histogram',
   x: '',
   y: '',
   colour: 'None',
@@ -82,10 +85,14 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   const toggleCollapsed = useLayout((s) => s.toggle)
   const dockH = useLayout((s) => s.dockH)
   const setSize = useLayout((s) => s.setSize)
+  const panes = useLayout((s) => s.dockPanes)
+  const setPanes = useLayout((s) => s.setPanes)
   const [selection, setSelection] = useState<number[]>([])
+  // The second slot keeps its settings while it is hidden, so going back to
+  // two panes returns the one that was there rather than a fresh default.
   const [slots, setSlots] = useState<[SlotState, SlotState]>([
     { ...EMPTY, view: 'histogram' },
-    { ...EMPTY }
+    { ...EMPTY, view: 'scatter' }
   ])
 
   // One pass over the table per filter change, shared by both slots.
@@ -152,8 +159,6 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
       return next
     })
 
-  const shown = slots.filter((slot) => slot.view !== null).length
-
   return (
     <div className="sv-dock-wrap">
       {/* `.sv-dock-wrap:has(.sv-dock.sv-collapsed) .sv-splitter` has been in
@@ -173,24 +178,33 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
       )}
       <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`}>
         <div className="sv-dock-head">
-          {([0, 1] as const).map((index) => (
-            <div className="sv-slot-picker" key={index}>
-              <select
-                value={slots[index].view ?? ''}
-                aria-label={`Slot ${index + 1} view`}
-                onChange={(event) =>
-                  set(index, { view: (event.target.value || null) as ViewId | null })
-                }
-              >
-                <option value="">Empty</option>
-                {(Object.keys(VIEW_LABELS) as ViewId[]).map((id) => (
-                  <option key={id} value={id}>
-                    {VIEW_LABELS[id]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ))}
+          {/* How many panes, said as a shape. Each pane's own view is picked
+              on the pane, where the chart it names is. */}
+          <div className="sv-dock-layout" role="group" aria-label="Analysis panes">
+            <IconButton
+              icon="square"
+              title="One pane"
+              pressed={panes === 1}
+              onClick={() => setPanes(1)}
+            />
+            <IconButton
+              icon="layout-split"
+              title="Two panes, side by side"
+              pressed={panes === 2}
+              onClick={() => setPanes(2)}
+            />
+          </div>
+
+          {/* Swapping beats re-picking both views when the comparison is the
+              right way round but on the wrong sides. Nothing to swap with
+              one pane. */}
+          {panes === 2 && (
+            <IconButton
+              icon="arrow-left-right"
+              title="Swap the two panes"
+              onClick={() => setSlots((current) => [current[1], current[0]])}
+            />
+          )}
 
           {/* What to do with a selection, beside the dock's own controls.
               Present only while something is selected -- two buttons that do
@@ -222,17 +236,6 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           )}
 
           <div className="sv-dock-actions">
-            {/* Swapping beats re-picking both slots when the comparison is
-                the right way round but on the wrong sides. */}
-            <button
-              type="button"
-              className="sv-icon-btn"
-              onClick={() => setSlots((current) => [current[1], current[0]])}
-              aria-label="Swap the two slots"
-              title="Swap the two slots"
-            >
-              <i className="bi bi-arrow-left-right" />
-            </button>
             <CollapseButton
               collapsed={collapsed}
               onToggle={() => toggleCollapsed('dockCollapsed')}
@@ -243,11 +246,8 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
         </div>
 
         <div className="sv-dock-grid">
-          {([0, 1] as const).map((index) => {
+          {([0, 1] as const).slice(0, panes).map((index) => {
             const slot = slots[index]
-            if (!slot.view) {
-              return null
-            }
             // A view is chosen but the table has no column of the kind it
             // needs -- a violin with nothing categorical, a histogram with
             // nothing numeric. This used to draw a blank pane under a
@@ -267,7 +267,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
               <div
                 key={index}
                 className={`sv-dock-pane sv-slot-${index === 0 ? 'a' : 'b'}${
-                  shown === 2 && index === 1 ? ' sv-slot-paired' : ''
+                  panes === 2 && index === 1 ? ' sv-slot-paired' : ''
                 }`}
               >
                 <Pane
@@ -368,7 +368,7 @@ function Pane({
 
   const figure = useMemo(
     () =>
-      buildView(slot.view!, table, scoped, {
+      buildView(slot.view, table, scoped, {
         x: slot.x,
         y: slot.y,
         colour: slot.colour,
@@ -406,7 +406,7 @@ function Pane({
     }
   }, [figure, slot.limits])
 
-  const view = slot.view!
+  const view = slot.view
   const revision = [stems.join('+'), view, slot.x, slot.y, slot.colour].join('|')
   const wantsY = view === 'scatter' || view === 'heatmap' || view === 'violin'
   const xChoices = view === 'violin' ? categorical : numeric
@@ -414,6 +414,18 @@ function Pane({
   return (
     <div className="sv-pane">
       <div className="sv-pane-controls">
+        {/* The pane's own title: what it is a chart of. In the head it was
+            one of two anonymous selects labelled only by position. */}
+        <Picker
+          label="View"
+          value={slot.view}
+          choices={(Object.keys(VIEW_LABELS) as ViewId[]).map((id) => ({
+            value: id,
+            label: VIEW_LABELS[id]
+          }))}
+          onChange={(view) => onChange({ view: view as ViewId })}
+          className="sv-pane-field sv-slot-picker"
+        />
         {/* Only the scatter: the other four draw a distribution, which one
             frame's few hundred points does not describe. */}
         {view === 'scatter' && (

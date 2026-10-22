@@ -217,6 +217,16 @@ export class Axes {
    *
    * The radius is isotropic, so the fade is a circle on the ground rather than
    * an ellipse stretched by whatever the two ranges happen to be.
+   *
+   * `span` is the rectangle the floor is actually drawn over, and it is not
+   * the data's ranges. The radius reaches the *longer* half of each axis, so
+   * on the side where the box is shorter than that the rim of the box sits at
+   * a falloff well under 1 -- a log running from -252 to 204 east fades to
+   * 0.81 at its east edge, which is a fifth of the ground colour still there
+   * when the geometry stops. That is a hard line across the floor, which is
+   * the one thing the fade exists to avoid. The span is the box widened to
+   * hold the whole circle, so every point on its boundary is at falloff 1 or
+   * past it and the plane ends where it has already gone.
    */
   _floorFrame() {
     const r = this.ranges;
@@ -230,7 +240,15 @@ export class Axes {
       Math.max(centre.x - r.x[0], r.x[1] - centre.x),
       Math.max(centre.y - r.y[0], r.y[1] - centre.y)
     );
-    return { centre, radius: reach || 1 };
+    const radius = reach || 1;
+    return {
+      centre,
+      radius,
+      span: {
+        x: [Math.min(r.x[0], centre.x - radius), Math.max(r.x[1], centre.x + radius)],
+        y: [Math.min(r.y[0], centre.y - radius), Math.max(r.y[1], centre.y + radius)],
+      },
+    };
   }
 
   /**
@@ -256,7 +274,9 @@ export class Axes {
   }
 
   _buildGround() {
-    const r = this.ranges;
+    // The floor's own span, not the data's ranges: the fade has to finish
+    // inside the geometry or it ends in a line.
+    const r = (this.floor || this._floorFrame()).span;
     const count = PLANE_STEPS;
     const positions = new Float32Array((count + 1) * (count + 1) * 3);
     const index = [];
@@ -308,7 +328,9 @@ export class Axes {
   }
 
   _buildGrid() {
-    const r = this.ranges;
+    // Over the floor's span too, so a line never outlives the ground under
+    // it by stopping where the ground is still visible.
+    const r = (this.floor || this._floorFrame()).span;
     const positions = [];
     this.gridMajor = [];
 

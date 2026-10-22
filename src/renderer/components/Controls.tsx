@@ -100,7 +100,8 @@ export function PanelHead({
   return (
     <div className="sv-panel-head">
       <span className="sv-panel-title">
-        <i className={`bi bi-${icon}`} aria-hidden="true" /> {title}
+        <i className={`bi bi-${icon}`} aria-hidden="true" />
+        <span className="sv-panel-label">{title}</span>
       </span>
       {children}
       {collapse && (
@@ -129,6 +130,7 @@ export function PanelHead({
  * quietly.
  */
 export function Group({
+  icon,
   title,
   children,
   reading,
@@ -136,6 +138,8 @@ export function Group({
   open,
   onToggle
 }: {
+  /** The card's whole identity once the rail is collapsed to a strip. */
+  icon: Icon
   title: string
   children: ReactNode
   /**
@@ -165,10 +169,14 @@ export function Group({
             onClick={onToggle}
           >
             <i className="bi bi-chevron-down sv-group-chevron" aria-hidden="true" />
-            {title}
+            <i className={`bi bi-${icon} sv-group-icon`} aria-hidden="true" />
+            <span className="sv-group-label">{title}</span>
           </button>
         ) : (
-          <span className="sv-group-title">{title}</span>
+          <span className="sv-group-title">
+            <i className={`bi bi-${icon} sv-group-icon`} aria-hidden="true" />
+            <span className="sv-group-label">{title}</span>
+          </span>
         )}
         {reading ? <span className="sv-group-reading">{reading}</span> : null}
         {actions}

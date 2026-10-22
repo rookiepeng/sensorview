@@ -536,26 +536,48 @@ body {
    `flex: 0 1 auto` rather than a fixed basis: the column's height is what the
    panel asks for, up to the window, and past that the panel shrinks and its
    body scrolls. */
+/* Not a panel: a stack of them. Transparent and taking no pointer events of
+   its own, so the gaps between its cards are scene rather than a column of
+   glass with lines drawn on it. The stack scrolls as a whole -- a card is
+   the unit that folds, and folding is how a long rail is shortened. */
 .sv-rail {
     flex: 0 1 auto;
     width: var(--sv-rail-w);
     display: flex;
     flex-direction: column;
+    gap: var(--sv-gap);
     min-height: 0;
-    background: var(--sv-surface);
+    padding-bottom: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
     transition: width var(--sv-ease);
 }
 
-.sv-rail.sv-collapsed .sv-rail-body,
-.sv-rail.sv-collapsed .sv-panel-title {
+/* Collapsed, the stack keeps its width as a strip of icons -- one per card,
+   which is what a card is reduced to. The way back is pressing one, so the
+   rail that comes back is in the same place it went. */
+.sv-rail.sv-collapsed {
+    width: 44px;
+    overflow: visible;
+}
+
+.sv-rail.sv-collapsed .sv-group-label,
+.sv-rail.sv-collapsed .sv-group-reading,
+.sv-rail.sv-collapsed .sv-group-chevron,
+.sv-rail.sv-collapsed .sv-group-body,
+.sv-rail.sv-collapsed .sv-group-head > .sv-text-btn {
     display: none;
 }
 
-.sv-rail-body {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 10px 12px 18px;
+.sv-rail.sv-collapsed .sv-group-head {
+    justify-content: center;
+    padding: 8px 0;
+    border-bottom: 0;
+    border-radius: calc(var(--sv-radius) - 1px);
+}
+
+.sv-rail.sv-collapsed .sv-group-icon {
+    font-size: 1rem;
 }
 
 /* ── Shared panel chrome ─────────────────────────────────────────────── */
@@ -609,24 +631,36 @@ body {
    first pushed the second below the fold on any log with ten numeric columns.
    Two groups, each with a head that stays put while its body scrolls under
    it, and the set-once half folds away. */
-.sv-group + .sv-group {
-    margin-top: 12px;
+/* A card: its own plate, with a head that names it and a body it can fold
+   away. The glass is in hud.css with the rest of the floating surfaces. */
+.sv-group {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
-/* Bled out to the rail body's padding edges so the head reads as a band
-   across the panel rather than a line indented inside it. Opaque, because
-   what scrolls under it is glass. */
 .sv-group-head {
-    position: sticky;
-    top: 0;
-    z-index: 1;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: 0 -12px;
-    padding: 5px 12px;
+    padding: 6px 10px;
     background: var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
+    border-radius: calc(var(--sv-radius) - 1px) calc(var(--sv-radius) - 1px) 0 0;
+}
+
+/* The icon is the card's whole identity once the rail is a strip, so it sits
+   with the title rather than being decoration on the label. */
+.sv-group-icon {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+}
+
+.sv-group-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sv-group-title {
@@ -682,18 +716,21 @@ body {
     text-overflow: ellipsis;
 }
 
-/* A folded card is a head and nothing else, so it needs no rule under it. */
+/* A folded card is a head and nothing else, so it needs no rule under it
+   and its head is the whole plate. */
 .sv-group-shut > .sv-group-head {
     border-bottom: 0;
+    border-radius: calc(var(--sv-radius) - 1px);
 }
 
 .sv-group-body {
-    padding-top: 10px;
+    min-height: 0;
+    padding: 10px 12px 12px;
 }
 
 /* ── Rail controls ──────────────────────────────────────────── */
 
-.sv-rail-body select {
+.sv-rail select {
     width: 100%;
     padding: 4px 6px;
     background: var(--sv-surface-2);
@@ -702,7 +739,7 @@ body {
     border-radius: var(--sv-radius);
 }
 
-.sv-rail-body input[type='range'] {
+.sv-rail input[type='range'] {
     width: 100%;
     accent-color: var(--sv-accent);
 }
@@ -962,7 +999,7 @@ body {
 }
 
 .sv-inspector.sv-collapsed .sv-inspector-body,
-.sv-inspector.sv-collapsed .sv-panel-title {
+.sv-inspector.sv-collapsed .sv-panel-label {
     display: none;
 }
 
@@ -1149,44 +1186,43 @@ body {
     transition: opacity var(--sv-ease);
 }
 
-/* Header: one picker per slot, each half the width so it reads as that pane's
-   title rather than as a toolbar. */
+/* Header: how the dock is arranged, and what to do with a selection. What
+   each pane is a chart *of* is picked on the pane, where the chart is. */
 .sv-dock-head {
     position: relative;
     flex: 0 0 var(--sv-dock-tabs-h);
     display: flex;
     align-items: center;
+    gap: 6px;
+    padding: 0 6px;
     background: var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
 }
 
-/* Each picker is exactly half the head's width so its divider lines up with
-   the pane divider below -- the actions strip is pulled out of flow (see
-   .sv-dock-actions) so it cannot skew that 50/50 split. */
-.sv-slot-picker {
-    flex: 1 1 50%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    padding: 0 10px;
-}
-
-.sv-slot-picker + .sv-slot-picker {
-    border-left: 1px solid var(--sv-border);
-    padding-right: 86px;
-}
-
-.sv-dock-actions {
-    position: absolute;
-    top: 0;
-    right: 0;
+/* One pane or two, as a shape rather than a word. The same segmented idiom
+   as the top bar's view cluster, because it is the same kind of question. */
+.sv-dock-layout {
     display: flex;
     align-items: center;
     gap: 2px;
-    height: 100%;
-    padding: 0 6px;
-    background: var(--sv-surface-2);
-    border-left: 1px solid var(--sv-border);
+    flex: 0 0 auto;
+    padding: 2px;
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+}
+
+.sv-dock-layout .sv-icon-btn {
+    height: 22px;
+    min-width: 26px;
+    padding: 0 4px;
+}
+
+.sv-dock-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
 }
 
 /* Two slots, filled by the gate in app.py. Every pane lives here permanently --
@@ -1273,6 +1309,18 @@ body {
    costs a fifth of the plot's height, which is the whole reason the strip is
    this tight. So the fields share the strip's width instead of each claiming
    a fixed slice of it. */
+/* The view picker is the pane's title: wider than the fields beside it, and
+   first, so the strip reads as "a histogram of X, coloured by Y". */
+.sv-pane-controls .sv-slot-picker {
+    flex: 0 1 auto;
+    min-width: 76px;
+    max-width: 164px;
+}
+
+.sv-pane-controls .sv-slot-picker .sv-section-label {
+    color: var(--sv-text-dim);
+}
+
 .sv-pane-controls .sv-pane-field {
     flex: 1 1 0;
     /* Low enough that the widest strip -- a scatter's frames, x, y, colour
@@ -1490,7 +1538,7 @@ input[type="range"] {
    behind it. `#gl-legend` is the one that matters: it is glass floating over
    the scene with `pointer-events: auto`, so the chain ran straight into the
    canvas. */
-.sv-rail-body,
+.sv-rail,
 .sv-inspector-body,
 .sv-subsection--grow > .sv-subsection-body,
 .sv-video-grid,
@@ -1663,8 +1711,13 @@ input[type="range"] {
     align-items: center;
     gap: 8px;
     margin-left: auto;
-    padding: 0 10px;
+    padding: 0 4px;
     white-space: nowrap;
+}
+
+/* Then the collapse toggle is no longer the thing pushed to the end. */
+.sv-dock-selection + .sv-dock-actions {
+    margin-left: 0;
 }
 
 /* The rail's "show all again", which is a sentence rather than a chip. */

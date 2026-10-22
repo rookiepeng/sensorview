@@ -122,7 +122,7 @@
     background: transparent;
 }
 
-.sv-rail,
+.sv-group,
 .sv-inspector,
 .sv-transport,
 .sv-dock,
@@ -136,7 +136,7 @@
    cluster has always used, so the HUD extends the existing idiom rather than
    introducing a second one. */
 .sv-topbar,
-.sv-rail,
+.sv-group,
 .sv-inspector,
 .sv-transport,
 .sv-dock,
@@ -150,12 +150,18 @@
 /* Every panel is a plate: the gap it keeps from the window edge belongs to
    the column or the gap that places it, so none of them carries a margin of
    its own any more. */
-.sv-rail,
+.sv-group,
 .sv-inspector,
 .sv-transport,
 .sv-dock {
     border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
+    z-index: var(--sv-z-panel);
+}
+
+/* The stack itself is not a surface -- it only places the cards -- but it
+   still has to sit over the scene with them. */
+.sv-rail {
     z-index: var(--sv-z-panel);
 }
 
@@ -168,25 +174,22 @@
     background: color-mix(in srgb, var(--sv-accent) 50%, transparent);
 }
 
-/* Collapsed, a panel keeps a narrow glass strip instead of vanishing to a
-   floating pill, so the way back is always in the same place rather than
-   moving to the corner. */
-.sv-rail.sv-collapsed,
+/* The inspector collapses to a narrow glass strip rather than vanishing: it
+   is one panel with one head, and that head is the way back. The rail is a
+   stack of cards with no head of its own, so it goes altogether and the top
+   bar's view cluster is what says it is gone. */
 .sv-inspector.sv-collapsed {
     flex-basis: 44px !important;
     width: 44px !important;
     overflow: hidden;
 }
 
-.sv-rail.sv-collapsed .sv-rail-body,
 .sv-inspector.sv-collapsed .sv-inspector-body,
-.sv-rail.sv-collapsed .sv-panel-title,
-.sv-inspector.sv-collapsed .sv-panel-title,
+.sv-inspector.sv-collapsed .sv-panel-label,
 .sv-inspector.sv-collapsed .sv-panel-chips {
     display: none;
 }
 
-.sv-rail.sv-collapsed .sv-panel-head,
 .sv-inspector.sv-collapsed .sv-panel-head {
     position: static;
     justify-content: center;

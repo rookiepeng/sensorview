@@ -576,27 +576,31 @@ export function create(host, options = {}) {
     if (!state.mounted) {
       return;
     }
-    // Always, before the early return: a splitter drag moves the panels
-    // without changing the stage, and both the HUD and the camera have to
-    // clear them either way.
-    hud.reflow();
-    frame(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
-    requestRender();
+    // Before the size check, not after: a splitter drag moves the panels
+    // without changing the stage, and the camera has to re-frame for that
+    // too. `reflow` says whether anything actually moved, so a call that
+    // changes nothing costs one `getBoundingClientRect` per panel and stops.
+    const moved = hud.reflow();
 
     const width = stage.clientWidth || window.innerWidth;
     const height = stage.clientHeight || window.innerHeight;
-    if (width === state.width && height === state.height) {
+    const sized = width !== state.width || height !== state.height;
+    if (!moved && !sized) {
       return;
     }
-    state.width = width;
-    state.height = height;
 
-    // Re-applied rather than set once at mount: a window dragged to a monitor
-    // with a different scale factor changes this, and the scene would stay at
-    // the old one and look soft.
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setSize(width, height, false);
-    labelRenderer.setSize(width, height);
+    if (sized) {
+      state.width = width;
+      state.height = height;
+      // Re-applied rather than set once at mount: a window dragged to a
+      // monitor with a different scale factor changes this, and the scene
+      // would stay at the old one and look soft.
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height, false);
+      labelRenderer.setSize(width, height);
+    }
+
+    frame(width, height);
     requestRender();
   }
 
