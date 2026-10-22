@@ -398,8 +398,13 @@ body {
     left: var(--sv-gap);
 }
 
+/* Floor to ceiling, unlike the left: what this column holds is a picture
+   and a stack of plots, both of which are worth more the taller they are.
+   The left column is a set of controls, which are worth exactly their own
+   height and no more. */
 .sv-hud-right {
     right: var(--sv-gap);
+    bottom: var(--sv-gap);
 }
 
 /* `Inspector` returns null for a log with neither a recording nor curves,
@@ -967,6 +972,21 @@ body {
     align-self: stretch;
 }
 
+/* The cards divide the column's height between them rather than each
+   taking its content's -- a 16:9 still and a stack of plots both read
+   better larger, and the space under them was doing nothing. A note is not
+   a card in this sense and keeps its own height. */
+.sv-inspector > .sv-group:not(.sv-note) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.sv-inspector > .sv-group:not(.sv-note) > .sv-group-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
 .sv-inspector > .sv-tray {
     align-self: flex-end;
 }
@@ -1014,21 +1034,29 @@ body {
 .sv-video-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    /* The rows share whatever height the card has, down to a floor below
+       which a frame is not worth showing; past that the body scrolls. The
+       pictures are `object-fit: contain`, so a row taller or shorter than
+       16:9 letterboxes rather than distorting. */
+    grid-auto-rows: minmax(110px, 1fr);
     gap: 6px;
-    /* However wide the dock is dragged, the pictures stop taking height from
-       the curve at some point; past that the grid scrolls. */
-    max-height: 42vh;
-    overflow-y: auto;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .sv-video-cell {
     position: relative;
     min-width: 0;
+    /* A grid item stretches to its row, and the picture inside is sized
+       against that -- without this the row's height has nothing to push
+       into and the cell falls back to the video's own. */
+    min-height: 0;
 }
 
 .sv-video {
     width: 100%;
-    aspect-ratio: 16 / 9;
+    height: 100%;
+    min-height: 0;
     object-fit: contain;
     background: #000;
     border: 1px solid var(--sv-border);
@@ -1068,7 +1096,7 @@ body {
        min-height push past its share, which draws the second plot's heading
        over the first. Growing from a basis the plot actually fits in keeps
        them stacked, and the section scrolls once they no longer fit. */
-    flex: 1 0 auto;
+    flex: 1 1 auto;
     min-height: 170px;
 }
 
