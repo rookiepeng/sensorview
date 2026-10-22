@@ -987,6 +987,25 @@ body {
     overflow-y: auto;
 }
 
+/* The handle between the two, which the column's `flex-end` would otherwise
+   leave at its own width -- nothing. */
+.sv-inspector > .sv-splitter {
+    align-self: stretch;
+}
+
+/* Once the handle has been dragged the two stop dividing the column by what
+   they hold and divide it by what was asked for: the camera takes the
+   height it was given and the curves take the rest. Dragged back to the
+   stylesheet's own answer -- double-click, or Home -- the class goes with
+   the number and they share again. */
+.sv-inspector.sv-split > .sv-card-camera {
+    flex: 0 0 var(--sv-camera-h);
+}
+
+.sv-inspector.sv-split > .sv-card-curves {
+    flex: 1 1 auto;
+}
+
 .sv-inspector > .sv-tray {
     align-self: flex-end;
 }

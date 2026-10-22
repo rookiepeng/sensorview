@@ -22,7 +22,7 @@ export const OVERLAYS = {
 } as const
 
 export interface LayoutState extends Layout {
-  setSize: (key: 'railW' | 'inspectorW' | 'dockH', px: number | null) => void
+  setSize: (key: 'railW' | 'inspectorW' | 'dockH' | 'cameraH', px: number | null) => void
   toggle: (key: 'dockCollapsed') => void
   /** Show an overlay, or take it away. */
   toggleHidden: (id: string) => void
@@ -59,6 +59,17 @@ export const useLayout = create<LayoutState>((set) => ({
 export const BOUNDS = {
   rail: { min: 200, max: () => Math.min(480, window.innerWidth * 0.4) },
   inspector: { min: 280, max: () => Math.min(760, window.innerWidth * 0.5) },
+  /** The camera's share of the inspector, with the curves taking the rest.
+   *  Both floors are a picture or a plot still worth looking at. */
+  camera: {
+    min: 140,
+    max: () =>
+      Math.max(
+        140,
+        (document.querySelector('.sv-inspector')?.getBoundingClientRect().height ??
+          window.innerHeight) - 200
+      )
+  },
   dock: {
     min: 218,
     max: () =>
@@ -76,6 +87,7 @@ export function layoutOf(s: LayoutState): Layout {
     railW: s.railW,
     inspectorW: s.inspectorW,
     dockH: s.dockH,
+    cameraH: s.cameraH,
     dockCollapsed: s.dockCollapsed,
     hidden: s.hidden,
     dockPanes: s.dockPanes

@@ -18,8 +18,9 @@ import type { CurvePlot, ImageStream } from '@shared/types'
 
 import { CameraPanel, type ClipSource } from './CameraPanel'
 import { Group, IconButton } from './Controls'
+import { Splitter } from './Splitter'
 import { CurvePanel, growYRanges } from './CurvePanel'
-import { useLayout } from '../layout'
+import { BOUNDS, useLayout } from '../layout'
 import { useStore } from '../store'
 import { useTheme } from '../useTheme'
 
@@ -48,6 +49,8 @@ export function Inspector() {
   // The same list the left-hand overlays use -- away is away.
   const hidden = useLayout((s) => s.hidden)
   const toggleHidden = useLayout((s) => s.toggleHidden)
+  const cameraH = useLayout((s) => s.cameraH)
+  const setSize = useLayout((s) => s.setSize)
   const theme = useTheme()
 
   // Which slider positions each log owns, compressed into runs. Derived once
@@ -260,9 +263,17 @@ export function Inspector() {
     { id: 'curves', icon: 'graph-up', title: 'Curves', has: plots.length > 0 }
   ] as const
   const away = panels.filter((panel) => panel.has && hidden.includes(panel.id))
+  const showCamera = clips.length > 0 && !hidden.includes('camera')
+  const showCurves = plots.length > 0 && !hidden.includes('curves')
+  // A dragged height only means anything while there are two cards to
+  // divide: one on its own takes the column whatever was dragged before.
+  const split = showCamera && showCurves && cameraH !== null
 
   return (
-    <aside className="sv-inspector">
+    <aside
+      className={`sv-inspector${split ? ' sv-split' : ''}`}
+      style={split ? ({ '--sv-camera-h': `${cameraH}px` } as React.CSSProperties) : undefined}
+    >
       {/* The same bargain as the rail: each overlay is taken away on its own
           and leaves its icon at the head of the column it came from. */}
       {away.length > 0 && (
@@ -286,8 +297,9 @@ export function Inspector() {
         </div>
       )}
 
-      {clips.length > 0 && !hidden.includes('camera') && (
+      {showCamera && (
         <Group
+          className="sv-card-camera"
           icon="camera-video"
           title="Camera"
           reading={`${clips.length} ${clips.length === 1 ? 'view' : 'views'}`}
@@ -316,8 +328,26 @@ export function Inspector() {
         </Group>
       )}
 
-      {plots.length > 0 && !hidden.includes('curves') && (
+      {/* Only between two cards: a handle with nothing on one side of it
+          resizes nothing. */}
+      {showCamera && showCurves && (
+        <Splitter
+          id="camera-splitter"
+          axis="row"
+          label="Camera height"
+          measure={() =>
+            document.querySelector('.sv-card-camera')?.getBoundingClientRect().height ?? 0
+          }
+          onResize={(px) => setSize('cameraH', px)}
+          onReset={() => setSize('cameraH', null)}
+          value={cameraH}
+          {...BOUNDS.camera}
+        />
+      )}
+
+      {showCurves && (
         <Group
+          className="sv-card-curves"
           icon="graph-up"
           title="Curves"
           reading={`${shownPlots.length} ${shownPlots.length === 1 ? 'plot' : 'plots'}`}

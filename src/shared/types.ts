@@ -146,6 +146,15 @@ export interface Layout {
   railW: number | null
   inspectorW: number | null
   dockH: number | null
+  /**
+   * How tall the camera card is, with the curves taking the rest.
+   *
+   * Null until the splitter between them is dragged, which is when the two
+   * stop dividing the column by what they hold and start dividing it by
+   * what was asked for. Only read while both are on screen: one on its own
+   * takes the whole height whatever this says.
+   */
+  cameraH: number | null
   dockCollapsed: boolean
   /**
    * Which overlays are away, by id.
@@ -177,6 +186,7 @@ export const DEFAULT_LAYOUT: Layout = {
   railW: null,
   inspectorW: null,
   dockH: null,
+  cameraH: null,
   dockCollapsed: false,
   hidden: [],
   dockPanes: 2
@@ -198,6 +208,7 @@ export function sanitiseLayout(raw: unknown): Layout {
     railW: size(it.railW),
     inspectorW: size(it.inspectorW),
     dockH: size(it.dockH),
+    cameraH: size(it.cameraH),
     dockCollapsed: it.dockCollapsed === true,
     // Capped and filtered: this is a list off disk, and an overlay nobody
     // can reach is still a string carried around for the life of the app.
