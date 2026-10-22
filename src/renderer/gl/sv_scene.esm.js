@@ -119,8 +119,10 @@ export function create(host, options = {}) {
 
       const moving = controls.update();
       if (state.dirty || moving) {
-        if (axes.update(camera, root)) {
-          // Label placement changed; nothing else to do, it is drawn below.
+        // The height is what the grid's spacing is chosen against: the step
+        // is picked to cover a number of pixels, not a number of metres.
+        if (axes.update(camera, root, state.height || stage.clientHeight)) {
+          // Lines or labels changed; nothing else to do, it is drawn below.
         }
         renderer.render(scene, camera);
         labelRenderer.render(scene, camera);

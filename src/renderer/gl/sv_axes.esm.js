@@ -50,6 +50,18 @@ const FADE_TO = 1.0;
 // Axis stubs out of the origin, as a fraction of each range's span.
 const AXIS_LENGTH = 0.12;
 
+// Roughly how far apart the grid lines should look, in pixels. The step is
+// chosen to land near this at the camera's current distance and snapped to
+// something a person would read -- 1, 2 or 5 times a power of ten -- so a
+// zoom changes the spacing in jumps rather than sliding continuously.
+const GRID_TARGET_PX = 96;
+
+// However close the camera gets, the floor is only ever drawn with this many
+// lines along its longer side. The step follows the zoom, and without this a
+// close-up would ask for a step of centimetres across a five-hundred-metre
+// floor -- tens of thousands of segments and a label on each.
+const GRID_MAX_LINES = 160;
+
 function smoothstep(value, from, to) {
   const t = Math.min(1, Math.max(0, (value - from) / (to - from)));
   return t * t * (3 - 2 * t);
@@ -82,6 +94,40 @@ export function niceTicks(lo, hi, target = 6) {
     ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
   }
   return ticks;
+}
+
+/**
+ * Snap a spacing to the nearest value a person would put on an axis.
+ *
+ * @param {number} raw The spacing wanted, in data units.
+ * @returns {number} 1, 2 or 5 times a power of ten.
+ */
+export function niceStep(raw) {
+  if (!Number.isFinite(raw) || raw <= 0) {
+    return 1;
+  }
+  const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+  const normalized = raw / magnitude;
+  return (normalized < 1.5 ? 1 : normalized < 3 ? 2 : normalized < 7 ? 5 : 10) * magnitude;
+}
+
+/**
+ * Ticks at a given spacing, covering a range.
+ *
+ * @param {number} lo Range minimum.
+ * @param {number} hi Range maximum.
+ * @param {number} step Spacing, in data units.
+ * @returns {number[]} Tick values, ascending.
+ */
+export function ticksAtStep(lo, hi, step) {
+  const out = [];
+  if (!(step > 0) || !Number.isFinite(hi - lo)) {
+    return [lo];
+  }
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-9; v += step) {
+    out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+  }
+  return out.length > 0 ? out : [lo];
 }
 
 /**
@@ -191,6 +237,9 @@ export class Axes {
   setRanges(ranges, labels) {
     this.ranges = ranges;
     this.labels = labels || { x: "", y: "", z: "" };
+    // A starting spacing for a camera that has not been placed yet; the
+    // first `update` replaces it with one chosen for the distance.
+    this.step = 0;
     this.ticks = {
       x: niceTicks(ranges.x[0], ranges.x[1]),
       y: niceTicks(ranges.y[0], ranges.y[1]),
@@ -486,7 +535,63 @@ export class Axes {
    * @param {Object} root The group carrying the data-to-world transform.
    * @returns {boolean} Whether anything moved.
    */
-  update(camera, root) {
+  /**
+   * Choose a grid spacing for how close the camera is, and rebuild if it
+   * has changed.
+   *
+   * The floor is drawn in data units, so the step has to be converted from
+   * the pixels it should cover: one pixel is `2 * d * tan(fov / 2) / height`
+   * world units at the box's distance, and the root's scale turns those into
+   * the data's own. Snapped, so the spacing steps between readable values
+   * instead of sliding, and floored so a close-up cannot ask for ten
+   * thousand lines across the floor.
+   *
+   * @param {THREE.PerspectiveCamera} camera The scene camera.
+   * @param {THREE.Object3D} root The data's transform.
+   * @param {number} height Viewport height in pixels.
+   * @returns {boolean} Whether the grid was rebuilt.
+   */
+  retick(camera, root, height) {
+    const scale = root.scale.x;
+    if (!(scale > 0) || !(height > 0)) {
+      return false;
+    }
+    // The box centre sits at the world origin -- `applyLayout` puts it
+    // there -- so the camera's own length is its distance from the data.
+    const distance = camera.position.length();
+    const worldPerPx = (2 * distance * Math.tan((camera.fov / 2) * (Math.PI / 180))) / height;
+    const span = Math.max(
+      this.ranges.x[1] - this.ranges.x[0],
+      this.ranges.y[1] - this.ranges.y[0]
+    );
+    const step = Math.max(
+      niceStep((GRID_TARGET_PX * worldPerPx) / scale),
+      niceStep(span / GRID_MAX_LINES)
+    );
+    if (step === this.step) {
+      return false;
+    }
+
+    this.step = step;
+    this.ticks = {
+      x: ticksAtStep(this.ranges.x[0], this.ranges.x[1], step),
+      y: ticksAtStep(this.ranges.y[0], this.ranges.y[1], step),
+      z: ticksAtStep(this.ranges.z[0], this.ranges.z[1], step),
+    };
+    this._buildGrid();
+    this._buildText();
+    return true;
+  }
+
+  update(camera, root, height) {
+    // A new spacing means new lines and new labels, and the labels then have
+    // to be placed -- so the edge is cleared and the work below runs even if
+    // the camera has not crossed into another quadrant.
+    const reticked = this.retick(camera, root, height);
+    if (reticked) {
+      this.edge = "";
+    }
+
     const local = root.worldToLocal(camera.position.clone());
     const r = this.ranges;
     const mid = (axis) => (r[axis][0] + r[axis][1]) / 2;
@@ -494,7 +599,7 @@ export class Axes {
     const side = { x: local.x >= mid("x") ? 1 : 0, y: local.y >= mid("y") ? 1 : 0 };
     const edge = `${side.x}${side.y}`;
     if (edge === this.edge) {
-      return false;
+      return reticked;
     }
     this.edge = edge;
 
