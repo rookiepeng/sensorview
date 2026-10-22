@@ -16,9 +16,10 @@ const bridge: SensorViewBridge = {
   mediaUrl,
   settings: {
     get: () => ipcRenderer.invoke('settings:get'),
-    set: (patch) => ipcRenderer.invoke('settings:set', patch)
+    set: (patch) => ipcRenderer.invoke('settings:set', patch),
+    rememberView: (dir, patch) => ipcRenderer.invoke('settings:view', dir, patch)
   },
-  initialCase: process.env.SENSORVIEW_OPEN_CASE || null,
+  initialCase: () => ipcRenderer.invoke('case:initial'),
   platform: process.platform
 }
 

@@ -12,7 +12,7 @@
 
 import { create } from 'zustand'
 
-import type { CaseSummary, CloudDisplay, ReferenceFrame } from '@shared/types'
+import type { CaseSummary, CaseView, CloudDisplay, ReferenceFrame } from '@shared/types'
 import type { Visibility } from '@shared/table'
 import {
   initialFilters,
@@ -165,6 +165,7 @@ export interface Actions {
   setSizeVary(on: boolean): void
   toggleHidden(row: number): void
   setClickToHide(on: boolean): void
+  applyView(view: CaseView): void
   hideRows(rows: ArrayLike<number>): void
   showRows(rows: ArrayLike<number>): void
   showAllRows(): void
@@ -296,6 +297,38 @@ export const useStore = create<CaseState & Actions>((set) => ({
 
   setClickToHide: (clickToHide) => set({ clickToHide }),
 
+  // Everything here is checked against the open case rather than trusted,
+  // because a stored view is a view of whatever that directory held last
+  // time: a log can gain and lose columns between sessions, and an axis
+  // naming one that is gone reads back as zeros from every row -- a scene
+  // that looks drawn and is of nothing.
+  applyView: (view) =>
+    set((s) => {
+      if (!s.table) {
+        return {}
+      }
+      const column = (name: string | undefined, current: string) =>
+        name && s.table!.columns.has(name) ? name : current
+      return {
+        axes: {
+          x: column(view.axes?.x, s.axes.x),
+          y: column(view.axes?.y, s.axes.y),
+          z: column(view.axes?.z, s.axes.z),
+          colour: column(view.axes?.colour, s.axes.colour)
+        },
+        colormap: view.colormap ?? s.colormap,
+        // The rail's slider stops at ten, and a decay of four hundred is
+        // four hundred frames built per tick.
+        decay: Math.min(MAX_DECAY, view.decay ?? s.decay),
+        overlay: view.overlay ?? s.overlay,
+        // Only where there is a cloud to read. A case that declares none
+        // would answer every frame with an error the user never asked for.
+        cloudOn: s.cloudDisplay ? (view.cloudOn ?? s.cloudOn) : false,
+        sizeVary: view.sizeVary ?? s.sizeVary,
+        clickToHide: view.clickToHide ?? s.clickToHide
+      }
+    }),
+
   hideRows: (rows) => set((s) => mark(s, rows, 1)),
   showRows: (rows) => set((s) => mark(s, rows, 0)),
 
@@ -325,6 +358,9 @@ export const useStore = create<CaseState & Actions>((set) => ({
 
   setPayload: (payload) => set({ payload })
 }))
+
+/** The decay slider's top end, as `FilterRail` draws it. */
+const MAX_DECAY = 10
 
 /**
  * Set a run of rows to one visibility, counting the change.

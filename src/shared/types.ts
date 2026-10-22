@@ -8,6 +8,7 @@
 // Nothing here may import from electron, react or node: it is compiled into
 // all three processes and into the tests.
 
+import { PALETTE } from './palette'
 import type { ColumnMeta } from './table'
 
 /** One log in a case: a table file, and which sidecars it has. */
@@ -133,6 +134,10 @@ export interface Settings {
   recent: string[]
   /** Where the panels are, and whether they are open. */
   layout: Layout
+  /** Where the window was, or null before it has been moved. */
+  bounds: WindowBounds | null
+  /** How each recently opened case was set up, keyed by its directory. */
+  views: Record<string, CaseView>
 }
 
 /**
@@ -219,11 +224,162 @@ export function sanitiseLayout(raw: unknown): Layout {
   }
 }
 
+/**
+ * Where the window was, in screen pixels, and whether it was maximised.
+ *
+ * Null until the window has been moved or resized once, which is what lets a
+ * first run open at the size `createWindow` asks for rather than having that
+ * size written down here as well.
+ *
+ * The maximised flag is kept beside the bounds rather than instead of them:
+ * `getNormalBounds` reports where a maximised window would go back to, so
+ * un-maximising a restored window lands it where the user left it rather
+ * than at the default size in the middle of the screen.
+ */
+export interface WindowBounds {
+  x: number
+  y: number
+  width: number
+  height: number
+  maximized: boolean
+}
+
+/**
+ * Trust nothing that came off disk, part two.
+ *
+ * A width of zero or an x of `1e9` is a window the user cannot see and cannot
+ * drag back. Anything that does not survive this is no stored placement at
+ * all, and the window opens where a first run would. Whether the rectangle is
+ * on a display that still exists is main's question -- it needs the screen
+ * module, which this file cannot import.
+ */
+export function sanitiseBounds(raw: unknown): WindowBounds | null {
+  const it = (raw ?? {}) as Record<string, unknown>
+  const at = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : null)
+  const span = (v: unknown) => {
+    const n = at(v)
+    return n !== null && n > 0 ? n : null
+  }
+  const x = at(it.x)
+  const y = at(it.y)
+  const width = span(it.width)
+  const height = span(it.height)
+  if (x === null || y === null || width === null || height === null) {
+    return null
+  }
+  return { x, y, width, height, maximized: it.maximized === true }
+}
+
+/**
+ * One analysis pane, as the settings file carries it.
+ *
+ * Every field is optional and typed loosely -- `view` is a string here, not
+ * the renderer's `ViewId` -- because a restored pane has to be reconciled
+ * against the case that is actually open, and a chart type that no longer
+ * exists is the same problem as a column the new log does not have.
+ * `AnalysisDock` already solves that for the panes it builds itself, so the
+ * narrowing happens there and this stays a shape rather than a promise.
+ */
+export interface DockSlot {
+  view?: string
+  x?: string
+  y?: string
+  colour?: string
+  dimensions?: string[]
+  logScale?: boolean
+  histnorm?: string
+  scope?: string
+  limits?: { xMin?: string; xMax?: string; yMin?: string; yMax?: string }
+}
+
+/**
+ * What the user set up for one case.
+ *
+ * Per case rather than once for the app, because most of it names columns:
+ * restoring case A's axes onto case B would colour by a key that case does
+ * not have, which reads back as zeros from every row and draws a
+ * plausible-looking chart of nothing.
+ *
+ * Every field is optional. Two components write into this -- the display
+ * panel's half through `useViewPersistence`, the panes through
+ * `AnalysisDock` -- and a case whose dock nobody has touched simply has no
+ * `slots`. `rememberView` merges a patch rather than replacing the entry, so
+ * the two cannot clobber each other.
+ */
+export interface CaseView {
+  axes?: { x: string; y: string; z: string; colour: string }
+  colormap?: string
+  decay?: number
+  overlay?: boolean
+  cloudOn?: boolean
+  sizeVary?: boolean
+  clickToHide?: boolean
+  slots?: [DockSlot, DockSlot]
+}
+
+/** How many cases keep their view settings. The recent list's own length. */
+export const MAX_VIEWS = 10
+
+/**
+ * Keep the fields that are the type they claim, and drop the rest.
+ *
+ * Shallow on purpose for `slots`: the panes are narrowed by the dock, which
+ * is the only place that knows which chart types and columns exist.
+ */
+export function sanitiseView(raw: unknown): CaseView {
+  const it = (raw ?? {}) as Record<string, unknown>
+  const view: CaseView = {}
+  const axes = (it.axes ?? {}) as Record<string, unknown>
+  if (['x', 'y', 'z', 'colour'].every((key) => typeof axes[key] === 'string')) {
+    view.axes = {
+      x: axes.x as string,
+      y: axes.y as string,
+      z: axes.z as string,
+      colour: axes.colour as string
+    }
+  }
+  // A colormap the palette does not hold would draw every point black.
+  if (typeof it.colormap === 'string' && it.colormap in PALETTE.colorscales) {
+    view.colormap = it.colormap
+  }
+  if (typeof it.decay === 'number' && Number.isFinite(it.decay)) {
+    view.decay = Math.max(0, Math.round(it.decay))
+  }
+  for (const flag of ['overlay', 'cloudOn', 'sizeVary', 'clickToHide'] as const) {
+    if (typeof it[flag] === 'boolean') {
+      view[flag] = it[flag] as boolean
+    }
+  }
+  if (Array.isArray(it.slots) && it.slots.length === 2 && it.slots.every(isObject)) {
+    view.slots = [it.slots[0] as DockSlot, it.slots[1] as DockSlot]
+  }
+  return view
+}
+
+function isObject(value: unknown): boolean {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Every case's view settings, capped and shape-checked. */
+export function sanitiseViews(raw: unknown): Record<string, CaseView> {
+  if (!isObject(raw)) {
+    return {}
+  }
+  const views: Record<string, CaseView> = {}
+  // Oldest first in insertion order, so the slice keeps the newest.
+  for (const [dir, view] of Object.entries(raw as Record<string, unknown>).slice(-MAX_VIEWS)) {
+    views[dir] = sanitiseView(view)
+  }
+  return views
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   dataPath: '',
   theme: 'dark',
   recent: [],
-  layout: DEFAULT_LAYOUT
+  layout: DEFAULT_LAYOUT,
+  bounds: null,
+  views: {}
 }
 
 /* ────────────────────────────────────────────────────────────── data ──── */
@@ -432,16 +588,25 @@ export interface SensorViewBridge {
   settings: {
     get(): Promise<Result<Settings>>
     set(patch: Partial<Settings>): Promise<Result<Settings>>
+    /**
+     * Merge a patch into one case's view settings.
+     *
+     * A method of its own rather than `set({ views })`, because `set` merges
+     * only the top level: two components each patching their own half of a
+     * case's view would write the whole map back and lose the other's half.
+     */
+    rememberView(dir: string, patch: CaseView): Promise<Result<Settings>>
   }
 
   /**
-   * A case to open as soon as the app is up, or null.
+   * The case to open as soon as the app is up, or null.
    *
-   * Set from SENSORVIEW_OPEN_CASE. It exists so the end-to-end check can drive
-   * a real case without a file dialog, and it is the hook an "open this folder"
-   * command-line argument would use.
+   * A call rather than a value, because main answers it: the path comes from
+   * SENSORVIEW_OPEN_CASE or, failing that, the most recent case that still
+   * exists, and either way main has to authorise it for `sv://` before the
+   * renderer asks for a frame of video from inside it.
    */
-  initialCase: string | null
+  initialCase(): Promise<Result<string | null>>
 
   /**
    * Which host this is running under.

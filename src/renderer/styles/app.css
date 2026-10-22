@@ -1406,7 +1406,6 @@ body {
    plate that says what to do about it. */
 .sv-no-case #gl-colorbar,
 .sv-no-case #gl-legend,
-.sv-no-case #gl-readout,
 .sv-no-case #gl-stats,
 .sv-no-case #gl-camera-presets {
     display: none;

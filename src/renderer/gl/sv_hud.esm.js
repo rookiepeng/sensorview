@@ -51,9 +51,6 @@ export class Hud {
     this.legend = div("sv-hud sv-gl-legend", container);
     this.legend.id = "gl-legend";
 
-    this.readout = div("sv-hud sv-gl-readout", container);
-    this.readout.id = "gl-readout";
-
     this.presets = div("sv-hud sv-gl-presets", container);
     this.presets.id = "gl-camera-presets";
     PRESETS.forEach((preset) => {
@@ -175,7 +172,7 @@ export class Hud {
   }
 
   /**
-   * Redraw the colorbar, legend and readout for a frame.
+   * Redraw the colorbar and legend for a frame.
    *
    * @param {Object} frame The decoded frame.
    * @param {string} colormap Active colormap name.
@@ -199,7 +196,6 @@ export class Hud {
     }
 
     this._buildLegend(frame);
-    this._buildReadout(frame);
   }
 
   _buildLegend(frame) {
@@ -272,25 +268,6 @@ export class Hud {
           toggle();
         }
       });
-    });
-  }
-
-  _buildReadout(frame) {
-    const { ranges, aspect } = frame.layout;
-    const fmt = (range) => `${Number(range[0].toPrecision(3))} … ${Number(range[1].toPrecision(3))}`;
-
-    this.readout.innerHTML = "";
-    [
-      ["X", fmt(ranges.x)],
-      ["Y", fmt(ranges.y)],
-      ["Z", fmt(ranges.z)],
-      ["Aspect", `${aspect.x.toFixed(2)} : ${aspect.y.toFixed(2)} : ${aspect.z.toFixed(2)}`],
-    ].forEach(([name, value]) => {
-      const row = div("sv-gl-readout-row", this.readout);
-      const key = div("sv-gl-readout-key", row);
-      key.textContent = name;
-      const val = div("sv-gl-readout-value", row);
-      val.textContent = value;
     });
   }
 
@@ -373,7 +350,7 @@ export class Hud {
 
   dispose() {
     [
-      this.colorbar, this.legend, this.readout,
+      this.colorbar, this.legend,
       this.presets, this.stats, this.tooltip, this.notice,
     ].forEach((element) => {
       if (element && element.parentNode) {

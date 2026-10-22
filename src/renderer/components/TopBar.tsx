@@ -47,13 +47,15 @@ export function TopBar() {
     })
   }, [])
 
-  // Opening a case named at startup, so the app can come up on one without a
-  // dialog. Runs once.
+  // The case the app comes up on: one named at startup, or the last one
+  // opened. Main decides which and authorises it; this only loads what it is
+  // given. Runs once.
   useEffect(() => {
-    const initial = window.sensorview.initialCase
-    if (initial) {
-      void load(initial)
-    }
+    void window.sensorview.initialCase().then((initial) => {
+      if (initial.ok && initial.data) {
+        void load(initial.data)
+      }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

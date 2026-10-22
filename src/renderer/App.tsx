@@ -29,6 +29,7 @@ import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
 import { BOUNDS, OVERLAYS, useLayout, useLayoutPersistence } from './layout'
+import { useViewPersistence } from './view'
 import { useCloud } from './useCloud'
 import { useHotkeys } from './useHotkeys'
 import { useReference } from './useReference'
@@ -81,6 +82,7 @@ export function App() {
   // this is the one component that is always on screen.
   useHotkeys()
   useLayoutPersistence()
+  useViewPersistence()
 
   // With nothing open there is nothing for the HUD furniture to report, and
   // a colorbar with no range, a legend with no groups and a transport that

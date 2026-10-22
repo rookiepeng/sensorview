@@ -273,24 +273,6 @@
     text-overflow: ellipsis;
 }
 
-#gl-readout {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    color: var(--sv-text-dim);
-    font-variant-numeric: tabular-nums;
-}
-
-.sv-gl-readout-row {
-    display: flex;
-    gap: 8px;
-}
-
-.sv-gl-readout-key {
-    width: 44px;
-    color: var(--sv-text-faint);
-}
-
 #gl-stats {
     padding: 3px 7px;
     color: var(--sv-text-faint);
@@ -352,7 +334,6 @@
 }
 
 #gl-camera-presets,
-#gl-readout,
 #gl-stats {
     left: calc(var(--sv-inset-l) + 12px);
 }
@@ -369,20 +350,6 @@
     top: calc(var(--sv-inset-t) + 52px);
 }
 
-/* Stacked under the camera presets rather than in the bottom-left corner,
-   which is where the z-axis ticks land. */
-#gl-readout {
-    top: calc(var(--sv-inset-t) + 97px);
-}
-
 #gl-stats {
     bottom: calc(var(--sv-inset-b) + 12px);
-}
-
-/* Below this the left column has no room for the range readout next to a
-   rail and a scene; the colorbar and legend still fit. */
-@media (max-width: 900px) {
-    #gl-readout {
-        display: none;
-    }
 }

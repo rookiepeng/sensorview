@@ -8,8 +8,24 @@
 //
 // A no-op inside Electron, where the preload got there first.
 
-import type { DataMethod, DataParams, DataResult, Result, SensorViewBridge, Settings } from '@shared/types'
-import { DEFAULT_SETTINGS, fail, ok, sanitiseLayout } from '@shared/types'
+import type {
+  CaseView,
+  DataMethod,
+  DataParams,
+  DataResult,
+  Result,
+  SensorViewBridge,
+  Settings
+} from '@shared/types'
+import {
+  DEFAULT_SETTINGS,
+  fail,
+  ok,
+  sanitiseBounds,
+  sanitiseLayout,
+  sanitiseView,
+  sanitiseViews
+} from '@shared/types'
 
 const KEY = 'sensorview.settings'
 
@@ -22,7 +38,13 @@ function readSettings(): Settings {
     const stored = JSON.parse(raw) as Partial<Settings>
     // As in the Electron store: `layout` is nested, so spreading is not
     // enough to make a partial one whole.
-    return { ...DEFAULT_SETTINGS, ...stored, layout: sanitiseLayout(stored.layout) }
+    return {
+      ...DEFAULT_SETTINGS,
+      ...stored,
+      layout: sanitiseLayout(stored.layout),
+      bounds: sanitiseBounds(stored.bounds),
+      views: sanitiseViews(stored.views)
+    }
   } catch {
     // Private browsing, or a value someone edited by hand. Neither is worth
     // failing over; the defaults are a working app.
@@ -70,7 +92,14 @@ export function installWebBridge(): void {
     },
     settings: {
       get: async () => ok(readSettings()),
-      set: async (patch) => ok(writeSettings({ ...readSettings(), ...patch }))
+      set: async (patch) => ok(writeSettings({ ...readSettings(), ...patch })),
+      // Merged a level deeper than `set` goes, as in the Electron store: the
+      // display panel and the analysis dock each own half of an entry.
+      rememberView: async (dir, patch: CaseView) => {
+        const current = readSettings()
+        const views = { ...current.views, [dir]: sanitiseView({ ...current.views[dir], ...patch }) }
+        return ok(writeSettings({ ...current, views }))
+      }
     },
     // A browser tab has no native save dialog, so an export falls back to
     // the download the page can do for itself.
@@ -92,7 +121,8 @@ export function installWebBridge(): void {
     // addressable there. The inspector shows nothing rather than a
     // broken element.
     mediaUrl: () => '',
-    initialCase: null,
+    // A browser tab has no case to reopen: `App` starts it on the fixture.
+    initialCase: async () => ok(null),
     platform: 'browser'
   }
 

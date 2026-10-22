@@ -8,17 +8,24 @@
 // native. So this configuration is never packaged; `npm run dist` builds the
 // real renderer, which is empty until then.
 
-import { writeFile } from 'node:fs/promises'
+import { rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, screen, shell } from 'electron'
 
 import { DataClient, dataEntry } from './dataClient'
 import { allowRoot, registerHandler, registerScheme } from './protocol'
 import { videoCacheDir } from '../data/video'
 import { SettingsStore } from './store'
-import { fail, ok, type Result, type Settings } from '../shared/types'
+import {
+  fail,
+  ok,
+  type CaseView,
+  type Result,
+  type Settings,
+  type WindowBounds
+} from '../shared/types'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -30,6 +37,14 @@ const USE_DASH = process.env.SENSORVIEW_DASH === '1'
 // Must run before the app is ready.
 registerScheme()
 
+// The end-to-end check runs the real app, settings store included, so without
+// this it writes to the user's own `settings.json`: a probe that hides a panel
+// leaves it hidden for the next real launch, and a probe that opens a case
+// leaves that case to be reopened at startup.
+if (process.env.SENSORVIEW_SMOKE) {
+  app.setPath('userData', join(app.getPath('temp'), 'sensorview-smoke'))
+}
+
 const settings = new SettingsStore(app.getPath('userData'))
 const data = new DataClient(dataEntry(here))
 
@@ -40,10 +55,65 @@ let win: BrowserWindow | null = null
  * main cannot read a stylesheet it never loads. */
 const BACKGROUND: Record<string, string> = { dark: '#0a0c0f', light: '#eceef1' }
 
-function createWindow(theme: string): void {
+/** The size a window opens at before it has ever been moved. */
+const DEFAULT_SIZE = { width: 1600, height: 1000 }
+
+/**
+ * Where to open, given what was stored.
+ *
+ * A stored rectangle is only honoured if some display still shows enough of
+ * it to grab. The laptop case is the one that matters: a window left on a
+ * second monitor is at an x no remaining display covers, and restoring it
+ * there opens the app somewhere the user cannot see, with no way back but
+ * deleting the settings file.
+ */
+function placement(stored: WindowBounds | null): Electron.Rectangle | typeof DEFAULT_SIZE {
+  if (!stored) {
+    return DEFAULT_SIZE
+  }
+  const { x, y, width, height } = stored
+  const reachable = screen.getAllDisplays().some((display) => {
+    const area = display.workArea
+    const across = Math.min(x + width, area.x + area.width) - Math.max(x, area.x)
+    const down = Math.min(y + height, area.y + area.height) - Math.max(y, area.y)
+    // Enough to see and to drag: a title bar's worth of window, not one
+    // pixel of its corner.
+    return across > 120 && down > 60
+  })
+  return reachable ? { x, y, width, height } : DEFAULT_SIZE
+}
+
+/** Remember where the window is, debounced: a drag is one write, not sixty. */
+function watchBounds(target: BrowserWindow): void {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const boundsOf = (): WindowBounds => ({
+    // Normal bounds, not current: a maximised window reports the screen, and
+    // storing that would make un-maximising a restored window a no-op.
+    ...target.getNormalBounds(),
+    maximized: target.isMaximized()
+  })
+
+  const later = () => {
+    clearTimeout(timer)
+    timer = setTimeout(() => void settings.set({ bounds: boundsOf() }), 400)
+  }
+
+  target.on('resize', later)
+  target.on('move', later)
+  target.on('maximize', later)
+  target.on('unmaximize', later)
+
+  // The last move of a session is the one a debounce loses, because quitting
+  // is what follows it. Sync, since nothing here can await.
+  target.on('close', () => {
+    clearTimeout(timer)
+    settings.setNow({ bounds: boundsOf() })
+  })
+}
+
+function createWindow(theme: string, bounds: WindowBounds | null): void {
   win = new BrowserWindow({
-    width: 1600,
-    height: 1000,
+    ...placement(bounds),
     minWidth: 960,
     minHeight: 600,
     show: false,
@@ -60,7 +130,12 @@ function createWindow(theme: string): void {
     }
   })
 
+  if (bounds?.maximized) {
+    win.maximize()
+  }
+
   win.once('ready-to-show', () => win?.show())
+  watchBounds(win)
 
   // Nothing in this app navigates. A link goes to the user's browser; an
   // in-window navigation is a bug or an attack, and either way is refused.
@@ -149,6 +224,61 @@ async function openCase() {
 }
 
 /**
+ * The case the app comes up on.
+ *
+ * `SENSORVIEW_OPEN_CASE` first -- it is how the end-to-end check drives a real
+ * case without a dialog, and how an "open this folder" argument would arrive.
+ * Otherwise the most recent case that is still there, which is what makes a
+ * relaunch continue where the last session stopped rather than greet the user
+ * with an empty window and a file dialog.
+ *
+ * Resolved here rather than in the renderer because authorising the directory
+ * for `sv://` is main's to do: the renderer asking for a case would otherwise
+ * be a renderer widening its own read access.
+ *
+ * Directories that have been moved or deleted are dropped from the recent
+ * list on the way past, so a case that no longer exists is asked about once.
+ */
+async function initialCase(): Promise<Result<string | null>> {
+  const named = process.env.SENSORVIEW_OPEN_CASE
+  if (named) {
+    allowRoot(named)
+    return ok(named)
+  }
+
+  const stored = await settings.get()
+  // `dataPath` is the fallback for a settings file written before there was a
+  // recent list.
+  const candidates = stored.recent.length > 0 ? stored.recent : [stored.dataPath]
+  const gone: string[] = []
+  for (const dir of candidates.filter(Boolean)) {
+    if (!(await isDirectory(dir))) {
+      gone.push(dir)
+      continue
+    }
+    if (gone.length > 0) {
+      await settings.forget(gone)
+    }
+    allowRoot(dir)
+    win?.setTitle(`${app.getName()} — ${dir}`)
+    return ok(dir)
+  }
+
+  if (gone.length > 0) {
+    await settings.forget(gone)
+  }
+  return ok(null)
+}
+
+async function isDirectory(path: string): Promise<boolean> {
+  try {
+    return (await stat(path)).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+/**
  * Write an export where the user says.
  *
  * The renderer builds the bytes and this chooses the destination, so an
@@ -200,10 +330,14 @@ async function saveFile(request: {
 function registerIpc(): void {
   ipcMain.handle('data:call', (_event, method, params) => data.call(method, params))
   ipcMain.handle('case:open', () => openCase())
+  ipcMain.handle('case:initial', () => initialCase())
   ipcMain.handle('file:save', (_event, request) => saveFile(request))
   ipcMain.handle('settings:get', async () => ok(await settings.get()))
   ipcMain.handle('settings:set', async (_event, patch: Partial<Settings>) =>
     ok(await settings.set(patch))
+  )
+  ipcMain.handle('settings:view', async (_event, dir: string, patch: CaseView) =>
+    ok(await settings.rememberView(dir, patch))
   )
 }
 
@@ -238,6 +372,11 @@ if (!process.env.SENSORVIEW_SMOKE && !app.requestSingleInstanceLock()) {
     // failures show up before a user finds them.
     const smokeFile = process.env.SENSORVIEW_SMOKE
     if (smokeFile) {
+      // From the defaults every time. The checks leave settings behind -- a
+      // cloud switched on, a case in the recent list -- and a run that
+      // inherited them would start with the state the next check is about to
+      // prove it can reach.
+      await rm(join(app.getPath('userData'), 'settings.json'), { force: true })
       const { runSmoke } = await import('./smoke')
       app.exit(
         await runSmoke(
@@ -254,17 +393,23 @@ if (!process.env.SENSORVIEW_SMOKE && !app.requestSingleInstanceLock()) {
     // Read before the window exists: the renderer only learns the theme after
     // it has mounted and asked over IPC, which is several frames too late to
     // choose what the empty window is painted with.
-    createWindow((await settings.get()).theme)
+    const stored = await settings.get()
+    createWindow(stored.theme, stored.bounds)
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        void settings.get().then((stored) => createWindow(stored.theme))
+        void settings.get().then((it) => createWindow(it.theme, it.bounds))
       }
     })
   })
 
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
+    // Not during the end-to-end check, which opens and closes a probe window
+    // per check: the gap between two of them is every window closed, and
+    // quitting there takes the run with it -- the next window's load fails
+    // with ERR_FAILED, which reads as a broken renderer. The check exits on
+    // its own count when it is done.
+    if (process.platform !== 'darwin' && !process.env.SENSORVIEW_SMOKE) {
       app.quit()
     }
   })

@@ -1214,6 +1214,148 @@ export async function runSmoke(
     })
   }
 
+  // What the app comes back as.
+  //
+  // Every check above opens a case because the environment names one. This is
+  // the other way in, and the one a user takes: the case the last session was
+  // left on, found in the settings file, authorised for `sv://` by main, and
+  // reopened with the view that was set up on it. Both halves fail quietly --
+  // a window that comes up empty looks like a first run, and a view that comes
+  // back half-applied looks like a preference nobody saved.
+  if (caseDir) {
+    checks.push({
+      name: 'the last case and its view come back on a relaunch',
+      run: async () => {
+        const { dirname: dirOf, join: joinPath } = await import('node:path')
+        const probe = new BrowserWindow({
+          show: false,
+          width: 1800,
+          height: 1000,
+          webPreferences: {
+            preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
+            contextIsolation: true,
+            sandbox: true,
+            backgroundThrottling: false
+          }
+        })
+        const named = process.env.SENSORVIEW_OPEN_CASE
+        let relaunched: BrowserWindow | null = null
+        try {
+          await probe.loadFile(rendererHtml)
+
+          // A session to come back to: the case in the recent list, and a
+          // view nobody would land on by accident.
+          const left = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const dir = ${JSON.stringify(caseDir)}
+               await window.sensorview.settings.set({ recent: [dir] })
+               await window.sensorview.settings.rememberView(dir, {
+                 colormap: 'Jet',
+                 decay: 4,
+                 clickToHide: true,
+                 slots: [{ view: 'violin' }, { view: 'parcats' }]
+               })
+               const stored = await window.sensorview.settings.get()
+               return stored.ok ? stored.data.views[dir] : { error: stored.error }
+             })()`
+          )
+          expect(!left.error, `could not store a view: ${left.error}`)
+          expect(left.colormap === 'Jet', `the stored view reads back as ${JSON.stringify(left)}`)
+          // Both halves of the entry survive each other. They are written by
+          // two different components, and `set` merges only the top level.
+          expect(Array.isArray(left.slots), 'the panes did not survive the second write')
+
+          // The relaunch. A second window rather than a reload, because a
+          // reload keeps the renderer process and this is about what a cold
+          // start comes up as. Nothing names a case this time, so main has to
+          // find one for itself.
+          delete process.env.SENSORVIEW_OPEN_CASE
+          // Opened before the old one goes, because `window-all-closed`
+          // quits the app: letting the count reach zero between the two
+          // fails the next load rather than the check.
+          relaunched = new BrowserWindow({
+            show: false,
+            width: 1800,
+            height: 1000,
+            webPreferences: {
+              preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
+              contextIsolation: true,
+              sandbox: true,
+              backgroundThrottling: false
+            }
+          })
+          probe.destroy()
+          await relaunched.loadFile(rendererHtml)
+
+          const back = await relaunched.webContents.executeJavaScript(
+            `(async () => {
+               const field = (label) => Array.from(document.querySelectorAll('.sv-field'))
+                 .find(f => ((f.querySelector('.sv-section-label') || {}).textContent || '')
+                   .trim() === label)
+               const deadline = Date.now() + 30000
+               let crumb = null
+               while (Date.now() < deadline) {
+                 const error = document.querySelector('.sv-topbar-error')
+                 if (error) return { error: error.textContent }
+                 crumb = document.querySelector('.sv-crumb-file')
+                 const colormap = field('Colormap')
+                 // The restore is a round trip of its own, after the case has
+                 // loaded, so a crumb is not yet an answer.
+                 if (crumb && crumb.textContent && colormap
+                     && colormap.querySelector('select').value === 'Jet') {
+                   break
+                 }
+                 await new Promise(r => setTimeout(r, 250))
+               }
+               const colormap = field('Colormap')
+               const decay = field('Decay')
+               const click = Array.from(document.querySelectorAll('.sv-rail .sv-switch-row'))
+                 .find(r => (r.textContent || '').indexOf('Click a point') !== -1)
+               return {
+                 crumb: crumb ? crumb.textContent : null,
+                 colormap: colormap ? colormap.querySelector('select').value : null,
+                 decay: decay ? decay.querySelector('input').value : null,
+                 clickToHide: click ? click.querySelector('input').checked : null,
+                 slots: Array.from(document.querySelectorAll('.sv-slot-picker select'))
+                   .map(s => s.value),
+                 points: document.getElementById('gl-stats')
+                   ? document.getElementById('gl-stats').textContent
+                   : null
+               }
+             })()`
+          )
+
+          expect(!back.error, `relaunch: ${back.error}`)
+          // The case itself: nothing named it, so this came out of the
+          // settings file -- and the breadcrumb is only filled once a log
+          // has been read through main's own allowlist.
+          expect(Boolean(back.crumb), 'the app came up with no case open')
+          expect(back.colormap === 'Jet', `the colormap came back as ${back.colormap}`)
+          expect(back.decay === '4', `the decay came back as ${back.decay}`)
+          expect(back.clickToHide === true, 'click-to-hide did not come back on')
+          // The panes are the dock's own state, written separately and
+          // reconciled against whatever columns this log has.
+          expect(
+            back.slots.includes('violin') && back.slots.includes('parcats'),
+            `the dock came back showing ${back.slots.join(', ') || 'nothing'}`
+          )
+          return (
+            `reopened ${back.crumb} with ${back.colormap}, decay ${back.decay}, ` +
+            `panes ${back.slots.join(' + ')}`
+          )
+        } finally {
+          if (named) {
+            process.env.SENSORVIEW_OPEN_CASE = named
+          }
+          if (!probe.isDestroyed()) {
+            probe.destroy()
+          }
+          relaunched?.destroy()
+        }
+      }
+    })
+  }
+
   if (pageUrl) {
     checks.push({
       name: 'a window loads the views',

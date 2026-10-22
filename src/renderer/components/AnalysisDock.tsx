@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { filterAll, frameRows, type Table } from '@shared/table'
+import type { DockSlot } from '@shared/types'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
@@ -67,6 +68,9 @@ interface SlotState {
  */
 const TWO_PANES_MIN = 680
 
+/** As the layout's: long enough that a drag or a typed limit is one write. */
+const WRITE_AFTER_MS = 400
+
 const EMPTY: SlotState = {
   view: 'histogram',
   x: '',
@@ -110,6 +114,14 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
     { ...EMPTY, view: 'histogram' },
     { ...EMPTY, view: 'scatter' }
   ])
+  const dir = useStore((s) => s.dir)
+  // The panes this case was left with, once the read for them has landed.
+  // State rather than applied on the spot, because they cannot be settled
+  // until a table says which columns exist -- which is the effect below.
+  const [saved, setSaved] = useState<[DockSlot, DockSlot] | null>(null)
+  // The case whose panes have been read back. Until this matches, a write
+  // would save the defaults over the settings being read.
+  const read = useRef<string | null>(null)
 
   // One pass over the table per filter change, shared by both slots.
   const rows = useMemo(
@@ -160,19 +172,73 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
     return () => observer.disconnect()
   }, [table])
 
+  // The panes this case was last set up with. Read per case rather than per
+  // log: switching logs inside a case is not a reason to lose a chart, and
+  // the reconciliation below handles a log that lacks a column the saved
+  // pane names.
+  useEffect(() => {
+    if (!dir) {
+      return
+    }
+    let live = true
+    read.current = null
+    setSaved(null)
+    void window.sensorview.settings.get().then((stored) => {
+      if (!live) {
+        return
+      }
+      const panes = stored.ok ? stored.data?.views[dir]?.slots : undefined
+      // Not over a pane the user has already picked: the read is a round
+      // trip through the main process and a click can land first.
+      if (panes && read.current === null) {
+        setSaved(panes)
+      }
+      read.current = dir
+    })
+    return () => {
+      live = false
+    }
+  }, [dir])
+
   // A slot's columns cannot be chosen until a table says which exist, and
   // they have to be re-chosen when the log changes: a column name that is not
   // in the new table reads back as zeros from every row, which draws a
   // plausible-looking chart of nothing. That was this component's first bug.
+  //
+  // Restored panes come through here too, which is why `saved` is a
+  // dependency rather than something applied where it is read: a saved pane
+  // is as much in need of reconciling as a default one.
   useEffect(() => {
     if (numeric.length === 0 && categorical.length === 0) {
       return
     }
-    setSlots((current) => [
-      defaults(current[0], numeric, categorical, preferred),
-      defaults(current[1], numeric, categorical, preferred)
-    ])
-  }, [numeric, categorical, preferred])
+    setSlots((current) => {
+      const base = saved
+        ? ([restore(saved[0], 'histogram'), restore(saved[1], 'scatter')] as const)
+        : current
+      return [
+        defaults(base[0], numeric, categorical, preferred),
+        defaults(base[1], numeric, categorical, preferred)
+      ]
+    })
+    // Consumed, so that a later log switch reconciles what is on screen
+    // rather than putting the stored panes back over it.
+    if (saved) {
+      setSaved(null)
+    }
+  }, [numeric, categorical, preferred, saved])
+
+  // Write the panes back, debounced: a column picker is one change, but an
+  // axis limit is one per keystroke.
+  useEffect(() => {
+    if (!dir || read.current !== dir) {
+      return
+    }
+    const timer = setTimeout(() => {
+      void window.sensorview.settings.rememberView(dir, { slots })
+    }, WRITE_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [dir, slots])
 
   if (!table) {
     return null
@@ -186,12 +252,16 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   // What is actually on screen, which is two only if two will fit.
   const panes = cramped ? 1 : wanted
 
-  const set = (index: 0 | 1, patch: Partial<SlotState>) =>
+  const set = (index: 0 | 1, patch: Partial<SlotState>) => {
+    // The user has picked a pane, so a read still in flight leaves it alone
+    // and changes from here on are written back.
+    read.current = dir
     setSlots((current) => {
       const next: [SlotState, SlotState] = [current[0], current[1]]
       next[index] = defaults({ ...next[index], ...patch }, numeric, categorical, preferred)
       return next
     })
+  }
 
   return (
     <div className="sv-dock-wrap">
@@ -330,6 +400,41 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
       </div>
     </div>
   )
+}
+
+/**
+ * A stored pane, narrowed back to one this component can draw.
+ *
+ * The settings file carries panes loosely -- `view` is any string there --
+ * because this is the only place that knows which chart types exist. Columns
+ * are taken as given and settled by `defaults`, which does that for the panes
+ * built here as well.
+ *
+ * @param fallback The chart type for a pane whose stored one is unknown,
+ *     which is the one this slot would have opened with.
+ */
+function restore(raw: DockSlot | undefined, fallback: ViewId): SlotState {
+  const it = raw ?? {}
+  const text = (value: unknown, instead: string) =>
+    typeof value === 'string' ? value : instead
+  return {
+    view: it.view && it.view in VIEW_LABELS ? (it.view as ViewId) : fallback,
+    x: text(it.x, ''),
+    y: text(it.y, ''),
+    colour: text(it.colour, 'None'),
+    dimensions: Array.isArray(it.dimensions)
+      ? it.dimensions.filter((name): name is string => typeof name === 'string')
+      : [],
+    logScale: it.logScale === true,
+    histnorm: it.histnorm === 'density' ? 'density' : 'probability',
+    scope: it.scope === 'all' ? 'all' : 'current',
+    limits: {
+      xMin: text(it.limits?.xMin, ''),
+      xMax: text(it.limits?.xMax, ''),
+      yMin: text(it.limits?.yMin, ''),
+      yMax: text(it.limits?.yMax, '')
+    }
+  }
 }
 
 /**
