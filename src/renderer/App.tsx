@@ -1,15 +1,18 @@
-// The shell: five regions over one scene.
+// The shell: the scene, and everything else floating over it.
 //
-// The scene is a fixed layer spanning the viewport, and every panel floats over
-// it as glass. `styles/app.css` carries the region geometry and `styles/hud.css`
-// the glass.
+// Nothing here is laid out beside the scene. `#gl-stage` spans the viewport and
+// `.sv-view` lies over it taking no pointer events, with three things inside:
+// a column of panels down each side, and the gap between them. The columns are
+// as tall as what they hold and no taller, so the scene shows through under a
+// short one instead of being walled off by a panel reserving height it is not
+// using.
 //
-// Three columns, and the middle one is a stack: rail | (scene, transport, dock)
-// | inspector. The dock used to span the whole window under the other two,
-// which took a third of their height and gave its charts a width they could not
-// use -- two 780x280 letterboxes where two 450x280 panes read better. Inside the
-// centre the rail and the inspector run floor to ceiling, which is what their
-// scrolling content wanted all along.
+// The gap is a region in its own right -- `.sv-center`, placed from the insets
+// the HUD measures -- and it holds the top bar as a plate at its head and the
+// transport and the dock at its foot. The scene frames its data in the same
+// gap, so what is drawn and what can be seen are the same rectangle.
+//
+// `styles/app.css` carries the geometry and `styles/hud.css` the glass.
 //
 // Each region draws nothing when it has nothing: the inspector for a log with
 // neither a recording nor curves, the dock until a case is open. A region that
@@ -206,48 +209,53 @@ export function App() {
         subject={stem}
       />
 
-      <TopBar />
-
-      <div className="sv-upper">
-        <FilterRail />
-        {!railCollapsed && (
-          <Splitter
-            id="rail-splitter"
-            axis="col"
-            label="Filter rail width"
-            measure={sizeOf('.sv-rail', 'width')}
-            onResize={(px) => setSize('railW', px)}
-            onReset={() => setSize('railW', null)}
-            value={railW}
-            {...BOUNDS.rail}
-          />
-        )}
-        {/* The centre is a stack: the scene, the transport that drives it,
-            and the dock under both. The transport stays next to the scene
-            rather than being pushed to the window's floor by the dock. */}
-        <div className="sv-center">
-          <div className="sv-stage">
-            <div className="sv-canvas" />
-          </div>
-          <Transport />
-          <AnalysisDock theme={theme} />
+      <div className="sv-view">
+        <div className="sv-hud-col sv-hud-left">
+          <FilterRail />
+          {!railCollapsed && (
+            <Splitter
+              id="rail-splitter"
+              axis="col"
+              label="Filter rail width"
+              measure={sizeOf('.sv-rail', 'width')}
+              onResize={(px) => setSize('railW', px)}
+              onReset={() => setSize('railW', null)}
+              value={railW}
+              {...BOUNDS.rail}
+            />
+          )}
         </div>
+
+        {/* The gap the two columns leave, placed from the insets the HUD
+            measures. The top bar sits at its head and the transport and the
+            dock at its foot, so the middle of it stays the scene. */}
+        <div className="sv-center">
+          <TopBar />
+          <div className="sv-center-foot">
+            <Transport />
+            <AnalysisDock theme={theme} />
+          </div>
+        </div>
+
         {/* The inspector draws nothing for a log with neither a recording
-            nor curves, and `.sv-upper > .sv-splitter:last-child` is what
-            takes its handle away with it -- React cannot see from here
+            nor curves, which would leave this column holding a handle that
+            resizes nothing. `.sv-hud-right:not(:has(.sv-inspector))` is what
+            takes the column away with it -- React cannot see from here
             whether the component returned null. */}
-        <Splitter
-          id="inspector-splitter"
-          axis="col"
-          label="Inspector width"
-          measure={sizeOf('.sv-inspector', 'width')}
-          onResize={(px) => setSize('inspectorW', px)}
-          onReset={() => setSize('inspectorW', null)}
-          value={inspectorW}
-          invert
-          {...BOUNDS.inspector}
-        />
-        <Inspector />
+        <div className="sv-hud-col sv-hud-right">
+          <Splitter
+            id="inspector-splitter"
+            axis="col"
+            label="Inspector width"
+            measure={sizeOf('.sv-inspector', 'width')}
+            onResize={(px) => setSize('inspectorW', px)}
+            onReset={() => setSize('inspectorW', null)}
+            value={inspectorW}
+            invert
+            {...BOUNDS.inspector}
+          />
+          <Inspector />
+        </div>
       </div>
     </div>
   )

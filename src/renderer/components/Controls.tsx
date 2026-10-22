@@ -131,13 +131,22 @@ export function PanelHead({
 export function Group({
   title,
   children,
+  reading,
   actions,
   open,
   onToggle
 }: {
   title: string
   children: ReactNode
-  /** Rendered at the end of the head -- a Reset, a count. */
+  /**
+   * What the card is worth at a glance -- the column it is coloured by, how
+   * many filters are on, how many plots there are.
+   *
+   * Shown whether or not the card is open, which is the point: folding one
+   * away should cost the controls and not the answer they were set to.
+   */
+  reading?: ReactNode
+  /** Rendered at the end of the head -- a Reset, a picker. */
   actions?: ReactNode
   /** Omit both to get a head that stays put but does not fold. */
   open?: boolean
@@ -146,7 +155,7 @@ export function Group({
   const foldable = onToggle !== undefined
   const shown = !foldable || open !== false
   return (
-    <section className="sv-group">
+    <section className={`sv-group${shown ? '' : ' sv-group-shut'}`}>
       <div className="sv-group-head">
         {foldable ? (
           <button
@@ -161,6 +170,7 @@ export function Group({
         ) : (
           <span className="sv-group-title">{title}</span>
         )}
+        {reading ? <span className="sv-group-reading">{reading}</span> : null}
         {actions}
       </div>
       {shown && <div className="sv-group-body">{children}</div>}

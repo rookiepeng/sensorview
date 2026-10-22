@@ -36,6 +36,8 @@ export class Hud {
     this.handlers = handlers || {};
     this.hidden = new Set();
     this.root = container;
+    /** How much of each edge the panels cover; `reflow` measures it. */
+    this.edges = { left: 0, right: 0, top: 0, bottom: 0 };
 
     this.colorbar = div("sv-hud sv-gl-colorbar", container);
     this.colorbar.id = "gl-colorbar";
@@ -72,7 +74,12 @@ export class Hud {
     this.stats = div("sv-hud sv-gl-stats", container);
     this.stats.id = "gl-stats";
 
-    this.tooltip = div("sv-gl-tooltip", container);
+    // On the body, not the stage. The stage carries a z-index and so starts
+    // a stacking context, which pins everything inside it below the floating
+    // panels however high its own z-index is -- and now that the scene is the
+    // whole window rather than the strip between the panels, a tooltip
+    // sliding under one is no longer a corner case.
+    this.tooltip = div("sv-gl-tooltip", document.body);
     this.tooltip.id = "gl-tooltip";
     this.tooltip.style.display = "none";
 
@@ -82,12 +89,25 @@ export class Hud {
   }
 
   /**
-   * Keep the HUD clear of the floating panels.
+   * How much of each edge of the stage the panels cover.
    *
-   * The rail, inspector and transport are user-resizable, so where they end is
-   * measured rather than read from the layout tokens -- those go stale as soon
-   * as a splitter is dragged, and a colorbar half under the inspector is the
-   * kind of thing that only shows up on someone else's window size.
+   * The rail, inspector, transport and dock are user-resizable, so where they
+   * end is measured rather than read from the layout tokens -- those go stale
+   * as soon as a splitter is dragged, and a colorbar half under the inspector
+   * is the kind of thing that only shows up on someone else's window size.
+   *
+   * Read by two things that must agree: the HUD furniture, which is placed
+   * against these edges, and the camera, which frames the data in what is
+   * left between them.
+   *
+   * @returns {{left: number, right: number, top: number, bottom: number}}
+   */
+  insets() {
+    return this.edges;
+  }
+
+  /**
+   * Measure the panels and place the HUD clear of them.
    */
   reflow() {
     // Edges, not widths: the panels carry a margin in HUD mode, so a width
@@ -107,13 +127,28 @@ export class Hud {
       if (side === "right") {
         return window.innerWidth - rect.left;
       }
+      if (side === "top") {
+        return rect.bottom;
+      }
       return window.innerHeight - rect.top;
     };
 
-    const style = this.root.style;
-    style.setProperty("--sv-hud-left", `${Math.round(edge("#filter-sidebar-col", "left")) + 12}px`);
-    style.setProperty("--sv-hud-right", `${Math.round(edge(".sv-inspector", "right")) + 12}px`);
-    style.setProperty("--sv-hud-bottom", `${Math.round(edge(".sv-transport", "bottom")) + 12}px`);
+    // The transport is the lowest edge worth clearing: the dock sits under
+    // it, so anything above the transport is above the dock too.
+    this.edges = {
+      left: Math.round(edge("#filter-sidebar-col", "left")),
+      right: Math.round(edge(".sv-inspector", "right")),
+      top: Math.round(edge(".sv-topbar", "top")),
+      bottom: Math.round(edge(".sv-transport", "bottom")),
+    };
+
+    // On the document rather than the stage: `.sv-center` is placed from
+    // these too, and it is not inside the stage.
+    const style = document.documentElement.style;
+    style.setProperty("--sv-inset-l", `${this.edges.left}px`);
+    style.setProperty("--sv-inset-r", `${this.edges.right}px`);
+    style.setProperty("--sv-inset-t", `${this.edges.top}px`);
+    style.setProperty("--sv-inset-b", `${this.edges.bottom}px`);
   }
 
   /**

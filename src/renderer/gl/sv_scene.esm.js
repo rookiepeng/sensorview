@@ -46,6 +46,15 @@ const EYE = new Vector3(1.25, 1.25, 1.25).normalize();
 
 const FOV = 50;
 
+/** How wide the camera may be opened to fit a box into a narrow gap. */
+const FOV_MAX = 74;
+
+/** The room `applyLayout` leaves around the box when it sets the distance. */
+const FIT = 1.25;
+
+/** How much of the clear gap the box may fill, once it is being fitted to it. */
+const GAP_FILL = 0.88;
+
 /**
  * Build the renderer inside a host element.
  *
@@ -298,7 +307,7 @@ export function create(host, options = {}) {
 
     const diagonal = Math.hypot(aspect.x, aspect.y, aspect.z);
     state.radius = diagonal / 2;
-    state.distance = (state.radius / Math.tan((FOV / 2) * (Math.PI / 180))) * 1.25;
+    state.distance = (state.radius / Math.tan((FOV / 2) * (Math.PI / 180))) * FIT;
 
     if (!state.framed) {
       setPreset("iso");
@@ -525,13 +534,54 @@ export function create(host, options = {}) {
     requestRender();
   }
 
+  /**
+   * Point the camera at the middle of what is visible.
+   *
+   * The stage is the whole window and the panels float over it, so the centre
+   * of the canvas is somewhere behind the rail or under the dock. Without
+   * this the data sits there: centred on the window, off-centre in the gap
+   * the user is actually looking at.
+   *
+   * `setViewOffset` slides the frustum rather than the camera, so an orbit
+   * still turns about the data and nothing downstream -- the picker, the
+   * axis labels, a snapshot -- has to know this happened.
+   *
+   * @param {number} width Stage width in CSS pixels.
+   * @param {number} height Stage height in CSS pixels.
+   */
+  function frame(width, height) {
+    const { left, right, top, bottom } = hud.insets();
+    const clearWidth = Math.max(width - left - right, 1);
+    const clearHeight = Math.max(height - top - bottom, 1);
+
+    // The box projects to `height * tan(theta) / tan(fov / 2)` pixels either
+    // way round -- it is a sphere -- so both edges want the same relation,
+    // and only the smaller gap decides. `theta` is the box's own half angle,
+    // which is `FOV / 2` reduced by the margin the distance already carries.
+    const open = Math.max(
+      1,
+      height / (FIT * GAP_FILL * clearWidth),
+      height / (FIT * GAP_FILL * clearHeight)
+    );
+    const half = Math.atan(Math.tan((FOV / 2) * (Math.PI / 180)) * open);
+    camera.fov = Math.min(FOV_MAX, (2 * half * 180) / Math.PI);
+    // Shift the frustum by half the difference between the two edges, which
+    // is how far the gap's centre is from the canvas's.
+    camera.setViewOffset(width, height, (right - left) / 2, (bottom - top) / 2, width, height);
+    camera.aspect = width / Math.max(height, 1);
+    camera.updateProjectionMatrix();
+  }
+
   function resize() {
     if (!state.mounted) {
       return;
     }
     // Always, before the early return: a splitter drag moves the panels
-    // without changing the stage, and the HUD has to clear them either way.
+    // without changing the stage, and both the HUD and the camera have to
+    // clear them either way.
     hud.reflow();
+    frame(stage.clientWidth || window.innerWidth, stage.clientHeight || window.innerHeight);
+    requestRender();
 
     const width = stage.clientWidth || window.innerWidth;
     const height = stage.clientHeight || window.innerHeight;
@@ -547,8 +597,6 @@ export function create(host, options = {}) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(width, height, false);
     labelRenderer.setSize(width, height);
-    camera.aspect = width / Math.max(height, 1);
-    camera.updateProjectionMatrix();
     requestRender();
   }
 

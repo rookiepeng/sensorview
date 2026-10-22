@@ -55,8 +55,9 @@ function stepFor(min: number, max: number): number {
 
 export function FilterRail() {
   const collapsed = useLayout((s) => s.railCollapsed)
-  const displayOpen = useLayout((s) => s.railDisplayOpen)
+  const folded = useLayout((s) => s.folded)
   const toggle = useLayout((s) => s.toggle)
+  const toggleFold = useLayout((s) => s.toggleFold)
   const decay = useStore((s) => s.decay)
   const setDecay = useStore((s) => s.setDecay)
   const overlay = useStore((s) => s.overlay)
@@ -122,8 +123,11 @@ export function FilterRail() {
             ten numeric columns above the fold. */}
         <Group
           title="Display"
-          open={displayOpen}
-          onToggle={() => toggle('railDisplayOpen')}
+          // Folded, the card still says what the scene is coloured by, which
+          // is the one thing in here that is read rather than set.
+          reading={table ? axes.colour : null}
+          open={!folded.includes('display')}
+          onToggle={() => toggleFold('display')}
         >
           <Switch checked={sizeVary} onChange={setSizeVary}>
             Size varies with category
@@ -207,19 +211,21 @@ export function FilterRail() {
             to it. Its head only stays put and says how much is on. */}
         <Group
           title="Data filters"
+          reading={
+            total > 0 ? (
+              <span title="Filters narrowing the table">
+                {active} / {total}
+              </span>
+            ) : null
+          }
+          open={!folded.includes('filters')}
+          onToggle={() => toggleFold('filters')}
           actions={
-            <>
-              {total > 0 && (
-                <span className="sv-group-count" title="Filters narrowing the table">
-                  {active} / {total}
-                </span>
-              )}
-              {active > 0 && (
-                <button type="button" className="sv-text-btn" onClick={resetFilters}>
-                  Reset
-                </button>
-              )}
-            </>
+            active > 0 ? (
+              <button type="button" className="sv-text-btn" onClick={resetFilters}>
+                Reset
+              </button>
+            ) : null
           }
         >
           {/* Always here, whether or not anything is hidden yet. It is a filter

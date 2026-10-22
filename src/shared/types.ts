@@ -149,8 +149,15 @@ export interface Layout {
   railCollapsed: boolean
   inspectorCollapsed: boolean
   dockCollapsed: boolean
-  /** Whether the rail's Display group is unfolded. Set once, then left. */
-  railDisplayOpen: boolean
+  /**
+   * Which panel cards are folded, by id.
+   *
+   * A list rather than a field per card: the cards are a growing set, and
+   * every one of them would otherwise be a field here, a default, a line in
+   * `sanitiseLayout` and a key in the store. Unfolded is the default, so an
+   * id that no longer exists simply never matches.
+   */
+  folded: string[]
 }
 
 export const DEFAULT_LAYOUT: Layout = {
@@ -160,7 +167,7 @@ export const DEFAULT_LAYOUT: Layout = {
   railCollapsed: false,
   inspectorCollapsed: false,
   dockCollapsed: false,
-  railDisplayOpen: true
+  folded: []
 }
 
 /**
@@ -182,9 +189,11 @@ export function sanitiseLayout(raw: unknown): Layout {
     railCollapsed: it.railCollapsed === true,
     inspectorCollapsed: it.inspectorCollapsed === true,
     dockCollapsed: it.dockCollapsed === true,
-    // The one field that defaults to true, so anything missing or junk
-    // leaves the group open rather than folding it away unasked.
-    railDisplayOpen: it.railDisplayOpen !== false
+    // Capped and filtered: this is a list off disk, and a card nobody can
+    // reach is still a string being carried around for the life of the app.
+    folded: Array.isArray(it.folded)
+      ? it.folded.filter((id): id is string => typeof id === 'string').slice(0, 32)
+      : []
   }
 }
 

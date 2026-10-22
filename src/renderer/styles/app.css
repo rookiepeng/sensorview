@@ -112,25 +112,29 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Not a layout any more: the scene is a fixed layer and everything else
+   floats over it, so this only bounds the window and carries the width
+   tokens a splitter drag writes. */
 .sv-shell {
-    display: flex;
-    flex-direction: column;
     height: 100vh;
-    min-height: 0;
     overflow: hidden;
 }
 
 /* ── Top bar ──────────────────────────────────────────────────────────────
-   One line: identity, what is loaded, global actions. Everything that used to
-   live in the 150px header is either here or one click behind the breadcrumb. */
+   One line: identity, what is loaded, which panels are, global actions.
+   A plate as wide as what it holds, centred at the head of the gap, rather
+   than a band across the window -- the scene runs to the top edge behind it
+   and the corners stay the scene's. */
 .sv-topbar {
-    flex: 0 0 var(--sv-topbar-h);
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: var(--sv-gap);
-    padding: 0 10px;
-    background: var(--sv-surface);
-    border-bottom: 1px solid var(--sv-border);
+    gap: 8px;
+    max-width: 100%;
+    height: var(--sv-topbar-h);
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
     position: relative;
     z-index: var(--sv-z-topbar);
 }
@@ -395,29 +399,79 @@ body {
     font-size: 0.95rem;
 }
 
-/* ── Body: rail | (scene / transport / dock) | inspector ──────────────────
-   Three columns, the middle one a stack. The dock lives in the centre rather
-   than across the window's floor, so the rail and the inspector run the full
-   height and the dock's panes are chart-shaped instead of letterboxes. */
-.sv-upper {
-    flex: 1 1 auto;
-    display: flex;
-    min-height: 0;
+/* ── Body: a layer over the scene ─────────────────────────────────────────
+   Deliberately without a z-index. `position: fixed` alone does not start a
+   stacking context, so the panels inside keep stacking against `#gl-stage`
+   exactly as they did when they were siblings of it. */
+.sv-view {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
 }
 
+/* A column of panels down one side. Its height is what it holds -- capped at
+   the window -- so a short rail leaves the scene visible under it instead of
+   walling off a strip it is not using. `align-items: stretch` is what makes
+   the splitter beside it exactly as tall as the panel it resizes. */
+.sv-hud-col {
+    position: absolute;
+    top: var(--sv-gap);
+    max-height: calc(100% - var(--sv-gap) * 2);
+    display: flex;
+    align-items: stretch;
+}
+
+.sv-hud-left {
+    left: var(--sv-gap);
+}
+
+.sv-hud-right {
+    right: var(--sv-gap);
+}
+
+/* `Inspector` returns null for a log with neither a recording nor curves,
+   which leaves this column holding a handle that resizes nothing. */
+.sv-hud-right:not(:has(.sv-inspector)) {
+    display: none;
+}
+
+/* The gap between the columns, from the insets `Hud.reflow()` measures --
+   the same two numbers the scene frames its data between, so the chrome and
+   the data agree about where the middle is. */
 .sv-center {
-    flex: 1 1 auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--sv-inset-l);
+    right: var(--sv-inset-r);
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
     min-width: 0;
-    min-height: 0;
+    padding: var(--sv-gap);
+    transition: left var(--sv-ease), right var(--sv-ease);
+    /* So the plate at its head can shed what it can as the gap narrows,
+       which is a question about the gap and not about the window. */
+    container-type: inline-size;
 }
 
-.sv-stage {
-    flex: 1 1 auto;
+/* The breadcrumb is the one thing on the plate that cannot be read at any
+   other size, so it is the last to give up room: the name goes first, and
+   the brand with it. */
+@container (max-width: 880px) {
+    .sv-brand {
+        display: none;
+    }
+}
+
+/* The transport and the dock under it, pinned to the foot of the gap. */
+.sv-center-foot {
     display: flex;
+    flex-direction: column;
+    gap: var(--sv-gap);
+    width: 100%;
     min-height: 0;
-    min-width: 0;
 }
 
 /* ── Splitters ───────────────────────────────────────────────────────────
@@ -474,28 +528,22 @@ body {
     flex-basis: 0;
 }
 
-/* An absent inspector, not a collapsed one: `Inspector` returns null for a
-   log with neither a recording nor curves, which leaves its handle as the
-   last thing in the row with nothing to resize. React cannot see that from
-   the shell, but the DOM can. */
-.sv-upper > .sv-splitter:last-child {
-    display: none;
-}
-
 /* A collapsed panel keeps a narrow glass strip rather than vanishing, so the
    way back is always in the same place. The rules are in hud.css, with the
    rest of the glass. */
 
-/* ── Left rail: filters ─────────────────────────────────────────────────── */
+/* ── Left rail: filters ───────────────────────────────────────────────────
+   `flex: 0 1 auto` rather than a fixed basis: the column's height is what the
+   panel asks for, up to the window, and past that the panel shrinks and its
+   body scrolls. */
 .sv-rail {
-    flex: 0 0 var(--sv-rail-w);
+    flex: 0 1 auto;
     width: var(--sv-rail-w);
     display: flex;
     flex-direction: column;
     min-height: 0;
     background: var(--sv-surface);
-    border-right: 1px solid var(--sv-border);
-    transition: flex-basis var(--sv-ease), width var(--sv-ease);
+    transition: width var(--sv-ease);
 }
 
 .sv-rail.sv-collapsed .sv-rail-body,
@@ -619,13 +667,24 @@ body {
     transform: rotate(-90deg);
 }
 
-/* How much of the filtering is actually on, which is the question asked of a
-   long list of sliders someone has been dragging. */
-.sv-group-count {
-    flex: 0 0 auto;
+/* What the card is worth at a glance: the column the scene is coloured by,
+   how much of the filtering is on, how many plots are behind a minimized
+   heading. It stays in the head when the card folds, so folding one away
+   costs the controls and not the answer they were set to. */
+.sv-group-reading {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
     font-size: var(--sv-font-2xs);
-    color: var(--sv-text-faint);
+    color: var(--sv-text-dim);
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* A folded card is a head and nothing else, so it needs no rule under it. */
+.sv-group-shut > .sv-group-head {
+    border-bottom: 0;
 }
 
 .sv-group-body {
@@ -839,15 +898,6 @@ body {
     color: var(--sv-text);
 }
 
-/* ── Canvas: the 3D view owns everything left over ───────────────────── */
-.sv-canvas {
-    position: relative;
-    flex: 1 1 auto;
-    min-width: 0;
-    min-height: 0;
-    background: var(--sv-bg);
-}
-
 /* ── Transport bar ───────────────────────────────────────────────────── */
 .sv-transport {
     position: relative;
@@ -858,7 +908,6 @@ body {
     padding: 0 14px;
     height: var(--sv-transport-h);
     background: var(--sv-surface);
-    border-top: 1px solid var(--sv-border);
 }
 
 .sv-transport-slider {
@@ -901,16 +950,15 @@ body {
     font-weight: 650;
 }
 
-/* ── Inspector: camera + threshold, docked right ─────────────────────── */
+/* ── Inspector: the recording and the curves, down the right ─────────── */
 .sv-inspector {
-    flex: 0 0 var(--sv-inspector-w);
+    flex: 0 1 auto;
     width: var(--sv-inspector-w);
     display: flex;
     flex-direction: column;
     min-height: 0;
     background: var(--sv-surface);
-    border-left: 1px solid var(--sv-border);
-    transition: flex-basis var(--sv-ease), width var(--sv-ease);
+    transition: width var(--sv-ease);
 }
 
 .sv-inspector.sv-collapsed .sv-inspector-body,
@@ -1085,7 +1133,6 @@ body {
     flex-direction: column;
     min-height: 0;
     background: var(--sv-surface);
-    border-top: 1px solid var(--sv-border);
     transition: flex-basis var(--sv-ease), height var(--sv-ease);
 }
 
@@ -1495,10 +1542,12 @@ input[type="range"] {
 
 /* A panel that is animating its width measures as whatever frame it happens
    to be on, and the drag is reading that measurement back every pointer
-   event. */
+   event. The gap follows the panels, so it has to stop animating with them
+   or it lags a whole drag behind. */
 .sv-resizing .sv-rail,
 .sv-resizing .sv-inspector,
-.sv-resizing .sv-dock {
+.sv-resizing .sv-dock,
+.sv-resizing .sv-center {
     transition: none;
 }
 

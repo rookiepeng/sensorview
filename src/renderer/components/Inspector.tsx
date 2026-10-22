@@ -43,10 +43,15 @@ export function Inspector() {
   // picker is what makes one of them the subject.
   const [oneStream, setOneStream] = useState('')
   const [onePlot, setOnePlot] = useState('')
-  const [minimized, setMinimized] = useState<{ camera: boolean; curves: boolean }>({
-    camera: false,
-    curves: false
-  })
+  // Folded sections live with the rest of the layout rather than in local
+  // state: which panels are away is a property of the window, and a case
+  // being opened is the moment a user is least expecting them to come back.
+  const folded = useLayout((s) => s.folded)
+  const toggleFold = useLayout((s) => s.toggleFold)
+  const minimized = {
+    camera: folded.includes('camera'),
+    curves: folded.includes('curves')
+  }
   const toggle = useLayout((s) => s.toggle)
   const theme = useTheme()
 
@@ -288,12 +293,16 @@ export function Inspector() {
                   ))}
                 </select>
               )}
+              {/* Minimized, the heading still says how much is behind it. */}
+              {minimized.camera && (
+                <span className="sv-group-reading">
+                  {clips.length} {clips.length === 1 ? 'view' : 'views'}
+                </span>
+              )}
               <Minimize
                 on={minimized.camera}
                 label="camera"
-                onToggle={() =>
-                  setMinimized((was) => ({ ...was, camera: !was.camera }))
-                }
+                onToggle={() => toggleFold('camera')}
               />
             </div>
             {!minimized.camera && (
@@ -337,12 +346,15 @@ export function Inspector() {
                   ))}
                 </select>
               )}
+              {minimized.curves && (
+                <span className="sv-group-reading">
+                  {shownPlots.length} {shownPlots.length === 1 ? 'plot' : 'plots'}
+                </span>
+              )}
               <Minimize
                 on={minimized.curves}
                 label="curves"
-                onToggle={() =>
-                  setMinimized((was) => ({ ...was, curves: !was.curves }))
-                }
+                onToggle={() => toggleFold('curves')}
               />
             </div>
             {!minimized.curves && (

@@ -31,9 +31,9 @@ export interface LayoutState extends Layout {
    */
   restore: Folded | null
   setSize: (key: 'railW' | 'inspectorW' | 'dockH', px: number | null) => void
-  toggle: (
-    key: 'railCollapsed' | 'inspectorCollapsed' | 'dockCollapsed' | 'railDisplayOpen'
-  ) => void
+  toggle: (key: 'railCollapsed' | 'inspectorCollapsed' | 'dockCollapsed') => void
+  /** Fold a panel card away, or bring it back. */
+  toggleFold: (id: string) => void
   /** Fold all three panels away, or put back the ones that were open. */
   focusScene: () => void
   /** Replace everything persisted, on the one read at startup. */
@@ -45,6 +45,10 @@ export const useLayout = create<LayoutState>((set) => ({
   restore: null,
   setSize: (key, px) => set({ [key]: px } as Pick<LayoutState, typeof key>),
   toggle: (key) => set((s) => ({ [key]: !s[key] }) as Pick<LayoutState, typeof key>),
+  toggleFold: (id) =>
+    set((s) => ({
+      folded: s.folded.includes(id) ? s.folded.filter((name) => name !== id) : [...s.folded, id]
+    })),
   focusScene: () =>
     set((s) => {
       if (!s.railCollapsed || !s.inspectorCollapsed || !s.dockCollapsed) {
@@ -108,7 +112,7 @@ export function layoutOf(s: LayoutState): Layout {
     railCollapsed: s.railCollapsed,
     inspectorCollapsed: s.inspectorCollapsed,
     dockCollapsed: s.dockCollapsed,
-    railDisplayOpen: s.railDisplayOpen
+    folded: s.folded
   }
 }
 
