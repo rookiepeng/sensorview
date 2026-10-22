@@ -635,8 +635,10 @@ export function create(host, options = {}) {
       axisY: read("--sv-ax-y", "#4fd06a"),
       axisZ: read("--sv-ax-z", "#4e9eff"),
       // The labels lie in the floor as textures now, so their colour is
-      // drawn in rather than inherited from a stylesheet.
-      ink: read("--sv-text-dim", "#8a929e"),
+      // drawn in rather than inherited from a stylesheet. The faint one:
+      // they are there to be read off when a coordinate is wanted, not to
+      // be the second thing the eye lands on after the data.
+      ink: read("--sv-text-faint", "#5d656f"),
     });
     requestRender();
   }

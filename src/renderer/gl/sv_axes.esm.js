@@ -39,6 +39,7 @@ import {
   LineBasicMaterial,
   LineSegments,
   LinearFilter,
+  LinearMipmapLinearFilter,
   Mesh,
   MeshBasicMaterial,
   PlaneGeometry,
@@ -165,8 +166,11 @@ const LABEL_PX = 48;
 // How tall a label is as a fraction of the grid step. The step is already
 // chosen to cover `GRID_TARGET_PX` on screen, so tying the text to it keeps
 // it about the same size however far the camera is -- the one thing a quad
-// lying in the floor does not get for free.
-const LABEL_OF_STEP = 0.3;
+// lying in the floor does not get for free. At 0.14 of a 96-pixel cell that
+// is around thirteen pixels, which is what the labels were as DOM and is
+// the size at which a number is read when it is wanted and ignored when it
+// is not.
+const LABEL_OF_STEP = 0.14;
 
 /**
  * A quad carrying one piece of text, to lie in the ground plane.
@@ -200,11 +204,14 @@ function makeTextPlane(text, colour, bold) {
   context.fillText(text, width / 2, height / 2);
 
   const texture = new CanvasTexture(canvas);
-  // No mipmaps: the quad is re-sized rather than seen at a distance, and a
-  // mip chain on a few dozen small textures is work for nothing.
-  texture.generateMipmaps = false;
-  texture.minFilter = LinearFilter;
+  // Drawn at `LABEL_PX` and shown at about a quarter of it, so the chain is
+  // the difference between a number and a shimmer. And these lie in the
+  // floor, which means they are read at a grazing angle more often than
+  // face on -- which is the one thing anisotropy is for.
+  texture.generateMipmaps = true;
+  texture.minFilter = LinearMipmapLinearFilter;
   texture.magFilter = LinearFilter;
+  texture.anisotropy = 8;
 
   const mesh = new Mesh(
     new PlaneGeometry(width / height, 1),
