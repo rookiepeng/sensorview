@@ -115,6 +115,7 @@
 .sv-tray,
 .sv-transport,
 .sv-dock,
+.sv-welcome-plate,
 .sv-hud {
     background: color-mix(in srgb, var(--sv-surface) 86%, transparent);
     backdrop-filter: blur(8px);
@@ -128,7 +129,8 @@
 .sv-group,
 .sv-tray,
 .sv-transport,
-.sv-dock {
+.sv-dock,
+.sv-welcome-plate {
     border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
     z-index: var(--sv-z-panel);

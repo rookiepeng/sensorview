@@ -511,8 +511,13 @@ body {
 
 /* Same reasoning as the dock: a collapsed panel has no width to give, so its
    handle takes no width either. */
-/* Nothing to resize when the column holds only its tray. */
-.sv-hud-right:not(:has(.sv-group)) > .sv-splitter {
+/* Nothing to resize when the column holds no cards -- it is down to its
+   tray, or there is no case and the rail renders nothing at all. Both
+   columns, because the left one's handle was the only thing in an empty
+   window: a 44px grip against the scene, a third of the way down the left
+   edge, resizing a panel that was not there. React cannot see from the
+   markup whether the component beside it returned null; `:has` can. */
+.sv-hud-col:not(:has(.sv-group)) > .sv-splitter {
     display: none;
 }
 
@@ -1396,6 +1401,182 @@ body {
     overflow: hidden !important;
 }
 
+
+/* ── The empty window ─────────────────────────────────────────────────────
+   What is left once the panels below have taken themselves away: a first
+   run, or a case that has been moved since it was last opened. It has the
+   window to itself, so it is the one place that can say what a case is --
+   and it offers the recent ones, which is the short way back for everybody
+   who is not on their first run.
+
+   Fixed to the window rather than placed in the centre column: the columns
+   either side are empty here, and centring in the gap they leave would put
+   the plate off to one side of a window that has nothing else in it. */
+.sv-welcome {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    /* Clear of the top bar, which is the one piece of chrome still on
+       screen, so the plate is centred in what is left rather than under it. */
+    padding: calc(var(--sv-topbar-h) + 24px) 16px 24px;
+    pointer-events: none;
+    z-index: var(--sv-z-panel);
+}
+
+.sv-welcome-plate {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: min(440px, 100%);
+    padding: 20px 22px;
+}
+
+.sv-welcome-mark {
+    font-size: 1.1rem;
+    color: var(--sv-accent);
+}
+
+.sv-welcome-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.sv-welcome-sub {
+    margin: 0;
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+    line-height: 1.5;
+}
+
+.sv-welcome-sub code {
+    padding: 1px 4px;
+    background: var(--sv-surface-3);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-text);
+    font-size: 0.95em;
+}
+
+/* The one thing to do here, so it is the one filled control in the window. */
+.sv-welcome-open {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    margin-top: 2px;
+    padding: 8px 12px;
+    background: var(--sv-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--sv-accent) 45%, transparent);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-text);
+    font-size: var(--sv-font-sm);
+    font-weight: var(--sv-weight-med);
+    transition: background var(--sv-ease), border-color var(--sv-ease);
+}
+
+.sv-welcome-open:hover {
+    background: color-mix(in srgb, var(--sv-accent) 26%, transparent);
+    border-color: var(--sv-accent);
+}
+
+.sv-welcome-open .bi {
+    color: var(--sv-accent);
+}
+
+/* The accelerator, said once here and once in the File menu. */
+.sv-welcome-key {
+    margin-left: auto;
+    padding: 1px 6px;
+    border: 1px solid var(--sv-border-strong);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-text-dim);
+    font-family: inherit;
+    font-size: var(--sv-font-2xs);
+}
+
+.sv-welcome-recent {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    gap: 2px;
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--sv-border);
+}
+
+.sv-welcome-recent .sv-section-label {
+    margin-bottom: 4px;
+}
+
+/* The whole row is the target. Two cases are usually named by their folder
+   and told apart by the path above it, so both are in the row and only the
+   name is given the weight. */
+.sv-welcome-case {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    padding: 6px 8px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--sv-radius-sm);
+    color: inherit;
+    text-align: left;
+}
+
+.sv-welcome-case:hover {
+    background: var(--sv-surface-3);
+}
+
+.sv-welcome-case .bi {
+    flex: 0 0 auto;
+    color: var(--sv-text-faint);
+}
+
+.sv-welcome-case:hover .bi {
+    color: var(--sv-accent);
+}
+
+.sv-welcome-case-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.sv-welcome-case-name {
+    font-size: var(--sv-font-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Dimmed and ellipsised from the left, so the end of a long path -- which is
+   the part that differs -- is what survives. */
+.sv-welcome-case-path {
+    color: var(--sv-text-faint);
+    font-size: var(--sv-font-2xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+    text-align: left;
+}
+
+.sv-welcome-busy {
+    margin: 0;
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+}
+
+.sv-welcome-busy b {
+    color: var(--sv-text);
+    font-weight: var(--sv-weight-med);
+}
 
 /* ── Nothing open ─────────────────────────────────────────────────────────
    Every readout here is of a frame, and without one they each report their

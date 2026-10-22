@@ -251,28 +251,48 @@ async function initialCase(): Promise<Result<string | null>> {
   // recent list.
   const candidates = stored.recent.length > 0 ? stored.recent : [stored.dataPath]
   const gone: string[] = []
+  let found: string | null = null
   for (const dir of candidates.filter(Boolean)) {
     if (!(await isDirectory(dir))) {
       gone.push(dir)
       continue
     }
-    if (gone.length > 0) {
-      await settings.forget(gone)
+    // A folder that is still there but is no longer a case is passed over
+    // rather than forgotten: opening it would come up on an error about a
+    // missing manifest, which is a poor thing to greet someone with, but it
+    // is still somewhere they were working and the empty window offers it.
+    if (await exists(join(dir, 'info.json'))) {
+      found = dir
+      break
     }
-    allowRoot(dir)
-    win?.setTitle(`${app.getName()} — ${dir}`)
-    return ok(dir)
   }
 
+  // Only the ones that are gone, and only once: a case that has been moved
+  // should be asked about on one launch, not every launch.
   if (gone.length > 0) {
     await settings.forget(gone)
   }
-  return ok(null)
+  if (!found) {
+    return ok(null)
+  }
+
+  allowRoot(found)
+  win?.setTitle(`${app.getName()} — ${found}`)
+  return ok(found)
 }
 
 async function isDirectory(path: string): Promise<boolean> {
   try {
     return (await stat(path)).isDirectory()
+  } catch {
+    return false
+  }
+}
+
+async function exists(path: string): Promise<boolean> {
+  try {
+    await stat(path)
+    return true
   } catch {
     return false
   }
