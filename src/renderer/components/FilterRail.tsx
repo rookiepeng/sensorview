@@ -120,21 +120,9 @@ export function FilterRail() {
     <aside id="filter-sidebar-col" className="sv-rail">
       {/* Two overlays, not one rail: they answer different questions -- what
           the scene looks like, and which rows are in it -- so each is taken
-          away on its own. What it leaves behind is its icon, in a tray at
-          the top of the column it came from: the way back is where it
-          went, which a control somewhere else could not be. */}
-      {OVERLAYS.left.some((id) => hidden.includes(id)) && (
-        <div className="sv-tray" role="group" aria-label="Hidden panels">
-          {CARDS.filter((card) => hidden.includes(card.id)).map((card) => (
-            <IconButton
-              key={card.id}
-              icon={card.icon}
-              title={`Show ${card.title}`}
-              onClick={() => toggleHidden(card.id)}
-            />
-          ))}
-        </div>
-      )}
+          away on its own. What it leaves behind is its icon, beside the
+          cards it came from: the way back is where it went. */}
+      <div className="sv-stack">
 
       {!hidden.includes('display') && (
         <Group
@@ -359,6 +347,23 @@ export function FilterRail() {
               )
             })}
         </Group>
+      )}
+      </div>
+
+      {/* Beside the cards, not above them: an icon stacked on top pushes
+          the panel down and reads as part of it. On the edge facing the
+          scene it is a tab on the panel's side, which is what it is. */}
+      {OVERLAYS.left.some((id) => hidden.includes(id)) && (
+        <div className="sv-tray" role="group" aria-label="Hidden panels">
+          {CARDS.filter((card) => hidden.includes(card.id)).map((card) => (
+            <IconButton
+              key={card.id}
+              icon={card.icon}
+              title={`Show ${card.title}`}
+              onClick={() => toggleHidden(card.id)}
+            />
+          ))}
+        </div>
       )}
     </aside>
   )

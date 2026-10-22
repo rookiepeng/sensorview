@@ -530,22 +530,44 @@ body {
    its own, so the gaps between its cards are scene rather than a column of
    glass with lines drawn on it. The stack scrolls as a whole -- a card is
    the unit that folds, and folding is how a long rail is shortened. */
-.sv-rail {
+/* A row, not a column: the cards stack inside `.sv-stack` and the tray of
+   hidden ones sits beside it, on the edge facing the scene. Above the cards
+   the tray pushed the panel down and read as part of it; beside them it is
+   a tab on the panel's side, which is what it is. */
+.sv-rail,
+.sv-inspector {
     flex: 0 1 auto;
-    width: var(--sv-rail-w);
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 0;
+    transition: width var(--sv-ease);
+}
+
+/* What actually holds the cards, and what the splitter sizes. */
+.sv-stack {
     display: flex;
     flex-direction: column;
     gap: var(--sv-gap);
     min-height: 0;
+    max-height: 100%;
     padding-bottom: 2px;
     overflow-y: auto;
     overflow-x: hidden;
-    transition: width var(--sv-ease);
 }
 
-/* An overlay that is away leaves its icon here, at the head of the column
-   it came from. With every overlay away the column is the tray and nothing
-   else, so it stops reserving a panel's width from the scene. */
+.sv-rail .sv-stack {
+    width: var(--sv-rail-w);
+}
+
+/* Nothing in it, so it reserves nothing: the row is then the tray alone. */
+.sv-stack:empty {
+    display: none;
+}
+
+/* An overlay that is away leaves its icon here, beside the cards it came
+   from rather than stacked on top of them. With every overlay away the row
+   is the tray and nothing else, so it reserves no panel width at all. */
 .sv-tray {
     flex: 0 0 auto;
     align-self: flex-start;
@@ -568,10 +590,6 @@ body {
     background: var(--sv-accent-soft);
     border-color: transparent;
     color: var(--sv-accent);
-}
-
-.sv-rail:not(:has(.sv-group)) {
-    width: auto;
 }
 
 /* The one control on a card head that is not about the data in it. */
@@ -977,45 +995,36 @@ body {
    whatever box it is given, so a shrunk card would not shrink the picture,
    it would let it spill over the card below. When the sum no longer fits,
    the column scrolls. */
-.sv-inspector {
-    flex: 0 1 auto;
+.sv-inspector .sv-stack {
     width: var(--sv-inspector-w);
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: var(--sv-gap);
-    min-height: 0;
-    padding-bottom: 2px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    transition: width var(--sv-ease);
+    /* The column runs floor to ceiling here, and the cards divide it. */
+    align-self: stretch;
 }
 
-/* A tray is as wide as its icons; everything else spans the column. On this
-   side it hugs the right, so an icon sits at the window's edge rather than
-   where a card that is not there would have started. */
-.sv-inspector > .sv-group {
-    align-self: stretch;
+/* The tray goes on the edge facing the scene, which on this side is the
+   left -- so it comes first in the row whatever order the markup is in. */
+.sv-inspector .sv-tray {
+    order: -1;
 }
 
 /* The cards divide the column's height between them rather than each
    taking its content's -- a 16:9 still and a stack of plots both read
    better larger, and the space under them was doing nothing. A note is not
    a card in this sense and keeps its own height. */
-.sv-inspector > .sv-group:not(.sv-note) {
+.sv-inspector .sv-stack > .sv-group:not(.sv-note) {
     flex: 1 1 auto;
     min-height: 0;
 }
 
-.sv-inspector > .sv-group:not(.sv-note) > .sv-group-body {
+.sv-inspector .sv-stack > .sv-group:not(.sv-note) > .sv-group-body {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
 }
 
-/* The handle between the two, which the column's `flex-end` would otherwise
-   leave at its own width -- nothing. */
-.sv-inspector > .sv-splitter {
+/* The handle between the two, which a column of otherwise-stretched items
+   would leave at its own width -- nothing. */
+.sv-inspector .sv-stack > .sv-splitter {
     align-self: stretch;
 }
 
@@ -1024,22 +1033,12 @@ body {
    height it was given and the curves take the rest. Dragged back to the
    stylesheet's own answer -- double-click, or Home -- the class goes with
    the number and they share again. */
-.sv-inspector.sv-split > .sv-card-camera {
+.sv-inspector.sv-split .sv-card-camera {
     flex: 0 0 var(--sv-camera-h);
 }
 
-.sv-inspector.sv-split > .sv-card-curves {
+.sv-inspector.sv-split .sv-card-curves {
     flex: 1 1 auto;
-}
-
-.sv-inspector > .sv-tray {
-    align-self: flex-end;
-}
-
-/* With every card away the column is its tray, and stops reserving a
-   panel's width from the scene. */
-.sv-inspector:not(:has(.sv-group)) {
-    width: auto;
 }
 
 /* A read that failed, on a plate of its own. */
@@ -1577,8 +1576,7 @@ input[type="range"] {
    behind it. `#gl-legend` is the one that matters: it is glass floating over
    the scene with `pointer-events: auto`, so the chain ran straight into the
    canvas. */
-.sv-rail,
-.sv-inspector,
+.sv-stack,
 .sv-group-body,
 .sv-video-grid,
 .sv-menu {

@@ -274,21 +274,7 @@ export function Inspector() {
       className={`sv-inspector${split ? ' sv-split' : ''}`}
       style={split ? ({ '--sv-camera-h': `${cameraH}px` } as React.CSSProperties) : undefined}
     >
-      {/* The same bargain as the rail: each overlay is taken away on its own
-          and leaves its icon at the head of the column it came from. */}
-      {away.length > 0 && (
-        <div className="sv-tray" role="group" aria-label="Hidden panels">
-          {away.map((panel) => (
-            <IconButton
-              key={panel.id}
-              icon={panel.icon}
-              title={`Show ${panel.title}`}
-              onClick={() => toggleHidden(panel.id)}
-            />
-          ))}
-        </div>
-      )}
-
+      <div className="sv-stack">
       {/* A read that failed, rather than a log that carries nothing. It gets
           a plate of its own, because the column behind it is the scene. */}
       {broken && (
@@ -388,6 +374,23 @@ export function Inspector() {
           )}
           <CurvePanel plots={shownPlots} yRanges={yRanges} theme={theme} />
         </Group>
+      )}
+      </div>
+
+      {/* Beside the cards, not above them: an icon stacked on top pushes
+          the panel down and reads as part of it. On the edge facing the
+          scene it is a tab on the panel's side, which is what it is. */}
+      {away.length > 0 && (
+        <div className="sv-tray" role="group" aria-label="Hidden panels">
+          {away.map((panel) => (
+            <IconButton
+              key={panel.id}
+              icon={panel.icon}
+              title={`Show ${panel.title}`}
+              onClick={() => toggleHidden(panel.id)}
+            />
+          ))}
+        </div>
       )}
     </aside>
   )

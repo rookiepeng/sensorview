@@ -227,7 +227,7 @@ export function App() {
               id="rail-splitter"
               axis="col"
               label="Filter rail width"
-              measure={sizeOf('.sv-rail', 'width')}
+              measure={sizeOf('.sv-rail .sv-stack', 'width')}
               onResize={(px) => setSize('railW', px)}
               onReset={() => setSize('railW', null)}
               value={railW}
@@ -257,7 +257,7 @@ export function App() {
             id="inspector-splitter"
             axis="col"
             label="Inspector width"
-            measure={sizeOf('.sv-inspector', 'width')}
+            measure={sizeOf('.sv-inspector .sv-stack', 'width')}
             onResize={(px) => setSize('inspectorW', px)}
             onReset={() => setSize('inspectorW', null)}
             value={inspectorW}

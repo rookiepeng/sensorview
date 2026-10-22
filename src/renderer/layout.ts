@@ -66,8 +66,8 @@ export const BOUNDS = {
     max: () =>
       Math.max(
         140,
-        (document.querySelector('.sv-inspector')?.getBoundingClientRect().height ??
-          window.innerHeight) - 200
+        (document.querySelector('.sv-inspector .sv-stack')?.getBoundingClientRect()
+          .height ?? window.innerHeight) - 200
       )
   },
   dock: {

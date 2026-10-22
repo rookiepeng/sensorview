@@ -103,8 +103,7 @@
    just a tray would otherwise be a full-height strip of the scene that
    cannot be dragged. The cost is the gap between two cards, which stops
    being scene you can orbit from. */
-.sv-rail:has(.sv-group),
-.sv-inspector:has(.sv-group) {
+.sv-stack:has(.sv-group) {
     pointer-events: auto;
 }
 
@@ -138,7 +137,8 @@
 /* The stacks themselves are not surfaces -- they only place the cards --
    but they still have to sit over the scene with them. */
 .sv-rail,
-.sv-inspector {
+.sv-inspector,
+.sv-stack {
     z-index: var(--sv-z-panel);
 }
 
