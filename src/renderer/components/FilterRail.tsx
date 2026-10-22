@@ -178,6 +178,53 @@ export function FilterRail() {
 
         <span className="sv-section-label">Data filters</span>
 
+        {/* Always here, whether or not anything is hidden yet. It is a filter
+            like the ones below it -- the state it reads is set by clicking a
+            point or selecting a region -- and a control that appears only
+            once it has something to say is one nobody finds. */}
+        {table && (
+          <div className="sv-field">
+            <span className="sv-section-label">Visibility</span>
+            <div className="sv-chips">
+              {(
+                [
+                  { label: 'Visible', states: ['visible'] },
+                  { label: 'Hidden', states: ['hidden'] },
+                  { label: 'Both', states: ['visible', 'hidden'] }
+                ] as const
+              ).map((choice) => {
+                const on = sameStates(filters.visible, choice.states)
+                return (
+                  <button
+                    type="button"
+                    key={choice.label}
+                    className={`sv-chip${on ? ' sv-chip-on' : ''}`}
+                    aria-pressed={on}
+                    title={
+                      choice.label === 'Both'
+                        ? 'Show hidden points as well'
+                        : `Show only ${choice.label.toLowerCase()} points`
+                    }
+                    onClick={() => setVisibility([...choice.states])}
+                  >
+                    {choice.label}
+                  </button>
+                )
+              })}
+            </div>
+            <span className="sv-field-value">
+              {hiddenCount > 0
+                ? `${hiddenCount} hidden by clicking or selecting`
+                : 'Everything starts out visible'}
+            </span>
+            {hiddenCount > 0 && (
+              <button type="button" className="sv-text-btn sv-rail-action" onClick={showAllRows}>
+                Show all again
+              </button>
+            )}
+          </div>
+        )}
+
         {!table && (
           <p className="sv-rail-note">
             {dir ? 'This case has no table to filter.' : 'Open a case to filter its columns.'}
@@ -267,46 +314,6 @@ export function FilterRail() {
             )
           })}
 
-        {hiddenCount > 0 && (
-          <>
-            <div className="sv-divider" />
-            <span className="sv-section-label">Hidden points</span>
-            <p className="sv-rail-note">
-              {hiddenCount} point{hiddenCount === 1 ? '' : 's'} hidden, by clicking one in
-              the scene or selecting a region in a 2D view.
-            </p>
-
-            {/* Three states, which is what `filterAll` already implements:
-                one filters, and picking both is the deliberate no-op that
-                means "show the hidden ones too". */}
-            <div className="sv-chips">
-              {(
-                [
-                  { label: 'Visible', states: ['visible'] },
-                  { label: 'Hidden', states: ['hidden'] },
-                  { label: 'Both', states: ['visible', 'hidden'] }
-                ] as const
-              ).map((choice) => {
-                const on = sameStates(filters.visible, choice.states)
-                return (
-                  <button
-                    type="button"
-                    key={choice.label}
-                    className={`sv-chip${on ? ' sv-chip-on' : ''}`}
-                    aria-pressed={on}
-                    onClick={() => setVisibility([...choice.states])}
-                  >
-                    {choice.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            <button type="button" className="sv-text-btn sv-rail-action" onClick={showAllRows}>
-              Show all again
-            </button>
-          </>
-        )}
       </div>
     </aside>
   )

@@ -12,7 +12,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import { filterAll } from '@shared/table'
+import { filterAll, frameRows } from '@shared/table'
 
 import { maskedRows } from '../figures/common'
 import { recordScene, toBase64 } from '../export/animation'
@@ -88,12 +88,26 @@ export function ExportMenu() {
     }
   }
 
-  const exportCsv = () =>
-    run('CSV', async () => {
-      const rows = maskedRows(filterAll(table!, filters))
-      await save(exportName(stem, 'table', 'csv'), tableCsv(table!, rows, keys), 'utf8', [
-        { name: 'CSV', extensions: ['csv'] }
-      ])
+  /**
+   * The filtered table, either whole or just the frame on the slider.
+   *
+   * Both, because the Dash app had both: a whole log is what you hand to
+   * another tool, and one frame is what you paste into a bug report.
+   */
+  const exportCsv = (scope: 'all' | 'current') =>
+    run(scope === 'all' ? 'CSV' : 'CSV (frame)', async () => {
+      const mask = filterAll(table!, filters)
+      let rows = maskedRows(mask)
+      if (scope === 'current') {
+        const wanted = new Set(frameRows(table!, frame))
+        rows = rows.filter((row) => wanted.has(row))
+      }
+      await save(
+        exportName(stem, scope === 'all' ? 'table' : `frame${frame}`, 'csv'),
+        tableCsv(table!, rows, keys),
+        'utf8',
+        [{ name: 'CSV', extensions: ['csv'] }]
+      )
     })
 
   const exportPng = () =>
@@ -237,7 +251,16 @@ export function ExportMenu() {
 
       {menu.open && (
         <div className="sv-menu sv-menu-right" role="menu" ref={menu.menuRef}>
-          <Item label="Table as CSV" hint="the filtered rows" onClick={exportCsv} />
+          <Item
+            label="Table as CSV"
+            hint="every filtered row"
+            onClick={() => exportCsv('all')}
+          />
+          <Item
+            label="This frame as CSV"
+            hint="the rows on screen"
+            onClick={() => exportCsv('current')}
+          />
           <Item label="Scene as PNG" hint="this frame" onClick={exportPng} />
           <Item label="Scene as HTML" hint="this frame, with a caption" onClick={exportHtml} />
           <Item

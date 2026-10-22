@@ -37,22 +37,52 @@ export interface PlotlyFigureProps {
    * the deselect and not an error.
    */
   onSelected?: (rows: number[]) => void
+  /**
+   * Show Plotly's toolbar.
+   *
+   * On for anything a selection can be made in; off for the inspector's
+   * curve plots, which are small, read-only and would lose a third of their
+   * height to it.
+   */
+  tools?: boolean
 }
 
-const CONFIG = {
-  displayModeBar: false,
+const BASE = {
   responsive: true,
-  // Nothing here is a document to be downloaded; the export does that
-  // deliberately and with the right size.
-  staticPlot: false
+  // Nothing here is a document to be downloaded: the export menu does that
+  // deliberately, at the right size, and with the data rebuilt rather than
+  // scraped off the page.
+  staticPlot: false,
+  displaylogo: false
 }
+
+/**
+ * The toolbar, for the figures that need one.
+ *
+ * Box and lasso select are the point: they are how a selection is made at
+ * all, and without the toolbar there is no way to reach either -- which is
+ * what a modeBar-less dock meant for everything built on top of them.
+ *
+ * `toImage` is dropped because the export menu owns that and does it better;
+ * the autoscale and reset pair is kept because fixed limits make it possible
+ * to lose the data off-screen.
+ */
+const WITH_TOOLS = {
+  ...BASE,
+  displayModeBar: true,
+  modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+  modeBarButtonsToAdd: [] as string[]
+}
+
+const WITHOUT_TOOLS = { ...BASE, displayModeBar: false }
 
 export function PlotlyFigure({
   data,
   layout,
   className,
   revision,
-  onSelected
+  onSelected,
+  tools = false
 }: PlotlyFigureProps) {
   const host = useRef<HTMLDivElement>(null)
 
@@ -71,9 +101,9 @@ export function PlotlyFigure({
       element,
       data,
       { uirevision: revision ?? 'no_change', ...layout },
-      CONFIG
+      tools ? WITH_TOOLS : WITHOUT_TOOLS
     )
-  }, [data, layout, revision])
+  }, [data, layout, revision, tools])
 
   useEffect(() => {
     const element = host.current as (HTMLDivElement & Plotly.PlotlyHTMLElement) | null

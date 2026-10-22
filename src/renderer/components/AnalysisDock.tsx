@@ -38,6 +38,14 @@ interface SlotState {
    * the whole filtered table, which is what a distribution is of.
    */
   scope: 'current' | 'all'
+  /**
+   * Fixed axis limits, as typed.
+   *
+   * Kept as strings so a half-typed "-" or an empty box is a state rather
+   * than a NaN. An end left empty means autorange for that axis, which is
+   * what the pane does by default.
+   */
+  limits: { xMin: string; xMax: string; yMin: string; yMax: string }
 }
 
 const EMPTY: SlotState = {
@@ -48,7 +56,8 @@ const EMPTY: SlotState = {
   dimensions: [],
   logScale: false,
   histnorm: 'probability',
-  scope: 'current'
+  scope: 'current',
+  limits: { xMin: '', xMax: '', yMin: '', yMax: '' }
 }
 
 export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
@@ -209,6 +218,17 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           )}
 
           <div className="sv-dock-actions">
+            {/* Swapping beats re-picking both slots when the comparison is
+                the right way round but on the wrong sides. */}
+            <button
+              type="button"
+              className="sv-icon-btn"
+              onClick={() => setSlots((current) => [current[1], current[0]])}
+              aria-label="Swap the two slots"
+              title="Swap the two slots"
+            >
+              <i className="bi bi-arrow-left-right" />
+            </button>
             <CollapseButton
               collapsed={collapsed}
               onToggle={() => toggleCollapsed('dockCollapsed')}
@@ -340,6 +360,8 @@ function Pane({
     return rows.filter((row) => wanted.has(row))
   }, [slot.view, slot.scope, rows, table, frame])
 
+  const [showLimits, setShowLimits] = useState(false)
+
   const figure = useMemo(
     () =>
       buildView(slot.view!, table, scoped, {
@@ -355,6 +377,30 @@ function Pane({
       }),
     [slot, table, scoped, colormap, keys, theme]
   )
+
+  // Applied over the built figure rather than inside the builders: a limit is
+  // a view setting, not a property of the data, and the builders stay pure
+  // functions of the table.
+  const limited = useMemo(() => {
+    const span = (low: string, high: string) => {
+      const a = Number.parseFloat(low)
+      const b = Number.parseFloat(high)
+      return Number.isFinite(a) && Number.isFinite(b) ? ([a, b] as [number, number]) : null
+    }
+    const x = span(slot.limits.xMin, slot.limits.xMax)
+    const y = span(slot.limits.yMin, slot.limits.yMax)
+    if (!x && !y) {
+      return figure
+    }
+    return {
+      data: figure.data,
+      layout: {
+        ...figure.layout,
+        xaxis: { ...figure.layout.xaxis, ...(x ? { range: x, autorange: false } : {}) },
+        yaxis: { ...figure.layout.yaxis, ...(y ? { range: y, autorange: false } : {}) }
+      }
+    }
+  }, [figure, slot.limits])
 
   const view = slot.view!
   const revision = [stems.join('+'), view, slot.x, slot.y, slot.colour].join('|')
@@ -408,6 +454,20 @@ function Pane({
             Log counts
           </Switch>
         )}
+        {/* Limits last in the strip, since they are set once and then left
+            alone -- unlike the pickers beside them. */}
+        {view !== 'parcats' && (
+          <button
+            type="button"
+            className={`sv-icon-btn sv-limits-btn${showLimits ? ' sv-limits-on' : ''}`}
+            onClick={() => setShowLimits((on) => !on)}
+            aria-expanded={showLimits}
+            aria-label="Set fixed axis limits"
+            title="Set fixed axis limits"
+          >
+            <i className="bi bi-arrows-angle-expand" />
+          </button>
+        )}
         {view === 'parcats' &&
           [0, 1, 2].map((at) => (
             <Picker
@@ -428,9 +488,41 @@ function Pane({
           ))}
       </div>
 
+      {showLimits && view !== 'parcats' && (
+        <div className="sv-pane-controls sv-pane-limits">
+          {(
+            [
+              ['xMin', 'x min'],
+              ['xMax', 'x max'],
+              ['yMin', 'y min'],
+              ['yMax', 'y max']
+            ] as const
+          ).map(([field, label]) => (
+            <label className="sv-pane-field" key={field}>
+              <span className="sv-section-label">{label}</span>
+              <input
+                type="number"
+                value={slot.limits[field]}
+                placeholder="auto"
+                onChange={(event) =>
+                  onChange({ limits: { ...slot.limits, [field]: event.target.value } })
+                }
+              />
+            </label>
+          ))}
+          <button
+            type="button"
+            className="sv-text-btn"
+            onClick={() => onChange({ limits: { xMin: '', xMax: '', yMin: '', yMax: '' } })}
+          >
+            Auto
+          </button>
+        </div>
+      )}
+
       <PlotlyFigure
-        data={figure.data}
-        layout={figure.layout}
+        data={limited.data}
+        layout={limited.layout}
         className="sv-pane-graph"
         // The axes follow what the figure is of. A zoom has to survive a
         // slider tick -- that is the whole reason uirevision exists -- and
@@ -441,6 +533,10 @@ function Pane({
         // into a visibility change. A lasso on a histogram encloses bars,
         // not rows.
         onSelected={view === 'scatter' ? onSelectRows : undefined}
+        // The toolbar is how box and lasso select are reached. Without it
+        // the selection path exists and nothing can start one.
+        tools
+        
       />
     </div>
   )

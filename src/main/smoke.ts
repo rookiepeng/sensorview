@@ -452,7 +452,7 @@ export async function runSmoke(
           // else here touches.
           const filtered = await probe.webContents.executeJavaScript(
             `(async () => {
-               const chips = Array.from(document.querySelectorAll('.sv-chip-on'))
+               const chips = Array.from(document.querySelectorAll('.sv-filter .sv-chip-on'))
                if (chips.length < 2) return { error: 'no categorical filter to flip' }
                const before = document.getElementById('gl-stats').textContent
                chips[0].click()
@@ -743,9 +743,31 @@ export async function runSmoke(
                setSelect(scope, 'current')
                await settle(1200)
 
-               // A lasso, as the handler sees one. Plotly's own drag is not
-               // dispatchable; what is checked here is that a selection of
-               // rows reaches the store and leaves every view together.
+               // The toolbar, which is how a selection is started at all.
+               // Checked before the handler below, because the handler was
+               // reachable by a synthetic event long before a user could
+               // reach it with a mouse.
+               const pane0 = document.querySelector('.sv-pane-graph.js-plotly-plot')
+               const bar = pane0.querySelector('.modebar')
+               if (!bar) return { error: 'the 2D panes have no toolbar' }
+               const toolFor = (val) =>
+                 bar.querySelector('[data-attr="dragmode"][data-val="' + val + '"]')
+               const lassoBtn = toolFor('lasso')
+               const selectBtn = toolFor('select')
+               if (!lassoBtn || !selectBtn) {
+                 return {
+                   error: 'no lasso/box select in the toolbar, only '
+                     + Array.from(bar.querySelectorAll('[data-attr="dragmode"]'))
+                         .map(b => b.getAttribute('data-val')).join(', ')
+                 }
+               }
+               lassoBtn.click()
+               await settle(300)
+               out.dragmode = pane0._fullLayout.dragmode
+
+               // And the handler, as it sees a selection. Plotly's own drag
+               // is not dispatchable; what is checked here is that the rows
+               // reach the store and leave every view together.
                const pane = document.querySelector('.sv-pane-graph.js-plotly-plot')
                const rows = Array.from(pane.data[0].customdata || []).slice(0, 25)
                if (rows.length === 0) return { error: 'the scatter carries no row ids' }
@@ -762,7 +784,7 @@ export async function runSmoke(
                out.rows = rows.length
 
                // The rail offers them back.
-               const both = Array.from(document.querySelectorAll('.sv-rail .sv-chip'))
+               const both = Array.from(document.querySelectorAll('.sv-field .sv-chip'))
                  .find(c => c.textContent.trim() === 'Both')
                if (!both) return { error: 'no visibility picker in the rail' }
                both.click()
@@ -791,6 +813,12 @@ export async function runSmoke(
           )
 
           expect(!views.error, `views: ${views.error}`)
+
+          // The control exists and does what it says.
+          expect(
+            views.dragmode === 'lasso',
+            `clicking lasso left dragmode at ${views.dragmode}`
+          )
 
           // The scatter draws one frame by default, as the Dash view did.
           expect(
@@ -829,6 +857,7 @@ export async function runSmoke(
           )
 
           selection =
+            `lasso reachable, ` +
             `scatter ${views.scopeCurrent} this frame / ${views.scopeAll} all, ` +
             `hiding ${views.rows} rows took the scene ${views.before.scene} -> ` +
             `${views.after.scene} and the dock ${views.before.dock} -> ${views.after.dock}, ` +
@@ -1014,14 +1043,17 @@ export async function runSmoke(
                      }
                    }
                  }
-                 return { done: done }
+                 return { done: done, labels: labels }
                })()`
             )
 
             expect(!exported.error, `export: ${exported.error}`)
+            // Every entry the menu offers, whatever that count is -- the
+            // check walks the menu rather than a list written here, so
+            // adding an export does not need this number changed.
             expect(
-              exported.done.length === 5,
-              `expected five exports, got ${exported.done.length}`
+              exported.done.length === exported.labels.length,
+              `${exported.done.length} of ${exported.labels.length} exports finished`
             )
 
             const { readdir, stat: statOf } = await import('node:fs/promises')
@@ -1101,7 +1133,7 @@ export async function runSmoke(
             const { writeFile } = await import('node:fs/promises')
             await probe.webContents.executeJavaScript(
               `(async () => {
-                 const off = document.querySelector('.sv-chip:not(.sv-chip-on)')
+                 const off = document.querySelector('.sv-filter .sv-chip:not(.sv-chip-on)')
                  if (off) off.click()
                  const pickers = Array.from(document.querySelectorAll('.sv-slot-picker select'))
                  const choose = (at, view) => {

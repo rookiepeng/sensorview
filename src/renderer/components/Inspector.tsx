@@ -38,6 +38,15 @@ export function Inspector() {
   // Why a section is empty, when the reason is not "this log has none".
   const [failed, setFailed] = useState<{ camera?: string; curves?: string }>({})
   const collapsed = useLayout((s) => s.inspectorCollapsed)
+  // Which one to show, or "" for all of them. A log here carries six curve
+  // sidecars and two cameras, so "all" stacks into a long scroll -- the
+  // picker is what makes one of them the subject.
+  const [oneStream, setOneStream] = useState('')
+  const [onePlot, setOnePlot] = useState('')
+  const [minimized, setMinimized] = useState<{ camera: boolean; curves: boolean }>({
+    camera: false,
+    curves: false
+  })
   const toggle = useLayout((s) => s.toggle)
   const theme = useTheme()
 
@@ -202,8 +211,37 @@ export function Inspector() {
         })
       }
     }
-    return out
-  }, [ownerSets, frame, stems, runs, streams])
+    return oneStream ? out.filter((clip) => clip.stream.id === oneStream) : out
+  }, [ownerSets, frame, stems, runs, streams, oneStream])
+
+  /** Every stream id the open logs carry, for the picker. */
+  const streamChoices = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const list of Object.values(streams)) {
+      for (const stream of list) {
+        if (!seen.has(stream.id)) {
+          seen.set(stream.id, stream.label)
+        }
+      }
+    }
+    return [...seen.entries()]
+  }, [streams])
+
+  /** Plot ids, by the manifest's own id rather than the per-log copy. */
+  const plotChoices = useMemo(() => {
+    const seen = new Map<string, string>()
+    for (const plot of plots) {
+      const label = plot.label.includes(' \u00b7 ')
+        ? plot.label.slice(plot.label.indexOf(' \u00b7 ') + 3)
+        : plot.label
+      if (!seen.has(plot.rangeKey)) {
+        seen.set(plot.rangeKey, label)
+      }
+    }
+    return [...seen.entries()]
+  }, [plots])
+
+  const shownPlots = onePlot ? plots.filter((plot) => plot.rangeKey === onePlot) : plots
 
   // A section with an empty body says the log has a camera that is not
   // working, rather than that it has none -- which is why this draws nothing
@@ -231,20 +269,59 @@ export function Inspector() {
         {broken && <p className="sv-rail-note sv-rail-note-bad">{broken}</p>}
 
         {clips.length > 0 && (
-          <section className="sv-subsection" id="subview-camera-section">
+          <section
+            className={`sv-subsection${minimized.camera ? ' sv-subsection-min' : ''}`}
+          >
             <div className="sv-subsection-head">
               <span className="sv-section-label">Camera</span>
+              {streamChoices.length > 1 && !minimized.camera && (
+                <select
+                  value={oneStream}
+                  aria-label="Camera stream"
+                  onChange={(event) => setOneStream(event.target.value)}
+                >
+                  <option value="">All streams</option>
+                  {streamChoices.map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Minimize
+                on={minimized.camera}
+                label="camera"
+                onToggle={() =>
+                  setMinimized((was) => ({ ...was, camera: !was.camera }))
+                }
+              />
             </div>
-            <div className="sv-subsection-body">
-              <CameraPanel clips={clips} />
-            </div>
+            {!minimized.camera && (
+              <div className="sv-subsection-body">
+                <CameraPanel clips={clips} />
+              </div>
+            )}
           </section>
         )}
 
         {plots.length > 0 && (
-          <section className="sv-subsection sv-subsection--grow">
+          <section className={`sv-subsection${minimized.curves ? ' sv-subsection-min' : ' sv-subsection--grow'}`}>
             <div className="sv-subsection-head">
               <span className="sv-section-label">Curves</span>
+              {plotChoices.length > 1 && !minimized.curves && (
+                <select
+                  value={onePlot}
+                  aria-label="Curve plot"
+                  onChange={(event) => setOnePlot(event.target.value)}
+                >
+                  <option value="">All plots</option>
+                  {plotChoices.map(([id, label]) => (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              )}
               {/* Only when there is a choice: one sidecar needs no picker,
                   and a select with a single option is furniture. */}
               {sources.length > 1 && (
@@ -260,13 +337,51 @@ export function Inspector() {
                   ))}
                 </select>
               )}
+              <Minimize
+                on={minimized.curves}
+                label="curves"
+                onToggle={() =>
+                  setMinimized((was) => ({ ...was, curves: !was.curves }))
+                }
+              />
             </div>
-            <div className="sv-subsection-body">
-              <CurvePanel plots={plots} yRanges={yRanges} theme={theme} />
-            </div>
+            {!minimized.curves && (
+              <div className="sv-subsection-body">
+                <CurvePanel plots={shownPlots} yRanges={yRanges} theme={theme} />
+              </div>
+            )}
           </section>
         )}
       </div>
     </aside>
+  )
+}
+
+/**
+ * The minimize toggle on a section head.
+ *
+ * A minimized section keeps its heading rather than vanishing: the picker
+ * beside it is how someone gets back to a stream they chose, and a section
+ * that disappeared entirely would take that with it.
+ */
+function Minimize({
+  on,
+  label,
+  onToggle
+}: {
+  on: boolean
+  label: string
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className="sv-icon-btn sv-subsection-toggle"
+      onClick={onToggle}
+      aria-label={`${on ? 'Expand' : 'Minimize'} the ${label} section`}
+      title={on ? 'Expand' : 'Minimize'}
+    >
+      <i className={`bi bi-chevron-${on ? 'down' : 'up'}`} />
+    </button>
   )
 }
