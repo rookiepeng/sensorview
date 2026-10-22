@@ -39,6 +39,13 @@ export interface BuildOptions {
    * clipped away at the edge of the scene.
    */
   refBounds?: Record<'x' | 'y' | 'z', [number, number]> | null
+  /**
+   * Draw every filtered row rather than one frame's.
+   *
+   * Overlay mode. The slider position still names the frame for the title
+   * and for anything placed per frame, but the geometry is the whole table.
+   */
+  overlay?: boolean
 }
 
 const EMPTY_LAYOUT: SceneLayout = {
@@ -177,12 +184,23 @@ function makeGroup(
  */
 export function buildFrame(table: Table, position: number, options: BuildOptions): Frame {
   const mask = filterAll(table, options.filters)
-  const all = frameRows(table, position)
 
   const kept: number[] = []
-  for (let i = 0; i < all.length; i++) {
-    if (mask[all[i]!] === 1) {
-      kept.push(all[i]!)
+  if (options.overlay) {
+    // Every filtered row, in table order. Frame order would mean walking the
+    // CSR index for no gain -- nothing downstream of here cares which frame
+    // a point came from once they are all drawn at once.
+    for (let row = 0; row < table.rows; row++) {
+      if (mask[row] === 1) {
+        kept.push(row)
+      }
+    }
+  } else {
+    const all = frameRows(table, position)
+    for (let i = 0; i < all.length; i++) {
+      if (mask[all[i]!] === 1) {
+        kept.push(all[i]!)
+      }
     }
   }
   const rows = Int32Array.from(kept)
@@ -252,7 +270,7 @@ export function buildFrame(table: Table, position: number, options: BuildOptions
         y: label(options.y, options.keys),
         z: label(options.z, options.keys)
       },
-      title: `Index: ${position}`
+      title: options.overlay ? `All frames: ${rows.length} points` : `Index: ${position}`
     }
   }
 }

@@ -12,7 +12,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import { filterAll, type Table } from '@shared/table'
+import { filterAll, frameRows, type Table } from '@shared/table'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
@@ -30,6 +30,14 @@ interface SlotState {
   dimensions: string[]
   logScale: boolean
   histnorm: 'probability' | 'density'
+  /**
+   * Whether a scatter draws this frame or every frame.
+   *
+   * Only the scatters had this in the Dash app, and it defaulted to the
+   * current frame. The other four views have no such switch and always drew
+   * the whole filtered table, which is what a distribution is of.
+   */
+  scope: 'current' | 'all'
 }
 
 const EMPTY: SlotState = {
@@ -39,7 +47,8 @@ const EMPTY: SlotState = {
   colour: 'None',
   dimensions: [],
   logScale: false,
-  histnorm: 'probability'
+  histnorm: 'probability',
+  scope: 'current'
 }
 
 export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
@@ -48,11 +57,18 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   const keys = useStore((s) => s.keys)
   const colormap = useStore((s) => s.colormap)
   const stems = useStore((s) => s.stems)
+  // Visibility lives in a typed array on the table, which a memo cannot see
+  // change; this is what tells it to re-filter.
+  const visibleRev = useStore((s) => s.visibleRev)
+  const frame = useStore((s) => s.frame)
+  const hideRows = useStore((s) => s.hideRows)
+  const showRows = useStore((s) => s.showRows)
 
   const collapsed = useLayout((s) => s.dockCollapsed)
   const toggleCollapsed = useLayout((s) => s.toggle)
   const dockH = useLayout((s) => s.dockH)
   const setSize = useLayout((s) => s.setSize)
+  const [selection, setSelection] = useState<number[]>([])
   const [slots, setSlots] = useState<[SlotState, SlotState]>([
     { ...EMPTY, view: 'histogram' },
     { ...EMPTY }
@@ -60,8 +76,14 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
 
   // One pass over the table per filter change, shared by both slots.
   const rows = useMemo(
-    () => (table ? maskedRows(filterAll(table, filters)) : new Int32Array(0)),
-    [table, filters]
+    () => {
+    // `visibleRev` is a real dependency: the visibility it stands for lives
+    // in a typed array that is mutated in place, which a memo cannot see.
+    // Referenced rather than only listed, so the rule agrees.
+    void visibleRev
+      return table ? maskedRows(filterAll(table, filters)) : new Int32Array(0)
+    },
+    [table, filters, visibleRev]
   )
 
   const numeric = useMemo(
@@ -103,6 +125,11 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   if (!table) {
     return null
   }
+
+  // A selection is remembered rather than acted on: hiding on the lasso
+  // itself would make an accidental drag destructive, and there is no undo
+  // for something that leaves no trace of what it removed.
+  const selectRows = (rows: number[]) => setSelection(rows)
 
   const set = (index: 0 | 1, patch: Partial<SlotState>) =>
     setSlots((current) => {
@@ -152,6 +179,35 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
             </div>
           ))}
 
+          {/* What to do with a selection, beside the dock's own controls.
+              Present only while something is selected -- two buttons that do
+              nothing are worse than none. */}
+          {selection.length > 0 && (
+            <div className="sv-dock-selection">
+              <span className="sv-export-note">{selection.length} selected</span>
+              <button
+                type="button"
+                className="sv-text-btn"
+                onClick={() => {
+                  hideRows(selection)
+                  setSelection([])
+                }}
+              >
+                Hide
+              </button>
+              <button
+                type="button"
+                className="sv-text-btn"
+                onClick={() => {
+                  showRows(selection)
+                  setSelection([])
+                }}
+              >
+                Show
+              </button>
+            </div>
+          )}
+
           <div className="sv-dock-actions">
             <CollapseButton
               collapsed={collapsed}
@@ -200,6 +256,8 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
                   numeric={numeric}
                   categorical={categorical}
                   stems={stems}
+                  frame={frame}
+                  onSelectRows={selectRows}
                   onChange={(patch) => set(index, patch)}
                 />
               </div>
@@ -254,6 +312,8 @@ function Pane({
   numeric,
   categorical,
   stems,
+  frame,
+  onSelectRows,
   onChange
 }: {
   slot: SlotState
@@ -265,11 +325,24 @@ function Pane({
   numeric: string[]
   categorical: string[]
   stems: string[]
+  frame: number
+  onSelectRows: (rows: number[]) => void
   onChange: (patch: Partial<SlotState>) => void
 }) {
+  // The scatter's scope narrows the shared rows to the frame on the slider.
+  // `frameRows` is what `buildFrame` uses, so a current-frame scatter and the
+  // scene resolve a slider position identically.
+  const scoped = useMemo(() => {
+    if (slot.view !== 'scatter' || slot.scope === 'all') {
+      return rows
+    }
+    const wanted = new Set(frameRows(table, frame))
+    return rows.filter((row) => wanted.has(row))
+  }, [slot.view, slot.scope, rows, table, frame])
+
   const figure = useMemo(
     () =>
-      buildView(slot.view!, table, rows, {
+      buildView(slot.view!, table, scoped, {
         x: slot.x,
         y: slot.y,
         colour: slot.colour,
@@ -280,7 +353,7 @@ function Pane({
         histnorm: slot.histnorm,
         logScale: slot.logScale
       }),
-    [slot, table, rows, colormap, keys, theme]
+    [slot, table, scoped, colormap, keys, theme]
   )
 
   const view = slot.view!
@@ -291,6 +364,16 @@ function Pane({
   return (
     <div className="sv-pane">
       <div className="sv-pane-controls">
+        {/* Only the scatter: the other four draw a distribution, which one
+            frame's few hundred points does not describe. */}
+        {view === 'scatter' && (
+          <Picker
+            label="Frames"
+            value={slot.scope}
+            choices={['current', 'all']}
+            onChange={(scope) => onChange({ scope: scope as SlotState['scope'] })}
+          />
+        )}
         {view !== 'parcats' && (
           <Picker
             label="X"
@@ -354,6 +437,10 @@ function Pane({
         // must not survive a change of view, of column, or of which logs are
         // loaded, each of which is a different extent entirely.
         revision={revision}
+        // Only the scatter carries row ids, so only it can turn a selection
+        // into a visibility change. A lasso on a histogram encloses bars,
+        // not rows.
+        onSelected={view === 'scatter' ? onSelectRows : undefined}
       />
     </div>
   )

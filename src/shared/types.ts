@@ -240,6 +240,38 @@ export interface DataMethods {
   }
 
   /**
+   * Record the axis, slider and reference column choices in `info.json`.
+   *
+   * The manifest mutates only the paths given and writes the parsed object
+   * back as-is, so unknown blocks and key order survive -- see R1. A v1 file
+   * is upgraded to v2 on the first save, with the original kept once as
+   * `info.json.bak`; the result says whether that happened so the UI can
+   * mention it rather than rewriting someone's file silently.
+   */
+  saveManifest: {
+    params: {
+      dir: string
+      /** `x_3d`, `y_3d`, `z_3d`, `slider`. */
+      table?: Record<string, string>
+      /** Pose field -> column name; the empty string means "no column". */
+      reference?: Record<string, string>
+    }
+    result: { path: string; upgraded: boolean }
+  }
+
+  /**
+   * A log's reference sidecar: the columns it has, and what each pose field
+   * currently resolves to.
+   *
+   * The pickers are populated from the sidecar's own columns, not the
+   * table's -- it is a different file with its own names.
+   */
+  logReferenceColumns: {
+    params: { dir: string; stem: string }
+    result: { available: string[]; resolved: Record<string, string | null> } | null
+  }
+
+  /**
    * Which logs recorded each frame id.
    *
    * Read by projection rather than by loading the tables: it is one column

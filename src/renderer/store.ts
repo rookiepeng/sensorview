@@ -13,6 +13,7 @@
 import { create } from 'zustand'
 
 import type { CaseSummary, CloudDisplay, ReferenceFrame } from '@shared/types'
+import type { Visibility } from '@shared/table'
 import {
   initialFilters,
   type ColumnMeta,
@@ -80,20 +81,44 @@ export interface CaseState {
   referenceBounds: Record<'x' | 'y' | 'z', [number, number]> | null
   /** Axis and colour columns. */
   axes: { x: string; y: string; z: string; colour: string }
+  /**
+   * A frame column the user chose that the open table is not indexed on.
+   *
+   * Re-indexing means rebuilding the table, which only the loader can do --
+   * so this is a request, picked up by `TopBar` and cleared once honoured.
+   * The alternative was a second copy of the loader here.
+   */
+  pendingFrameKey: string | null
   /** Slider position, which indexes the frame list -- not a frame id. */
   frame: number
   /** How many frames the open case has. */
   frameCount: number
   /** Past frames trailed behind the current one. */
   decay: number
+  /**
+   * Draw every filtered frame at once.
+   *
+   * Distinct from decay, which trails a fixed number behind the current
+   * frame. Overlay ignores the slider entirely.
+   */
+  overlay: boolean
   /** Whether the transport is playing. */
   playing: boolean
   /** Colormap name, as `sv_color` knows it. */
   colormap: string
   /** Point size varies by category when a categorical colour key is chosen. */
   sizeVary: boolean
-  /** Rows hidden by clicking them, keyed by the table's own row index. */
-  hidden: Set<number>
+  /**
+   * How many rows the user has hidden.
+   *
+   * The state itself lives in `table.visible`, which is where `filterAll`
+   * reads it and therefore the only place that can make the scene, the dock
+   * and an export agree. This is the count, for the read-out; `visibleRev`
+   * is what tells a memo the array changed, since mutating a typed array in
+   * place cannot.
+   */
+  hiddenCount: number
+  visibleRev: number
   /** The frame currently handed to the scene, or null before the first. */
   payload: ScenePayload | null
 }
@@ -116,6 +141,8 @@ export interface Actions {
   setReferenceBounds(bounds: CaseState['referenceBounds']): void
   setCloud(cloud: CaseState['cloud'], error?: string | null): void
   setAxis(axis: keyof CaseState['axes'], column: string): void
+  reopenWithFrameKey(column: string): void
+  clearFrameKey(): void
   setNumericFilter(column: string, min: number, max: number): void
   setCategoryFilter(column: string, allowed: string[]): void
   resetFilters(): void
@@ -123,10 +150,15 @@ export interface Actions {
   setFrame(frame: number): void
   stepFrame(delta: number): void
   setDecay(decay: number): void
+  setOverlay(on: boolean): void
   togglePlaying(): void
   setColormap(name: string): void
   setSizeVary(on: boolean): void
   toggleHidden(row: number): void
+  hideRows(rows: ArrayLike<number>): void
+  showRows(rows: ArrayLike<number>): void
+  showAllRows(): void
+  setVisibility(states: Visibility[]): void
   setPayload(payload: ScenePayload | null): void
 }
 
@@ -147,13 +179,16 @@ const initial: CaseState = {
   reference: null,
   referenceBounds: null,
   axes: { x: 'X', y: 'Y', z: 'Z', colour: 'X' },
+  pendingFrameKey: null,
   frame: 0,
   frameCount: 0,
   decay: 0,
+  overlay: false,
   playing: false,
   colormap: 'Portland',
   sizeVary: false,
-  hidden: new Set(),
+  hiddenCount: 0,
+  visibleRev: 0,
   payload: null
 }
 
@@ -183,6 +218,9 @@ export const useStore = create<CaseState & Actions>((set) => ({
     })),
 
   setAxis: (axis, column) => set((s) => ({ axes: { ...s.axes, [axis]: column } })),
+
+  reopenWithFrameKey: (column) => set({ pendingFrameKey: column }),
+  clearFrameKey: () => set({ pendingFrameKey: null }),
 
   // Each setter replaces one entry and leaves the rest identical, so a frame
   // rebuild compares the array by reference and the untouched filters cost
@@ -224,19 +262,44 @@ export const useStore = create<CaseState & Actions>((set) => ({
     })),
 
   setDecay: (decay) => set({ decay: Math.max(0, decay) }),
+  setOverlay: (overlay) => set({ overlay }),
   togglePlaying: () => set((s) => ({ playing: !s.playing })),
   setColormap: (colormap) => set({ colormap }),
   setSizeVary: (sizeVary) => set({ sizeVary }),
 
+  // All four write into `table.visible` -- 0 visible, 1 hidden -- rather than
+  // into a Set beside it. A second copy of this state is what let a point
+  // hidden by clicking in the scene go on showing in every 2D view.
   toggleHidden: (row) =>
     set((s) => {
-      // A new Set, not a mutation: subscribers compare by reference.
-      const hidden = new Set(s.hidden)
-      if (!hidden.delete(row)) {
-        hidden.add(row)
+      if (!s.table || row < 0 || row >= s.table.rows) {
+        return {}
       }
-      return { hidden }
+      const was = s.table.visible[row]!
+      s.table.visible[row] = was === 1 ? 0 : 1
+      return {
+        hiddenCount: s.hiddenCount + (was === 1 ? -1 : 1),
+        visibleRev: s.visibleRev + 1
+      }
     }),
+
+  hideRows: (rows) => set((s) => mark(s, rows, 1)),
+  showRows: (rows) => set((s) => mark(s, rows, 0)),
+
+  showAllRows: () =>
+    set((s) => {
+      if (!s.table || s.hiddenCount === 0) {
+        return {}
+      }
+      s.table.visible.fill(0)
+      return { hiddenCount: 0, visibleRev: s.visibleRev + 1 }
+    }),
+
+  // Which states the views show, as `filterAll` reads it: exactly one filters,
+  // none passes nothing, and two or more is the deliberate no-op that means
+  // "show hidden points as well".
+  setVisibility: (states) =>
+    set((s) => ({ filters: { ...s.filters, visible: states } })),
 
   // Turning the cloud off drops what was read with it: the frame it belongs
   // to will have moved on by the time it is turned back on, and a stale cloud
@@ -249,3 +312,35 @@ export const useStore = create<CaseState & Actions>((set) => ({
 
   setPayload: (payload) => set({ payload })
 }))
+
+/**
+ * Set a run of rows to one visibility, counting the change.
+ *
+ * Returns an empty patch when nothing moved, so a lasso over rows that are
+ * already hidden does not bump `visibleRev` and redraw every view.
+ */
+function mark(
+  state: CaseState,
+  rows: ArrayLike<number>,
+  to: 0 | 1
+): Partial<CaseState> {
+  if (!state.table) {
+    return {}
+  }
+  const { visible, rows: total } = state.table
+  let moved = 0
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i]!
+    if (row >= 0 && row < total && visible[row] !== to) {
+      visible[row] = to
+      moved++
+    }
+  }
+  if (moved === 0) {
+    return {}
+  }
+  return {
+    hiddenCount: state.hiddenCount + (to === 1 ? moved : -moved),
+    visibleRev: state.visibleRev + 1
+  }
+}

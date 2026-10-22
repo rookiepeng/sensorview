@@ -43,6 +43,31 @@ const handlers: Record<DataMethod, Handler> = {
     return ok(await readCloudFrame(path, dataset, manifest.cloudColumns()))
   },
 
+  saveManifest: async ({ dir, table, reference }) => {
+    const manifest = await Manifest.load(dir)
+    const upgraded = manifest.sourceVersion === 1
+    if (table) {
+      manifest.updateTableView(table)
+    }
+    if (reference) {
+      manifest.updateReferenceColumns(reference)
+    }
+    const path = await manifest.save()
+    // The cached store is keyed on the mapping, so a changed mapping would
+    // miss anyway -- but the file's mtime moved too, and a stale entry for
+    // the old one is just memory held for nothing.
+    ReferenceStore.clearCache()
+    return ok({ path, upgraded })
+  },
+
+  logReferenceColumns: async ({ dir, stem }) => {
+    const { store } = await openReference(dir, stem)
+    if (!store) {
+      return ok(null)
+    }
+    return ok({ available: store.availableColumns, resolved: store.resolvedColumns })
+  },
+
   logFrameOwners: async ({ dir, stems }) => {
     const manifest = await Manifest.load(dir)
     const owners: Record<string, string[]> = {}

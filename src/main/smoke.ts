@@ -348,6 +348,7 @@ export async function runSmoke(
         })
         let exports = 'exports not run'
         let multi: string
+        let selection: string
         try {
           // Set SENSORVIEW_SMOKE_VERBOSE to see what the page says. The
           // single-object form of this event, not the old positional one --
@@ -685,6 +686,154 @@ export async function runSmoke(
             `the scatter took ${dock.drawn.scatter.ms}ms for ${dock.drawn.scatter.points} points`
           )
 
+          // Visibility, overlay and the 2D frame scope -- the four features
+          // the staging never named, each of which is invisible when wrong:
+          // a point hidden in one view but not another, a reference left
+          // standing in overlay, a scatter silently showing every frame.
+          const views = await probe.webContents.executeJavaScript(
+            `(async () => {
+               const settle = (ms) => new Promise(r => setTimeout(r, ms))
+               const pts = () => {
+                 const text = document.getElementById('gl-stats').textContent || ''
+                 const parts = text.split(' ')
+                 const at = parts.indexOf('pts')
+                 if (at <= 0) return 0
+                 const word = parts[at - 1]
+                 return parseFloat(word) * (word.indexOf('k') === word.length - 1 ? 1000 : 1)
+               }
+               const draws = () => {
+                 const parts = (document.getElementById('gl-stats').textContent || '').split(' ')
+                 const at = parts.indexOf('draws')
+                 return at > 0 ? parseInt(parts[at - 1], 10) : 0
+               }
+               const marks = () => document.querySelectorAll(
+                 '.sv-pane-graph .scatterlayer .points path'
+               ).length
+               const pick = (label) => Array.from(document.querySelectorAll('.sv-pane-field'))
+                 .find(f => (f.textContent || '').indexOf(label) === 0)
+               const setSelect = (field, value) => {
+                 const el = field.querySelector('select')
+                 const setter = Object.getOwnPropertyDescriptor(
+                   window.HTMLSelectElement.prototype, 'value').set
+                 setter.call(el, value)
+                 el.dispatchEvent(new Event('change', { bubbles: true }))
+               }
+
+               const out = {}
+
+               // Both slots on a scatter, so the agreement below has two
+               // views to agree between.
+               const slots = Array.from(document.querySelectorAll('.sv-slot-picker select'))
+               for (const slot of slots) {
+                 const setter = Object.getOwnPropertyDescriptor(
+                   window.HTMLSelectElement.prototype, 'value').set
+                 setter.call(slot, 'scatter')
+                 slot.dispatchEvent(new Event('change', { bubbles: true }))
+               }
+               await settle(1200)
+
+               // Scope: the default is this frame, and "all" is the whole
+               // filtered table.
+               const scope = pick('FRAMES') || pick('Frames')
+               if (!scope) return { error: 'no frame-scope picker on the scatter' }
+               out.scopeCurrent = marks()
+               setSelect(scope, 'all')
+               await settle(1500)
+               out.scopeAll = marks()
+               setSelect(scope, 'current')
+               await settle(1200)
+
+               // A lasso, as the handler sees one. Plotly's own drag is not
+               // dispatchable; what is checked here is that a selection of
+               // rows reaches the store and leaves every view together.
+               const pane = document.querySelector('.sv-pane-graph.js-plotly-plot')
+               const rows = Array.from(pane.data[0].customdata || []).slice(0, 25)
+               if (rows.length === 0) return { error: 'the scatter carries no row ids' }
+               out.before = { scene: pts(), dock: marks() }
+               pane.emit('plotly_selected', { points: rows.map(r => ({ customdata: r })) })
+               await settle(400)
+
+               const hide = Array.from(document.querySelectorAll('.sv-dock-selection button'))
+                 .find(b => b.textContent.trim() === 'Hide')
+               if (!hide) return { error: 'no Hide control appeared for the selection' }
+               hide.click()
+               await settle(1500)
+               out.after = { scene: pts(), dock: marks() }
+               out.rows = rows.length
+
+               // The rail offers them back.
+               const both = Array.from(document.querySelectorAll('.sv-rail .sv-chip'))
+                 .find(c => c.textContent.trim() === 'Both')
+               if (!both) return { error: 'no visibility picker in the rail' }
+               both.click()
+               await settle(1500)
+               out.shown = { scene: pts(), dock: marks() }
+
+               const showAll = Array.from(document.querySelectorAll('.sv-rail-action'))
+                 .find(b => b.textContent.indexOf('Show all') !== -1)
+               if (showAll) showAll.click()
+               await settle(1200)
+
+               // Overlay: every filtered frame at once, and no reference,
+               // because no single frame owns the pose.
+               out.oneFrame = { pts: pts(), draws: draws() }
+               const overlay = Array.from(document.querySelectorAll('.sv-rail .sv-switch-row'))
+                 .find(r => (r.textContent || '').indexOf('Overlay') !== -1)
+               if (!overlay) return { error: 'no overlay switch in the rail' }
+               overlay.querySelector('input').click()
+               await settle(2500)
+               out.overlaid = { pts: pts(), draws: draws() }
+               overlay.querySelector('input').click()
+               await settle(1500)
+
+               return out
+             })()`
+          )
+
+          expect(!views.error, `views: ${views.error}`)
+
+          // The scatter draws one frame by default, as the Dash view did.
+          expect(
+            views.scopeAll > views.scopeCurrent * 5,
+            `scope: ${views.scopeCurrent} current vs ${views.scopeAll} all`
+          )
+
+          // One selection, and every view agrees -- the scene and the dock
+          // both lose points. That they disagreed is what this is for.
+          expect(
+            views.after.scene < views.before.scene,
+            `hiding left the scene at ${views.after.scene}`
+          )
+          expect(
+            views.after.dock < views.before.dock,
+            `hiding left the dock at ${views.after.dock} of ${views.before.dock}`
+          )
+
+          // And "Both" brings them back, which is the two-or-more no-op the
+          // Python had and nothing could reach until now.
+          expect(
+            views.shown.scene > views.after.scene,
+            `showing hidden points left the scene at ${views.shown.scene}`
+          )
+
+          // Overlay draws every filtered frame at once.
+          expect(
+            views.overlaid.pts > views.oneFrame.pts * 5,
+            `overlay drew ${views.overlaid.pts} against one frame's ${views.oneFrame.pts}`
+          )
+          // And drops the reference with it: there is no frame for a
+          // per-frame pose to belong to.
+          expect(
+            views.overlaid.draws < views.oneFrame.draws,
+            `overlay kept ${views.overlaid.draws} draws, so the reference is still drawn`
+          )
+
+          selection =
+            `scatter ${views.scopeCurrent} this frame / ${views.scopeAll} all, ` +
+            `hiding ${views.rows} rows took the scene ${views.before.scene} -> ` +
+            `${views.after.scene} and the dock ${views.before.dock} -> ${views.after.dock}, ` +
+            `overlay ${views.oneFrame.pts} -> ${views.overlaid.pts} pts`
+
           // Combining logs. The case's logs number their frames end to end
           // rather than overlapping, so combining two makes one slider of
           // both -- and the second log's camera must be seeked by its own
@@ -961,8 +1110,9 @@ export async function runSmoke(
                  }
                  choose(0, 'scatter')
                  choose(1, 'heatmap')
-                 const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
-                 buttons[buttons.length - 1].click()
+                 // The column config open, since that is the new surface.
+                 const config = document.querySelector('.sv-topbar-menu .sv-icon-btn')
+                 if (config) config.click()
                  await new Promise(r => setTimeout(r, 2500))
                })()`
             )
@@ -988,7 +1138,7 @@ export async function runSmoke(
             `${inspector.ready}/${inspector.videos} videos at ${inspector.size}, ` +
             `${inspector.traces} traces in ${inspector.plots} plots; ` +
             `dock ${dock.views.map((v: string) => `${v} ${dock.drawn[v].marks} marks`).join(', ')}; ` +
-            `${multi}; ${exports}`
+            `${selection}; ${multi}; ${exports}`
           )
         } finally {
           probe.destroy()

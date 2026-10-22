@@ -46,10 +46,14 @@ export function App() {
   const frame = useStore((s) => s.frame)
   const frameCount = useStore((s) => s.frameCount)
   const decay = useStore((s) => s.decay)
+  const overlay = useStore((s) => s.overlay)
   const colormap = useStore((s) => s.colormap)
   const sizeVary = useStore((s) => s.sizeVary)
   const playing = useStore((s) => s.playing)
-  const hidden = useStore((s) => s.hidden)
+  // Hidden rows are excluded by `filterAll` before a frame is built, so
+  // there is nothing to mask here. This only has to know *that* the
+  // visibility changed, since it lives in a typed array a memo cannot see.
+  const visibleRev = useStore((s) => s.visibleRev)
   const toggleHidden = useStore((s) => s.toggleHidden)
   const openCase = useStore((s) => s.openCase)
   const table = useStore((s) => s.table)
@@ -90,11 +94,18 @@ export function App() {
   // Built here rather than in the store because it is derived state -- storing
   // it would mean keeping it in step with six other fields by hand.
   const payload = useMemo<ScenePayload | null>(() => {
+    // `visibleRev` is a real dependency: the visibility it stands for lives
+    // in a typed array that is mutated in place, which a memo cannot see.
+    // Referenced rather than only listed, so the rule agrees.
+    void visibleRev
     if (frameCount === 0) {
       return null
     }
+    // Overlay is one frame holding every filtered row, so there is no trail
+    // to build: decay and overlay are two answers to the same question.
+    const trail = overlay ? 0 : decay
     const frames = []
-    for (let i = 0; i <= decay && frame - i >= 0; i++) {
+    for (let i = 0; i <= trail && frame - i >= 0; i++) {
       frames.push(
         table
           ? buildFrame(table, frame - i, {
@@ -105,9 +116,10 @@ export function App() {
               // just the detections: it is fixed for the log, and a pose
               // outside it would simply be clipped.
               refBounds: referenceBounds,
+              overlay,
               withHover: !playing
             })
-          : fixtureFrame(frame - i, { categorical: sizeVary, hidden })
+          : fixtureFrame(frame - i, { categorical: sizeVary, hidden: new Set() })
       )
     }
 
@@ -115,7 +127,10 @@ export function App() {
     // would be a second 11,000-point layer per trailed frame, and the Python
     // did not draw one either.
     const live = frames[0]
-    if (live && reference) {
+    // Overlaying every frame at once leaves no single frame for a per-frame
+    // pose to belong to, so a sidecar-placed reference draws nothing here --
+    // and neither does the cloud, which is per frame for the same reason.
+    if (live && reference && !overlay) {
       const rgb = parseColor(reference.color) as [number, number, number]
       live.ref = {
         mesh: reference.mesh
@@ -135,7 +150,7 @@ export function App() {
         name: reference.name
       }
     }
-    if (live && cloudDisplay && cloud && cloud.frameId === table?.frameIds[frame]) {
+    if (live && !overlay && cloudDisplay && cloud && cloud.frameId === table?.frameIds[frame]) {
       const [r, g, b] = parseColor(cloudDisplay.color)
       live.cloud = {
         position: cloud.position,
@@ -147,39 +162,6 @@ export function App() {
       }
     }
 
-    // Hiding a row is a mask over the built frame, so a click costs a rebuild
-    // of one frame rather than a re-read of anything.
-    if (table && hidden.size > 0) {
-      for (const built of frames) {
-        for (const group of built.groups) {
-          const keep: number[] = []
-          for (let i = 0; i < group.count; i++) {
-            if (!hidden.has(group.ids![i]!)) {
-              keep.push(i)
-            }
-          }
-          if (keep.length === group.count) {
-            continue
-          }
-          const position = new Float32Array(keep.length * 3)
-          const ids = new Float64Array(keep.length)
-          const value = group.value ? new Float32Array(keep.length) : null
-          keep.forEach((src, dst) => {
-            position.set(group.position.subarray(src * 3, src * 3 + 3), dst * 3)
-            ids[dst] = group.ids![src]!
-            if (value) {
-              value[dst] = group.value![src]!
-            }
-          })
-          const original = group.hover
-          group.position = position
-          group.ids = ids
-          group.value = value
-          group.count = keep.length
-          group.hover = (row) => original(keep[row] ?? -1)
-        }
-      }
-    }
     return {
       frames,
       colormap,
@@ -192,10 +174,11 @@ export function App() {
     frame,
     frameCount,
     decay,
+    overlay,
     colormap,
     sizeVary,
     playing,
-    hidden,
+    visibleRev,
     table,
     axes,
     keys,

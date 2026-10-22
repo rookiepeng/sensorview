@@ -29,6 +29,14 @@ export interface PlotlyFigureProps {
    * the subject is what lets the new data pick its own.
    */
   revision?: string
+  /**
+   * Called with the table rows a lasso or box enclosed.
+   *
+   * Plotly fires `plotly_selected` with `undefined` when a selection is
+   * cleared by double-click; that arrives here as an empty array, which is
+   * the deselect and not an error.
+   */
+  onSelected?: (rows: number[]) => void
 }
 
 const CONFIG = {
@@ -39,8 +47,20 @@ const CONFIG = {
   staticPlot: false
 }
 
-export function PlotlyFigure({ data, layout, className, revision }: PlotlyFigureProps) {
+export function PlotlyFigure({
+  data,
+  layout,
+  className,
+  revision,
+  onSelected
+}: PlotlyFigureProps) {
   const host = useRef<HTMLDivElement>(null)
+
+  // Through a ref so the handler can change without re-attaching: Plotly
+  // listeners are added per element, and `removeAllListeners` would take the
+  // resize wiring with them.
+  const selected = useRef(onSelected)
+  selected.current = onSelected
 
   useEffect(() => {
     const element = host.current
@@ -54,6 +74,30 @@ export function PlotlyFigure({ data, layout, className, revision }: PlotlyFigure
       CONFIG
     )
   }, [data, layout, revision])
+
+  useEffect(() => {
+    const element = host.current as (HTMLDivElement & Plotly.PlotlyHTMLElement) | null
+    if (!element?.on) {
+      return
+    }
+    const handler = (event: Plotly.PlotSelectionEvent | undefined) => {
+      const points = event?.points ?? []
+      const rows: number[] = []
+      for (const point of points) {
+        const row = (point as { customdata?: unknown }).customdata
+        if (typeof row === 'number') {
+          rows.push(row)
+        }
+      }
+      selected.current?.(rows)
+    }
+    element.on('plotly_selected', handler)
+    return () => {
+      // `removeAllListeners` with a name, not the bare form: the bare one
+      // would also drop whatever else is attached to this element.
+      element.removeAllListeners?.('plotly_selected')
+    }
+  }, [])
 
   // Plotly's own `responsive` listens to the window, not to the element, so a
   // figure laid out at one width keeps that width when its container changes

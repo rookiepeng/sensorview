@@ -10,6 +10,7 @@ import { buildTable, type Column } from '@shared/table'
 import { buildFrameOwners } from '@shared/logs'
 import type { CaseSummary, LogSummary } from '@shared/types'
 
+import { ColumnConfig } from './ColumnConfig'
 import { ExportMenu } from './ExportMenu'
 import { IconButton } from './Controls'
 import { useMenu } from '../useMenu'
@@ -19,6 +20,8 @@ export function TopBar() {
   const dir = useStore((s) => s.dir)
   const stem = useStore((s) => s.stem)
   const stems = useStore((s) => s.stems)
+  const pendingFrameKey = useStore((s) => s.pendingFrameKey)
+  const clearFrameKey = useStore((s) => s.clearFrameKey)
   const openLog = useStore((s) => s.openLog)
   const summary = useStore((s) => s.summary)
   const setSummary = useStore((s) => s.setSummary)
@@ -108,7 +111,7 @@ export function TopBar() {
    * @param scan The case.
    * @param chosen The logs to open, primary first.
    */
-  async function openLogs(scan: CaseSummary, chosen: LogSummary[]) {
+  async function openLogs(scan: CaseSummary, chosen: LogSummary[], frameKey?: string) {
     setError(null)
     if (chosen.length === 0) {
       return
@@ -148,7 +151,10 @@ export function TopBar() {
 
     setBusy(false)
     try {
-      const table = buildTable(read.data.rows, read.data.columns as Column[], scan.frameKey)
+      // A frame key the user chose in the column config overrides the
+      // manifest's, since the manifest has just been told about it too.
+      const key = frameKey ?? scan.frameKey
+      const table = buildTable(read.data.rows, read.data.columns as Column[], key)
       const { ownerSets } = buildFrameOwners(table.frameIds, owners, primary.stem)
       openLog({
         dir: scan.dir,
@@ -157,7 +163,7 @@ export function TopBar() {
         ownerSets,
         table,
         keys: scan.keys,
-        axes: pickAxes(table, scan.frameKey),
+        axes: pickAxes(table, key),
         // Case-wide styling, but only when some open log has a cloud beside
         // it -- otherwise the rail offers a switch for a file that is not
         // there.
@@ -167,6 +173,22 @@ export function TopBar() {
       setError(problem instanceof Error ? problem.message : String(problem))
     }
   }
+
+  // The column config can change which column indexes the frames, which means
+  // rebuilding the table -- and only this component knows how to load one.
+  useEffect(() => {
+    if (!pendingFrameKey || !summary) {
+      return
+    }
+    const chosen = stems
+      .map((name) => summary.logs.find((log) => log.stem === name))
+      .filter((log): log is LogSummary => Boolean(log))
+    clearFrameKey()
+    if (chosen.length > 0) {
+      void openLogs(summary, chosen, pendingFrameKey)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingFrameKey])
 
   function flipTheme() {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -315,6 +337,7 @@ export function TopBar() {
       <div className="sv-topbar-spacer" />
 
       <div className="sv-topbar-actions">
+        <ColumnConfig />
         <ExportMenu />
         <IconButton
           icon={theme === 'dark' ? 'moon-fill' : 'sun-fill'}

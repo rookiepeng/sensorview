@@ -408,5 +408,9 @@ export function initialFilters(table: Table, keys: Record<string, ColumnMeta>): 
     }
   }
 
-  return { numeric, categorical }
+  // Hidden rows are out by default. The picker in the rail is what brings
+  // them back, and `filterAll` reads this field -- so a row hidden by
+  // clicking leaves the scene, the dock and an export together rather than
+  // only the view that was clicked.
+  return { numeric, categorical, visible: ['visible'] }
 }

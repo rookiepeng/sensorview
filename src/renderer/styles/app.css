@@ -1266,8 +1266,12 @@ input[type="range"] {
     transition: none;
 }
 
-/* ── Export ──────────────────────────────────────────────────────────── */
-.sv-export {
+/* ── Top-bar menus ───────────────────────────────────────────────────── */
+
+/* Shared by the export menu and the column config: a button with a popover
+   hung from it. Both also carry an identifying class of their own, because a
+   selector that cannot tell them apart found the wrong one. */
+.sv-topbar-menu {
     position: relative;
     display: flex;
     align-items: center;
@@ -1365,4 +1369,61 @@ input[type="range"] {
     border: 1px solid var(--sv-border);
     border-radius: var(--sv-radius);
     font-size: var(--sv-font-xs);
+}
+
+/* What to do with a lasso selection, in the dock's header beside its own
+   controls. Present only while something is selected. */
+.sv-dock-selection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    padding: 0 10px;
+    white-space: nowrap;
+}
+
+/* The rail's "show all again", which is a sentence rather than a chip. */
+.sv-rail-action {
+    display: block;
+    margin-top: 8px;
+    padding-left: 0;
+}
+
+/* A control that is inert because another one supersedes it -- the decay
+   slider while overlay is on. Dimmed rather than removed: it says the
+   setting still exists and will come back. */
+.sv-field-off {
+    opacity: 0.45;
+}
+
+/* The column config popover. Wider than a menu of names because every row is
+   a label and a select, and two columns of those read faster than one long
+   list. */
+.sv-config {
+    width: 340px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 10px 12px 12px;
+}
+
+.sv-config-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 10px;
+    margin-bottom: 4px;
+}
+
+.sv-config select {
+    width: 100%;
+    max-width: none;
+}
+
+.sv-config .sv-rail-note {
+    margin-bottom: 6px;
+}
+
+/* The one line that says the file on disk changed. */
+.sv-config-note {
+    margin-top: 10px;
+    color: var(--sv-accent);
 }

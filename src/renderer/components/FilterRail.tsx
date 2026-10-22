@@ -21,6 +21,12 @@ const COLORMAPS = [
   'YlGnBu', 'YlOrRd'
 ]
 
+/** Whether the picker's current states are exactly this choice. */
+function sameStates(current: readonly string[] | undefined, want: readonly string[]): boolean {
+  const have = current ?? ['visible']
+  return have.length === want.length && want.every((state) => have.includes(state))
+}
+
 function labelOf(name: string, meta: ColumnMeta | undefined): string {
   if (!meta) {
     return name
@@ -58,11 +64,15 @@ export function FilterRail() {
   const toggle = useLayout((s) => s.toggle)
   const decay = useStore((s) => s.decay)
   const setDecay = useStore((s) => s.setDecay)
+  const overlay = useStore((s) => s.overlay)
+  const setOverlay = useStore((s) => s.setOverlay)
   const colormap = useStore((s) => s.colormap)
   const setColormap = useStore((s) => s.setColormap)
   const sizeVary = useStore((s) => s.sizeVary)
   const setSizeVary = useStore((s) => s.setSizeVary)
-  const hidden = useStore((s) => s.hidden)
+  const hiddenCount = useStore((s) => s.hiddenCount)
+  const showAllRows = useStore((s) => s.showAllRows)
+  const setVisibility = useStore((s) => s.setVisibility)
   const dir = useStore((s) => s.dir)
   const cloudDisplay = useStore((s) => s.cloudDisplay)
   const cloudOn = useStore((s) => s.cloudOn)
@@ -137,7 +147,11 @@ export function FilterRail() {
           className="sv-field"
         />
 
-        <label className="sv-field">
+        {/* Decay trails a fixed number of frames behind the current one;
+            overlay draws every frame at once. Two answers to one question,
+            so the slider goes dead rather than competing while overlay is
+            on. */}
+        <label className={`sv-field${overlay ? ' sv-field-off' : ''}`}>
           <span className="sv-section-label">Decay</span>
           <input
             type="range"
@@ -145,9 +159,19 @@ export function FilterRail() {
             max={10}
             step={1}
             value={decay}
+            disabled={overlay}
             onChange={(event) => setDecay(Number(event.target.value))}
           />
-          <span className="sv-field-value">{decay}</span>
+          <span className="sv-field-value">{overlay ? 'all frames' : decay}</span>
+        </label>
+
+        <label className="sv-switch-row">
+          <input
+            type="checkbox"
+            checked={overlay}
+            onChange={(event) => setOverlay(event.target.checked)}
+          />
+          <span>Overlay every frame</span>
         </label>
 
         <div className="sv-divider" />
@@ -243,10 +267,45 @@ export function FilterRail() {
             )
           })}
 
-        {hidden.size > 0 && (
-          <p className="sv-rail-note">
-            {hidden.size} point{hidden.size === 1 ? '' : 's'} hidden by clicking.
-          </p>
+        {hiddenCount > 0 && (
+          <>
+            <div className="sv-divider" />
+            <span className="sv-section-label">Hidden points</span>
+            <p className="sv-rail-note">
+              {hiddenCount} point{hiddenCount === 1 ? '' : 's'} hidden, by clicking one in
+              the scene or selecting a region in a 2D view.
+            </p>
+
+            {/* Three states, which is what `filterAll` already implements:
+                one filters, and picking both is the deliberate no-op that
+                means "show the hidden ones too". */}
+            <div className="sv-chips">
+              {(
+                [
+                  { label: 'Visible', states: ['visible'] },
+                  { label: 'Hidden', states: ['hidden'] },
+                  { label: 'Both', states: ['visible', 'hidden'] }
+                ] as const
+              ).map((choice) => {
+                const on = sameStates(filters.visible, choice.states)
+                return (
+                  <button
+                    type="button"
+                    key={choice.label}
+                    className={`sv-chip${on ? ' sv-chip-on' : ''}`}
+                    aria-pressed={on}
+                    onClick={() => setVisibility([...choice.states])}
+                  >
+                    {choice.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <button type="button" className="sv-text-btn sv-rail-action" onClick={showAllRows}>
+              Show all again
+            </button>
+          </>
         )}
       </div>
     </aside>

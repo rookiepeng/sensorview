@@ -76,6 +76,10 @@ export function scatterFigure(table: Table, rows: Int32Array, options: ViewOptio
           mode: 'markers',
           x: numericValues(table, options.x, rows),
           y: numericValues(table, options.y, rows),
+          // The table row behind each point, so a lasso can say which rows it
+          // enclosed. Without it a selection is a set of positions within a
+          // trace and means nothing outside this figure.
+          customdata: Array.from(rows),
           marker: {
             ...marker,
             color: numericValues(table, options.colour, rows),
@@ -99,6 +103,7 @@ export function scatterFigure(table: Table, rows: Int32Array, options: ViewOptio
       name: group.level,
       x: numericValues(table, options.x, group.rows),
       y: numericValues(table, options.y, group.rows),
+      customdata: Array.from(group.rows),
       marker
     })),
     layout: { ...layout, showlegend: true }
