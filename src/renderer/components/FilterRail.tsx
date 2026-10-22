@@ -11,6 +11,7 @@
 // round trip, which is what the whole caching apparatus was there to hide.
 
 import { PanelHead, Picker, Switch } from './Controls'
+import { RangeSlider } from './RangeSlider'
 import { useLayout } from '../layout'
 import { useStore } from '../store'
 import { levelsOf, rangeOf, type ColumnMeta } from '@shared/table'
@@ -50,13 +51,6 @@ function stepFor(min: number, max: number): number {
   }
   const magnitude = Math.pow(10, Math.floor(Math.log10(span)) - 2)
   return magnitude
-}
-
-function show(value: number, decimals: number | undefined): string {
-  if (!Number.isFinite(value)) {
-    return '—'
-  }
-  return value.toFixed(decimals ?? 2)
 }
 
 export function FilterRail() {
@@ -274,44 +268,15 @@ export function FilterRail() {
             return (
               <div className="sv-filter" key={entry.column}>
                 <span className="sv-section-label">{labelOf(entry.column, meta)}</span>
-                <div className="sv-range">
-                  {/* Two inputs rather than one two-thumb control: the platform
-                      has no dual range, and a pair that clamps against each
-                      other behaves the same without a drag implementation. */}
-                  <input
-                    type="range"
-                    min={low}
-                    max={high}
-                    step={step}
-                    value={entry.min}
-                    aria-label={`${entry.column} minimum`}
-                    onChange={(event) =>
-                      setNumericFilter(
-                        entry.column,
-                        Math.min(Number(event.target.value), entry.max),
-                        entry.max
-                      )
-                    }
-                  />
-                  <input
-                    type="range"
-                    min={low}
-                    max={high}
-                    step={step}
-                    value={entry.max}
-                    aria-label={`${entry.column} maximum`}
-                    onChange={(event) =>
-                      setNumericFilter(
-                        entry.column,
-                        entry.min,
-                        Math.max(Number(event.target.value), entry.min)
-                      )
-                    }
-                  />
-                </div>
-                <span className="sv-field-value">
-                  {show(entry.min, meta?.decimal)} … {show(entry.max, meta?.decimal)}
-                </span>
+                <RangeSlider
+                  low={low}
+                  high={high}
+                  step={step}
+                  value={[entry.min, entry.max]}
+                  decimals={meta?.decimal ?? 2}
+                  label={labelOf(entry.column, meta)}
+                  onChange={(min, max) => setNumericFilter(entry.column, min, max)}
+                />
               </div>
             )
           })}

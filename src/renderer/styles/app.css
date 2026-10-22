@@ -571,14 +571,118 @@ body {
     margin-bottom: 14px;
 }
 
-/* The two thumbs of a range stack rather than overlap. An overlaid pair looks
-   like one control until the thumbs meet, at which point only the one on top
-   can be grabbed -- the bug is invisible until the range is narrow, which is
-   exactly when the control matters. */
+/* One slider, two thumbs. The pair used to be two stacked native ranges,
+   because overlaying two of them leaves only the top one grabbable once the
+   thumbs meet. The track takes the press here and decides which thumb it
+   meant, so they can sit on the same value and stay separable --
+   `components/RangeSlider.tsx` has the reasoning. */
 .sv-range {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 6px;
+}
+
+.sv-range-track {
+    position: relative;
+    height: 18px;
+    cursor: pointer;
+    touch-action: none;
+}
+
+.sv-range-rail,
+.sv-range-fill {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    border-radius: var(--sv-radius-pill);
+    transform: translateY(-50%);
+}
+
+.sv-range-rail {
+    left: 0;
+    right: 0;
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+}
+
+/* The span that survives the filter, which is the thing being chosen. */
+.sv-range-fill {
+    background: var(--sv-accent);
+}
+
+.sv-range-thumb {
+    position: absolute;
+    top: 50%;
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    border-radius: 50%;
+    background: var(--sv-accent);
+    border: 2px solid var(--sv-surface);
+    box-shadow: 0 0 0 1px var(--sv-border-strong);
+    transform: translate(-50%, -50%);
+    cursor: grab;
+    transition: box-shadow var(--sv-ease);
+}
+
+.sv-range-thumb:hover,
+.sv-range-thumb:focus-visible {
+    box-shadow: 0 0 0 1px var(--sv-accent);
+}
+
+/* Both thumbs at one value overlap exactly; nothing here needs to tell them
+   apart, because the track is what the pointer talks to. */
+.sv-range-thumb:active {
+    cursor: grabbing;
+}
+
+.sv-range-boxes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sv-range-box {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 2px 4px;
+    background: var(--sv-surface-2);
+    color: inherit;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius-sm);
+    font-size: var(--sv-font-xs);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    /* The spinners are 20px of chrome on a 1fr box in a 288px rail, and
+       their arrows duplicate what the thumb already does better. */
+    appearance: textfield;
+    transition: border-color var(--sv-ease);
+}
+
+.sv-range-box:hover:not(:disabled) {
+    border-color: var(--sv-border-strong);
+}
+
+.sv-range-box::-webkit-inner-spin-button,
+.sv-range-box::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+}
+
+.sv-range-dash {
+    flex: 0 0 auto;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-faint);
+}
+
+/* A column whose rows all hold one value: there is nothing to pick within,
+   and a live-looking control that cannot move is worse than a dim one. */
+.sv-range-dead {
+    opacity: 0.5;
+}
+
+.sv-range-dead .sv-range-track {
+    cursor: default;
 }
 
 .sv-chips {
