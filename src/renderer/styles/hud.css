@@ -40,8 +40,8 @@
        against a near-black page the old #232f3d read as a lit slab and the
        returns had to compete with it. The grid comes down with it, or a
        dimmer floor just means the lines sit on top of nothing. */
-    --sv-view-ground: #141d28;
-    --sv-view-grid: #2d465c;
+    --sv-view-ground: #111f24;
+    --sv-view-grid: #27505a;
     --sv-ax-x: #ff5f5f;
     --sv-ax-y: #4fd06a;
     --sv-ax-z: #4e9eff;
@@ -49,8 +49,8 @@
 }
 
 [data-bs-theme="light"] {
-    --sv-view-ground: #d5dce7;
-    --sv-view-grid: #8296ab;
+    --sv-view-ground: #d4e1e3;
+    --sv-view-grid: #7fa2a8;
     --sv-ax-x: #d93a3a;
     --sv-ax-y: #1f9c42;
     --sv-ax-z: #1266cc;

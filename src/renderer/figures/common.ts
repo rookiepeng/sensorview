@@ -123,8 +123,11 @@ export interface Theme {
 
 export function themeOf(mode: 'dark' | 'light'): Theme {
   return mode === 'dark'
-    ? { ink: '#8a929e', grid: '#242a33' }
-    : { ink: '#5e6773', grid: '#dfe3e8' }
+    // The same two values as `--sv-border` in each theme: a chart's grid
+    // and a panel's rules are the same kind of line, and the charts sit
+    // inside the panels.
+    ? { ink: '#8a929e', grid: '#1d2b2f' }
+    : { ink: '#5e6773', grid: '#dbe4e6' }
 }
 
 /**

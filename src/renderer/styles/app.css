@@ -71,18 +71,18 @@
     /* Carrying a little of the accent rather than being neutral grey: the
        lines are most of what is on screen, and a cool cast on them is what
        makes the whole window look of a piece with the blue. */
-    --sv-border: #222b38;
-    --sv-border-strong: #33415a;
+    --sv-border: #1d2b2f;
+    --sv-border-strong: #2d4851;
     --sv-text: #dfe4ea;
     --sv-text-dim: #8a929e;
     --sv-text-faint: #5d656f;
-    --sv-accent: #4c9ffe;
-    --sv-accent-soft: rgba(76, 159, 254, 0.16);
+    --sv-accent: #2ec5d8;
+    --sv-accent-soft: rgba(46, 197, 216, 0.16);
     /* A trace of the accent over a surface, for the bands that separate one
        thing from another -- panel heads, the dock's head, a segmented
        group. Every neutral in this theme is a grey, and a UI built only of
        greys reads as switched off however carefully the greys are chosen. */
-    --sv-accent-wash: rgba(76, 159, 254, 0.07);
+    --sv-accent-wash: rgba(46, 197, 216, 0.07);
     --sv-warn: #f0a020;
     --sv-danger: #e5484d;
     --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
@@ -94,14 +94,16 @@
     --sv-surface: #ffffff;
     --sv-surface-2: #f6f7f9;
     --sv-surface-3: #eceef1;
-    --sv-border: #dfe3e8;
-    --sv-border-strong: #c6ccd4;
+    --sv-border: #dbe4e6;
+    --sv-border-strong: #bfcccf;
     --sv-text: #12161c;
     --sv-text-dim: #5e6773;
     --sv-text-faint: #8d959f;
-    --sv-accent: #0b64d0;
-    --sv-accent-soft: rgba(11, 100, 208, 0.12);
-    --sv-accent-wash: rgba(11, 100, 208, 0.05);
+    /* Darker than the dark theme's: a #2ec5d8 on white is a highlighter
+       pen, and this has to carry text and a focus ring. */
+    --sv-accent: #0e7c8c;
+    --sv-accent-soft: rgba(14, 124, 140, 0.12);
+    --sv-accent-wash: rgba(14, 124, 140, 0.05);
     --sv-warn: #b46b00;
     --sv-danger: #c53030;
     --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
@@ -188,7 +190,7 @@ body {
 }
 
 .sv-breadcrumb:hover {
-    border-color: var(--sv-border-strong);
+    border-color: var(--sv-accent);
 }
 
 /* Each half of the breadcrumb is its own target -- the case name reopens the
@@ -559,6 +561,13 @@ body {
     height: 26px;
     min-width: 26px;
     padding: 0 4px;
+    color: var(--sv-accent);
+}
+
+.sv-tray .sv-icon-btn:hover {
+    background: var(--sv-accent-soft);
+    border-color: transparent;
+    color: var(--sv-accent);
 }
 
 .sv-rail:not(:has(.sv-group)) {
@@ -836,7 +845,7 @@ body {
 }
 
 .sv-range-box:hover:not(:disabled) {
-    border-color: var(--sv-border-strong);
+    border-color: var(--sv-accent);
 }
 
 .sv-range-box::-webkit-inner-spin-button,
@@ -1524,7 +1533,15 @@ select {
 }
 
 select:hover:not(:disabled) {
-    border-color: var(--sv-border-strong);
+    border-color: var(--sv-accent);
+}
+
+/* A field being typed into, which the focus ring says from outside the
+   control; this says it on the control itself. */
+select:focus,
+input[type="number"]:focus,
+input[type="text"]:focus {
+    border-color: var(--sv-accent);
 }
 
 input[type="range"] {
@@ -1591,14 +1608,14 @@ input[type="range"] {
 
 /* The pointer is somewhere in the scrolling panel. */
 :hover::-webkit-scrollbar-thumb {
-    background-color: var(--sv-text-faint);
+    background-color: color-mix(in srgb, var(--sv-accent) 45%, var(--sv-border-strong));
     border-width: 2px;
 }
 
 /* And on the thumb itself, or dragging it. */
 ::-webkit-scrollbar-thumb:hover,
 ::-webkit-scrollbar-thumb:active {
-    background-color: var(--sv-text-dim);
+    background-color: var(--sv-accent);
     border-width: 1px;
 }
 
