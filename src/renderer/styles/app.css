@@ -1545,14 +1545,20 @@ input[type="range"] {
    canvas. */
 .sv-rail,
 .sv-inspector,
+.sv-group-body,
 .sv-video-grid,
 .sv-menu {
     overscroll-behavior: contain;
 }
 
+/* The gutter is one width always. What changes is how much of it the thumb
+   paints: a transparent border clipped away by `background-clip` leaves a
+   hairline at rest and something worth aiming at once the pointer is in
+   the panel. Growing the scrollbar itself would reflow the content under
+   the pointer every time it crossed the edge. */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 11px;
+    height: 11px;
 }
 
 ::-webkit-scrollbar-track {
@@ -1560,18 +1566,37 @@ input[type="range"] {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--sv-border-strong);
-    border-radius: var(--sv-radius-sm);
+    background-color: var(--sv-border-strong);
+    background-clip: padding-box;
+    border: 4px solid transparent;
+    border-radius: var(--sv-radius-pill);
 }
 
-::-webkit-scrollbar-thumb:hover {
-    background: var(--sv-text-faint);
+/* The pointer is somewhere in the scrolling panel. */
+:hover::-webkit-scrollbar-thumb {
+    background-color: var(--sv-text-faint);
+    border-width: 2px;
 }
 
-:root {
-    scrollbar-width: thin;
-    scrollbar-color: var(--sv-border-strong) transparent;
+/* And on the thumb itself, or dragging it. */
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+    background-color: var(--sv-text-dim);
+    border-width: 1px;
 }
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Deliberately no `scrollbar-width` or `scrollbar-color`. Chromium honours
+   the standard properties in preference to the `::-webkit-scrollbar`
+   pseudo-elements and ignores them entirely once either is set, which is
+   what left every rule above doing nothing and the gutter at the platform
+   default. The standard properties cannot express a thumb that thickens
+   without the gutter moving -- `thin` and `auto` are the only widths -- so
+   the pseudo-elements it is. This is an Electron app; there is one engine
+   to satisfy. */
 
 /* Suppress hover/selection noise while a splitter is being dragged, and keep
    the drag cursor even when the pointer outruns the handle. The collapse

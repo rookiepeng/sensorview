@@ -132,6 +132,18 @@
     pointer-events: auto;
 }
 
+/* A stack that is scrolling has to take the pointer, or its scrollbar is
+   not there to grab: a wheel reaches the scroller by chaining up from the
+   card under the pointer, but the thumb is hit-tested like anything else
+   and `none` makes it inert. Only while it holds cards -- a column that is
+   just a tray would otherwise be a full-height strip of the scene that
+   cannot be dragged. The cost is the gap between two cards, which stops
+   being scene you can orbit from. */
+.sv-rail:has(.sv-group),
+.sv-inspector:has(.sv-group) {
+    pointer-events: auto;
+}
+
 /* One glass recipe for every floating surface -- the same one the canvas tool
    cluster has always used, so the HUD extends the existing idiom rather than
    introducing a second one. */
