@@ -1308,6 +1308,21 @@ body {
 }
 
 
+/* ── Nothing open ─────────────────────────────────────────────────────────
+   Every readout here is of a frame, and without one they each report their
+   own emptiness: a colorbar with no range, a legend with no groups, a stats
+   line counting zero points, camera presets for a scene with nothing in it,
+   and a transport reading "-- / --". Together they look like an app that
+   has failed rather than one that is waiting, so the window holds only the
+   plate that says what to do about it. */
+.sv-no-case #gl-colorbar,
+.sv-no-case #gl-legend,
+.sv-no-case #gl-readout,
+.sv-no-case #gl-stats,
+.sv-no-case #gl-camera-presets {
+    display: none;
+}
+
 /* ── Loading overlays ────────────────────────────────────────────────── */
 @keyframes sv-loading-fade-in {
     to {

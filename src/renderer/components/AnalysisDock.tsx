@@ -18,7 +18,7 @@
 // the rows are gathered here and handed down rather than each view filtering
 // for itself.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { filterAll, frameRows, type Table } from '@shared/table'
 
@@ -56,6 +56,17 @@ interface SlotState {
   limits: { xMin: string; xMax: string; yMin: string; yMax: string }
 }
 
+/**
+ * The dock width below which a second pane is not worth having.
+ *
+ * A pane's control strip is a view picker and up to four others plus the
+ * limits button, which needs about 360px to stay on one row, and a chart
+ * under it wants at least as much again. Two of those in less than this and
+ * both are unreadable, so the dock shows one until there is room -- without
+ * forgetting that two were asked for.
+ */
+const TWO_PANES_MIN = 680
+
 const EMPTY: SlotState = {
   view: 'histogram',
   x: '',
@@ -85,8 +96,13 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   const toggleCollapsed = useLayout((s) => s.toggle)
   const dockH = useLayout((s) => s.dockH)
   const setSize = useLayout((s) => s.setSize)
-  const panes = useLayout((s) => s.dockPanes)
+  const wanted = useLayout((s) => s.dockPanes)
   const setPanes = useLayout((s) => s.setPanes)
+  const dock = useRef<HTMLDivElement>(null)
+  // Measured rather than derived from the window: the dock is as wide as
+  // the gap the overlays leave, so hiding one changes this without the
+  // window moving at all.
+  const [cramped, setCramped] = useState(false)
   const [selection, setSelection] = useState<number[]>([])
   // The second slot keeps its settings while it is hidden, so going back to
   // two panes returns the one that was there rather than a fresh default.
@@ -129,6 +145,21 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
     [table]
   )
 
+  // `table` is the dependency, not nothing: this component returns null
+  // until one arrives, so on the first run there is no dock to observe --
+  // and with an empty dependency list the effect would never look again.
+  useEffect(() => {
+    const element = dock.current
+    if (!element) {
+      return
+    }
+    const observer = new ResizeObserver(([entry]) => {
+      setCramped((entry?.contentRect.width ?? 0) < TWO_PANES_MIN)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [table])
+
   // A slot's columns cannot be chosen until a table says which exist, and
   // they have to be re-chosen when the log changes: a column name that is not
   // in the new table reads back as zeros from every row, which draws a
@@ -151,6 +182,9 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   // itself would make an accidental drag destructive, and there is no undo
   // for something that leaves no trace of what it removed.
   const selectRows = (rows: number[]) => setSelection(rows)
+
+  // What is actually on screen, which is two only if two will fit.
+  const panes = cramped ? 1 : wanted
 
   const set = (index: 0 | 1, patch: Partial<SlotState>) =>
     setSlots((current) => {
@@ -176,7 +210,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           {...BOUNDS.dock}
         />
       )}
-      <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`}>
+      <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`} ref={dock}>
         <div className="sv-dock-head">
           {/* How many panes, said as a shape. Each pane's own view is picked
               on the pane, where the chart it names is. */}
@@ -189,8 +223,13 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
             />
             <IconButton
               icon="layout-split"
-              title="Two panes, side by side"
+              title={
+                cramped
+                  ? 'Not enough width for two panes -- widen the window, or hide a panel'
+                  : 'Two panes, side by side'
+              }
               pressed={panes === 2}
+              disabled={cramped}
               onClick={() => setPanes(2)}
             />
           </div>

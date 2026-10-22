@@ -82,6 +82,15 @@ export function App() {
   useHotkeys()
   useLayoutPersistence()
 
+  // With nothing open there is nothing for the HUD furniture to report, and
+  // a colorbar with no range, a legend with no groups and a transport that
+  // reads "-- / --" are worse than an empty window: they look like an app
+  // that has failed rather than one that is waiting. On the document because
+  // the furniture lives inside the scene's own element, not in this tree.
+  useEffect(() => {
+    document.documentElement.classList.toggle('sv-no-case', frameCount === 0)
+  }, [frameCount])
+
   // Browser mode has no readers behind it, so it starts on the fixture. In
   // Electron the top bar's breadcrumb opens a real case.
   useEffect(() => {
@@ -233,7 +242,7 @@ export function App() {
         <div className="sv-center">
           <TopBar />
           <div className="sv-center-foot">
-            <Transport />
+            {frameCount > 0 && <Transport />}
             <AnalysisDock theme={theme} />
           </div>
         </div>

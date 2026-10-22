@@ -331,8 +331,13 @@ export async function runSmoke(
         const shotPath = process.env.SENSORVIEW_SMOKE_SHOT
         const probe = new BrowserWindow({
           show: Boolean(shotPath),
-          width: 1280,
-          height: 800,
+          // Wide enough for the arrangement this check is about: two
+          // overlays down each side and a dock with room for its two panes.
+          // At 1280 the gap between the overlays is under the dock's
+          // two-pane floor, so the dock shows one and the checks below find
+          // a single view picker where they expect a pair.
+          width: 1800,
+          height: 1000,
           webPreferences: {
             preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
             contextIsolation: true,
@@ -1158,7 +1163,10 @@ export async function runSmoke(
                  const off = document.querySelector('.sv-filter .sv-chip:not(.sv-chip-on)')
                  if (off) off.click()
                  const pickers = Array.from(document.querySelectorAll('.sv-slot-picker select'))
+                 // One pane is a legitimate state: the dock drops to it
+                 // when the gap between the overlays is too narrow for two.
                  const choose = (at, view) => {
+                   if (!pickers[at]) return
                    pickers[at].value = view
                    pickers[at].dispatchEvent(new Event('change', { bubbles: true }))
                  }

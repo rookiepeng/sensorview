@@ -60,6 +60,7 @@ function stepFor(min: number, max: number): number {
 }
 
 export function FilterRail() {
+  const frameCount = useStore((s) => s.frameCount)
   const hidden = useLayout((s) => s.hidden)
   const toggleHidden = useLayout((s) => s.toggleHidden)
   const decay = useStore((s) => s.decay)
@@ -105,6 +106,15 @@ export function FilterRail() {
           (entry) => entry.allowed.length !== levelsOf(table, entry.column).length
         ).length
   const total = filters.numeric.length + filters.categorical.length
+
+  // Nothing here applies to a window with no case in it: a colormap for
+  // points that do not exist, and a filter list that says it is empty.
+  // Keyed on frames rather than on a table, because a case can have one
+  // without the other -- the fixture draws sixty frames and no table, and
+  // every control in the display card still acts on it.
+  if (frameCount === 0) {
+    return null
+  }
 
   return (
     <aside id="filter-sidebar-col" className="sv-rail">
