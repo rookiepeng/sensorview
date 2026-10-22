@@ -1604,17 +1604,15 @@ input[type="range"] {
     border-radius: var(--sv-radius-pill);
 }
 
-/* The pointer is somewhere in the scrolling panel. */
-:hover::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--sv-accent) 45%, var(--sv-border-strong));
-    border-width: 2px;
-}
-
-/* And on the thumb itself, or dragging it. */
-::-webkit-scrollbar-thumb:hover,
+/* Two states, not three. A separate step for the pointer reaching the
+   thumb itself meant it thickened once on the way into the panel and again
+   on the way to the thumb, which reads as the control being unsure. The
+   pointer is in the panel or it is not; `:active` is in here so a drag that
+   outruns the panel keeps it, not to add a third look. */
+:hover::-webkit-scrollbar-thumb,
 ::-webkit-scrollbar-thumb:active {
     background-color: var(--sv-accent);
-    border-width: 1px;
+    border-width: 2px;
 }
 
 ::-webkit-scrollbar-corner {
