@@ -23,7 +23,10 @@
     --sv-topbar-h: 38px;
     --sv-transport-h: 40px;
     --sv-rail-w: 288px;
-    --sv-inspector-w: 380px;
+    /* Wide enough for a 16:9 still to be worth looking at, and for a curve
+       to have an axis either side of its trace. 380 was the width of a
+       column beside the scene; this is a panel over it. */
+    --sv-inspector-w: 480px;
     --sv-dock-h: 34vh;
     --sv-dock-tabs-h: 38px;
     /* Floor for a pane's plot area. The figures reserve 120px of vertical
@@ -492,9 +495,9 @@ body {
 
 /* Same reasoning as the dock: a collapsed panel has no width to give, so its
    handle takes no width either. */
-.sv-splitter:has(+ .sv-inspector.sv-collapsed) {
-    visibility: hidden;
-    flex-basis: 0;
+/* Nothing to resize when the column holds only its tray. */
+.sv-hud-right:not(:has(.sv-group)) > .sv-splitter {
+    display: none;
 }
 
 /* The inspector keeps a narrow glass strip when it collapses, because that
@@ -936,81 +939,72 @@ body {
     font-weight: 650;
 }
 
-/* ── Inspector: the recording and the curves, down the right ─────────── */
+/* ── Inspector: the recording and the curves, down the right ─────────────
+   The same shape as the rail: not a panel but a stack of them, transparent,
+   so the gaps between its cards are scene. Cards are sized by their content
+   and never shrink into one another -- the video keeps its aspect ratio
+   whatever box it is given, so a shrunk card would not shrink the picture,
+   it would let it spill over the card below. When the sum no longer fits,
+   the column scrolls. */
 .sv-inspector {
     flex: 0 1 auto;
     width: var(--sv-inspector-w);
     display: flex;
     flex-direction: column;
+    align-items: flex-end;
+    gap: var(--sv-gap);
     min-height: 0;
-    background: var(--sv-surface);
+    padding-bottom: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
     transition: width var(--sv-ease);
 }
 
-.sv-inspector.sv-collapsed .sv-inspector-body,
-.sv-inspector.sv-collapsed .sv-panel-label {
-    display: none;
+/* A tray is as wide as its icons; everything else spans the column. On this
+   side it hugs the right, so an icon sits at the window's edge rather than
+   where a card that is not there would have started. */
+.sv-inspector > .sv-group {
+    align-self: stretch;
 }
 
-.sv-inspector-body {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 8px 10px 10px;
+.sv-inspector > .sv-tray {
+    align-self: flex-end;
+}
+
+/* With every card away the column is its tray, and stops reserving a
+   panel's width from the scene. */
+.sv-inspector:not(:has(.sv-group)) {
+    width: auto;
+}
+
+/* A read that failed, on a plate of its own. */
+.sv-note {
+    padding: 8px 10px;
+}
+
+/* The inspector's cards hold things that size themselves against their box
+   -- a 16:9 picture, a stack of plots -- so their bodies are the column
+   those things expect rather than a plain block. `.sv-curve` grows from a
+   basis it fits in and the card grows with it; without this the plots have
+   no flex parent and resolve to their floor. */
+.sv-inspector .sv-group-body {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     min-height: 0;
 }
 
-/* Sections are sized by their content and never shrink into one another: the
-   video keeps its aspect ratio whatever box it is given, so a shrunk section
-   would not shrink the picture, it would just let it spill over the section
-   below. When the sum no longer fits, the body scrolls instead. */
-.sv-subsection {
-    display: flex;
-    flex-direction: column;
+/* A card's own pickers, above what they pick. */
+.sv-group-controls {
     flex: 0 0 auto;
-    min-height: 0;
-}
-
-.sv-subsection + .sv-subsection {
-    padding-top: 10px;
-    border-top: 1px solid var(--sv-border);
-}
-
-/* The curve section takes whatever height the image section does not use,
-   so minimizing the image (or the video simply being shorter) hands the
-   plot more room instead of leaving it empty. Selected by class, not by id:
-   an id here would outrank the collapsed rules below and pin the section
-   open. */
-.sv-subsection--grow {
-    flex: 1 1 auto;
-}
-
-.sv-subsection--grow > .sv-subsection-body {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-    /* Once the plots no longer fit the section, it scrolls rather than
-       letting them draw over one another. */
-    overflow-y: auto;
-}
-
-.sv-subsection-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
+    gap: 6px;
 }
 
-.sv-subsection-head .sv-section-label {
-    margin-bottom: 0;
-}
-
-.sv-subsection-body {
-    min-height: 0;
+.sv-group-controls select {
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 /* Combined logs that share frame ids each get their own element, so the
@@ -1019,7 +1013,7 @@ body {
    still be worth looking at. */
 .sv-video-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 6px;
     /* However wide the dock is dragged, the pictures stop taking height from
        the curve at some point; past that the grid scrolls. */
@@ -1488,8 +1482,7 @@ input[type="range"] {
    the scene with `pointer-events: auto`, so the chain ran straight into the
    canvas. */
 .sv-rail,
-.sv-inspector-body,
-.sv-subsection--grow > .sv-subsection-body,
+.sv-inspector,
 .sv-video-grid,
 .sv-menu {
     overscroll-behavior: contain;
@@ -1642,8 +1635,9 @@ input[type="range"] {
 }
 
 /* The curve section's sensor picker, parked at the end of its heading. */
-.sv-subsection-head select {
-    margin-left: auto;
+/* Both the card heads' pickers and the bodies' are small and quiet. */
+.sv-group-head select,
+.sv-group-controls select {
     max-width: 160px;
     padding: 1px 5px;
     background: var(--sv-surface-2);
@@ -1713,27 +1707,6 @@ input[type="range"] {
 .sv-config-note {
     margin-top: 10px;
     color: var(--sv-accent);
-}
-
-/* A minimized inspector section keeps its heading: the picker beside it is
-   how someone gets back to the stream they chose, and a section that
-   vanished would take that with it. */
-.sv-subsection-min {
-    flex: 0 0 auto;
-}
-
-.sv-subsection-min + .sv-subsection {
-    padding-top: 10px;
-}
-
-/* Pushed to the end of the head, after whatever picker sits there. */
-.sv-subsection-toggle {
-    flex: 0 0 auto;
-    margin-left: 4px;
-}
-
-.sv-subsection-head {
-    gap: 6px;
 }
 
 /* Fixed axis limits: a second control row, shown only while it is wanted.

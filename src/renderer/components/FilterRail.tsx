@@ -113,7 +113,7 @@ export function FilterRail() {
           away on its own. What it leaves behind is its icon, in a tray at
           the top of the column it came from: the way back is where it
           went, which a control somewhere else could not be. */}
-      {OVERLAYS.some((id) => hidden.includes(id)) && (
+      {OVERLAYS.left.some((id) => hidden.includes(id)) && (
         <div className="sv-tray" role="group" aria-label="Hidden panels">
           {CARDS.filter((card) => hidden.includes(card.id)).map((card) => (
             <IconButton

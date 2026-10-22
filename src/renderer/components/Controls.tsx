@@ -135,7 +135,8 @@ export function Group({
   children,
   reading,
   actions,
-  onHide
+  onHide,
+  className
 }: {
   /** Names the overlay here, and the button that brings it back. */
   icon: Icon
@@ -150,9 +151,10 @@ export function Group({
   actions?: ReactNode
   /** Takes the overlay away. It comes back from the tray in its corner. */
   onHide?: () => void
+  className?: string
 }) {
   return (
-    <section className="sv-group">
+    <section className={className ? `sv-group ${className}` : 'sv-group'}>
       <div className="sv-group-head">
         <span className="sv-group-title">
           <i className={`bi bi-${icon} sv-group-icon`} aria-hidden="true" />

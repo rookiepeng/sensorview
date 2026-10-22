@@ -146,7 +146,6 @@ export interface Layout {
   railW: number | null
   inspectorW: number | null
   dockH: number | null
-  inspectorCollapsed: boolean
   dockCollapsed: boolean
   /**
    * Which overlays are away, by id.
@@ -178,7 +177,6 @@ export const DEFAULT_LAYOUT: Layout = {
   railW: null,
   inspectorW: null,
   dockH: null,
-  inspectorCollapsed: false,
   dockCollapsed: false,
   hidden: [],
   dockPanes: 2
@@ -200,7 +198,6 @@ export function sanitiseLayout(raw: unknown): Layout {
     railW: size(it.railW),
     inspectorW: size(it.inspectorW),
     dockH: size(it.dockH),
-    inspectorCollapsed: it.inspectorCollapsed === true,
     dockCollapsed: it.dockCollapsed === true,
     // Capped and filtered: this is a list off disk, and an overlay nobody
     // can reach is still a string carried around for the life of the app.

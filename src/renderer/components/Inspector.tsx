@@ -17,7 +17,7 @@ import { positionsOf, stemRuns } from '@shared/logs'
 import type { CurvePlot, ImageStream } from '@shared/types'
 
 import { CameraPanel, type ClipSource } from './CameraPanel'
-import { PanelHead } from './Controls'
+import { Group, IconButton } from './Controls'
 import { CurvePanel, growYRanges } from './CurvePanel'
 import { useLayout } from '../layout'
 import { useStore } from '../store'
@@ -37,7 +37,6 @@ export function Inspector() {
   const [yRanges, setYRanges] = useState<Record<string, [number, number]>>({})
   // Why a section is empty, when the reason is not "this log has none".
   const [failed, setFailed] = useState<{ camera?: string; curves?: string }>({})
-  const collapsed = useLayout((s) => s.inspectorCollapsed)
   // Which one to show, or "" for all of them. A log here carries six curve
   // sidecars and two cameras, so "all" stacks into a long scroll -- the
   // picker is what makes one of them the subject.
@@ -49,11 +48,6 @@ export function Inspector() {
   // The same list the left-hand overlays use -- away is away.
   const hidden = useLayout((s) => s.hidden)
   const toggleHidden = useLayout((s) => s.toggleHidden)
-  const minimized = {
-    camera: hidden.includes('camera'),
-    curves: hidden.includes('curves')
-  }
-  const toggle = useLayout((s) => s.toggle)
   const theme = useTheme()
 
   // Which slider positions each log owns, compressed into runs. Derived once
@@ -258,67 +252,80 @@ export function Inspector() {
     return null
   }
 
+  // Each panel is here only if the log has something for it, so the tray
+  // offers a way back only to one that went away rather than to one that
+  // never existed.
+  const panels = [
+    { id: 'camera', icon: 'camera-video', title: 'Camera', has: clips.length > 0 },
+    { id: 'curves', icon: 'graph-up', title: 'Curves', has: plots.length > 0 }
+  ] as const
+  const away = panels.filter((panel) => panel.has && hidden.includes(panel.id))
+
   return (
-    <aside className={`sv-inspector${collapsed ? ' sv-collapsed' : ''}`}>
-      <PanelHead
-        icon="binoculars"
-        title="Inspector"
-        collapse={{
-          collapsed,
-          onToggle: () => toggle('inspectorCollapsed'),
-          subject: 'inspector',
-          edge: 'right'
-        }}
-      />
+    <aside className="sv-inspector">
+      {/* The same bargain as the rail: each overlay is taken away on its own
+          and leaves its icon at the head of the column it came from. */}
+      {away.length > 0 && (
+        <div className="sv-tray" role="group" aria-label="Hidden panels">
+          {away.map((panel) => (
+            <IconButton
+              key={panel.id}
+              icon={panel.icon}
+              title={`Show ${panel.title}`}
+              onClick={() => toggleHidden(panel.id)}
+            />
+          ))}
+        </div>
+      )}
 
-      <div className="sv-inspector-body">
-        {broken && <p className="sv-rail-note sv-rail-note-bad">{broken}</p>}
+      {/* A read that failed, rather than a log that carries nothing. It gets
+          a plate of its own, because the column behind it is the scene. */}
+      {broken && (
+        <div className="sv-group sv-note">
+          <p className="sv-rail-note sv-rail-note-bad">{broken}</p>
+        </div>
+      )}
 
-        {clips.length > 0 && (
-          <section
-            className={`sv-subsection${minimized.camera ? ' sv-subsection-min' : ''}`}
-          >
-            <div className="sv-subsection-head">
-              <span className="sv-section-label">Camera</span>
-              {streamChoices.length > 1 && !minimized.camera && (
-                <select
-                  value={oneStream}
-                  aria-label="Camera stream"
-                  onChange={(event) => setOneStream(event.target.value)}
-                >
-                  <option value="">All streams</option>
-                  {streamChoices.map(([id, label]) => (
-                    <option key={id} value={id}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {/* Minimized, the heading still says how much is behind it. */}
-              {minimized.camera && (
-                <span className="sv-group-reading">
-                  {clips.length} {clips.length === 1 ? 'view' : 'views'}
-                </span>
-              )}
-              <Minimize
-                on={minimized.camera}
-                label="camera"
-                onToggle={() => toggleHidden('camera')}
-              />
+      {clips.length > 0 && !hidden.includes('camera') && (
+        <Group
+          icon="camera-video"
+          title="Camera"
+          reading={`${clips.length} ${clips.length === 1 ? 'view' : 'views'}`}
+          onHide={() => toggleHidden('camera')}
+        >
+          {/* The pickers sit in the body rather than the head. At 380px a
+              head carrying a title, a reading, two selects and a close is
+              a row of ellipses. */}
+          {streamChoices.length > 1 && (
+            <div className="sv-group-controls">
+              <select
+                value={oneStream}
+                aria-label="Camera stream"
+                onChange={(event) => setOneStream(event.target.value)}
+              >
+                <option value="">All streams</option>
+                {streamChoices.map(([id, label]) => (
+                  <option key={id} value={id}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </div>
-            {!minimized.camera && (
-              <div className="sv-subsection-body">
-                <CameraPanel clips={clips} />
-              </div>
-            )}
-          </section>
-        )}
+          )}
+          <CameraPanel clips={clips} />
+        </Group>
+      )}
 
-        {plots.length > 0 && (
-          <section className={`sv-subsection${minimized.curves ? ' sv-subsection-min' : ' sv-subsection--grow'}`}>
-            <div className="sv-subsection-head">
-              <span className="sv-section-label">Curves</span>
-              {plotChoices.length > 1 && !minimized.curves && (
+      {plots.length > 0 && !hidden.includes('curves') && (
+        <Group
+          icon="graph-up"
+          title="Curves"
+          reading={`${shownPlots.length} ${shownPlots.length === 1 ? 'plot' : 'plots'}`}
+          onHide={() => toggleHidden('curves')}
+        >
+          {(plotChoices.length > 1 || sources.length > 1) && (
+            <div className="sv-group-controls">
+              {plotChoices.length > 1 && (
                 <select
                   value={onePlot}
                   aria-label="Curve plot"
@@ -347,54 +354,11 @@ export function Inspector() {
                   ))}
                 </select>
               )}
-              {minimized.curves && (
-                <span className="sv-group-reading">
-                  {shownPlots.length} {shownPlots.length === 1 ? 'plot' : 'plots'}
-                </span>
-              )}
-              <Minimize
-                on={minimized.curves}
-                label="curves"
-                onToggle={() => toggleHidden('curves')}
-              />
             </div>
-            {!minimized.curves && (
-              <div className="sv-subsection-body">
-                <CurvePanel plots={shownPlots} yRanges={yRanges} theme={theme} />
-              </div>
-            )}
-          </section>
-        )}
-      </div>
+          )}
+          <CurvePanel plots={shownPlots} yRanges={yRanges} theme={theme} />
+        </Group>
+      )}
     </aside>
-  )
-}
-
-/**
- * The minimize toggle on a section head.
- *
- * A minimized section keeps its heading rather than vanishing: the picker
- * beside it is how someone gets back to a stream they chose, and a section
- * that disappeared entirely would take that with it.
- */
-function Minimize({
-  on,
-  label,
-  onToggle
-}: {
-  on: boolean
-  label: string
-  onToggle: () => void
-}) {
-  return (
-    <button
-      type="button"
-      className="sv-icon-btn sv-subsection-toggle"
-      onClick={onToggle}
-      aria-label={`${on ? 'Expand' : 'Minimize'} the ${label} section`}
-      title={on ? 'Expand' : 'Minimize'}
-    >
-      <i className={`bi bi-chevron-${on ? 'down' : 'up'}`} />
-    </button>
   )
 }

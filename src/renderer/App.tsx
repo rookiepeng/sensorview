@@ -213,7 +213,7 @@ export function App() {
         <div className="sv-hud-col sv-hud-left">
           <FilterRail />
           {/* One handle for the column, so long as something is in it. */}
-          {OVERLAYS.some((id) => !hidden.includes(id)) && (
+          {OVERLAYS.left.some((id) => !hidden.includes(id)) && (
             <Splitter
               id="rail-splitter"
               axis="col"

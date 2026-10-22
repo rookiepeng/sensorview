@@ -15,12 +15,15 @@ import { create } from 'zustand'
 
 import { DEFAULT_LAYOUT, sanitiseLayout, type Layout } from '@shared/types'
 
-/** The overlays down the left, each shown or hidden on its own. */
-export const OVERLAYS = ['display', 'filters'] as const
+/** The overlays down each side, each shown or hidden on its own. */
+export const OVERLAYS = {
+  left: ['display', 'filters'],
+  right: ['camera', 'curves']
+} as const
 
 export interface LayoutState extends Layout {
   setSize: (key: 'railW' | 'inspectorW' | 'dockH', px: number | null) => void
-  toggle: (key: 'inspectorCollapsed' | 'dockCollapsed') => void
+  toggle: (key: 'dockCollapsed') => void
   /** Show an overlay, or take it away. */
   toggleHidden: (id: string) => void
   /** Show one analysis pane or two. */
@@ -55,7 +58,7 @@ export const useLayout = create<LayoutState>((set) => ({
  */
 export const BOUNDS = {
   rail: { min: 200, max: () => Math.min(480, window.innerWidth * 0.4) },
-  inspector: { min: 280, max: () => Math.min(640, window.innerWidth * 0.5) },
+  inspector: { min: 280, max: () => Math.min(760, window.innerWidth * 0.5) },
   dock: {
     min: 218,
     max: () =>
@@ -73,7 +76,6 @@ export function layoutOf(s: LayoutState): Layout {
     railW: s.railW,
     inspectorW: s.inspectorW,
     dockH: s.dockH,
-    inspectorCollapsed: s.inspectorCollapsed,
     dockCollapsed: s.dockCollapsed,
     hidden: s.hidden,
     dockPanes: s.dockPanes

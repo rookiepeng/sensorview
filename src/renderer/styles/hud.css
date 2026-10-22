@@ -124,7 +124,6 @@
 
 .sv-group,
 .sv-tray,
-.sv-inspector,
 .sv-transport,
 .sv-dock,
 .sv-topbar,
@@ -139,7 +138,6 @@
 .sv-topbar,
 .sv-group,
 .sv-tray,
-.sv-inspector,
 .sv-transport,
 .sv-dock,
 .sv-hud {
@@ -153,7 +151,7 @@
    the column or the gap that places it, so none of them carries a margin of
    its own any more. */
 .sv-group,
-.sv-inspector,
+.sv-tray,
 .sv-transport,
 .sv-dock {
     border: 1px solid var(--sv-glass-border);
@@ -161,9 +159,10 @@
     z-index: var(--sv-z-panel);
 }
 
-/* The stack itself is not a surface -- it only places the cards -- but it
-   still has to sit over the scene with them. */
-.sv-rail {
+/* The stacks themselves are not surfaces -- they only place the cards --
+   but they still have to sit over the scene with them. */
+.sv-rail,
+.sv-inspector {
     z-index: var(--sv-z-panel);
 }
 
@@ -174,32 +173,6 @@
 
 .sv-splitter:hover {
     background: color-mix(in srgb, var(--sv-accent) 50%, transparent);
-}
-
-/* The inspector collapses to a narrow glass strip rather than vanishing: it
-   is one panel with one head, and that head is the way back. The rail is a
-   stack of cards with no head of its own, so it goes altogether and the top
-   bar's view cluster is what says it is gone. */
-.sv-inspector.sv-collapsed {
-    flex-basis: 44px !important;
-    width: 44px !important;
-    overflow: hidden;
-}
-
-.sv-inspector.sv-collapsed .sv-inspector-body,
-.sv-inspector.sv-collapsed .sv-panel-label,
-.sv-inspector.sv-collapsed .sv-panel-chips {
-    display: none;
-}
-
-.sv-inspector.sv-collapsed .sv-panel-head {
-    position: static;
-    justify-content: center;
-    padding: 6px 0;
-    background: none;
-    border: 0;
-    box-shadow: none;
-    backdrop-filter: none;
 }
 
 /* ── HUD furniture ───────────────────────────────────────────────────────── */
