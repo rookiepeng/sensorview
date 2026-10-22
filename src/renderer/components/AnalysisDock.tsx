@@ -1,8 +1,13 @@
-// The bottom dock: two slots, each showing one of the analysis views.
+// The analysis dock: two slots, each showing one of the analysis views.
 //
 // Two rather than a grid of six, carried over from the Dash dock: the views
 // are for comparing, and two side by side at a readable size beats six at a
 // size where none of them can be read.
+//
+// It sits at the foot of the centre column rather than across the whole
+// window. Full width it was taking a third of the rail's and the inspector's
+// height and spending it on two 780x280 letterboxes; in the centre the panes
+// are about 450 wide, which is the shape a chart wants.
 //
 // Every view draws the **whole filtered table**, not the frame on the slider.
 // A histogram of one frame's five hundred detections says nothing. That makes
@@ -18,7 +23,7 @@ import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
 import { CollapseButton, Picker, Switch } from './Controls'
 import { Splitter } from './Splitter'
-import { useLayout } from '../layout'
+import { BOUNDS, useLayout } from '../layout'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
 
@@ -163,8 +168,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           onReset={() => setSize('dockH', null)}
           value={dockH}
           invert
-          min={218}
-          max={() => window.innerHeight * 0.6}
+          {...BOUNDS.dock}
         />
       )}
       <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`}>

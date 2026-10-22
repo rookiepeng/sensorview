@@ -1,4 +1,4 @@
-// The four pieces of chrome every panel was rebuilding by hand.
+// The pieces of chrome every panel was rebuilding by hand.
 //
 // None of these is interesting on its own. They exist because the same four
 // shapes were written out five, three, four and two times respectively, and
@@ -115,6 +115,59 @@ export function PanelHead({
   )
 }
 
+/**
+ * A labelled band of a scrolling panel.
+ *
+ * The head stays put while the body scrolls under it, and -- given `open` and
+ * `onToggle` -- folds the body away. That is the rail's whole problem: scene
+ * appearance is set once and the filters are worked, and in one flat scroll
+ * the first pushes the second off screen.
+ *
+ * The head's title is deliberately not a `.sv-section-label`. `smoke.ts` reads
+ * every one of those in the rail and asserts "colour by" is immediately
+ * followed by "colormap"; a heading joining that list is a thing that breaks
+ * quietly.
+ */
+export function Group({
+  title,
+  children,
+  actions,
+  open,
+  onToggle
+}: {
+  title: string
+  children: ReactNode
+  /** Rendered at the end of the head -- a Reset, a count. */
+  actions?: ReactNode
+  /** Omit both to get a head that stays put but does not fold. */
+  open?: boolean
+  onToggle?: () => void
+}) {
+  const foldable = onToggle !== undefined
+  const shown = !foldable || open !== false
+  return (
+    <section className="sv-group">
+      <div className="sv-group-head">
+        {foldable ? (
+          <button
+            type="button"
+            className="sv-group-title sv-group-toggle"
+            aria-expanded={shown}
+            onClick={onToggle}
+          >
+            <i className="bi bi-chevron-down sv-group-chevron" aria-hidden="true" />
+            {title}
+          </button>
+        ) : (
+          <span className="sv-group-title">{title}</span>
+        )}
+        {actions}
+      </div>
+      {shown && <div className="sv-group-body">{children}</div>}
+    </section>
+  )
+}
+
 export function Switch({
   checked,
   onChange,
@@ -166,6 +219,9 @@ export function Picker({
       <select
         value={value}
         disabled={disabled}
+        // A picker in a dock pane is as narrow as the strip can make it, so
+        // a long column name is clipped. The tooltip is the whole value.
+        title={value}
         onChange={(event) => onChange(event.target.value)}
       >
         {choices.map((choice) => {

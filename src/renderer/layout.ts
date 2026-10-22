@@ -15,19 +15,89 @@ import { create } from 'zustand'
 
 import { DEFAULT_LAYOUT, sanitiseLayout, type Layout } from '@shared/types'
 
+/** Which of the three foldable panels were away. */
+interface Folded {
+  rail: boolean
+  inspector: boolean
+  dock: boolean
+}
+
 export interface LayoutState extends Layout {
+  /**
+   * What the panels were before `focusScene` folded them, or null when it
+   * did not. Deliberately not persisted: it is the way back from one click,
+   * not a description of the window, and a stale one read off disk would
+   * reopen panels the user had folded by hand.
+   */
+  restore: Folded | null
   setSize: (key: 'railW' | 'inspectorW' | 'dockH', px: number | null) => void
-  toggle: (key: 'railCollapsed' | 'inspectorCollapsed' | 'dockCollapsed') => void
+  toggle: (
+    key: 'railCollapsed' | 'inspectorCollapsed' | 'dockCollapsed' | 'railDisplayOpen'
+  ) => void
+  /** Fold all three panels away, or put back the ones that were open. */
+  focusScene: () => void
   /** Replace everything persisted, on the one read at startup. */
   hydrate: (stored: Layout) => void
 }
 
 export const useLayout = create<LayoutState>((set) => ({
   ...DEFAULT_LAYOUT,
+  restore: null,
   setSize: (key, px) => set({ [key]: px } as Pick<LayoutState, typeof key>),
   toggle: (key) => set((s) => ({ [key]: !s[key] }) as Pick<LayoutState, typeof key>),
+  focusScene: () =>
+    set((s) => {
+      if (!s.railCollapsed || !s.inspectorCollapsed || !s.dockCollapsed) {
+        return {
+          restore: {
+            rail: s.railCollapsed,
+            inspector: s.inspectorCollapsed,
+            dock: s.dockCollapsed
+          },
+          railCollapsed: true,
+          inspectorCollapsed: true,
+          dockCollapsed: true
+        }
+      }
+      // All three are already away. Put back whatever was open before --
+      // or open all three, for a window that came up collapsed and has
+      // nothing remembered.
+      const was = s.restore ?? { rail: false, inspector: false, dock: false }
+      return {
+        restore: null,
+        railCollapsed: was.rail,
+        inspectorCollapsed: was.inspector,
+        dockCollapsed: was.dock
+      }
+    }),
   hydrate: (stored) => set(stored)
 }))
+
+/**
+ * Pixel bounds for each region.
+ *
+ * A floor that keeps a panel grabbable, and a ceiling that keeps the scene the
+ * biggest thing on screen. The dock's floor is its own head plus
+ * `--sv-pane-plot-min`, below which a figure is axes and nothing else; its
+ * ceiling is a fraction of the centre column, which is the only thing it can
+ * take height from now that it sits inside it.
+ *
+ * Here rather than in `App.tsx` because the dock's splitter is rendered by
+ * `AnalysisDock`, which used to carry a second copy of these numbers.
+ */
+export const BOUNDS = {
+  rail: { min: 200, max: () => Math.min(480, window.innerWidth * 0.4) },
+  inspector: { min: 280, max: () => Math.min(640, window.innerWidth * 0.5) },
+  dock: {
+    min: 218,
+    max: () =>
+      Math.max(
+        218,
+        (document.querySelector('.sv-center')?.getBoundingClientRect().height ??
+          window.innerHeight) * 0.65
+      )
+  }
+}
 
 /** The persisted fields alone, for writing back. */
 export function layoutOf(s: LayoutState): Layout {
@@ -37,7 +107,8 @@ export function layoutOf(s: LayoutState): Layout {
     dockH: s.dockH,
     railCollapsed: s.railCollapsed,
     inspectorCollapsed: s.inspectorCollapsed,
-    dockCollapsed: s.dockCollapsed
+    dockCollapsed: s.dockCollapsed,
+    railDisplayOpen: s.railDisplayOpen
   }
 }
 

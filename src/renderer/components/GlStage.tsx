@@ -111,9 +111,11 @@ export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
     // so it is often not in the document when this runs. Re-observing on a
     // child change costs nothing -- observing an element twice is a no-op.
     const appearing = new MutationObserver(watchPanels)
-    const workspace = document.querySelector('.sv-workspace')
-    if (workspace) {
-      appearing.observe(workspace, { childList: true, subtree: true })
+    // The shell rather than a region inside it: every panel lives under it,
+    // and it is the one wrapper that is never conditional.
+    const shell = document.querySelector('.sv-shell')
+    if (shell) {
+      appearing.observe(shell, { childList: true, subtree: true })
     }
 
     return () => {

@@ -2,8 +2,14 @@
 //
 // The scene is a fixed layer spanning the viewport, and every panel floats over
 // it as glass. `styles/app.css` carries the region geometry and `styles/hud.css`
-// the glass, both unchanged from the Dash app -- the layout was already right,
-// it was only ever the framework underneath that was being replaced.
+// the glass.
+//
+// Three columns, and the middle one is a stack: rail | (scene, transport, dock)
+// | inspector. The dock used to span the whole window under the other two,
+// which took a third of their height and gave its charts a width they could not
+// use -- two 780x280 letterboxes where two 450x280 panes read better. Inside the
+// centre the rail and the inspector run floor to ceiling, which is what their
+// scrolling content wanted all along.
 //
 // Each region draws nothing when it has nothing: the inspector for a log with
 // neither a recording nor curves, the dock until a case is open. A region that
@@ -19,7 +25,7 @@ import { Inspector } from './components/Inspector'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
-import { useLayout, useLayoutPersistence } from './layout'
+import { BOUNDS, useLayout, useLayoutPersistence } from './layout'
 import { useCloud } from './useCloud'
 import { useHotkeys } from './useHotkeys'
 import { useReference } from './useReference'
@@ -28,16 +34,6 @@ import type { ScenePayload } from './frame'
 import { useStore } from './store'
 import { useTheme } from './useTheme'
 import { parseColor } from '@gl/sv_color.esm.js'
-
-/** Pixel bounds for each region. A floor that keeps a panel grabbable, and
- *  a ceiling that keeps the scene the biggest thing on screen. The dock's
- *  floor is its own head plus `--sv-pane-plot-min`, below which a figure is
- *  axes and nothing else. */
-const BOUNDS = {
-  rail: { min: 200, max: () => Math.min(480, window.innerWidth * 0.4) },
-  inspector: { min: 280, max: () => Math.min(640, window.innerWidth * 0.5) },
-  dock: { min: 218, max: () => window.innerHeight * 0.6 }
-}
 
 const sizeOf = (selector: string, axis: 'width' | 'height') => () =>
   document.querySelector(selector)?.getBoundingClientRect()[axis] ?? 0
@@ -212,45 +208,46 @@ export function App() {
 
       <TopBar />
 
-      <div className="sv-workspace">
-        <div className="sv-upper">
-          <FilterRail />
-          {!railCollapsed && (
-            <Splitter
-              id="rail-splitter"
-              axis="col"
-              label="Filter rail width"
-              measure={sizeOf('.sv-rail', 'width')}
-              onResize={(px) => setSize('railW', px)}
-              onReset={() => setSize('railW', null)}
-              value={railW}
-              {...BOUNDS.rail}
-            />
-          )}
-          <div className="sv-center">
-            <div className="sv-stage">
-              <div className="sv-canvas" />
-            </div>
-            <Transport />
-          </div>
-          {/* The inspector draws nothing for a log with neither a recording
-              nor curves, and `.sv-upper > .sv-splitter:last-child` is what
-              takes its handle away with it -- React cannot see from here
-              whether the component returned null. */}
+      <div className="sv-upper">
+        <FilterRail />
+        {!railCollapsed && (
           <Splitter
-            id="inspector-splitter"
+            id="rail-splitter"
             axis="col"
-            label="Inspector width"
-            measure={sizeOf('.sv-inspector', 'width')}
-            onResize={(px) => setSize('inspectorW', px)}
-            onReset={() => setSize('inspectorW', null)}
-            value={inspectorW}
-            invert
-            {...BOUNDS.inspector}
+            label="Filter rail width"
+            measure={sizeOf('.sv-rail', 'width')}
+            onResize={(px) => setSize('railW', px)}
+            onReset={() => setSize('railW', null)}
+            value={railW}
+            {...BOUNDS.rail}
           />
-          <Inspector />
+        )}
+        {/* The centre is a stack: the scene, the transport that drives it,
+            and the dock under both. The transport stays next to the scene
+            rather than being pushed to the window's floor by the dock. */}
+        <div className="sv-center">
+          <div className="sv-stage">
+            <div className="sv-canvas" />
+          </div>
+          <Transport />
+          <AnalysisDock theme={theme} />
         </div>
-        <AnalysisDock theme={theme} />
+        {/* The inspector draws nothing for a log with neither a recording
+            nor curves, and `.sv-upper > .sv-splitter:last-child` is what
+            takes its handle away with it -- React cannot see from here
+            whether the component returned null. */}
+        <Splitter
+          id="inspector-splitter"
+          axis="col"
+          label="Inspector width"
+          measure={sizeOf('.sv-inspector', 'width')}
+          onResize={(px) => setSize('inspectorW', px)}
+          onReset={() => setSize('inspectorW', null)}
+          value={inspectorW}
+          invert
+          {...BOUNDS.inspector}
+        />
+        <Inspector />
       </div>
     </div>
   )

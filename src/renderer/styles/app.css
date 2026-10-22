@@ -17,8 +17,11 @@
    Dark is the working theme: near-black surfaces so the only bright thing on
    screen is the data. Light is a full peer, not an afterthought. */
 :root {
-    --sv-topbar-h: 46px;
-    --sv-transport-h: 46px;
+    /* Both bars were 46px of chrome around the one thing worth looking at.
+       The top bar holds a 28px button and a one-line breadcrumb; the
+       transport holds the same button and a slider. */
+    --sv-topbar-h: 38px;
+    --sv-transport-h: 40px;
     --sv-rail-w: 288px;
     --sv-inspector-w: 380px;
     --sv-dock-h: 34vh;
@@ -143,7 +146,7 @@ body {
 }
 
 .sv-brand-name {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 650;
     letter-spacing: 0.01em;
     white-space: nowrap;
@@ -156,8 +159,8 @@ body {
     align-items: center;
     gap: 7px;
     min-width: 0;
-    max-width: 46vw;
-    padding: 4px 10px;
+    max-width: 38vw;
+    padding: 3px 9px;
     background: var(--sv-surface-2);
     border: 1px solid var(--sv-border);
     border-radius: var(--sv-radius);
@@ -316,6 +319,36 @@ body {
     flex: 1 1 auto;
 }
 
+/* The three panels' own collapse toggles are inside the panels, which is the
+   way back from a 44px strip but a poor way to clear the screen -- three
+   clicks in three corners. One cluster in the middle of the bar, where there
+   was nothing, says what is open and folds it. */
+.sv-topbar-views {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+    padding: 2px;
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+}
+
+.sv-topbar-views .sv-icon-btn {
+    height: 22px;
+    min-width: 26px;
+    padding: 0 4px;
+}
+
+/* Folding all three at once is a different kind of act from toggling one, so
+   it sits behind a rule rather than beside them. */
+.sv-view-sep {
+    flex: 0 0 1px;
+    align-self: stretch;
+    margin: 0 3px;
+    background: var(--sv-border);
+}
+
 .sv-topbar-actions {
     display: flex;
     align-items: center;
@@ -330,9 +363,9 @@ body {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 30px;
-    min-width: 30px;
-    padding: 0 8px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 7px;
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--sv-radius);
@@ -362,14 +395,10 @@ body {
     font-size: 0.95rem;
 }
 
-/* ── Body: rail | (canvas + inspector) / transport, then the dock ─────── */
-.sv-workspace {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
+/* ── Body: rail | (scene / transport / dock) | inspector ──────────────────
+   Three columns, the middle one a stack. The dock lives in the centre rather
+   than across the window's floor, so the rail and the inspector run the full
+   height and the dock's panes are chart-shaped instead of letterboxes. */
 .sv-upper {
     flex: 1 1 auto;
     display: flex;
@@ -524,6 +553,83 @@ body {
     height: 1px;
     background: var(--sv-border);
     margin: 14px 0;
+}
+
+/* ── Rail groups ──────────────────────────────────────────────────────────
+   The rail does two jobs: scene appearance, which is set once, and the
+   per-column filters, which are the working surface. In one flat scroll the
+   first pushed the second below the fold on any log with ten numeric columns.
+   Two groups, each with a head that stays put while its body scrolls under
+   it, and the set-once half folds away. */
+.sv-group + .sv-group {
+    margin-top: 12px;
+}
+
+/* Bled out to the rail body's padding edges so the head reads as a band
+   across the panel rather than a line indented inside it. Opaque, because
+   what scrolls under it is glass. */
+.sv-group-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 -12px;
+    padding: 5px 12px;
+    background: var(--sv-surface-2);
+    border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-group-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--sv-font-xs);
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+}
+
+/* The whole title is the target, not a chevron the size of a full stop. */
+.sv-group-toggle {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: color var(--sv-ease);
+}
+
+.sv-group-toggle:hover {
+    color: var(--sv-text);
+}
+
+.sv-group-chevron {
+    flex: 0 0 auto;
+    font-size: 0.65rem;
+    transition: transform var(--sv-ease);
+}
+
+.sv-group-toggle[aria-expanded="false"] .sv-group-chevron {
+    transform: rotate(-90deg);
+}
+
+/* How much of the filtering is actually on, which is the question asked of a
+   long list of sliders someone has been dragging. */
+.sv-group-count {
+    flex: 0 0 auto;
+    font-size: var(--sv-font-2xs);
+    color: var(--sv-text-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.sv-group-body {
+    padding-top: 10px;
 }
 
 /* ── Rail controls ──────────────────────────────────────────── */
@@ -1079,7 +1185,7 @@ body {
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    padding: 8px 12px 10px;
+    padding: 6px 10px 8px;
 }
 
 .sv-pane-controls {
@@ -1113,6 +1219,32 @@ body {
     border: 1px solid var(--sv-border);
     border-radius: var(--sv-radius);
     max-width: 180px;
+}
+
+/* The strip was tuned for a 780px pane. In the centre column a pane is about
+   450px, where five pickers at 180px wrap to a second row -- and a second row
+   costs a fifth of the plot's height, which is the whole reason the strip is
+   this tight. So the fields share the strip's width instead of each claiming
+   a fixed slice of it. */
+.sv-pane-controls .sv-pane-field {
+    flex: 1 1 0;
+    /* Low enough that the widest strip -- a scatter's frames, x, y, colour
+       and its limits button -- still fits one row in the narrowest pane the
+       centre column gives. They grow to fill whatever is actually there. */
+    min-width: 56px;
+    max-width: 150px;
+}
+
+.sv-pane-controls .sv-pane-field select {
+    width: 100%;
+    max-width: none;
+}
+
+/* Except the limits row, whose four boxes are read against the plot they
+   bound and are sized by what a coordinate looks like. */
+.sv-pane-limits .sv-pane-field {
+    flex: 0 0 auto;
+    max-width: none;
 }
 
 .sv-dock .sv-switch-row {
@@ -1561,7 +1693,7 @@ input[type="range"] {
 }
 
 .sv-pane-limits input[type='number'] {
-    width: 78px;
+    width: 62px;
     padding: 2px 6px;
     background: var(--sv-surface-2);
     color: inherit;

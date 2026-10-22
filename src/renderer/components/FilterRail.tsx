@@ -10,7 +10,7 @@
 // still has the budget to spare. Under Dash each of those events was a network
 // round trip, which is what the whole caching apparatus was there to hide.
 
-import { PanelHead, Picker, Switch } from './Controls'
+import { Group, PanelHead, Picker, Switch } from './Controls'
 import { RangeSlider } from './RangeSlider'
 import { useLayout } from '../layout'
 import { useStore } from '../store'
@@ -55,6 +55,7 @@ function stepFor(min: number, max: number): number {
 
 export function FilterRail() {
   const collapsed = useLayout((s) => s.railCollapsed)
+  const displayOpen = useLayout((s) => s.railDisplayOpen)
   const toggle = useLayout((s) => s.toggle)
   const decay = useStore((s) => s.decay)
   const setDecay = useStore((s) => s.setDecay)
@@ -85,15 +86,20 @@ export function FilterRail() {
   const setCategoryFilter = useStore((s) => s.setCategoryFilter)
   const resetFilters = useStore((s) => s.resetFilters)
 
-  const touched =
-    table != null &&
-    (filters.numeric.some((entry) => {
-      const [min, max] = rangeOf(table, entry.column)
-      return entry.min !== min || entry.max !== max
-    }) ||
-      filters.categorical.some(
-        (entry) => entry.allowed.length !== levelsOf(table, entry.column).length
-      ))
+  // Counted rather than merely detected: "3 / 11" is the question someone
+  // asks of a long list of sliders they have been dragging, and the answer
+  // was previously a Reset button that either appeared or did not.
+  const active =
+    table == null
+      ? 0
+      : filters.numeric.filter((entry) => {
+          const [min, max] = rangeOf(table, entry.column)
+          return entry.min !== min || entry.max !== max
+        }).length +
+        filters.categorical.filter(
+          (entry) => entry.allowed.length !== levelsOf(table, entry.column).length
+        ).length
+  const total = filters.numeric.length + filters.categorical.length
 
   return (
     <aside id="filter-sidebar-col" className={`sv-rail${collapsed ? ' sv-collapsed' : ''}`}>
@@ -108,212 +114,228 @@ export function FilterRail() {
           subject: 'filter rail',
           edge: 'left'
         }}
-      >
-        {touched && !collapsed && (
-          <button type="button" className="sv-text-btn" onClick={resetFilters}>
-            Reset
-          </button>
-        )}
-      </PanelHead>
+      />
 
       <div className="sv-rail-body">
-        <span className="sv-section-label">Display</span>
-
-        <Switch checked={sizeVary} onChange={setSizeVary}>
-          Size varies with category
-        </Switch>
-
-        {/* Only when the case has one. A dead switch is worse than no switch:
-            it says the cloud is off rather than absent. */}
-        {cloudDisplay && (
-          <Switch checked={cloudOn} onChange={setCloudOn}>
-            {/* The manifest names the cloud, and that name is the whole
-                label. A verb in front of it would be the same word twice
-                for every case that calls its cloud "Lidar". */}
-            {cloudDisplay.name || 'Point cloud'}
+        {/* Appearance is set once and then read; the filters below it are
+            worked. Folding this away is what puts the filters of a log with
+            ten numeric columns above the fold. */}
+        <Group
+          title="Display"
+          open={displayOpen}
+          onToggle={() => toggle('railDisplayOpen')}
+        >
+          <Switch checked={sizeVary} onChange={setSizeVary}>
+            Size varies with category
           </Switch>
-        )}
 
-        {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
-        {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
-
-        {/* What the points are coloured by, and the ramp it is coloured
-            with. Together because they are one decision read as one: the
-            ramp only means anything against the column it maps. This was in
-            the column config, where nobody would look for it -- that
-            popover is for what the dataset's columns *mean*, which is a
-            thing set once. */}
-        {table && (
-          <Picker
-            label="Colour by"
-            value={axes.colour}
-            choices={[...table.columns.keys()]}
-            onChange={(column) => setAxis('colour', column)}
-            className="sv-field"
-          />
-        )}
-
-        <Picker
-          label="Colormap"
-          value={colormap}
-          choices={COLORMAPS}
-          onChange={setColormap}
-          className="sv-field"
-          // A categorical column takes its colours from the palette, not
-          // from a ramp, so the ramp has nothing to act on.
-          disabled={Boolean(table) && table!.columns.get(axes.colour)?.kind === 'string'}
-          hint={
-            table && table.columns.get(axes.colour)?.kind === 'string'
-              ? 'Categories use the palette'
-              : undefined
-          }
-        />
-
-        {/* Decay trails a fixed number of frames behind the current one;
-            overlay draws every frame at once. Two answers to one question,
-            so the slider goes dead rather than competing while overlay is
-            on. */}
-        <label className={`sv-field${overlay ? ' sv-field-off' : ''}`}>
-          <span className="sv-section-label">Decay</span>
-          <input
-            type="range"
-            min={0}
-            max={10}
-            step={1}
-            value={decay}
-            disabled={overlay}
-            onChange={(event) => setDecay(Number(event.target.value))}
-          />
-          <span className="sv-field-value">{overlay ? 'all frames' : decay}</span>
-        </label>
-
-        <label className="sv-switch-row">
-          <input
-            type="checkbox"
-            checked={overlay}
-            onChange={(event) => setOverlay(event.target.checked)}
-          />
-          <span>Overlay every frame</span>
-        </label>
-
-        <div className="sv-divider" />
-
-        <span className="sv-section-label">Data filters</span>
-
-        {/* Always here, whether or not anything is hidden yet. It is a filter
-            like the ones below it -- the state it reads is set by clicking a
-            point or selecting a region -- and a control that appears only
-            once it has something to say is one nobody finds. */}
-        {table && (
-          <div className="sv-field">
-            <span className="sv-section-label">Visibility</span>
-            <div className="sv-chips">
-              {(
-                [
-                  { label: 'Visible', states: ['visible'] },
-                  { label: 'Hidden', states: ['hidden'] },
-                  { label: 'Both', states: ['visible', 'hidden'] }
-                ] as const
-              ).map((choice) => {
-                const on = sameStates(filters.visible, choice.states)
-                return (
-                  <button
-                    type="button"
-                    key={choice.label}
-                    className={`sv-chip${on ? ' sv-chip-on' : ''}`}
-                    aria-pressed={on}
-                    title={
-                      choice.label === 'Both'
-                        ? 'Show hidden points as well'
-                        : `Show only ${choice.label.toLowerCase()} points`
-                    }
-                    onClick={() => setVisibility([...choice.states])}
-                  >
-                    {choice.label}
-                  </button>
-                )
-              })}
-            </div>
-            <span className="sv-field-value">
-              {hiddenCount > 0
-                ? `${hiddenCount} hidden`
-                : 'Everything starts out visible'}
-            </span>
-
-            {/* Off by default. Lasso in a 2D view is the deliberate way to
-                hide a set of points; this makes the scene itself do it on a
-                single click, which is quick and easy to do by accident. */}
-            <Switch checked={clickToHide} onChange={setClickToHide}>
-              Click a point to hide it
+          {/* Only when the case has one. A dead switch is worse than no
+              switch: it says the cloud is off rather than absent. */}
+          {cloudDisplay && (
+            <Switch checked={cloudOn} onChange={setCloudOn}>
+              {/* The manifest names the cloud, and that name is the whole
+                  label. A verb in front of it would be the same word twice
+                  for every case that calls its cloud "Lidar". */}
+              {cloudDisplay.name || 'Point cloud'}
             </Switch>
-            {hiddenCount > 0 && (
-              <button type="button" className="sv-text-btn sv-rail-action" onClick={showAllRows}>
-                Show all again
-              </button>
-            )}
-          </div>
-        )}
+          )}
 
-        {!table && (
-          <p className="sv-rail-note">
-            {dir ? 'This case has no table to filter.' : 'Open a case to filter its columns.'}
-          </p>
-        )}
+          {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
+          {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
 
-        {table &&
-          filters.numeric.map((entry) => {
-            const [low, high] = rangeOf(table, entry.column)
-            const meta = keys[entry.column]
-            const step = stepFor(low, high)
-            return (
-              <div className="sv-filter" key={entry.column}>
-                <span className="sv-section-label">{labelOf(entry.column, meta)}</span>
-                <RangeSlider
-                  low={low}
-                  high={high}
-                  step={step}
-                  value={[entry.min, entry.max]}
-                  decimals={meta?.decimal ?? 2}
-                  label={labelOf(entry.column, meta)}
-                  onChange={(min, max) => setNumericFilter(entry.column, min, max)}
-                />
-              </div>
-            )
-          })}
+          {/* What the points are coloured by, and the ramp it is coloured
+              with. Together because they are one decision read as one: the
+              ramp only means anything against the column it maps. This was in
+              the column config, where nobody would look for it -- that
+              popover is for what the dataset's columns *mean*, which is a
+              thing set once. */}
+          {table && (
+            <Picker
+              label="Colour by"
+              value={axes.colour}
+              choices={[...table.columns.keys()]}
+              onChange={(column) => setAxis('colour', column)}
+              className="sv-field"
+            />
+          )}
 
-        {table &&
-          filters.categorical.map((entry) => {
-            const levels = levelsOf(table, entry.column)
-            const allowed = new Set(entry.allowed)
-            return (
-              <div className="sv-filter" key={entry.column}>
-                <span className="sv-section-label" id={`chips-${entry.column}`}>
-                  {labelOf(entry.column, keys[entry.column])}
+          <Picker
+            label="Colormap"
+            value={colormap}
+            choices={COLORMAPS}
+            onChange={setColormap}
+            className="sv-field"
+            // A categorical column takes its colours from the palette, not
+            // from a ramp, so the ramp has nothing to act on.
+            disabled={Boolean(table) && table!.columns.get(axes.colour)?.kind === 'string'}
+            hint={
+              table && table.columns.get(axes.colour)?.kind === 'string'
+                ? 'Categories use the palette'
+                : undefined
+            }
+          />
+
+          {/* Decay trails a fixed number of frames behind the current one;
+              overlay draws every frame at once. Two answers to one question,
+              so the slider goes dead rather than competing while overlay is
+              on. */}
+          <label className={`sv-field${overlay ? ' sv-field-off' : ''}`}>
+            <span className="sv-section-label">Decay</span>
+            <input
+              type="range"
+              min={0}
+              max={10}
+              step={1}
+              value={decay}
+              disabled={overlay}
+              onChange={(event) => setDecay(Number(event.target.value))}
+            />
+            <span className="sv-field-value">{overlay ? 'all frames' : decay}</span>
+          </label>
+
+          <label className="sv-switch-row">
+            <input
+              type="checkbox"
+              checked={overlay}
+              onChange={(event) => setOverlay(event.target.checked)}
+            />
+            <span>Overlay every frame</span>
+          </label>
+        </Group>
+
+        {/* Not foldable: this is what the rail is for, and the scroll belongs
+            to it. Its head only stays put and says how much is on. */}
+        <Group
+          title="Data filters"
+          actions={
+            <>
+              {total > 0 && (
+                <span className="sv-group-count" title="Filters narrowing the table">
+                  {active} / {total}
                 </span>
-                <div className="sv-chips" role="group" aria-labelledby={`chips-${entry.column}`}>
-                  {levels.map((level) => (
+              )}
+              {active > 0 && (
+                <button type="button" className="sv-text-btn" onClick={resetFilters}>
+                  Reset
+                </button>
+              )}
+            </>
+          }
+        >
+          {/* Always here, whether or not anything is hidden yet. It is a filter
+              like the ones below it -- the state it reads is set by clicking a
+              point or selecting a region -- and a control that appears only
+              once it has something to say is one nobody finds. */}
+          {table && (
+            <div className="sv-field">
+              <span className="sv-section-label">Visibility</span>
+              <div className="sv-chips">
+                {(
+                  [
+                    { label: 'Visible', states: ['visible'] },
+                    { label: 'Hidden', states: ['hidden'] },
+                    { label: 'Both', states: ['visible', 'hidden'] }
+                  ] as const
+                ).map((choice) => {
+                  const on = sameStates(filters.visible, choice.states)
+                  return (
                     <button
                       type="button"
-                      key={level}
-                      className={`sv-chip${allowed.has(level) ? ' sv-chip-on' : ''}`}
-                      aria-pressed={allowed.has(level)}
-                      onClick={() =>
-                        setCategoryFilter(
-                          entry.column,
-                          allowed.has(level)
-                            ? entry.allowed.filter((name) => name !== level)
-                            : [...entry.allowed, level]
-                        )
+                      key={choice.label}
+                      className={`sv-chip${on ? ' sv-chip-on' : ''}`}
+                      aria-pressed={on}
+                      title={
+                        choice.label === 'Both'
+                          ? 'Show hidden points as well'
+                          : `Show only ${choice.label.toLowerCase()} points`
                       }
+                      onClick={() => setVisibility([...choice.states])}
                     >
-                      {level}
+                      {choice.label}
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
               </div>
-            )
-          })}
+              <span className="sv-field-value">
+                {hiddenCount > 0
+                  ? `${hiddenCount} hidden`
+                  : 'Everything starts out visible'}
+              </span>
 
+              {/* Off by default. Lasso in a 2D view is the deliberate way to
+                  hide a set of points; this makes the scene itself do it on a
+                  single click, which is quick and easy to do by accident. */}
+              <Switch checked={clickToHide} onChange={setClickToHide}>
+                Click a point to hide it
+              </Switch>
+              {hiddenCount > 0 && (
+                <button type="button" className="sv-text-btn sv-rail-action" onClick={showAllRows}>
+                  Show all again
+                </button>
+              )}
+            </div>
+          )}
+
+          {!table && (
+            <p className="sv-rail-note">
+              {dir ? 'This case has no table to filter.' : 'Open a case to filter its columns.'}
+            </p>
+          )}
+
+          {table &&
+            filters.numeric.map((entry) => {
+              const [low, high] = rangeOf(table, entry.column)
+              const meta = keys[entry.column]
+              const step = stepFor(low, high)
+              return (
+                <div className="sv-filter" key={entry.column}>
+                  <span className="sv-section-label">{labelOf(entry.column, meta)}</span>
+                  <RangeSlider
+                    low={low}
+                    high={high}
+                    step={step}
+                    value={[entry.min, entry.max]}
+                    decimals={meta?.decimal ?? 2}
+                    label={labelOf(entry.column, meta)}
+                    onChange={(min, max) => setNumericFilter(entry.column, min, max)}
+                  />
+                </div>
+              )
+            })}
+
+          {table &&
+            filters.categorical.map((entry) => {
+              const levels = levelsOf(table, entry.column)
+              const allowed = new Set(entry.allowed)
+              return (
+                <div className="sv-filter" key={entry.column}>
+                  <span className="sv-section-label" id={`chips-${entry.column}`}>
+                    {labelOf(entry.column, keys[entry.column])}
+                  </span>
+                  <div className="sv-chips" role="group" aria-labelledby={`chips-${entry.column}`}>
+                    {levels.map((level) => (
+                      <button
+                        type="button"
+                        key={level}
+                        className={`sv-chip${allowed.has(level) ? ' sv-chip-on' : ''}`}
+                        aria-pressed={allowed.has(level)}
+                        onClick={() =>
+                          setCategoryFilter(
+                            entry.column,
+                            allowed.has(level)
+                              ? entry.allowed.filter((name) => name !== level)
+                              : [...entry.allowed, level]
+                          )
+                        }
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+        </Group>
       </div>
     </aside>
   )

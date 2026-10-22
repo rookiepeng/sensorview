@@ -149,6 +149,8 @@ export interface Layout {
   railCollapsed: boolean
   inspectorCollapsed: boolean
   dockCollapsed: boolean
+  /** Whether the rail's Display group is unfolded. Set once, then left. */
+  railDisplayOpen: boolean
 }
 
 export const DEFAULT_LAYOUT: Layout = {
@@ -157,7 +159,8 @@ export const DEFAULT_LAYOUT: Layout = {
   dockH: null,
   railCollapsed: false,
   inspectorCollapsed: false,
-  dockCollapsed: false
+  dockCollapsed: false,
+  railDisplayOpen: true
 }
 
 /**
@@ -178,7 +181,10 @@ export function sanitiseLayout(raw: unknown): Layout {
     dockH: size(it.dockH),
     railCollapsed: it.railCollapsed === true,
     inspectorCollapsed: it.inspectorCollapsed === true,
-    dockCollapsed: it.dockCollapsed === true
+    dockCollapsed: it.dockCollapsed === true,
+    // The one field that defaults to true, so anything missing or junk
+    // leaves the group open rather than folding it away unasked.
+    railDisplayOpen: it.railDisplayOpen !== false
   }
 }
 

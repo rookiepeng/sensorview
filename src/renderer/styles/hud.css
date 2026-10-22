@@ -113,7 +113,6 @@
    below. Enumerated in one rule on purpose: a wrapper left opaque to the
    pointer swallows drags over a region that looks empty, which is the hardest
    fault here to spot. */
-.sv-workspace,
 .sv-upper,
 .sv-center,
 .sv-stage,
