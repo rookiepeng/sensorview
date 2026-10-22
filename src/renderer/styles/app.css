@@ -558,6 +558,18 @@ body {
 
 .sv-rail .sv-stack {
     width: var(--sv-rail-w);
+    /* Scrollbar on the outer edge. A scroller puts its bar on the trailing
+       side, which on the left-hand column is the side facing the scene --
+       where the tray and the splitter already are, and where it reads as a
+       line drawn down the middle of the window. `direction` is the only
+       thing that moves it; the children take theirs back so nothing inside
+       is laid out right to left. The right-hand column needs none of this:
+       its trailing side is already the window's edge. */
+    direction: rtl;
+}
+
+.sv-rail .sv-stack > * {
+    direction: ltr;
 }
 
 /* Nothing in it, so it reserves nothing: the row is then the tray alone. */
