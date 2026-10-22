@@ -53,8 +53,8 @@
        hud.css; these are the numbers it describes, so the two cannot drift.
        Menus sit above the panels they hang from; the scene's hover tooltip
        is above everything, because it tracks the pointer and must never be
-       the thing that is covered. */
-    --sv-z-labels: 1;
+       the thing that is covered. The axis text used to have a layer here
+       and no longer does -- it lies in the floor as geometry. */
     --sv-z-splitter: 5;
     --sv-z-hud: 6;
     --sv-z-panel: 10;

@@ -25,7 +25,6 @@ import {
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 
 import { Axes } from "./sv_axes.esm.js";
 import { Hud } from "./sv_hud.esm.js";
@@ -81,7 +80,6 @@ export function create(host, options = {}) {
   };
 
   let renderer = null;
-  let labelRenderer = null;
   let scene = null;
   let camera = null;
   let controls = null;
@@ -125,7 +123,6 @@ export function create(host, options = {}) {
           // Lines or labels changed; nothing else to do, it is drawn below.
         }
         renderer.render(scene, camera);
-        labelRenderer.render(scene, camera);
 
         const now = performance.now();
         if (state.lastDraw) {
@@ -187,14 +184,12 @@ export function create(host, options = {}) {
 
     canvas = document.createElement("canvas");
     canvas.id = "gl-canvas";
-    const labels = document.createElement("div");
-    labels.id = "gl-labels";
-    host.append(canvas, labels);
+    host.append(canvas);
     // Remembered so dispose can take back exactly what mount added. React's
     // StrictMode mounts twice in development, so a dispose that misses one of
     // these leaves an orphan behind -- and `getElementById` then answers with
     // the dead one.
-    owned = [canvas, labels];
+    owned = [canvas];
 
     renderer = new WebGLRenderer({
       canvas,
@@ -206,8 +201,6 @@ export function create(host, options = {}) {
     });
     renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-
-    labelRenderer = new CSS2DRenderer({ element: labels });
 
     scene = new Scene();
     camera = new PerspectiveCamera(FOV, 1, 0.01, 2000);
@@ -237,6 +230,11 @@ export function create(host, options = {}) {
     scene.add(camera);
 
     axes = new Axes();
+    // The labels were DOM and could be counted; as geometry they cannot, so
+    // the count is published here. `smoke.ts` waits on it to know the axes
+    // have drawn, which is the check that caught a scene that came up with
+    // a floor and no numbers on it.
+    axes.onLabels = (count) => stage.setAttribute("data-tick-labels", String(count));
     root.add(axes.group);
 
     cloudLayer = new PointLayer("categorical", false);
@@ -603,7 +601,6 @@ export function create(host, options = {}) {
       // would stay at the old one and look soft.
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(width, height, false);
-      labelRenderer.setSize(width, height);
     }
 
     frame(width, height);
@@ -637,6 +634,9 @@ export function create(host, options = {}) {
       axisX: read("--sv-ax-x", "#ff5f5f"),
       axisY: read("--sv-ax-y", "#4fd06a"),
       axisZ: read("--sv-ax-z", "#4e9eff"),
+      // The labels lie in the floor as textures now, so their colour is
+      // drawn in rather than inherited from a stylesheet.
+      ink: read("--sv-text-dim", "#8a929e"),
     });
     requestRender();
   }
@@ -716,8 +716,8 @@ export function create(host, options = {}) {
      * flag instead would cost a copy on every frame to serve an export taken
      * once a session.
      *
-     * The CSS2D axis labels are DOM, not canvas, so they are not in it. The
-     * export page says so rather than pretending the picture is complete.
+     * The axis labels lie in the floor as geometry, so unlike the old DOM
+     * ones they are in it.
      *
      * @returns {string} `data:image/png;base64,...`
      */

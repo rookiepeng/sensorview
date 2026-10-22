@@ -15,7 +15,6 @@
  * Stacking, bottom to top. The numbers are `--sv-z-*` in app.css, so this
  * list and the rules that use it cannot drift:
  *     0  #gl-stage       the scene
- *     1  #gl-labels      CSS2D tick text, click-through
  *     5  .sv-splitter
  *     6  HUD furniture, collapsed panel heads
  *    10  floating glass panels: rail, inspector, transport, dock
@@ -69,56 +68,6 @@
     display: block;
     width: 100%;
     height: 100%;
-}
-
-#gl-labels {
-    position: absolute;
-    z-index: var(--sv-z-labels);
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    color: var(--sv-text-dim);
-    font-size: var(--sv-font-xs);
-    font-variant-numeric: tabular-nums;
-}
-
-/* Axis text inherits the theme, so a flip costs nothing here. That is the
-   reason these are DOM elements through CSS2DRenderer rather than sprite
-   textures, which would each need regenerating on a theme or DPI change. */
-.sv-gl-tick {
-    transform: translate(-50%, -50%);
-    white-space: nowrap;
-    opacity: 0.85;
-}
-
-/* Ticks lie along the plane's centre lines, among the grid lines they label
-   rather than beside a cage. That puts them under the cloud rather than
-   clear of it, so a shadow is not enough on its own -- they carry a backing
-   dark enough to read a digit against a bright return. Tabular figures so a
-   row of them does not jitter as the digits change. */
-.sv-gl-tick-ground {
-    padding: 0 3px;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--sv-bg) 72%, transparent);
-    font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 3px var(--sv-bg);
-}
-
-/* The titles sit on the same lines and want the same treatment. */
-.sv-gl-axis-title {
-    padding: 0 4px;
-    border-radius: 3px;
-    background: color-mix(in srgb, var(--sv-bg) 72%, transparent);
-}
-
-.sv-gl-axis-title {
-    transform: translate(-50%, -50%);
-    white-space: nowrap;
-    color: var(--sv-text);
-    font-size: var(--sv-font-sm);
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-shadow: 0 0 4px var(--sv-bg), 0 0 4px var(--sv-bg);
 }
 
 /* ── HUD mode ────────────────────────────────────────────────────────────── */

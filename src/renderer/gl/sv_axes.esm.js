@@ -17,24 +17,33 @@
 // sliders with `autorange: False`, precisely so the floor does not resize as
 // the slider moves.
 //
-// Labels stay DOM elements through CSS2DRenderer. Sprites would be the obvious
-// alternative and are wrong here: that scaling is strongly anisotropic -- a
-// long-range log is sixteen times wider than it is tall -- and a sprite
-// inherits it, so the text would be stretched by whatever the axis ranges
-// happen to be. A projected DOM element cannot be.
+// Labels are quads lying in the ground, textured with their own text. They
+// used to be DOM through CSS2DRenderer, on the reasoning that a mesh under
+// `root` would be stretched by an anisotropic scale -- "a long-range log is
+// sixteen times wider than it is tall". That is not what `root` does:
+// `aspectOf` returns the spans' own proportions, so the three scales are
+// equal and a quad under it keeps its shape. Measured in the running app,
+// 4.77818 px/m east against 4.77815 north.
+//
+// Being geometry rather than DOM is what lets them lie flat, and it buys two
+// things besides: the cloud occludes them the way it occludes anything else
+// at that height, and a snapshot contains them.
 
 import {
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   Color,
   DoubleSide,
   Group,
   LineBasicMaterial,
   LineSegments,
+  LinearFilter,
   Mesh,
   MeshBasicMaterial,
+  PlaneGeometry,
 } from "three";
-import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+
 
 const AXES = ["x", "y", "z"];
 
@@ -149,14 +158,74 @@ export function formatTick(value, step) {
   return value.toFixed(decimals);
 }
 
-function makeLabel(className) {
-  const element = document.createElement("div");
-  element.className = className;
-  const object = new CSS2DObject(element);
-  // A CSS2DObject keeps drawing its element wherever it sits, so parking it
-  // off-plane is not enough; visibility is driven explicitly.
-  object.visible = false;
-  return object;
+// The text is drawn at this height in canvas pixels and the quad is scaled
+// to whatever the world wants, so one setting governs how crisp it is.
+const LABEL_PX = 48;
+
+// How tall a label is as a fraction of the grid step. The step is already
+// chosen to cover `GRID_TARGET_PX` on screen, so tying the text to it keeps
+// it about the same size however far the camera is -- the one thing a quad
+// lying in the floor does not get for free.
+const LABEL_OF_STEP = 0.3;
+
+/**
+ * A quad carrying one piece of text, to lie in the ground plane.
+ *
+ * `PlaneGeometry` is already in XY facing +Z, which is the ground with Z up,
+ * so nothing has to be rotated to make it lie flat. Double-sided, because
+ * the floor is visible from underneath and so is anything painted on it.
+ *
+ * @param {string} text What to draw.
+ * @param {string} colour Any CSS colour.
+ * @param {boolean} bold Titles are, ticks are not.
+ * @returns {Mesh} A unit-height quad, its width set by the text.
+ */
+function makeTextPlane(text, colour, bold) {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  const font = `${bold ? "600 " : ""}${LABEL_PX}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+  context.font = font;
+  // A little room either side of the glyphs, and enough above and below for
+  // descenders; a texture clipped to the ink looks cramped against a grid.
+  const width = Math.max(1, Math.ceil(context.measureText(text).width) + LABEL_PX * 0.5);
+  const height = Math.ceil(LABEL_PX * 1.4);
+  canvas.width = width;
+  canvas.height = height;
+
+  // Setting the size clears the context, so the font goes on again.
+  context.font = font;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillStyle = colour;
+  context.fillText(text, width / 2, height / 2);
+
+  const texture = new CanvasTexture(canvas);
+  // No mipmaps: the quad is re-sized rather than seen at a distance, and a
+  // mip chain on a few dozen small textures is work for nothing.
+  texture.generateMipmaps = false;
+  texture.minFilter = LinearFilter;
+  texture.magFilter = LinearFilter;
+
+  const mesh = new Mesh(
+    new PlaneGeometry(width / height, 1),
+    new MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      side: DoubleSide,
+      // The floor and the grid are under it and the cloud is over it; it
+      // only needs to test against them, not write into the buffer.
+      depthWrite: false,
+    })
+  );
+  mesh.renderOrder = 0;
+  return mesh;
+}
+
+/** Give back a label's texture, geometry and material. */
+function disposeLabel(mesh) {
+  mesh.geometry.dispose();
+  mesh.material.map?.dispose();
+  mesh.material.dispose();
 }
 
 /**
@@ -220,11 +289,10 @@ export class Axes {
 
     this.tickLabels = [];
     this.titleLabels = {};
-    AXES.forEach((axis) => {
-      const label = makeLabel("sv-gl-axis-title");
-      this.titleLabels[axis] = label;
-      this.group.add(label);
-    });
+    /** The colour the text is drawn with, read off the page with the rest. */
+    this.ink = "#dfe4ea";
+    /** Told how many tick labels there are, so the count stays observable. */
+    this.onLabels = null;
   }
 
   /**
@@ -486,11 +554,14 @@ export class Axes {
   _buildText() {
     this.tickLabels.forEach((label) => {
       this.group.remove(label);
-      if (label.element && label.element.parentNode) {
-        label.element.parentNode.removeChild(label.element);
-      }
+      disposeLabel(label);
     });
     this.tickLabels = [];
+    Object.values(this.titleLabels).forEach((label) => {
+      this.group.remove(label);
+      disposeLabel(label);
+    });
+    this.titleLabels = {};
 
     // Only the two axes the plane spans get tick text, because only those have
     // a line in the plane to sit against. The height range is on the HUD
@@ -499,8 +570,7 @@ export class Axes {
       const ticks = this.ticks[axis];
       const step = ticks.length > 1 ? ticks[1] - ticks[0] : 1;
       ticks.forEach((value) => {
-        const label = makeLabel("sv-gl-tick sv-gl-tick-ground");
-        label.element.textContent = formatTick(value, step);
+        const label = makeTextPlane(formatTick(value, step), this.ink, false);
         label.userData = { axis, value };
         this.tickLabels.push(label);
         this.group.add(label);
@@ -512,14 +582,18 @@ export class Axes {
     // title would sit on the cloud wherever it was put. The blue stub says
     // which way is up, and the HUD readout carries the range.
     ["x", "y"].forEach((axis) => {
-      const title = this.titleLabels[axis];
-      title.element.textContent = this.labels[axis] || "";
-      title.visible = Boolean(this.labels[axis]);
+      const text = this.labels[axis];
+      if (!text) {
+        return;
+      }
+      const title = makeTextPlane(text, this.ink, true);
+      title.userData = { axis, title: true };
+      this.titleLabels[axis] = title;
+      this.group.add(title);
     });
-    this.titleLabels.z.element.textContent = "";
-    this.titleLabels.z.visible = false;
 
     this._placeText();
+    this.onLabels?.(this.tickLabels.length);
   }
 
   /**
@@ -595,31 +669,52 @@ export class Axes {
     const ticksY = this.ticks.y;
     const near = (ticksY.length > 1 ? Math.abs(ticksY[1] - ticksY[0]) : 1) / 2;
 
+    // Tied to the step, which is itself chosen to cover a fixed number of
+    // pixels -- so the text stays about one size on screen even though it
+    // is geometry lying in the floor.
+    const size = (near * 2 || 1) * LABEL_OF_STEP;
+
     this.tickLabels.forEach((label) => {
       const { axis, value } = label.userData;
+      // A hair above the floor: at exactly `planeZ` the quad and the ground
+      // are coplanar and which one wins is up to the depth buffer.
+      const lift = this.planeZ + size * 0.02;
       if (axis === "x") {
-        label.position.set(value, centre.y, this.planeZ);
+        label.position.set(value, centre.y - size * 0.9, lift);
+        label.rotation.z = 0;
       } else {
-        label.position.set(centre.x, value, this.planeZ);
+        label.position.set(centre.x - size * 0.9, value, lift);
+        // Turned to read along its own line rather than across it.
+        label.rotation.z = Math.PI / 2;
       }
+      label.scale.set(size, size, 1);
       // Where the two lines cross, both runs have a label on the same spot.
       // The one along x keeps it; the other would be the same point twice.
       label.visible = !(axis === "y" && Math.abs(value - centre.y) < near);
     });
 
-    // At the far end of the line each one names, nudged off it so it does
+    // At the far end of the line each one names, off to the side so it does
     // not land on the last tick: the title then reads as which way the
     // numbers are going.
-    this.titleLabels.x.position.set(
-      r.x[1] - span.x * 0.02,
-      centre.y + span.y * 0.04,
-      this.planeZ
-    );
-    this.titleLabels.y.position.set(
-      centre.x + span.x * 0.04,
-      r.y[1] - span.y * 0.02,
-      this.planeZ
-    );
+    const titleSize = size * 1.15;
+    if (this.titleLabels.x) {
+      this.titleLabels.x.position.set(
+        r.x[1] - span.x * 0.06,
+        centre.y + titleSize * 1.1,
+        this.planeZ + size * 0.02
+      );
+      this.titleLabels.x.rotation.z = 0;
+      this.titleLabels.x.scale.set(titleSize, titleSize, 1);
+    }
+    if (this.titleLabels.y) {
+      this.titleLabels.y.position.set(
+        centre.x + titleSize * 1.1,
+        r.y[1] - span.y * 0.06,
+        this.planeZ + size * 0.02
+      );
+      this.titleLabels.y.rotation.z = Math.PI / 2;
+      this.titleLabels.y.scale.set(titleSize, titleSize, 1);
+    }
   }
 
   update(camera, root, height) {
@@ -647,9 +742,12 @@ export class Axes {
         z: new Color(theme.axisZ),
       },
     };
+    this.ink = theme.ink || this.ink;
     this._colorGround();
     this._colorGrid();
     this._buildAxes();
+    // The text is baked into a texture, so a theme change redraws it.
+    this._buildText();
   }
 
   dispose() {
@@ -659,12 +757,6 @@ export class Axes {
     this.gridLines.material.dispose();
     this.axisLines.geometry.dispose();
     this.axisLines.material.dispose();
-    this.tickLabels
-      .concat(Object.values(this.titleLabels))
-      .forEach((label) => {
-        if (label.element && label.element.parentNode) {
-          label.element.parentNode.removeChild(label.element);
-        }
-      });
+    this.tickLabels.concat(Object.values(this.titleLabels)).forEach(disposeLabel);
   }
 }

@@ -395,14 +395,18 @@ export async function runSmoke(
                  // points, so reading on the first non-empty frame caught
                  // the scene between the two -- which failed about one run
                  // in five, and never on the same check twice.
-                 const ticks = document.querySelectorAll('.sv-gl-tick').length
+                 const ticks = Number(
+                   (document.getElementById('gl-stage') || {}).dataset?.tickLabels || 0
+                 )
                  if (drawn > 0 && ticks > 0) {
                    console.log('scene settled: ' + text)
                    const legend = document.getElementById('gl-legend')
                    return {
                      stats: text,
                      legend: legend ? legend.children.length : 0,
-                     ticks: document.querySelectorAll('.sv-gl-tick').length,
+                     ticks: Number(
+                       (document.getElementById('gl-stage') || {}).dataset?.tickLabels || 0
+                     ),
                      groups: document.querySelectorAll('.sv-gl-legend-row').length
                    }
                  }
@@ -414,7 +418,8 @@ export async function runSmoke(
                  error: 'the scene never reported drawing anything'
                    + ' | stats=' + JSON.stringify(stats ? stats.textContent : null)
                    + ' | canvas=' + (canvas ? canvas.width + 'x' + canvas.height : 'none')
-                   + ' | ticks=' + document.querySelectorAll('.sv-gl-tick').length
+                   + ' | ticks=' + ((document.getElementById('gl-stage') || {})
+                       .dataset?.tickLabels || 0)
                    + ' | legend=' + document.querySelectorAll('.sv-gl-legend-row').length
                    + ' | chips=' + document.querySelectorAll('.sv-chip').length
                    + ' | crumb=' + JSON.stringify(
