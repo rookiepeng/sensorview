@@ -8,8 +8,7 @@
 // Two decisions shape the rest:
 //
 // Rendering is on demand. There is no free-running animation loop: a frame is
-// drawn when something changes it and while orbit damping is still settling,
-// and otherwise not at all. A loop that always spins would compete with the
+// drawn when something changes it, and otherwise not at all. A loop that always spins would compete with the
 // dock's charts and a video element for the same main thread, and cost battery
 // in a window that is usually sitting still.
 //
@@ -214,8 +213,13 @@ export function create(host, options = {}) {
     camera.up.set(0, 0, 1);
 
     controls = new OrbitControls(camera, canvas);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
+    // No damping. At 0.08 the camera moved eight per cent of the way to the
+    // pointer per frame, so a drag was a dozen frames behind the hand and
+    // kept gliding after it let go -- and the loop went on drawing for the
+    // tail of every orbit. That reads as the app being slow rather than as
+    // smoothness. movens-link's view, which is the one that feels
+    // immediate, leaves OrbitControls' damping off; so does this.
+    controls.enableDamping = false;
     controls.screenSpacePanning = true;
     controls.addEventListener("change", requestRender);
 

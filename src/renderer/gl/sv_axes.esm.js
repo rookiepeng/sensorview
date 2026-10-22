@@ -27,6 +27,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
+  DoubleSide,
   Group,
   LineBasicMaterial,
   LineSegments,
@@ -140,6 +141,12 @@ export class Axes {
         transparent: true,
         opacity: 1,
         depthWrite: false,
+        // Both faces. The quads are wound anticlockwise about -Z, so with
+        // the default `FrontSide` the floor drew only for a camera beneath
+        // it -- which is the one place nobody looks from. Winding them the
+        // other way would just move the problem: the z range runs below the
+        // plane, so there is a camera under the floor to serve either way.
+        side: DoubleSide,
         // The grid sits on the same plane; without this they fight for it.
         polygonOffset: true,
         polygonOffsetFactor: 1,
