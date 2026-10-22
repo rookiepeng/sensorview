@@ -1616,12 +1616,14 @@ input[type="range"] {
     border-radius: var(--sv-radius-pill);
 }
 
-/* Two states, not three. A separate step for the pointer reaching the
-   thumb itself meant it thickened once on the way into the panel and again
-   on the way to the thumb, which reads as the control being unsure. The
-   pointer is in the panel or it is not; `:active` is in here so a drag that
-   outruns the panel keeps it, not to add a third look. */
-:hover::-webkit-scrollbar-thumb,
+/* Two states, and the second one is the pointer on the bar itself rather
+   than anywhere in the panel -- a panel-wide trigger means every pass over
+   a card lights up a control nobody was reaching for. The target is not
+   the three visible pixels: the thumb's box is the whole gutter and the
+   border is transparent padding inside it, so anywhere in those eleven
+   pixels counts. `:active` is here so a drag that outruns the bar keeps
+   it, not to add a third look. */
+::-webkit-scrollbar-thumb:hover,
 ::-webkit-scrollbar-thumb:active {
     background-color: var(--sv-accent);
     border-width: 2px;
