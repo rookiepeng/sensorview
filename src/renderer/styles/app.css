@@ -68,13 +68,21 @@
     --sv-surface: #111419;
     --sv-surface-2: #171b22;
     --sv-surface-3: #1e232b;
-    --sv-border: #242a33;
-    --sv-border-strong: #333b47;
+    /* Carrying a little of the accent rather than being neutral grey: the
+       lines are most of what is on screen, and a cool cast on them is what
+       makes the whole window look of a piece with the blue. */
+    --sv-border: #222b38;
+    --sv-border-strong: #33415a;
     --sv-text: #dfe4ea;
     --sv-text-dim: #8a929e;
     --sv-text-faint: #5d656f;
     --sv-accent: #4c9ffe;
     --sv-accent-soft: rgba(76, 159, 254, 0.16);
+    /* A trace of the accent over a surface, for the bands that separate one
+       thing from another -- panel heads, the dock's head, a segmented
+       group. Every neutral in this theme is a grey, and a UI built only of
+       greys reads as switched off however carefully the greys are chosen. */
+    --sv-accent-wash: rgba(76, 159, 254, 0.07);
     --sv-warn: #f0a020;
     --sv-danger: #e5484d;
     --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
@@ -93,6 +101,7 @@
     --sv-text-faint: #8d959f;
     --sv-accent: #0b64d0;
     --sv-accent-soft: rgba(11, 100, 208, 0.12);
+    --sv-accent-wash: rgba(11, 100, 208, 0.05);
     --sv-warn: #b46b00;
     --sv-danger: #c53030;
     --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
@@ -576,8 +585,12 @@ body {
     justify-content: space-between;
     gap: 6px;
     padding: 0 6px 0 12px;
-    background: var(--sv-surface-2);
+    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-panel-title .bi {
+    color: var(--sv-accent);
 }
 
 .sv-panel-title {
@@ -634,16 +647,20 @@ body {
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    background: var(--sv-surface-2);
+    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
     border-radius: calc(var(--sv-radius) - 1px) calc(var(--sv-radius) - 1px) 0 0;
 }
 
 /* The icon is the card's whole identity once the rail is a strip, so it sits
    with the title rather than being decoration on the label. */
+/* The icon is the one thing on a head that is allowed colour. It names the
+   card, it is the same glyph the tray shows when the card is away, and it
+   is enough to stop a column of heads reading as a stack of grey bars. */
 .sv-group-icon {
     flex: 0 0 auto;
     font-size: 0.85rem;
+    color: var(--sv-accent);
 }
 
 .sv-group-label {
@@ -1185,7 +1202,7 @@ body {
     align-items: center;
     gap: 6px;
     padding: 0 6px;
-    background: var(--sv-surface-2);
+    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
 }
 

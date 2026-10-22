@@ -36,8 +36,12 @@
    fades into the background at its rim, so a strong colour would only draw a
    hard edge where the fade is supposed to hide one. */
 [data-bs-theme="dark"] {
-    --sv-view-ground: #232f3d;
-    --sv-view-grid: #42607a;
+    /* Dim. The floor is the surface the cloud stands on, not a feature:
+       against a near-black page the old #232f3d read as a lit slab and the
+       returns had to compete with it. The grid comes down with it, or a
+       dimmer floor just means the lines sit on top of nothing. */
+    --sv-view-ground: #141d28;
+    --sv-view-grid: #2d465c;
     --sv-ax-x: #ff5f5f;
     --sv-ax-y: #4fd06a;
     --sv-ax-z: #4e9eff;
