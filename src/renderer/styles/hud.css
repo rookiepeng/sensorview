@@ -123,6 +123,7 @@
 }
 
 .sv-group,
+.sv-tray,
 .sv-inspector,
 .sv-transport,
 .sv-dock,
@@ -137,6 +138,7 @@
    introducing a second one. */
 .sv-topbar,
 .sv-group,
+.sv-tray,
 .sv-inspector,
 .sv-transport,
 .sv-dock,

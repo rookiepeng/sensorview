@@ -15,68 +15,29 @@ import { create } from 'zustand'
 
 import { DEFAULT_LAYOUT, sanitiseLayout, type Layout } from '@shared/types'
 
-/** Which of the three foldable panels were away. */
-interface Folded {
-  rail: boolean
-  inspector: boolean
-  dock: boolean
-}
+/** The overlays down the left, each shown or hidden on its own. */
+export const OVERLAYS = ['display', 'filters'] as const
 
 export interface LayoutState extends Layout {
-  /**
-   * What the panels were before `focusScene` folded them, or null when it
-   * did not. Deliberately not persisted: it is the way back from one click,
-   * not a description of the window, and a stale one read off disk would
-   * reopen panels the user had folded by hand.
-   */
-  restore: Folded | null
   setSize: (key: 'railW' | 'inspectorW' | 'dockH', px: number | null) => void
-  toggle: (key: 'railCollapsed' | 'inspectorCollapsed' | 'dockCollapsed') => void
-  /** Fold a panel card away, or bring it back. */
-  toggleFold: (id: string) => void
+  toggle: (key: 'inspectorCollapsed' | 'dockCollapsed') => void
+  /** Show an overlay, or take it away. */
+  toggleHidden: (id: string) => void
   /** Show one analysis pane or two. */
   setPanes: (count: number) => void
-  /** Fold all three panels away, or put back the ones that were open. */
-  focusScene: () => void
   /** Replace everything persisted, on the one read at startup. */
   hydrate: (stored: Layout) => void
 }
 
 export const useLayout = create<LayoutState>((set) => ({
   ...DEFAULT_LAYOUT,
-  restore: null,
   setSize: (key, px) => set({ [key]: px } as Pick<LayoutState, typeof key>),
   toggle: (key) => set((s) => ({ [key]: !s[key] }) as Pick<LayoutState, typeof key>),
-  toggleFold: (id) =>
+  toggleHidden: (id) =>
     set((s) => ({
-      folded: s.folded.includes(id) ? s.folded.filter((name) => name !== id) : [...s.folded, id]
+      hidden: s.hidden.includes(id) ? s.hidden.filter((name) => name !== id) : [...s.hidden, id]
     })),
   setPanes: (count) => set({ dockPanes: count === 1 ? 1 : 2 }),
-  focusScene: () =>
-    set((s) => {
-      if (!s.railCollapsed || !s.inspectorCollapsed || !s.dockCollapsed) {
-        return {
-          restore: {
-            rail: s.railCollapsed,
-            inspector: s.inspectorCollapsed,
-            dock: s.dockCollapsed
-          },
-          railCollapsed: true,
-          inspectorCollapsed: true,
-          dockCollapsed: true
-        }
-      }
-      // All three are already away. Put back whatever was open before --
-      // or open all three, for a window that came up collapsed and has
-      // nothing remembered.
-      const was = s.restore ?? { rail: false, inspector: false, dock: false }
-      return {
-        restore: null,
-        railCollapsed: was.rail,
-        inspectorCollapsed: was.inspector,
-        dockCollapsed: was.dock
-      }
-    }),
   hydrate: (stored) => set(stored)
 }))
 
@@ -112,10 +73,9 @@ export function layoutOf(s: LayoutState): Layout {
     railW: s.railW,
     inspectorW: s.inspectorW,
     dockH: s.dockH,
-    railCollapsed: s.railCollapsed,
     inspectorCollapsed: s.inspectorCollapsed,
     dockCollapsed: s.dockCollapsed,
-    folded: s.folded,
+    hidden: s.hidden,
     dockPanes: s.dockPanes
   }
 }

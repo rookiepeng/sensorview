@@ -28,7 +28,7 @@ import { Inspector } from './components/Inspector'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
-import { BOUNDS, useLayout, useLayoutPersistence } from './layout'
+import { BOUNDS, OVERLAYS, useLayout, useLayoutPersistence } from './layout'
 import { useCloud } from './useCloud'
 import { useHotkeys } from './useHotkeys'
 import { useReference } from './useReference'
@@ -65,7 +65,7 @@ export function App() {
   const railW = useLayout((s) => s.railW)
   const inspectorW = useLayout((s) => s.inspectorW)
   const dockH = useLayout((s) => s.dockH)
-  const railCollapsed = useLayout((s) => s.railCollapsed)
+  const hidden = useLayout((s) => s.hidden)
   const setSize = useLayout((s) => s.setSize)
   const cloud = useStore((s) => s.cloud)
   const cloudDisplay = useStore((s) => s.cloudDisplay)
@@ -212,7 +212,8 @@ export function App() {
       <div className="sv-view">
         <div className="sv-hud-col sv-hud-left">
           <FilterRail />
-          {!railCollapsed && (
+          {/* One handle for the column, so long as something is in it. */}
+          {OVERLAYS.some((id) => !hidden.includes(id)) && (
             <Splitter
               id="rail-splitter"
               axis="col"

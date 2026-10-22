@@ -43,14 +43,15 @@ export function Inspector() {
   // picker is what makes one of them the subject.
   const [oneStream, setOneStream] = useState('')
   const [onePlot, setOnePlot] = useState('')
-  // Folded sections live with the rest of the layout rather than in local
+  // Minimized sections live with the rest of the layout rather than in local
   // state: which panels are away is a property of the window, and a case
   // being opened is the moment a user is least expecting them to come back.
-  const folded = useLayout((s) => s.folded)
-  const toggleFold = useLayout((s) => s.toggleFold)
+  // The same list the left-hand overlays use -- away is away.
+  const hidden = useLayout((s) => s.hidden)
+  const toggleHidden = useLayout((s) => s.toggleHidden)
   const minimized = {
-    camera: folded.includes('camera'),
-    curves: folded.includes('curves')
+    camera: hidden.includes('camera'),
+    curves: hidden.includes('curves')
   }
   const toggle = useLayout((s) => s.toggle)
   const theme = useTheme()
@@ -302,7 +303,7 @@ export function Inspector() {
               <Minimize
                 on={minimized.camera}
                 label="camera"
-                onToggle={() => toggleFold('camera')}
+                onToggle={() => toggleHidden('camera')}
               />
             </div>
             {!minimized.camera && (
@@ -354,7 +355,7 @@ export function Inspector() {
               <Minimize
                 on={minimized.curves}
                 label="curves"
-                onToggle={() => toggleFold('curves')}
+                onToggle={() => toggleHidden('curves')}
               />
             </div>
             {!minimized.curves && (

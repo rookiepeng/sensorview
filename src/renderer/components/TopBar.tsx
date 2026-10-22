@@ -1,14 +1,9 @@
-// The top bar: who we are, what is open, which panels are, and the theme.
+// The top bar: who we are, what is open, and the theme.
 //
 // The breadcrumb is the case picker, as it was in the Dash top bar -- the path
 // is the only thing worth showing there, so clicking it is the obvious way to
 // change it rather than hiding that behind a separate button.
-//
-// The middle of the bar was about seven hundred pixels of nothing. It holds
-// the view cluster now: one toggle per floating panel, and one button that
-// folds all three and puts them back, because each panel's own toggle lives
-// inside that panel and clearing the screen was three clicks in three
-// corners.
+
 
 import { useEffect, useRef, useState } from 'react'
 
@@ -19,7 +14,6 @@ import type { CaseSummary, LogSummary } from '@shared/types'
 import { ColumnConfig } from './ColumnConfig'
 import { ExportMenu } from './ExportMenu'
 import { IconButton } from './Controls'
-import { useLayout } from '../layout'
 import { useMenu } from '../useMenu'
 import { useStore } from '../store'
 
@@ -43,12 +37,6 @@ export function TopBar() {
   // winning regardless of which was asked for last.
   const load_id = useRef(0)
   const picker = useMenu()
-  const railCollapsed = useLayout((s) => s.railCollapsed)
-  const inspectorCollapsed = useLayout((s) => s.inspectorCollapsed)
-  const dockCollapsed = useLayout((s) => s.dockCollapsed)
-  const focused = useLayout((s) => s.restore !== null)
-  const toggle = useLayout((s) => s.toggle)
-  const focusScene = useLayout((s) => s.focusScene)
 
   useEffect(() => {
     void window.sensorview.settings.get().then((stored) => {
@@ -346,39 +334,6 @@ export function TopBar() {
           {error}
         </span>
       )}
-
-      <div className="sv-topbar-spacer" />
-
-      {/* Pressed means open, so the cluster is a picture of the window.
-          Deliberately not `.sv-topbar-menu`: `smoke.ts` resolves the column
-          config as the first `.sv-topbar-menu .sv-icon-btn`. */}
-      <div className="sv-topbar-views" role="group" aria-label="Panels">
-        <IconButton
-          icon="layout-sidebar"
-          title={`${railCollapsed ? 'Show' : 'Hide'} the filter rail`}
-          pressed={!railCollapsed}
-          onClick={() => toggle('railCollapsed')}
-        />
-        <IconButton
-          icon="layout-sidebar-reverse"
-          title={`${inspectorCollapsed ? 'Show' : 'Hide'} the inspector`}
-          pressed={!inspectorCollapsed}
-          onClick={() => toggle('inspectorCollapsed')}
-        />
-        <IconButton
-          icon="layout-text-window-reverse"
-          title={`${dockCollapsed ? 'Show' : 'Hide'} the analysis dock`}
-          pressed={!dockCollapsed}
-          onClick={() => toggle('dockCollapsed')}
-        />
-        <span className="sv-view-sep" aria-hidden="true" />
-        <IconButton
-          icon="aspect-ratio"
-          title={focused ? 'Bring the panels back' : 'Fold every panel away'}
-          pressed={focused}
-          onClick={focusScene}
-        />
-      </div>
 
       <div className="sv-topbar-spacer" />
 

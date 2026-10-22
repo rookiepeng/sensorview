@@ -146,18 +146,23 @@ export interface Layout {
   railW: number | null
   inspectorW: number | null
   dockH: number | null
-  railCollapsed: boolean
   inspectorCollapsed: boolean
   dockCollapsed: boolean
   /**
-   * Which panel cards are folded, by id.
+   * Which overlays are away, by id.
    *
-   * A list rather than a field per card: the cards are a growing set, and
-   * every one of them would otherwise be a field here, a default, a line in
-   * `sanitiseLayout` and a key in the store. Unfolded is the default, so an
-   * id that no longer exists simply never matches.
+   * The left-hand overlays -- `display` and `filters` -- are each their own
+   * panel rather than two halves of a rail, so each is shown or hidden on
+   * its own. There is nothing in between: a panel narrowed to a strip of
+   * icons is a third state that costs the scene a column to say what the
+   * top bar already says in a place that does not move.
+   *
+   * A list rather than a field apiece: the overlays are a growing set, and
+   * every one would otherwise be a field here, a default, a line in
+   * `sanitiseLayout` and a key in the store. Shown is the default, so an id
+   * that no longer exists simply never matches.
    */
-  folded: string[]
+  hidden: string[]
   /**
    * How many panes the analysis dock shows, one or two.
    *
@@ -173,10 +178,9 @@ export const DEFAULT_LAYOUT: Layout = {
   railW: null,
   inspectorW: null,
   dockH: null,
-  railCollapsed: false,
   inspectorCollapsed: false,
   dockCollapsed: false,
-  folded: [],
+  hidden: [],
   dockPanes: 2
 }
 
@@ -196,13 +200,12 @@ export function sanitiseLayout(raw: unknown): Layout {
     railW: size(it.railW),
     inspectorW: size(it.inspectorW),
     dockH: size(it.dockH),
-    railCollapsed: it.railCollapsed === true,
     inspectorCollapsed: it.inspectorCollapsed === true,
     dockCollapsed: it.dockCollapsed === true,
-    // Capped and filtered: this is a list off disk, and a card nobody can
-    // reach is still a string being carried around for the life of the app.
-    folded: Array.isArray(it.folded)
-      ? it.folded.filter((id): id is string => typeof id === 'string').slice(0, 32)
+    // Capped and filtered: this is a list off disk, and an overlay nobody
+    // can reach is still a string carried around for the life of the app.
+    hidden: Array.isArray(it.hidden)
+      ? it.hidden.filter((id): id is string => typeof id === 'string').slice(0, 32)
       : [],
     dockPanes: it.dockPanes === 1 ? 1 : 2
   }

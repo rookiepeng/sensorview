@@ -117,12 +117,12 @@ export function PanelHead({
 }
 
 /**
- * A labelled band of a scrolling panel.
+ * One overlay: a titled plate floating over the scene.
  *
- * The head stays put while the body scrolls under it, and -- given `open` and
- * `onToggle` -- folds the body away. That is the rail's whole problem: scene
- * appearance is set once and the filters are worked, and in one flat scroll
- * the first pushes the second off screen.
+ * It has two states and the caller owns them -- it is here, or it is not.
+ * There was a fold in between, which turned out to be a third answer to a
+ * question with two: a plate showing only its head takes the same column
+ * from the scene as one showing its controls.
  *
  * The head's title is deliberately not a `.sv-section-label`. `smoke.ts` reads
  * every one of those in the rail and asserts "colour by" is immediately
@@ -135,53 +135,41 @@ export function Group({
   children,
   reading,
   actions,
-  open,
-  onToggle
+  onHide
 }: {
-  /** The card's whole identity once the rail is collapsed to a strip. */
+  /** Names the overlay here, and the button that brings it back. */
   icon: Icon
   title: string
   children: ReactNode
   /**
-   * What the card is worth at a glance -- the column it is coloured by, how
-   * many filters are on, how many plots there are.
-   *
-   * Shown whether or not the card is open, which is the point: folding one
-   * away should cost the controls and not the answer they were set to.
+   * What the overlay is worth at a glance -- the column the scene is
+   * coloured by, how many filters are on.
    */
   reading?: ReactNode
   /** Rendered at the end of the head -- a Reset, a picker. */
   actions?: ReactNode
-  /** Omit both to get a head that stays put but does not fold. */
-  open?: boolean
-  onToggle?: () => void
+  /** Takes the overlay away. It comes back from the tray in its corner. */
+  onHide?: () => void
 }) {
-  const foldable = onToggle !== undefined
-  const shown = !foldable || open !== false
   return (
-    <section className={`sv-group${shown ? '' : ' sv-group-shut'}`}>
+    <section className="sv-group">
       <div className="sv-group-head">
-        {foldable ? (
-          <button
-            type="button"
-            className="sv-group-title sv-group-toggle"
-            aria-expanded={shown}
-            onClick={onToggle}
-          >
-            <i className="bi bi-chevron-down sv-group-chevron" aria-hidden="true" />
-            <i className={`bi bi-${icon} sv-group-icon`} aria-hidden="true" />
-            <span className="sv-group-label">{title}</span>
-          </button>
-        ) : (
-          <span className="sv-group-title">
-            <i className={`bi bi-${icon} sv-group-icon`} aria-hidden="true" />
-            <span className="sv-group-label">{title}</span>
-          </span>
-        )}
+        <span className="sv-group-title">
+          <i className={`bi bi-${icon} sv-group-icon`} aria-hidden="true" />
+          <span className="sv-group-label">{title}</span>
+        </span>
         {reading ? <span className="sv-group-reading">{reading}</span> : null}
         {actions}
+        {onHide && (
+          <IconButton
+            icon="x-lg"
+            title={`Hide ${title}`}
+            onClick={onHide}
+            className="sv-group-hide"
+          />
+        )}
       </div>
-      {shown && <div className="sv-group-body">{children}</div>}
+      <div className="sv-group-body">{children}</div>
     </section>
   )
 }

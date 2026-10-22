@@ -323,36 +323,6 @@ body {
     flex: 1 1 auto;
 }
 
-/* The three panels' own collapse toggles are inside the panels, which is the
-   way back from a 44px strip but a poor way to clear the screen -- three
-   clicks in three corners. One cluster in the middle of the bar, where there
-   was nothing, says what is open and folds it. */
-.sv-topbar-views {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex: 0 0 auto;
-    padding: 2px;
-    background: var(--sv-surface-2);
-    border: 1px solid var(--sv-border);
-    border-radius: var(--sv-radius);
-}
-
-.sv-topbar-views .sv-icon-btn {
-    height: 22px;
-    min-width: 26px;
-    padding: 0 4px;
-}
-
-/* Folding all three at once is a different kind of act from toggling one, so
-   it sits behind a rule rather than beside them. */
-.sv-view-sep {
-    flex: 0 0 1px;
-    align-self: stretch;
-    margin: 0 3px;
-    background: var(--sv-border);
-}
-
 .sv-topbar-actions {
     display: flex;
     align-items: center;
@@ -522,15 +492,16 @@ body {
 
 /* Same reasoning as the dock: a collapsed panel has no width to give, so its
    handle takes no width either. */
-.sv-rail.sv-collapsed + .sv-splitter,
 .sv-splitter:has(+ .sv-inspector.sv-collapsed) {
     visibility: hidden;
     flex-basis: 0;
 }
 
-/* A collapsed panel keeps a narrow glass strip rather than vanishing, so the
-   way back is always in the same place. The rules are in hud.css, with the
-   rest of the glass. */
+/* The inspector keeps a narrow glass strip when it collapses, because that
+   strip carries the head that brings it back. The rail has no head of its
+   own -- it is a stack of cards -- so it goes altogether and the top bar
+   says it is away. Those rules are in hud.css, with the rest of the
+   glass. */
 
 /* ── Left rail: filters ───────────────────────────────────────────────────
    `flex: 0 1 auto` rather than a fixed basis: the column's height is what the
@@ -553,31 +524,40 @@ body {
     transition: width var(--sv-ease);
 }
 
-/* Collapsed, the stack keeps its width as a strip of icons -- one per card,
-   which is what a card is reduced to. The way back is pressing one, so the
-   rail that comes back is in the same place it went. */
-.sv-rail.sv-collapsed {
-    width: 44px;
-    overflow: visible;
+/* An overlay that is away leaves its icon here, at the head of the column
+   it came from. With every overlay away the column is the tray and nothing
+   else, so it stops reserving a panel's width from the scene. */
+.sv-tray {
+    flex: 0 0 auto;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
 }
 
-.sv-rail.sv-collapsed .sv-group-label,
-.sv-rail.sv-collapsed .sv-group-reading,
-.sv-rail.sv-collapsed .sv-group-chevron,
-.sv-rail.sv-collapsed .sv-group-body,
-.sv-rail.sv-collapsed .sv-group-head > .sv-text-btn {
-    display: none;
+.sv-tray .sv-icon-btn {
+    height: 26px;
+    min-width: 26px;
+    padding: 0 4px;
 }
 
-.sv-rail.sv-collapsed .sv-group-head {
-    justify-content: center;
-    padding: 8px 0;
-    border-bottom: 0;
-    border-radius: calc(var(--sv-radius) - 1px);
+.sv-rail:not(:has(.sv-group)) {
+    width: auto;
 }
 
-.sv-rail.sv-collapsed .sv-group-icon {
-    font-size: 1rem;
+/* The one control on a card head that is not about the data in it. */
+.sv-group-hide {
+    flex: 0 0 auto;
+    height: 20px;
+    min-width: 20px;
+    padding: 0 2px;
+}
+
+.sv-group-hide .bi {
+    font-size: 0.7rem;
 }
 
 /* ── Shared panel chrome ─────────────────────────────────────────────── */
@@ -677,30 +657,6 @@ body {
     white-space: nowrap;
 }
 
-/* The whole title is the target, not a chevron the size of a full stop. */
-.sv-group-toggle {
-    padding: 0;
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-    text-align: left;
-    transition: color var(--sv-ease);
-}
-
-.sv-group-toggle:hover {
-    color: var(--sv-text);
-}
-
-.sv-group-chevron {
-    flex: 0 0 auto;
-    font-size: 0.65rem;
-    transition: transform var(--sv-ease);
-}
-
-.sv-group-toggle[aria-expanded="false"] .sv-group-chevron {
-    transform: rotate(-90deg);
-}
-
 /* What the card is worth at a glance: the column the scene is coloured by,
    how much of the filtering is on, how many plots are behind a minimized
    heading. It stays in the head when the card folds, so folding one away
@@ -714,13 +670,6 @@ body {
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     text-overflow: ellipsis;
-}
-
-/* A folded card is a head and nothing else, so it needs no rule under it
-   and its head is the whole plate. */
-.sv-group-shut > .sv-group-head {
-    border-bottom: 0;
-    border-radius: calc(var(--sv-radius) - 1px);
 }
 
 .sv-group-body {
