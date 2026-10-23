@@ -70,9 +70,18 @@ jobs:
       # sv:// scheme honours Range. Both fail in ways only a real Electron run
       # shows, and both are what the camera panel and every reader depend on.
       # Linux runners have no display, so Electron needs a virtual one.
+      # Ubuntu 24.04 also blocks unprivileged user namespaces via AppArmor,
+      # which makes Chromium fall back to the SUID sandbox helper and abort
+      # (chrome-sandbox in node_modules is not root-owned). Give the helper
+      # the ownership and setuid bit it needs, so the sandbox stays on.
       - name: Smoke test
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
+            # Electron fetches its binary on first require, not on npm ci.
+            node -e "require('electron')"
+            sandbox=node_modules/electron/dist/chrome-sandbox
+            sudo chown root:root "$sandbox"
+            sudo chmod 4755 "$sandbox"
             sudo apt-get update && sudo apt-get install -y xvfb
             xvfb-run --auto-servernum node scripts/smoke.mjs
           else
