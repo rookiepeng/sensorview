@@ -1762,8 +1762,12 @@ body {
 
 .sv-welcome-busy {
     margin: 0;
+    max-width: 100%;
     color: var(--sv-text-dim);
     font-size: var(--sv-font-sm);
+    /* Log names are often one long run of underscores with nowhere to break,
+       which would push straight out of the plate. */
+    overflow-wrap: anywhere;
 }
 
 .sv-welcome-busy b {
@@ -1823,6 +1827,9 @@ body {
 .sv-loading-plate {
     position: relative;
     display: flex;
+    /* A long log name is cut short rather than run past the scene. */
+    max-width: min(560px, calc(100% - 32px));
+    min-width: 0;
     align-items: center;
     gap: 12px;
     padding: 12px 18px 14px 14px;
@@ -1849,6 +1856,9 @@ body {
 }
 
 .sv-loading-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

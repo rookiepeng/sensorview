@@ -54,7 +54,7 @@ function Plot({
     () =>
       plot.traces.map((trace) => ({
         type: 'scatter' as const,
-        mode: 'lines' as const,
+        mode: (trace.mode ?? 'lines') as 'lines' | 'markers' | 'lines+markers',
         name: trace.label,
         // Plotly reads a typed array directly; converting to a plain array
         // here would copy every sample for no gain.
@@ -64,6 +64,12 @@ function Plot({
           color: trace.color,
           width: trace.width ?? 2,
           dash: (trace.dash ?? 'solid') as Plotly.Dash
+        },
+        marker: {
+          color: trace.color,
+          size: trace.size ?? 6,
+          // Plotly's symbol union is closed; the manifest names any symbol it knows.
+          symbol: (trace.symbol ?? 'circle') as 'circle'
         },
         // A gap is a gap. Joining across one would draw a line through a bin
         // that had no return, which reads as data.
@@ -79,11 +85,22 @@ function Plot({
       autosize: true,
       // The panel is small, so the margins are the plot: Plotly's defaults
       // would leave less than half the box for the trace.
-      margin: { l: 52, r: 8, t: 6, b: 34 },
+      // The top margin leaves one row for the legend above the plot.
+      margin: { l: 52, r: 8, t: 22, b: 34 },
       paper_bgcolor: 'rgba(0,0,0,0)',
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: { color: ink, size: 10 },
-      showlegend: false,
+      // A legend row above the plot, so it never covers the traces.
+      showlegend: true,
+      legend: {
+        orientation: 'h' as const,
+        x: 0,
+        xanchor: 'left' as const,
+        y: 1,
+        yanchor: 'bottom' as const,
+        bgcolor: 'rgba(0,0,0,0)',
+        font: { size: 9 }
+      },
       xaxis: {
         title: { text: plot.xLabel, font: { size: 10 } },
         gridcolor: grid,

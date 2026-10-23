@@ -152,6 +152,9 @@ const handlers: Record<DataMethod, Handler> = {
           color: trace.color as string | undefined,
           dash: trace.dash as string | undefined,
           width: trace.width as number | undefined,
+          mode: trace.mode as string | undefined,
+          size: trace.size as number | undefined,
+          symbol: trace.symbol as string | undefined,
           x: curve.x,
           y: curve.y
         })

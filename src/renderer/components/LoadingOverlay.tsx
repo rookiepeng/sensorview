@@ -17,7 +17,9 @@ export function LoadingOverlay() {
     <div className="sv-loading" role="status" aria-live="polite">
       <div className="sv-loading-plate">
         <span className="sv-loading-ring" aria-hidden="true" />
-        <span className="sv-loading-text">{loading} …</span>
+        <span className="sv-loading-text" title={loading}>
+          {loading} …
+        </span>
         <span className="sv-loading-bar" aria-hidden="true" />
       </div>
     </div>

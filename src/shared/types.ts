@@ -62,6 +62,11 @@ export interface CurveTrace {
   color?: string
   dash?: string
   width?: number
+  /** Plotly scatter mode: `lines`, `markers` or `lines+markers`. */
+  mode?: string
+  /** Marker size and symbol, used when `mode` includes markers. */
+  size?: number
+  symbol?: string
   /** Sample positions, or null to plot against the sample index. */
   x: Float32Array | null
   y: Float32Array
