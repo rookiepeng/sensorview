@@ -22,11 +22,18 @@
        transport holds the same button and a slider. */
     --sv-topbar-h: 38px;
     --sv-transport-h: 40px;
+    /* The two side columns' widths before anything is dragged. No rule
+       reads either any more -- the panels own the widths -- but `App.tsx`
+       reads both once, so these stay the one place the numbers live. */
     --sv-rail-w: 288px;
     /* Wide enough for a 16:9 still to be worth looking at, and for a curve
        to have an axis either side of its trace. 380 was the width of a
        column beside the scene; this is a panel over it. */
     --sv-inspector-w: 480px;
+    /* No longer read by any rule: the dock's height belongs to its panel
+       now. Kept because it is where `defaultSize="34"` in `App.tsx` comes
+       from -- the gap the dock sits in is the window's height, so 34vh and
+       34 percent of the gap are the same answer. Change one, change both. */
     --sv-dock-h: 34vh;
     --sv-dock-tabs-h: 38px;
     /* Floor for a pane's plot area. The figures reserve 120px of vertical
@@ -222,13 +229,13 @@ body {
     font-size: 0.65rem !important;
 }
 
-/* Hung off the breadcrumb rather than the window: it is a menu for that
-   control, and anchoring it anywhere else would need the chip's position
-   measured and kept in step with the top bar's own layout. */
+/* The surface alone. A Radix popper hangs it off its trigger, setting its own
+   transform on a wrapper around this element -- so this must not position
+   itself, and carries `relative` only so the z-index has something to apply
+   to. The `top`/`left` that used to be here, and the `.sv-menu-right` that
+   flipped them, are now `side`/`align`/`sideOffset` on each Content. */
 .sv-menu {
-    position: absolute;
-    top: calc(100% + 5px);
-    left: 0;
+    position: relative;
     z-index: var(--sv-z-menu);
     min-width: 100%;
     max-height: 60vh;
@@ -259,7 +266,8 @@ body {
     transition: background var(--sv-ease), color var(--sv-ease);
 }
 
-.sv-menu-item:hover {
+.sv-menu-item:hover,
+.sv-menu-item[data-highlighted] {
     background: var(--sv-surface-3);
     color: var(--sv-text);
 }
@@ -373,7 +381,7 @@ body {
 }
 
 .sv-icon-btn.active,
-.sv-icon-btn[aria-pressed="true"] {
+.sv-icon-btn[data-state="on"] {
     background: var(--sv-accent-soft);
     border-color: transparent;
     color: var(--sv-accent);
@@ -393,20 +401,22 @@ body {
     pointer-events: none;
 }
 
-/* A column of panels down one side. Its height is what it holds -- capped at
-   the window -- so a short rail leaves the scene visible under it instead of
-   walling off a strip it is not using. `align-items: stretch` is what makes
-   the splitter beside it exactly as tall as the panel it resizes. */
+/* A column down one side, as a panel: the row of three in `App.tsx` gives it
+   its width, and this gives what is inside it a column to sit in. The gap a
+   column keeps from the window's edges is padding now rather than an offset,
+   which is why each panel's width is its column plus `--sv-gap`.
+   The panel is the full height of the window but transparent and taking no
+   pointer, and the glass inside is as tall as what it holds -- so a short rail
+   still leaves the scene showing, and orbitable, under it. */
 .sv-hud-col {
-    position: absolute;
-    top: var(--sv-gap);
-    max-height: calc(100% - var(--sv-gap) * 2);
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
 }
 
 .sv-hud-left {
-    left: var(--sv-gap);
+    padding: var(--sv-gap) 0 var(--sv-gap) var(--sv-gap);
 }
 
 /* Floor to ceiling, unlike the left: what this column holds is a picture
@@ -414,32 +424,33 @@ body {
    The left column is a set of controls, which are worth exactly their own
    height and no more. */
 .sv-hud-right {
-    right: var(--sv-gap);
-    bottom: var(--sv-gap);
+    padding: var(--sv-gap) var(--sv-gap) var(--sv-gap) 0;
 }
 
-/* `Inspector` returns null for a log with neither a recording nor curves,
-   which leaves this column holding a handle that resizes nothing. */
-.sv-hud-right:not(:has(.sv-inspector)) {
-    display: none;
+.sv-hud-right > .sv-inspector {
+    flex: 1 1 auto;
 }
 
-/* The gap between the columns, from the insets `Hud.reflow()` measures --
-   the same two numbers the scene frames its data between, so the chrome and
-   the data agree about where the middle is. */
-.sv-center {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: var(--sv-inset-l);
-    right: var(--sv-inset-r);
+/* The middle panel, which the gap's own group fills. A column, for the same
+   reason as the side ones. */
+.sv-hud-centre {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
+    min-height: 0;
+    min-width: 0;
+}
+
+/* The gap between the columns. It used to be placed from the insets
+   `Hud.reflow()` measures; the panel it sits in places it now, and the
+   insets go on framing the scene and parking the HUD furniture, which is
+   what keeps the chrome and the data agreeing about where the middle is. */
+.sv-center {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     min-width: 0;
     padding: var(--sv-gap);
-    transition: left var(--sv-ease), right var(--sv-ease);
     /* So the plate at its head can shed what it can as the gap narrows,
        which is a question about the gap and not about the window. */
     container-type: inline-size;
@@ -454,7 +465,18 @@ body {
     }
 }
 
-/* The transport and the dock under it, pinned to the foot of the gap. */
+/* Everything above the dock: the plate at the head, the transport at the
+   foot, and the scene between them. What `.sv-center` used to say for
+   itself, now that it is a group of two and this is the taller half. */
+.sv-center-gap {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 0;
+}
+
+/* The transport, pinned to the foot of the gap. */
 .sv-center-foot {
     display: flex;
     flex-direction: column;
@@ -509,23 +531,10 @@ body {
     height: 44px;
 }
 
-/* Same reasoning as the dock: a collapsed panel has no width to give, so its
-   handle takes no width either. */
-/* Nothing to resize when the column holds no cards -- it is down to its
-   tray, or there is no case and the rail renders nothing at all. Both
-   columns, because the left one's handle was the only thing in an empty
-   window: a 44px grip against the scene, a third of the way down the left
-   edge, resizing a panel that was not there. React cannot see from the
-   markup whether the component beside it returned null; `:has` can. */
-.sv-hud-col:not(:has(.sv-group)) > .sv-splitter {
-    display: none;
-}
-
-/* The inspector keeps a narrow glass strip when it collapses, because that
-   strip carries the head that brings it back. The rail has no head of its
-   own -- it is a stack of cards -- so it goes altogether and the top bar
-   says it is away. Those rules are in hud.css, with the rest of the
-   glass. */
+/* A column down to its tray, or with nothing in it, has no width to give,
+   so its handle is `disabled` and the rule with the dock's hides it. The
+   `:has()` that used to find those columns from the markup is not needed:
+   the shell knows which shape each column is in and says so. */
 
 /* ── Left rail: filters ───────────────────────────────────────────────────
    `flex: 0 1 auto` rather than a fixed basis: the column's height is what the
@@ -546,7 +555,6 @@ body {
     align-items: flex-start;
     gap: 6px;
     min-height: 0;
-    transition: width var(--sv-ease);
 }
 
 /* What actually holds the cards, and what the splitter sizes. */
@@ -561,8 +569,12 @@ body {
     overflow-x: hidden;
 }
 
+/* The column's width less the tray's, when there is one. It used to carry
+   the column's width itself and the tray made the column wider; the panel
+   owns the width now, so a tray narrows the cards beside it instead. */
 .sv-rail .sv-stack {
-    width: var(--sv-rail-w);
+    flex: 1 1 auto;
+    min-width: 0;
     /* Scrollbar on the outer edge. A scroller puts its bar on the trailing
        side, which on the left-hand column is the side facing the scene --
        where the tray and the splitter already are, and where it reads as a
@@ -802,37 +814,41 @@ body {
     gap: 6px;
 }
 
+/* The slider root. A flex row, which is what centres the thumbs: Radix
+   positions each one absolutely with a `left` and no `top`, so the top it
+   falls back to is its static position -- the middle of this line. */
 .sv-range-track {
     position: relative;
+    display: flex;
+    align-items: center;
     height: 18px;
     cursor: pointer;
     touch-action: none;
 }
 
-.sv-range-rail,
-.sv-range-fill {
-    position: absolute;
-    top: 50%;
+.sv-range-rail {
+    position: relative;
+    flex-grow: 1;
     height: 4px;
     border-radius: var(--sv-radius-pill);
-    transform: translateY(-50%);
-}
-
-.sv-range-rail {
-    left: 0;
-    right: 0;
     background: var(--sv-surface-3);
     border: 1px solid var(--sv-border);
 }
 
-/* The span that survives the filter, which is the thing being chosen. */
+/* The span that survives the filter, which is the thing being chosen.
+   Radix writes the two ends of it inline. */
 .sv-range-fill {
+    position: absolute;
+    height: 100%;
+    border-radius: var(--sv-radius-pill);
     background: var(--sv-accent);
 }
 
+/* The look alone. Where the thumb sits belongs to the wrapper Radix puts
+   around it, which owns `position`, `left` and `transform` -- so none of
+   those can be set here without fighting it. */
 .sv-range-thumb {
-    position: absolute;
-    top: 50%;
+    display: block;
     width: 13px;
     height: 13px;
     margin: 0;
@@ -840,7 +856,6 @@ body {
     background: var(--sv-accent);
     border: 2px solid var(--sv-surface);
     box-shadow: 0 0 0 1px var(--sv-border-strong);
-    transform: translate(-50%, -50%);
     cursor: grab;
     transition: box-shadow var(--sv-ease);
 }
@@ -1013,7 +1028,8 @@ body {
    it would let it spill over the card below. When the sum no longer fits,
    the column scrolls. */
 .sv-inspector .sv-stack {
-    width: var(--sv-inspector-w);
+    flex: 1 1 auto;
+    min-width: 0;
     /* The column runs floor to ceiling here, and the cards divide it. */
     align-self: stretch;
 }
@@ -1028,12 +1044,16 @@ body {
    taking its content's -- a 16:9 still and a stack of plots both read
    better larger, and the space under them was doing nothing. A note is not
    a card in this sense and keeps its own height. */
-.sv-inspector .sv-stack > .sv-group:not(.sv-note) {
+/* Descendant, not child: with two cards to divide, each one sits inside a
+   panel, and a panel is two elements deep before the card. The `:not()`
+   still carries the specificity the dragged-height rules below used to need
+   to beat. */
+.sv-inspector .sv-group:not(.sv-note) {
     flex: 1 1 auto;
     min-height: 0;
 }
 
-.sv-inspector .sv-stack > .sv-group:not(.sv-note) > .sv-group-body {
+.sv-inspector .sv-group:not(.sv-note) > .sv-group-body {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
@@ -1041,26 +1061,22 @@ body {
 
 /* The handle between the two, which a column of otherwise-stretched items
    would leave at its own width -- nothing. */
-.sv-inspector .sv-stack > .sv-splitter {
+.sv-inspector .sv-splitter {
     align-self: stretch;
 }
 
-/* Once the handle has been dragged the two stop dividing the column by what
-   they hold and divide it by what was asked for: the camera takes the
-   height it was given and the curves take the rest. Dragged back to the
-   stylesheet's own answer -- double-click, or Home -- the class goes with
-   the number and they share again. */
-/* Matched to the rule above it, child combinator and all. That one carries
-   a `:not()`, which counts as a class, so a shorter selector here loses to
-   it however far down the file it sits -- and losing means the two cards go
-   on dividing the column by what they hold and the dragged height does
-   nothing at all. */
-.sv-inspector.sv-split .sv-stack > .sv-card-camera {
-    flex: 0 0 var(--sv-camera-h);
+/* The group of panels takes what the column has left, and each panel is a
+   column of its own so the card inside can stretch to fill it. The library
+   gives the panel no layout beyond a flex basis. */
+.sv-inspector-split {
+    display: flex;
+    min-height: 0;
 }
 
-.sv-inspector.sv-split .sv-stack > .sv-card-curves {
-    flex: 1 1 auto;
+.sv-inspector-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 /* A read that failed, on a plate of its own. */
@@ -1187,32 +1203,37 @@ body {
 
 
 /* ── Bottom dock: the six analysis charts ────────────────────────────── */
-.sv-dock-wrap {
-    flex: 0 0 auto;
+
+/* A collapsed dock cannot be resized, so its handle would be a lie. The
+   handle is `disabled` then, which is what this greys. */
+.sv-splitter[data-disabled] {
+    visibility: hidden;
+}
+
+/* The panel the dock lives in. A column, so the dock can grow into it --
+   the same arrangement as the inspector's panes, and for the same reason.
+   Named apart from `.sv-dock-pane` below, which is a chart slot inside the
+   dock and is hidden unless it is one of the two in use. */
+.sv-dock-region {
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
 
-/* A collapsed dock cannot be resized, so its handle would be a lie. */
-.sv-dock-wrap:has(.sv-dock.sv-collapsed) .sv-splitter {
-    visibility: hidden;
-}
-
+/* The dock fills the panel that sizes it, by growing rather than by
+   `height: 100%`. A percentage resolves against the panel's inner element,
+   which has no height of its own to give -- measured, it came out at 0px and
+   the dock with it, while every check that only counted chart marks went on
+   passing. Its own height, the collapsed override that needed `!important`
+   to beat a dragged token, and the transition that would have fought a drag
+   have all gone to the panel. */
 .sv-dock {
     position: relative;
-    flex: 0 0 var(--sv-dock-h);
-    height: var(--sv-dock-h);
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     min-height: 0;
     background: var(--sv-surface);
-    transition: flex-basis var(--sv-ease), height var(--sv-ease);
-}
-
-.sv-dock.sv-collapsed {
-    flex-basis: var(--sv-dock-tabs-h) !important;
-    height: var(--sv-dock-tabs-h) !important;
 }
 
 .sv-dock.sv-collapsed .sv-dock-grid {
@@ -1827,35 +1848,10 @@ input[type="range"] {
    the pseudo-elements it is. This is an Electron app; there is one engine
    to satisfy. */
 
-/* Suppress hover/selection noise while a splitter is being dragged, and keep
-   the drag cursor even when the pointer outruns the handle. The collapse
-   animation on the side panels would lag every frame of a drag, so it is off
-   for the duration. */
-.sv-resizing,
-.sv-resizing * {
-    user-select: none !important;
-}
-
-.sv-resizing-row,
-.sv-resizing-row * {
-    cursor: row-resize !important;
-}
-
-.sv-resizing-col,
-.sv-resizing-col * {
-    cursor: col-resize !important;
-}
-
-/* A panel that is animating its width measures as whatever frame it happens
-   to be on, and the drag is reading that measurement back every pointer
-   event. The gap follows the panels, so it has to stop animating with them
-   or it lags a whole drag behind. */
-.sv-resizing .sv-rail,
-.sv-resizing .sv-inspector,
-.sv-resizing .sv-dock,
-.sv-resizing .sv-center {
-    transition: none;
-}
+/* No drag bookkeeping here any more. `.sv-resizing` was the class the hand-
+   written splitter put on the body for the length of a drag; the library
+   prevents the selection a press would start, sets its own drag cursor, and
+   nothing animates a width it could lag behind. */
 
 /* ── Top-bar menus ───────────────────────────────────────────────────── */
 
@@ -1867,13 +1863,6 @@ input[type="range"] {
     display: flex;
     align-items: center;
     gap: 6px;
-}
-
-/* Hung from the right edge: the menu sits under a button in the top bar's
-   right-hand corner, and a left-anchored one would run off the window. */
-.sv-menu-right {
-    left: auto;
-    right: 0;
 }
 
 .sv-export-note {

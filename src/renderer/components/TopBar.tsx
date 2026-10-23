@@ -6,6 +6,7 @@
 
 
 import { useEffect, useRef, useState } from 'react'
+import { DropdownMenu } from 'radix-ui'
 
 import { buildTable, type Column } from '@shared/table'
 import { buildFrameOwners } from '@shared/logs'
@@ -15,7 +16,6 @@ import { ColumnConfig } from './ColumnConfig'
 import { ExportMenu } from './ExportMenu'
 import { IconButton } from './Controls'
 import { Welcome } from './Welcome'
-import { useMenu } from '../useMenu'
 import { useStore } from '../store'
 
 export function TopBar() {
@@ -42,7 +42,7 @@ export function TopBar() {
   // And two overlapping reads raced to call `openLog`, last to finish
   // winning regardless of which was asked for last.
   const load_id = useRef(0)
-  const picker = useMenu()
+  const [picking, setPicking] = useState(false)
 
   useEffect(() => {
     void window.sensorview.settings.get().then((stored) => {
@@ -246,7 +246,8 @@ export function TopBar() {
         {/* Two targets, not one: the case name reopens the dialog and the stem
             picks among the logs already found. They read as one breadcrumb
             because they are one path. */}
-        <div className="sv-breadcrumb" ref={picker.containerRef}>
+        <DropdownMenu.Root open={picking} onOpenChange={setPicking} modal={false}>
+        <div className="sv-breadcrumb">
           <button
             type="button"
             className="sv-crumb-btn"
@@ -257,12 +258,24 @@ export function TopBar() {
             <span className="sv-crumb">{name ?? 'No case'}</span>
           </button>
           <span className="sv-crumb-sep">/</span>
+          <DropdownMenu.Trigger asChild>
           <button
             type="button"
             className="sv-crumb-btn"
             disabled={busy || logs.length === 0}
-            {...picker.triggerProps}
-            onClick={() => (logs.length > 1 ? picker.toggle() : choose())}
+            // One log is not a menu: there is no chevron and this reopens the
+            // dialog instead. Radix opens on pointer-down, so that is where
+            // the open has to be stopped.
+            onPointerDown={(event) => {
+              if (logs.length <= 1) {
+                event.preventDefault()
+              }
+            }}
+            onClick={() => {
+              if (logs.length <= 1) {
+                choose()
+              }
+            }}
             title={logs.length > 1 ? `${logs.length} logs in this case` : undefined}
           >
             {/* The spinner replaces the caret rather than sitting beside it:
@@ -286,9 +299,12 @@ export function TopBar() {
               <i className="bi bi-chevron-down sv-crumb-caret" aria-hidden="true" />
             )}
           </button>
+          </DropdownMenu.Trigger>
 
-          {picker.open && summary && (
-            <div className="sv-menu" role="menu" ref={picker.menuRef}>
+          {/* Not portalled: `smoke.ts` reaches this through
+              `.sv-breadcrumb .sv-menu`. */}
+          {summary && (
+            <DropdownMenu.Content className="sv-menu" side="bottom" align="start" sideOffset={5}>
               {logs.map((log) => {
                 const at = stems.indexOf(log.stem)
                 const open = at !== -1
@@ -303,13 +319,20 @@ export function TopBar() {
                         makes it primary. One control could not say both, and
                         combining is the thing that needs explaining -- so the
                         common choice stays a plain click on the name. */}
-                    <input
-                      type="checkbox"
-                      role="menuitemcheckbox"
+                    {/* A `CheckboxItem`, not a bare input. Radix walks its
+                        own items with the arrow keys and knows nothing about
+                        anything else inside the menu, so an input left to
+                        itself here is reachable by mouse only -- which the
+                        hand-rolled menu this replaced did not do, and which
+                        the menu check in `smoke.ts` now catches.
+                        `asChild` keeps the native box, so it still looks like
+                        a checkbox and `smoke.ts` still finds it by `input`;
+                        `readOnly` because Radix owns the state and React
+                        otherwise warns about a checked box with no handler. */}
+                    <DropdownMenu.CheckboxItem
+                      asChild
                       checked={open}
-                      aria-label={`Combine ${log.stem}`}
-                      title={open ? 'Remove from the combination' : 'Combine with the open logs'}
-                      onChange={() => {
+                      onCheckedChange={() => {
                         const next = open
                           ? stems.filter((name) => name !== log.stem)
                           : [...stems, log.stem]
@@ -318,7 +341,6 @@ export function TopBar() {
                         if (next.length === 0) {
                           return
                         }
-                        picker.close()
                         void openLogs(
                           summary,
                           next
@@ -326,21 +348,36 @@ export function TopBar() {
                             .filter((entry): entry is LogSummary => Boolean(entry))
                         )
                       }}
-                    />
-                    <button
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={log.stem === stem}
-                      className="sv-menu-open"
-                      onClick={() => {
-                        picker.close()
+                    >
+                      <input
+                        type="checkbox"
+                        checked={open}
+                        readOnly
+                        aria-label={`Combine ${log.stem}`}
+                        title={open ? 'Remove from the combination' : 'Combine with the open logs'}
+                      />
+                    </DropdownMenu.CheckboxItem>
+                    {/* `asChild`, so the markup `smoke.ts` reads is
+                        untouched. The role stays `menuitemradio` rather than
+                        taking Radix's `menuitem`: what it says is which log
+                        leads, and that is still true. */}
+                    <DropdownMenu.Item
+                      asChild
+                      onSelect={() => {
                         if (stems.length !== 1 || log.stem !== stem) {
                           void openLogs(summary, [log])
                         }
                       }}
                     >
-                      <span className="sv-menu-label">{log.stem}</span>
-                    </button>
+                      <button
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={log.stem === stem}
+                        className="sv-menu-open"
+                      >
+                        <span className="sv-menu-label">{log.stem}</span>
+                      </button>
+                    </DropdownMenu.Item>
                     {/* Which log leads. Everything with room for one answer --
                         the cloud, the pose, an export -- reads the primary. */}
                     {at === 0 && stems.length > 1 && (
@@ -360,9 +397,10 @@ export function TopBar() {
                   </div>
                 )
               })}
-            </div>
+            </DropdownMenu.Content>
           )}
         </div>
+        </DropdownMenu.Root>
 
         {error && (
           <span className="sv-topbar-error" role="alert" title={error}>

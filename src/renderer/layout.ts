@@ -15,6 +15,17 @@ import { create } from 'zustand'
 
 import { DEFAULT_LAYOUT, sanitiseLayout, type Layout } from '@shared/types'
 
+/**
+ * The three shapes a side column takes.
+ *
+ * `cards` is the column as it is used, at the width it was dragged to.
+ * `tray` is every overlay on that side put away, leaving only the strip of
+ * icons that brings them back. `none` is nothing to show at all -- no case
+ * yet, or a log with neither a recording nor curves. The panel holding the
+ * column pins its width to the shape: dragged, the tray's own, or zero.
+ */
+export type Presence = 'none' | 'tray' | 'cards'
+
 /** The overlays down each side, each shown or hidden on its own. */
 export const OVERLAYS = {
   left: ['display', 'filters'],
@@ -55,30 +66,22 @@ export const useLayout = create<LayoutState>((set) => ({
  *
  * Here rather than in `App.tsx` because the dock's splitter is rendered by
  * `AnalysisDock`, which used to carry a second copy of these numbers.
+ *
+ * The camera's pair went when the inspector's handle did: a ceiling that was
+ * the stack's height less the other card's floor is just that card's floor,
+ * said from the other end, and the panel group can be told it directly.
+ * `CARD_MIN` in `Inspector.tsx` is what is left of it.
  */
 export const BOUNDS = {
-  rail: { min: 200, max: () => Math.min(480, window.innerWidth * 0.4) },
-  inspector: { min: 280, max: () => Math.min(760, window.innerWidth * 0.5) },
-  /** The camera's share of the inspector, with the curves taking the rest.
-   *  Both floors are a picture or a plot still worth looking at. */
-  camera: {
-    min: 140,
-    max: () =>
-      Math.max(
-        140,
-        (document.querySelector('.sv-inspector .sv-stack')?.getBoundingClientRect()
-          .height ?? window.innerHeight) - 200
-      )
-  },
-  dock: {
-    min: 218,
-    max: () =>
-      Math.max(
-        218,
-        (document.querySelector('.sv-center')?.getBoundingClientRect().height ??
-          window.innerHeight) * 0.65
-      )
-  }
+  // A ceiling that is both a pixel cap and a share of the window, so it is
+  // asked of a width rather than reading the window itself: the shell holds
+  // that width in state, and a resize is then a re-render that re-derives
+  // the panel's constraints rather than a number nothing noticed change.
+  rail: { min: 200, max: (width: number) => Math.min(480, width * 0.4) },
+  inspector: { min: 280, max: (width: number) => Math.min(760, width * 0.5) },
+  // The dock's ceiling is `maxSize="65"` on its panel -- a share of the gap
+  // it sits in, which is what this used to measure the gap to work out.
+  dock: { min: 218 }
 }
 
 /** The persisted fields alone, for writing back. */

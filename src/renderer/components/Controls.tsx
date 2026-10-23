@@ -22,7 +22,6 @@ export function IconButton({
   label,
   onClick,
   disabled,
-  pressed,
   className
 }: {
   icon: Icon
@@ -31,7 +30,6 @@ export function IconButton({
   label?: string
   onClick: () => void
   disabled?: boolean
-  pressed?: boolean
   className?: string
 }) {
   return (
@@ -40,7 +38,6 @@ export function IconButton({
       className={className ? `sv-icon-btn ${className}` : 'sv-icon-btn'}
       title={title}
       aria-label={label ?? title}
-      aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
     >

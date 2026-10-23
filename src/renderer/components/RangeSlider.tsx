@@ -5,17 +5,22 @@
 // meet only the one painted on top can be grabbed, so the control dies
 // exactly when the range is narrowest and matters most.
 //
-// That is a real bug in the naive version, and the reason to build the
-// control rather than overlap two natives. The press is not handed to a thumb
-// here; it is handed to the track, which decides which thumb to move -- the
-// nearer one, and when they coincide, whichever still has somewhere to go.
-// Two thumbs on one value stay separable because neither of them is what the
-// pointer is hitting.
+// The control that replaced them solved it by handing the press to the track
+// rather than to a thumb, and by breaking the tie in favour of whichever
+// thumb still had somewhere to go. Radix answers the same question a
+// different way: it hands the press to the nearest thumb, writes the new
+// value at that index and then *sorts*, so a tie going to the lower thumb
+// is harmless -- drag right from a pair sitting on one value and the sort
+// swaps them, leaving the one that moved as the thumb under the pointer.
+// Thumbs that cross simply exchange places, so there is no state in which
+// one of them is stuck.
 //
-// The boxes exist because a slider cannot be typed into. Reading a filter off
-// a 288px rail is fine; setting one to -12.5 by dragging is not.
+// The boxes stay. A slider cannot be typed into, and reading a filter off a
+// 288px rail is fine while setting one to -12.5 by dragging is not. They are
+// deliberately not on the step grid -- see `typed`.
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
+import { Slider } from 'radix-ui'
 
 export interface RangeSliderProps {
   /** The column's own extent -- the ends the thumbs travel between. */
@@ -28,25 +33,6 @@ export interface RangeSliderProps {
   /** Names the thumbs and the boxes: "Range (m) minimum". */
   label: string
   onChange: (min: number, max: number) => void
-}
-
-/** A PageUp or PageDown is worth ten of an arrow. */
-const PAGE = 10
-
-/**
- * Put a value on the step grid, anchored at `low`.
- *
- * Anchored rather than absolute so both ends stay reachable: a grid anchored
- * at zero leaves `low` itself off it whenever `low % step` is not zero, and
- * the thumb then cannot be dragged the last fraction back to it.
- */
-function snap(value: number, low: number, high: number, step: number): number {
-  const steps = Math.round((value - low) / step)
-  // Multiplying a 1e-9 step back out reintroduces the float noise the round
-  // just took away, so trim to the step's own precision.
-  const places = Math.max(0, Math.min(20, -Math.floor(Math.log10(step))))
-  const on = Number((low + steps * step).toFixed(places))
-  return Math.min(Math.max(on, low), high)
 }
 
 /**
@@ -83,8 +69,6 @@ export function RangeSlider({
   label,
   onChange
 }: RangeSliderProps) {
-  const track = useRef<HTMLDivElement>(null)
-  const held = useRef<'min' | 'max' | null>(null)
   // Null means "show the committed value". Set only while a box is being
   // typed into, so an external change -- Reset, or a new case -- is picked up
   // without overwriting whatever is half-typed.
@@ -93,108 +77,6 @@ export function RangeSlider({
   const [min, max] = value
   // A column whose rows all hold one value has no range to pick within.
   const dead = !(high > low)
-  const pct = (at: number) => (dead ? 0 : ((at - low) / (high - low)) * 100)
-
-  /** Where along the column's extent a pointer is. */
-  function valueAt(clientX: number): number {
-    const box = track.current?.getBoundingClientRect()
-    if (!box || box.width === 0) {
-      return low
-    }
-    const across = Math.min(Math.max((clientX - box.left) / box.width, 0), 1)
-    return snap(low + across * (high - low), low, high, step)
-  }
-
-  /**
-   * Which thumb a press belongs to.
-   *
-   * The last clause is the point of this control: with both thumbs on one
-   * value "nearest" is a tie, so the tie goes to the thumb that still has
-   * room to travel. Pinned at the top that is the minimum; anywhere else,
-   * the maximum.
-   */
-  function pick(at: number): 'min' | 'max' {
-    if (at < min) {
-      return 'min'
-    }
-    if (at > max) {
-      return 'max'
-    }
-    const toMin = at - min
-    const toMax = max - at
-    if (toMin !== toMax) {
-      return toMin < toMax ? 'min' : 'max'
-    }
-    return max >= high ? 'min' : 'max'
-  }
-
-  /** Move one end, never past the other. */
-  function move(end: 'min' | 'max', to: number) {
-    if (end === 'min') {
-      onChange(Math.min(to, max), max)
-    } else {
-      onChange(min, Math.max(to, min))
-    }
-  }
-
-  function begin(event: React.PointerEvent<HTMLDivElement>) {
-    if (dead || event.button !== 0) {
-      return
-    }
-    event.preventDefault()
-    const at = valueAt(event.clientX)
-    held.current = pick(at)
-    event.currentTarget.setPointerCapture(event.pointerId)
-    move(held.current, at)
-  }
-
-  function drag(event: React.PointerEvent<HTMLDivElement>) {
-    if (held.current) {
-      move(held.current, valueAt(event.clientX))
-    }
-  }
-
-  function release(event: React.PointerEvent<HTMLDivElement>) {
-    if (!held.current) {
-      return
-    }
-    held.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
-  function keys(which: 'min' | 'max', event: React.KeyboardEvent<HTMLDivElement>) {
-    const here = which === 'min' ? min : max
-    let to: number
-    switch (event.key) {
-      case 'ArrowLeft':
-      case 'ArrowDown':
-        to = here - step
-        break
-      case 'ArrowRight':
-      case 'ArrowUp':
-        to = here + step
-        break
-      case 'PageDown':
-        to = here - step * PAGE
-        break
-      case 'PageUp':
-        to = here + step * PAGE
-        break
-      case 'Home':
-        to = low
-        break
-      case 'End':
-        to = high
-        break
-      default:
-        return
-    }
-    event.preventDefault()
-    // Arrows reach `useHotkeys` on the window, where they step the frame. A
-    // focused thumb owns them, so without this one press would do both.
-    event.stopPropagation()
-    move(which, snap(to, low, high, step))
-  }
 
   function commit(which: 'min' | 'max', raw: string) {
     setDraft(null)
@@ -203,7 +85,12 @@ export function RangeSlider({
     if (raw.trim() === '' || !Number.isFinite(parsed)) {
       return
     }
-    move(which, typed(parsed, low, high, decimals))
+    const at = typed(parsed, low, high, decimals)
+    if (which === 'min') {
+      onChange(Math.min(at, max), max)
+    } else {
+      onChange(min, Math.max(at, min))
+    }
   }
 
   function box(which: 'min' | 'max') {
@@ -237,44 +124,47 @@ export function RangeSlider({
     )
   }
 
-  function thumb(which: 'min' | 'max') {
-    const here = which === 'min' ? min : max
-    return (
-      <div
-        className="sv-range-thumb"
-        style={{ left: `${pct(here)}%` }}
-        role="slider"
-        tabIndex={dead ? -1 : 0}
-        aria-label={`${label} ${which === 'min' ? 'minimum' : 'maximum'}`}
-        aria-valuenow={here}
-        aria-valuemin={which === 'min' ? low : min}
-        aria-valuemax={which === 'min' ? max : high}
-        aria-valuetext={text(here, decimals)}
-        aria-disabled={dead || undefined}
-        onKeyDown={(event) => keys(which, event)}
-      />
-    )
-  }
-
   return (
     <div className={`sv-range${dead ? ' sv-range-dead' : ''}`}>
-      {/* The press lands here, not on a thumb. */}
-      <div
-        className="sv-range-track"
-        ref={track}
-        onPointerDown={begin}
-        onPointerMove={drag}
-        onPointerUp={release}
-        onPointerCancel={release}
-      >
-        <div className="sv-range-rail" />
-        <div
-          className="sv-range-fill"
-          style={{ left: `${pct(min)}%`, right: `${100 - pct(max)}%` }}
-        />
-        {thumb('min')}
-        {thumb('max')}
-      </div>
+      {/* A dead column gets no slider at all: Radix divides by `max - min`
+          to place its thumbs, and that span is zero here. */}
+      {dead ? (
+        <div className="sv-range-track" aria-hidden="true">
+          <div className="sv-range-rail" />
+        </div>
+      ) : (
+        <Slider.Root
+          className="sv-range-track"
+          value={[min, max]}
+          min={low}
+          max={high}
+          step={step}
+          // The filter is allowed to close to a single value, so the thumbs
+          // may meet. They come apart again because Radix sorts after every
+          // move -- which is the whole reason this is a library now.
+          minStepsBetweenThumbs={0}
+          onValueChange={([nextMin, nextMax]) => onChange(nextMin!, nextMax!)}
+        >
+          <Slider.Track className="sv-range-rail">
+            <Slider.Range className="sv-range-fill" />
+          </Slider.Track>
+          {/* `aria-valuetext` because `aria-valuenow`, which Radix sets, is
+              the raw number: a column whose extent is 203.7790069580078 is
+              read out to the last digit without this. The manifest's own
+              precision is what the boxes show, so it is what the thumbs
+              should say too. */}
+          <Slider.Thumb
+            className="sv-range-thumb"
+            aria-label={`${label} minimum`}
+            aria-valuetext={text(min, decimals)}
+          />
+          <Slider.Thumb
+            className="sv-range-thumb"
+            aria-label={`${label} maximum`}
+            aria-valuetext={text(max, decimals)}
+          />
+        </Slider.Root>
+      )}
 
       <div className="sv-range-boxes">
         {box('min')}

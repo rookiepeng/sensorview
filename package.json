@@ -25,8 +25,10 @@
     "h5wasm": "^0.10.3",
     "nodejs-polars": "^0.26.1",
     "plotly.js": "^4.1.2",
+    "radix-ui": "1.8.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "react-resizable-panels": "4.14.8",
     "three": "^0.180.0",
     "zustand": "^5.0.15"
   },

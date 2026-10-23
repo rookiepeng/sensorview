@@ -76,12 +76,21 @@
    reaches the canvas through the gaps between panels; the panels take it back
    below. Enumerated in one rule on purpose: a wrapper left opaque to the
    pointer swallows drags over a region that looks empty, which is the hardest
-   fault here to spot. */
+   fault here to spot.
+   `pointer-events` is inherited, so these are documentation as much as
+   rules: everything under `.sv-view` is already `none` until something says
+   `auto`. That includes the resizable panels, whose outer element carries no
+   class of ours and so could not be listed here anyway. The fault to watch
+   for is therefore not a wrapper missing from this list but one handed
+   `auto` -- and `smoke.ts` checks for exactly that, by asking what is under
+   the middle of the gap and expecting the canvas. */
 .sv-view,
+.sv-hud-row,
 .sv-hud-col,
+.sv-hud-centre,
 .sv-center,
-.sv-center-foot,
-.sv-dock-wrap {
+.sv-center-gap,
+.sv-center-foot {
     pointer-events: none;
     background: transparent;
 }
@@ -320,9 +329,11 @@
 /* How much of each edge the panels cover. Written onto the document by
    `Hud.reflow()`, which measures them -- a CSS-only version would have to
    trust `--sv-rail-w` and `--sv-inspector-w`, which go stale the moment a
-   splitter is dragged, and would know nothing about a panel that is absent.
-   The same four numbers place `.sv-center` and frame the camera, so the HUD,
-   the chrome and the data cannot disagree about where the gap is. */
+   handle is dragged, and would know nothing about a panel that is absent.
+   The same four numbers frame the camera, so the HUD and the data cannot
+   disagree about where the gap is. They used to place `.sv-center` too; the
+   panel group in `App.tsx` does that now, from the same two asides these
+   are measured off. */
 :root {
     --sv-inset-l: 0px;
     --sv-inset-r: 0px;

@@ -108,13 +108,13 @@ export class Hud {
   /**
    * Measure the panels and place the HUD clear of them.
    *
-   * Writes nothing when nothing moved. That guard is load-bearing, not an
-   * optimisation: these are custom properties on the document element, and
-   * `.sv-center` is placed from them, so a write invalidates style for the
-   * whole page and resizes the transport and the dock -- which are observed,
-   * which calls this again. A frame arriving is the loudest caller, so
-   * without this every tick of playback pays for a document-wide recalc and
-   * a round of the resize observer.
+   * Writes nothing when nothing moved. These are custom properties on the
+   * document element, so a write invalidates style for the whole page, and a
+   * frame arriving is the loudest caller -- without this every tick of
+   * playback pays for a document-wide recalc. (It used to be worse: the
+   * properties placed `.sv-center`, so a write resized the observed
+   * transport and dock and called this again. A panel group places the
+   * centre column now, and the insets only frame the scene and the HUD.)
    *
    * @returns {boolean} Whether any edge moved.
    */
@@ -161,8 +161,10 @@ export class Hud {
     }
     this.edges = next;
 
-    // On the document rather than the stage: `.sv-center` is placed from
-    // these too, and it is not inside the stage.
+    // On the document, where hud.css declares their defaults. They are here
+    // because `.sv-center`, outside the stage, used to read them; only the
+    // HUD furniture does now, and it would inherit them from the stage just
+    // as well. Moving them would buy nothing.
     const style = document.documentElement.style;
     style.setProperty("--sv-inset-l", `${next.left}px`);
     style.setProperty("--sv-inset-r", `${next.right}px`);

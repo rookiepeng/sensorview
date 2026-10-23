@@ -10,6 +10,8 @@
 // still has the budget to spare. Under Dash each of those events was a network
 // round trip, which is what the whole caching apparatus was there to hide.
 
+import { ToggleGroup } from 'radix-ui'
+
 import { Group, IconButton, Picker, Switch } from './Controls'
 import { RangeSlider } from './RangeSlider'
 import { OVERLAYS, useLayout } from '../layout'
@@ -29,6 +31,13 @@ const COLORMAPS = [
 ]
 
 /** Whether the picker's current states are exactly this choice. */
+/** The three answers the visibility filter has, and what each one means. */
+const VISIBILITIES = [
+  { label: 'Visible', states: ['visible'] },
+  { label: 'Hidden', states: ['hidden'] },
+  { label: 'Both', states: ['visible', 'hidden'] }
+] as const
+
 function sameStates(current: readonly string[] | undefined, want: readonly string[]): boolean {
   const have = current ?? ['visible']
   return have.length === want.length && want.every((state) => have.includes(state))
@@ -240,33 +249,41 @@ export function FilterRail() {
           {table && (
             <div className="sv-field">
               <span className="sv-section-label">Visibility</span>
-              <div className="sv-chips">
-                {(
-                  [
-                    { label: 'Visible', states: ['visible'] },
-                    { label: 'Hidden', states: ['hidden'] },
-                    { label: 'Both', states: ['visible', 'hidden'] }
-                  ] as const
-                ).map((choice) => {
-                  const on = sameStates(filters.visible, choice.states)
-                  return (
-                    <button
-                      type="button"
-                      key={choice.label}
-                      className={`sv-chip${on ? ' sv-chip-on' : ''}`}
-                      aria-pressed={on}
-                      title={
-                        choice.label === 'Both'
-                          ? 'Show hidden points as well'
-                          : `Show only ${choice.label.toLowerCase()} points`
-                      }
-                      onClick={() => setVisibility([...choice.states])}
-                    >
-                      {choice.label}
-                    </button>
-                  )
-                })}
-              </div>
+              {/* One of three, so a single-select group: Radix gives it
+                  radio semantics and the arrow keys, where three independent
+                  toggle buttons only looked like a choice. Its value is the
+                  label, since what the filter holds is a pair of states and
+                  a group's value has to be one string. */}
+              <ToggleGroup.Root
+                type="single"
+                className="sv-chips"
+                value={VISIBILITIES.find((c) => sameStates(filters.visible, c.states))?.label ?? ''}
+                // An empty value is the active chip being pressed again.
+                // There is no "no visibility", so that answer is ignored.
+                onValueChange={(next) => {
+                  const choice = VISIBILITIES.find((c) => c.label === next)
+                  if (choice) {
+                    setVisibility([...choice.states])
+                  }
+                }}
+              >
+                {VISIBILITIES.map((choice) => (
+                  <ToggleGroup.Item
+                    key={choice.label}
+                    value={choice.label}
+                    className={`sv-chip${
+                      sameStates(filters.visible, choice.states) ? ' sv-chip-on' : ''
+                    }`}
+                    title={
+                      choice.label === 'Both'
+                        ? 'Show hidden points as well'
+                        : `Show only ${choice.label.toLowerCase()} points`
+                    }
+                  >
+                    {choice.label}
+                  </ToggleGroup.Item>
+                ))}
+              </ToggleGroup.Root>
               <span className="sv-field-value">
                 {hiddenCount > 0
                   ? `${hiddenCount} hidden`
@@ -323,26 +340,31 @@ export function FilterRail() {
                   <span className="sv-section-label" id={`chips-${entry.column}`}>
                     {labelOf(entry.column, keys[entry.column])}
                   </span>
-                  <div className="sv-chips" role="group" aria-labelledby={`chips-${entry.column}`}>
+                  {/* The group hands back the whole next selection, so the
+                      add-or-remove this used to do by hand is gone. The
+                      `sv-chip-on` class stays beside Radix's own `data-state`:
+                      it is what the stylesheet and `smoke.ts` both read. */}
+                  <ToggleGroup.Root
+                    type="multiple"
+                    className="sv-chips"
+                    // Radix calls a multiple-select group a toolbar. These
+                    // are the values of one column, named by the label above
+                    // them, which is a group -- what the markup said before.
+                    role="group"
+                    aria-labelledby={`chips-${entry.column}`}
+                    value={entry.allowed}
+                    onValueChange={(next) => setCategoryFilter(entry.column, next)}
+                  >
                     {levels.map((level) => (
-                      <button
-                        type="button"
+                      <ToggleGroup.Item
                         key={level}
+                        value={level}
                         className={`sv-chip${allowed.has(level) ? ' sv-chip-on' : ''}`}
-                        aria-pressed={allowed.has(level)}
-                        onClick={() =>
-                          setCategoryFilter(
-                            entry.column,
-                            allowed.has(level)
-                              ? entry.allowed.filter((name) => name !== level)
-                              : [...entry.allowed, level]
-                          )
-                        }
                       >
                         {level}
-                      </button>
+                      </ToggleGroup.Item>
                     ))}
-                  </div>
+                  </ToggleGroup.Root>
                 </div>
               )
             })}

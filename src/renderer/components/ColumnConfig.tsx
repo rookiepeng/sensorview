@@ -11,7 +11,8 @@
 // file is upgraded on the first save, with the original kept once as
 // `info.json.bak`; that is said out loud rather than done quietly.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Popover } from 'radix-ui'
 
 import { useStore } from '../store'
 
@@ -32,21 +33,6 @@ export function ColumnConfig() {
     available: string[]
     resolved: Record<string, string | null>
   } | null>(null)
-  const menu = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) {
-      return
-    }
-    const close = (event: MouseEvent) => {
-      if (!menu.current?.contains(event.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', close, true)
-    return () => document.removeEventListener('mousedown', close, true)
-  }, [open])
-
   // Read when the popover opens rather than on every log change: it is one
   // more file read, and nothing needs it until someone looks.
   useEffect(() => {
@@ -93,21 +79,33 @@ export function ColumnConfig() {
   }
 
   return (
-    <div className="sv-topbar-menu" ref={menu}>
-      <button
-        type="button"
-        className="sv-icon-btn"
-        onClick={() => setOpen((on) => !on)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        title="Columns"
-        aria-label="Columns"
-      >
-        <i className="bi bi-sliders" />
-      </button>
+    // `modal` stays false -- the default, said out loud because it matters
+    // here. A modal popover puts `pointer-events: none` on the body and
+    // `aria-hidden` on everything outside it, which would make the scene
+    // inert behind a popover that is meant to be read against it.
+    <Popover.Root open={open} onOpenChange={setOpen} modal={false}>
+      <div className="sv-topbar-menu">
+        <Popover.Trigger asChild>
+          {/* No `aria-haspopup` or `aria-expanded` here: Radix sets both, and
+              a second copy is a second answer that can disagree. */}
+          <button type="button" className="sv-icon-btn" title="Columns" aria-label="Columns">
+            <i className="bi bi-sliders" />
+          </button>
+        </Popover.Trigger>
 
-      {open && (
-        <div className="sv-menu sv-menu-right sv-config" role="menu">
+        {/* Not portalled, deliberately. The content stays inside
+            `.sv-topbar-menu`, which is what keeps that wrapper's `relative`
+            meaningful and what `smoke.ts` finds the trigger through. The
+            placement props replace the `top`/`left` this used to get from
+            `.sv-menu`; `align="end"` is what `.sv-menu-right` did.
+            It is a grid of selects, so Radix's `role="dialog"` describes it
+            better than the `role="menu"` it used to claim. */}
+        <Popover.Content
+          className="sv-menu sv-config"
+          side="bottom"
+          align="end"
+          sideOffset={5}
+        >
           {/* Axes only. Colour lives in the rail beside the colormap: it is
               looked at while reading the scene, where this popover is for
               what the dataset's columns mean, set once and left. */}
@@ -175,9 +173,9 @@ export function ColumnConfig() {
               {note}
             </p>
           )}
-        </div>
-      )}
-    </div>
+        </Popover.Content>
+      </div>
+    </Popover.Root>
   )
 }
 

@@ -42,6 +42,18 @@ function typing(target: EventTarget | null, key: string): boolean {
 export function useHotkeys(): void {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // Somebody nearer the key already answered it. This listener is on the
+      // window, so every handler between here and the target has had its
+      // turn: a resize handle that took an arrow, a slider thumb that took
+      // Home. They all call `preventDefault`, and none of them should also
+      // step the frame.
+      //
+      // `typing()` below is not made redundant by this -- a native select or
+      // range input answers an arrow internally, without preventing the
+      // default, so the tag check is still what stands aside for those.
+      if (event.defaultPrevented) {
+        return
+      }
       // A modifier means the key belongs to the window, the menu bar or the
       // platform -- Ctrl+O opens a case, and must not also step a frame.
       if (event.ctrlKey || event.metaKey || event.altKey) {

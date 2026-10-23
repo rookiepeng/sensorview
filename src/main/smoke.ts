@@ -27,6 +27,66 @@ function expect(condition: unknown, message: string): void {
 }
 
 /**
+ * The handful of ways these checks reach into the page.
+ *
+ * Each of these was written out three or four times, and the copies had
+ * already drifted: of the three writes to a picker, two went through the
+ * prototype's own setter and the third assigned `.value` -- which a
+ * React-controlled select is free to ignore, because React compares against
+ * the last value it wrote itself. One answer each, so the next check starts
+ * with it, and so a control that stops being a native element is one edit
+ * here rather than ten across this file.
+ *
+ * Injected as the first statements *inside* each script's IIFE rather than
+ * declared once at the top of one: `executeJavaScript` evaluates in the page's
+ * own realm, so a `const` at the script's top level would be redeclared -- and
+ * throw -- on the second call into the same window.
+ *
+ * No backslash escapes in here, for the reason given at the posed-reference
+ * check below: this is a TypeScript template literal first and JavaScript
+ * second.
+ */
+const DRIVE = `
+               // A Radix trigger opens on pointer-down, not on click, so that
+               // a press-drag-release picks an item. 'click()' alone dispatches
+               // only the click and the menu never opens. The trailing click
+               // is what every plain button still needs, so this one call is
+               // right for both.
+               const press = (el) => {
+                 const opts = { bubbles: true, cancelable: true, button: 0, pointerId: 1, isPrimary: true }
+                 el.dispatchEvent(new PointerEvent('pointerdown', opts))
+                 el.dispatchEvent(new PointerEvent('pointerup', opts))
+                 el.click()
+               }
+
+               // Through the prototype's setter, or React treats the write as
+               // one it already knows about and the event means nothing.
+               const setNativeValue = (proto, el, value) => {
+                 Object.getOwnPropertyDescriptor(proto, 'value')
+                   .set.call(el, String(value))
+               }
+               const setSelectValue = (el, value) => {
+                 setNativeValue(window.HTMLSelectElement.prototype, el, value)
+                 el.dispatchEvent(new Event('change', { bubbles: true }))
+               }
+               const setRangeValue = (el, value) => {
+                 setNativeValue(window.HTMLInputElement.prototype, el, value)
+                 el.dispatchEvent(new Event('input', { bubbles: true }))
+               }
+
+               // A labelled toggle, found by the text beside it. The root
+               // matters: one caller searches the whole window, the rest only
+               // the rail.
+               const switchRow = (root, text) =>
+                 Array.from(root.querySelectorAll('.sv-switch-row'))
+                   .find(r => (r.textContent || '').indexOf(text) !== -1)
+               // Both of these also take a '.sv-menu-combine' row, which
+               // carries its checkbox the same way.
+               const isOn = (row) => row.querySelector('input').checked
+               const flip = (row) => press(row.querySelector('input'))
+`
+
+/**
  * @param media An existing media file to exercise Range against.
  * @param data The client for the forked data process.
  * @param rendererHtml The built renderer's entry, passed in rather than
@@ -461,11 +521,35 @@ export async function runSmoke(
           // the chain -- rail to store to frame build to GPU -- that nothing
           // else here touches.
           const filtered = await probe.webContents.executeJavaScript(
-            `(async () => {
-               const chips = Array.from(document.querySelectorAll('.sv-filter .sv-chip-on'))
-               if (chips.length < 2) return { error: 'no categorical filter to flip' }
+            `(async () => {${DRIVE}
+               // Waited for, not read once: the scene settling is not the
+               // rail settling. They come from one store but not necessarily
+               // one commit, and the rail is the heavier half -- a slider
+               // and a chip group per column.
+               //
+               // This did not fix the intermittent failure it was written
+               // for, which turned out to be a render loop taking the whole
+               // tree. It is kept because a single read was an assumption
+               // about commit order that nothing guaranteed.
+               let chips = []
+               const ready = Date.now() + 5000
+               while (Date.now() < ready) {
+                 chips = Array.from(document.querySelectorAll('.sv-filter .sv-chip-on'))
+                 if (chips.length >= 2) break
+                 await new Promise(r => setTimeout(r, 100))
+               }
+               if (chips.length < 2) {
+                 // Say whether the rail is missing or the window is: a React
+                 // render loop takes the whole tree, and "no categorical
+                 // filter to flip" on its own sends you looking at filters.
+                 const crash = document.querySelector('.sv-crash p')
+                 return { error: 'no categorical filter to flip -- '
+                   + (crash
+                     ? 'the renderer crashed: ' + crash.textContent
+                     : document.querySelectorAll('.sv-filter').length + ' filters in the rail') }
+               }
                const before = document.getElementById('gl-stats').textContent
-               chips[0].click()
+               press(chips[0])
                const deadline = Date.now() + 5000
                while (Date.now() < deadline) {
                  const after = document.getElementById('gl-stats').textContent
@@ -498,12 +582,11 @@ export async function runSmoke(
           // per frame. Switching it on has to reach the HDF5 reader in the
           // data process and come back as geometry.
           const clouded = await probe.webContents.executeJavaScript(
-            `(async () => {
-               const rows = Array.from(document.querySelectorAll('.sv-switch-row'))
-               const row = rows.find(r => (r.textContent || '').indexOf('LIDAR') !== -1)
+            `(async () => {${DRIVE}
+               const row = switchRow(document, 'LIDAR')
                if (!row) return { error: 'no cloud switch -- the case declares none?' }
                const before = document.getElementById('gl-stats').textContent
-               row.querySelector('input').click()
+               flip(row)
                const deadline = Date.now() + 15000
                while (Date.now() < deadline) {
                  const after = document.getElementById('gl-stats').textContent
@@ -525,13 +608,13 @@ export async function runSmoke(
           // table already in memory -- so this asserts the scene changed and
           // the breadcrumb followed it.
           const switched = await probe.webContents.executeJavaScript(
-            `(async () => {
+            `(async () => {${DRIVE}
                const crumb = document.querySelector('.sv-crumb-file')
                const was = crumb ? crumb.textContent : null
                const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
                const picker = buttons[buttons.length - 1]
                if (!picker) return { error: 'no breadcrumb' }
-               picker.click()
+               press(picker)
                await new Promise(r => setTimeout(r, 200))
                // The name is a button inside the row now: the row also
                // carries the combine checkbox, and clicking it must not be
@@ -541,7 +624,7 @@ export async function runSmoke(
                const other = items.find(i => i.textContent.indexOf(was) === -1)
                if (!other) return { error: 'every entry is the open log' }
                const before = document.getElementById('gl-stats').textContent
-               other.click()
+               press(other)
                const deadline = Date.now() + 20000
                while (Date.now() < deadline) {
                  const now = document.querySelector('.sv-crumb-file')
@@ -617,7 +700,7 @@ export async function runSmoke(
           // throws takes the React tree with it -- so this cycles the picker
           // rather than trusting the one that happens to be on screen.
           const dock = await probe.webContents.executeJavaScript(
-            `(async () => {
+            `(async () => {${DRIVE}
                const settle = async () => {
                  for (let i = 0; i < 60; i++) {
                    await new Promise(r => setTimeout(r, 250))
@@ -635,8 +718,7 @@ export async function runSmoke(
                const drawn = {}
                for (const view of views) {
                  const started = performance.now()
-                 picker.value = view
-                 picker.dispatchEvent(new Event('change', { bubbles: true }))
+                 setSelectValue(picker, view)
                  const pane = await settle()
                  const took = Math.round(performance.now() - started)
                  if (!pane) return { error: 'the ' + view + ' view drew nothing' }
@@ -701,7 +783,7 @@ export async function runSmoke(
           // a point hidden in one view but not another, a reference left
           // standing in overlay, a scatter silently showing every frame.
           const views = await probe.webContents.executeJavaScript(
-            `(async () => {
+            `(async () => {${DRIVE}
                const settle = (ms) => new Promise(r => setTimeout(r, ms))
                const pts = () => {
                  const text = document.getElementById('gl-stats').textContent || ''
@@ -721,26 +803,20 @@ export async function runSmoke(
                ).length
                const pick = (label) => Array.from(document.querySelectorAll('.sv-pane-field'))
                  .find(f => (f.textContent || '').indexOf(label) === 0)
-               const setSelect = (field, value) => {
-                 const el = field.querySelector('select')
-                 const setter = Object.getOwnPropertyDescriptor(
-                   window.HTMLSelectElement.prototype, 'value').set
-                 setter.call(el, value)
-                 el.dispatchEvent(new Event('change', { bubbles: true }))
-               }
+               const setSelect = (field, value) =>
+                 setSelectValue(field.querySelector('select'), value)
 
                const out = {}
+               const rail = document.querySelector('.sv-rail')
 
                // Click-to-hide is off until asked for: a stray click on the
                // scene must not silently remove a detection.
-               const clickRow = Array.from(document.querySelectorAll('.sv-rail .sv-switch-row'))
-                 .find(r => (r.textContent || '').indexOf('Click a point') !== -1)
+               const clickRow = switchRow(rail, 'Click a point')
                if (!clickRow) return { error: 'no click-to-hide toggle in the rail' }
-               out.clickToHide = clickRow.querySelector('input').checked
+               out.clickToHide = isOn(clickRow)
 
                // Colour and colormap are in the rail, not behind the column
                // config: they are read while reading the scene.
-               const rail = document.querySelector('.sv-rail')
                const labels = Array.from(rail.querySelectorAll('.sv-section-label'))
                  .map(l => l.textContent.trim().toLowerCase())
                out.colourInRail = labels.indexOf('colour by') !== -1
@@ -752,10 +828,7 @@ export async function runSmoke(
                // views to agree between.
                const slots = Array.from(document.querySelectorAll('.sv-slot-picker select'))
                for (const slot of slots) {
-                 const setter = Object.getOwnPropertyDescriptor(
-                   window.HTMLSelectElement.prototype, 'value').set
-                 setter.call(slot, 'scatter')
-                 slot.dispatchEvent(new Event('change', { bubbles: true }))
+                 setSelectValue(slot, 'scatter')
                }
                await settle(1200)
 
@@ -788,7 +861,7 @@ export async function runSmoke(
                          .map(b => b.getAttribute('data-val')).join(', ')
                  }
                }
-               lassoBtn.click()
+               press(lassoBtn)
                await settle(300)
                out.dragmode = pane0._fullLayout.dragmode
 
@@ -805,7 +878,7 @@ export async function runSmoke(
                const hide = Array.from(document.querySelectorAll('.sv-dock-selection button'))
                  .find(b => b.textContent.trim() === 'Hide')
                if (!hide) return { error: 'no Hide control appeared for the selection' }
-               hide.click()
+               press(hide)
                await settle(1500)
                out.after = { scene: pts(), dock: marks() }
                out.rows = rows.length
@@ -814,25 +887,24 @@ export async function runSmoke(
                const both = Array.from(document.querySelectorAll('.sv-field .sv-chip'))
                  .find(c => c.textContent.trim() === 'Both')
                if (!both) return { error: 'no visibility picker in the rail' }
-               both.click()
+               press(both)
                await settle(1500)
                out.shown = { scene: pts(), dock: marks() }
 
                const showAll = Array.from(document.querySelectorAll('.sv-rail-action'))
                  .find(b => b.textContent.indexOf('Show all') !== -1)
-               if (showAll) showAll.click()
+               if (showAll) press(showAll)
                await settle(1200)
 
                // Overlay: every filtered frame at once, and no reference,
                // because no single frame owns the pose.
                out.oneFrame = { pts: pts(), draws: draws() }
-               const overlay = Array.from(document.querySelectorAll('.sv-rail .sv-switch-row'))
-                 .find(r => (r.textContent || '').indexOf('Overlay') !== -1)
+               const overlay = switchRow(rail, 'Overlay')
                if (!overlay) return { error: 'no overlay switch in the rail' }
-               overlay.querySelector('input').click()
+               flip(overlay)
                await settle(2500)
                out.overlaid = { pts: pts(), draws: draws() }
-               overlay.querySelector('input').click()
+               flip(overlay)
                await settle(1500)
 
                return out
@@ -901,12 +973,12 @@ export async function runSmoke(
           // frame number, not by the slider position. That is the failure
           // the plan calls out: silent, and with a plausible picture.
           const combined = await probe.webContents.executeJavaScript(
-            `(async () => {
+            `(async () => {${DRIVE}
                const openMenu = async () => {
                  const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
                  const picker = buttons[buttons.length - 1]
                  if (!document.querySelector('.sv-breadcrumb .sv-menu')) {
-                   picker.click()
+                   press(picker)
                    await new Promise(r => setTimeout(r, 200))
                  }
                  return Array.from(document.querySelectorAll('.sv-menu-combine'))
@@ -917,11 +989,11 @@ export async function runSmoke(
                const nameOf = function (row) {
                  return row.querySelector('.sv-menu-label').textContent
                }
-               const open = rows.find(function (r) { return r.querySelector('input').checked })
-               const other = rows.find(function (r) { return !r.querySelector('input').checked })
+               const open = rows.find(function (r) { return isOn(r) })
+               const other = rows.find(function (r) { return !isOn(r) })
                if (!open || !other) return { error: 'nothing to combine' }
 
-               other.querySelector('input').click()
+               flip(other)
 
                const deadline = Date.now() + 30000
                let total = 0
@@ -939,10 +1011,7 @@ export async function runSmoke(
 
                const slider = document.querySelector('.sv-transport input[type=range]')
                const setFrame = async function (at) {
-                 const setter = Object.getOwnPropertyDescriptor(
-                   window.HTMLInputElement.prototype, 'value').set
-                 setter.call(slider, String(at))
-                 slider.dispatchEvent(new Event('input', { bubbles: true }))
+                 setRangeValue(slider, at)
                  await new Promise(r => setTimeout(r, 900))
                }
 
@@ -1026,7 +1095,7 @@ export async function runSmoke(
           const saveDir = process.env.SENSORVIEW_SMOKE_SAVE_DIR
           if (saveDir) {
             const exported = await probe.webContents.executeJavaScript(
-              `(async () => {
+              `(async () => {${DRIVE}
                  // Idempotent: the button toggles, so clicking it while the
                  // menu is already open closes it -- which is how the first
                  // version of this found nothing to click.
@@ -1034,7 +1103,7 @@ export async function runSmoke(
                    const button = document.querySelector('.sv-export .sv-icon-btn')
                    if (!button) return null
                    if (!document.querySelector('.sv-export .sv-menu')) {
-                     button.click()
+                     press(button)
                      await new Promise(r => setTimeout(r, 200))
                    }
                    return Array.from(document.querySelectorAll('.sv-export .sv-menu-item'))
@@ -1048,7 +1117,7 @@ export async function runSmoke(
                  const done = []
                  for (let at = 0; at < labels.length; at++) {
                    const fresh = await openMenu()
-                   fresh[at].click()
+                   press(fresh[at])
                    // The animation walks every frame of every combined log,
                    // reading a cloud for each, so it is minutes rather than
                    // seconds. The others are near-instant; one budget covers
@@ -1164,27 +1233,506 @@ export async function runSmoke(
           if (shotPath) {
             const { writeFile } = await import('node:fs/promises')
             await probe.webContents.executeJavaScript(
-              `(async () => {
+              `(async () => {${DRIVE}
                  const off = document.querySelector('.sv-filter .sv-chip:not(.sv-chip-on)')
-                 if (off) off.click()
+                 if (off) press(off)
                  const pickers = Array.from(document.querySelectorAll('.sv-slot-picker select'))
                  // One pane is a legitimate state: the dock drops to it
                  // when the gap between the overlays is too narrow for two.
                  const choose = (at, view) => {
                    if (!pickers[at]) return
-                   pickers[at].value = view
-                   pickers[at].dispatchEvent(new Event('change', { bubbles: true }))
+                   setSelectValue(pickers[at], view)
                  }
                  choose(0, 'scatter')
                  choose(1, 'heatmap')
                  // The column config open, since that is the new surface.
                  const config = document.querySelector('.sv-topbar-menu .sv-icon-btn')
-                 if (config) config.click()
+                 if (config) press(config)
                  await new Promise(r => setTimeout(r, 2500))
                })()`
             )
             const image = await probe.webContents.capturePage()
             await writeFile(shotPath, image.toPNG())
+          }
+
+          // What a menu is expected to do once something else implements it.
+          // `useMenu` used to be the answer and was honest in its header about
+          // only doing a third of the job; nothing here ever checked the other
+          // two thirds, so they went unverified either way. The browser
+          // fixture cannot help -- it serves no case, so neither top-bar menu
+          // renders -- which leaves this the only place the contract is
+          // visible at all.
+          const menus = await probe.webContents.executeJavaScript(
+            `(async () => {${DRIVE}
+               const wait = (ms) => new Promise(r => setTimeout(r, ms))
+               const shown = () => !!document.querySelector('.sv-breadcrumb .sv-menu')
+               const key = (name) => {
+                 const el = document.activeElement || document.body
+                 el.dispatchEvent(new KeyboardEvent('keydown', {
+                   key: name, bubbles: true, cancelable: true
+                 }))
+               }
+
+               const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
+               const trigger = buttons[buttons.length - 1]
+               if (!trigger) return { error: 'no breadcrumb trigger' }
+               if (shown()) { key('Escape'); await wait(250) }
+
+               press(trigger)
+               await wait(300)
+               if (!shown()) return { error: 'the picker did not open' }
+
+               // Walk the menu and report what the arrows actually land on.
+               // Which roles are reachable is the question: the combine
+               // checkbox is a native input rather than a Radix item, so it
+               // is in the roving order only if the library tolerates it.
+               const walked = []
+               for (let i = 0; i < 6; i++) {
+                 key('ArrowDown')
+                 await wait(60)
+                 const at = document.activeElement
+                 walked.push(at ? (at.getAttribute('role') || at.tagName.toLowerCase()) : 'none')
+               }
+
+               key('Escape')
+               await wait(300)
+               // Read before anything below moves the focus itself.
+               const closed = !shown()
+               const focusBack = document.activeElement === trigger
+
+               // A group of chips is one tab stop with the arrows moving
+               // inside it, not one tab stop per chip. That is the thing a
+               // toggle group buys over a row of buttons, and the thing most
+               // easily lost without anything looking wrong.
+               const group = document.querySelector('.sv-filter .sv-chips')
+               const chips = group ? Array.from(group.querySelectorAll('.sv-chip')) : []
+               let keys_ = null
+               if (chips.length >= 2) {
+                 chips[0].focus()
+                 key('ArrowRight')
+                 await wait(80)
+                 keys_ = {
+                   // Reachable from the keyboard at all, and the arrows
+                   // move within it. Not a count of tab stops: Radix leaves
+                   // the group itself focusable as a delegate that forwards
+                   // to the current chip, so the attributes say two where
+                   // the behaviour is one, and pinning that down would be
+                   // asserting someone else's bookkeeping rather than
+                   // anything this app promises.
+                   reachable: group.getAttribute('tabindex') === '0'
+                     || chips.some(c => c.getAttribute('tabindex') === '0'),
+                   role: String(group.getAttribute('role')),
+                   moved: document.activeElement === chips[1],
+                   chips: chips.length
+                 }
+               }
+
+               // Two thumbs on one value, and apart again. This is the
+               // case the dual-thumb control was hand-written for -- "the
+               // control dies exactly when the range is narrowest" -- so it
+               // is the one thing a library taking that job over has to be
+               // held to.
+               //
+               // Driven through the boxes rather than the keyboard: End and
+               // Home move the last and first thumb whatever has focus, so
+               // neither can walk one thumb onto the other. Typing the top
+               // of the range into the bottom box is also the way a person
+               // would actually land both on one value.
+               const range = document.querySelector('.sv-range')
+               const thumbs = range
+                 ? Array.from(range.querySelectorAll('[role="slider"]'))
+                 : []
+               const boxes = range
+                 ? Array.from(range.querySelectorAll('.sv-range-box'))
+                 : []
+               let pinch = null
+               if (thumbs.length === 2 && boxes.length === 2) {
+                 const read = () => thumbs.map(t => Number(t.getAttribute('aria-valuenow')))
+                 const before = read()
+                 setNativeValue(window.HTMLInputElement.prototype, boxes[0], boxes[1].value)
+                 boxes[0].dispatchEvent(new Event('input', { bubbles: true }))
+                 boxes[0].dispatchEvent(new KeyboardEvent('keydown', {
+                   key: 'Enter', bubbles: true, cancelable: true
+                 }))
+                 await wait(200)
+                 const met = read()
+
+                 thumbs[0].focus()
+                 key('ArrowLeft')
+                 await wait(200)
+                 const apart = read()
+                 pinch = {
+                   met: met[0] === met[1],
+                   freed: apart[0] !== apart[1],
+                   ordered: apart[0] <= apart[1],
+                   before: before.join('..'),
+                   met_: met.join('..'),
+                   apart: apart.join('..')
+                 }
+               }
+
+               // The scene, still reachable through the gap. Panels are
+               // transparent boxes lying over the canvas, so one that
+               // forgets to let the pointer through swallows every orbit
+               // drag across a region that looks like empty scene -- which
+               // nothing else here would catch, because everything else
+               // clicks on controls.
+               //
+               // Asked of the middle of the gap between the top bar and the
+               // transport, which is panel all the way down and canvas only
+               // if each layer has stood aside.
+               const centre = document.querySelector('.sv-center')
+               let through = null
+               if (centre) {
+                 const box = centre.getBoundingClientRect()
+                 const x = Math.round(box.left + box.width / 2)
+                 const y = Math.round(box.top + box.height / 2)
+                 const hit = document.elementFromPoint(x, y)
+                 through = {
+                   at: x + ',' + y,
+                   id: hit ? (hit.id || hit.className || hit.tagName) : 'nothing'
+                 }
+               }
+
+               // Folding the dock from its head, and back. The store says
+               // whether it is folded and the panel is told; a drag past the
+               // threshold folds the panel and the store is told. Two
+               // writers keeping each other in step is the shape of the loop
+               // that once took the window here, so this goes round the
+               // circle twice and checks the window is still standing.
+               const fold = Array.from(document.querySelectorAll('.sv-dock-head .sv-icon-btn'))
+                 .find(b => /(Collapse|Expand) the dock/.test(b.getAttribute('aria-label') || ''))
+               const dockEl = document.querySelector('.sv-dock')
+               let folding = null
+               if (fold && dockEl) {
+                 const tall = Math.round(dockEl.getBoundingClientRect().height)
+                 press(fold)
+                 await wait(400)
+                 const folded = Math.round(dockEl.getBoundingClientRect().height)
+                 press(fold)
+                 await wait(400)
+                 const back = Math.round(dockEl.getBoundingClientRect().height)
+                 // Each layer's height, for a failure to point at. A dock
+                 // measuring zero once turned out to be its panel borrowing a
+                 // class the stylesheet hides; this is what showed it.
+                 const h = (el) => el ? Math.round(el.getBoundingClientRect().height) : -1
+                 const region = dockEl.parentElement
+                 const panel = region ? region.parentElement : null
+                 folding = {
+                   layers: 'gap ' + h(document.querySelector('.sv-center-gap'))
+                     + ', panel ' + h(panel) + ', region ' + h(region)
+                     + (region && getComputedStyle(region).display === 'none'
+                       ? ' (display: none)' : ''),
+                   tall: tall,
+                   folded: folded,
+                   back: back,
+                   standing: !document.querySelector('.sv-crash')
+                 }
+               }
+
+               // The centre column between the side ones, not under them.
+               // Nothing else here would notice it straying: every other
+               // check clicks or counts, and a dock half-hidden behind the
+               // inspector still has all its chart marks. Asked of the dock
+               // and the top bar, the two things that live in the gap.
+               const side = (sel) => {
+                 const el = document.querySelector(sel)
+                 return el ? el.getBoundingClientRect() : null
+               }
+               const insp = side('.sv-inspector')
+               const rail = side('.sv-rail .sv-stack')
+               let fits = null
+               const inGap = ['.sv-dock', '.sv-topbar', '.sv-transport']
+               if (insp && rail) {
+                 const strays = inGap.map(sel => {
+                   const box = side(sel)
+                   if (!box) return null
+                   const over = Math.max(0, Math.round(box.right - insp.left))
+                   const under = Math.max(0, Math.round(rail.right - box.left))
+                   return over > 2 || under > 2
+                     ? sel + ' overlaps by ' + Math.max(over, under) + 'px'
+                     : null
+                 }).filter(Boolean)
+                 fits = { ok: strays.length === 0, strays: strays.join('; ') }
+               }
+
+               // The handle between the camera and the curves. Resized
+               // with the keyboard rather than a synthetic drag: the
+               // library takes pointer capture, which a dispatched
+               // PointerEvent cannot give it, but it binds keydown on the
+               // separator itself.
+               //
+               // The frame is read either side of the same key press. An
+               // arrow belongs to whatever is focused, and useHotkeys stands
+               // aside by honouring defaultPrevented -- so a handle that
+               // resizes *and* scrubs would be that guard not working, which
+               // nothing else here would notice.
+               const handle = document.querySelector('.sv-inspector .sv-splitter')
+               const card = document.querySelector('.sv-card-camera')
+               const readFrame = () => {
+                 const at = document.querySelector('.sv-frame-readout')
+                 return at ? (at.textContent || '').trim() : null
+               }
+               let resize = null
+               if (handle && card) {
+                 const was = Math.round(card.getBoundingClientRect().height)
+                 const frameWas = readFrame()
+                 handle.focus()
+                 for (let i = 0; i < 3; i++) {
+                   handle.dispatchEvent(new KeyboardEvent('keydown', {
+                     key: 'ArrowUp', bubbles: true, cancelable: true
+                   }))
+                   await wait(80)
+                 }
+                 await wait(200)
+                 resize = {
+                   was: was,
+                   now: Math.round(card.getBoundingClientRect().height),
+                   frameHeld: readFrame() === frameWas,
+                   frame: frameWas
+                 }
+               }
+
+               // The selected-chrome styling, which hangs off an attribute
+               // the toggle groups set. It is the kind of thing that goes
+               // dead quietly: the markup still renders, the state is still
+               // right, and nothing looks selected any more. So compare the
+               // two panes buttons rather than trusting the attribute.
+               const layout = Array.from(
+                 document.querySelectorAll('.sv-dock-layout .sv-icon-btn')
+               )
+               const on = layout.find(b => b.getAttribute('data-state') === 'on')
+               const off = layout.find(b => b.getAttribute('data-state') !== 'on')
+               const paint = (el) => el
+                 ? getComputedStyle(el).backgroundColor + ' ' + getComputedStyle(el).color
+                 : null
+
+               // The rail's width: a key on its handle, the width that comes of
+               // it, and the HUD following. The insets reflow() measures off the
+               // rail frame the scene, so a rail that moved without them would
+               // leave the data framed against a column that is not there any
+               // more. Then what reached the settings, which is the only part of
+               // a drag a relaunch can see, and a double-click clearing it.
+               const railHandle = document.querySelector('[aria-label="Filter rail width"]')
+               const stackOf = (side) => {
+                 const el = document.querySelector(side + ' .sv-stack')
+                 return el ? Math.round(el.getBoundingClientRect().width) : -1
+               }
+               const insetL = () => Math.round(parseFloat(getComputedStyle(
+                 document.documentElement).getPropertyValue('--sv-inset-l')) || 0)
+               const railWidthStored = async () => {
+                 const read = await window.sensorview.settings.get()
+                 return read.ok ? read.data.layout.railW : 'unread'
+               }
+               let railKeys = null
+               if (railHandle) {
+                 const was = stackOf('.sv-rail')
+                 const insetWas = insetL()
+                 railHandle.focus()
+                 railHandle.dispatchEvent(new KeyboardEvent('keydown', {
+                   key: 'ArrowRight', bubbles: true, cancelable: true
+                 }))
+                 // Past the 400ms the layout write waits for.
+                 await wait(800)
+                 const now = stackOf('.sv-rail')
+                 const insetNow = insetL()
+                 const kept = await railWidthStored()
+                 railHandle.dispatchEvent(new MouseEvent('dblclick', {
+                   bubbles: true, cancelable: true
+                 }))
+                 await wait(800)
+                 railKeys = {
+                   was: was,
+                   now: now,
+                   insetWas: insetWas,
+                   insetNow: insetNow,
+                   kept: kept,
+                   reset: stackOf('.sv-rail'),
+                   cleared: await railWidthStored(),
+                   stats: (document.getElementById('gl-stats') || {}).textContent || ''
+                 }
+               }
+
+               // Every overlay on a side put away, leaving the column its tray.
+               // The panel has to be the tray's width -- not the column it was,
+               // not nothing -- the dock beside it must clear it, and the tray's
+               // button has to be what is under the pointer where it sits, or
+               // the way back is covered. Then both brought back, and the column
+               // has to return to the width it had.
+               const trayRound = async (side) => {
+                 const before = stackOf(side)
+                 const hides = Array.from(document.querySelectorAll(side + ' .sv-group-hide'))
+                 for (const hide of hides) {
+                   press(hide)
+                   await wait(250)
+                 }
+                 await wait(400)
+                 const aside = document.querySelector(side)
+                 const tray = document.querySelector(side + ' .sv-tray')
+                 const box = tray ? tray.getBoundingClientRect() : null
+                 const button = tray ? tray.querySelector('.sv-icon-btn') : null
+                 const at = button ? button.getBoundingClientRect() : null
+                 const hit = at
+                   ? document.elementFromPoint(
+                     Math.round(at.left + at.width / 2), Math.round(at.top + at.height / 2))
+                   : null
+                 const dock = document.querySelector('.sv-dock')
+                 const dockBox = dock ? dock.getBoundingClientRect() : null
+                 const out = {
+                   hidden: hides.length,
+                   asideW: aside ? Math.round(aside.getBoundingClientRect().width) : -1,
+                   trayW: box ? Math.round(box.width) : -1,
+                   onScreen: box ? box.left >= 0 && box.right <= window.innerWidth : false,
+                   reachable: Boolean(hit && button && (hit === button || button.contains(hit))),
+                   clear: box && dockBox
+                     ? (side === '.sv-rail'
+                       ? dockBox.left >= box.right - 1
+                       : dockBox.right <= box.left + 1)
+                     : false
+                 }
+                 for (let i = 0; i < 4; i++) {
+                   const back = document.querySelector(side + ' .sv-tray .sv-icon-btn')
+                   if (!back) break
+                   press(back)
+                   await wait(300)
+                 }
+                 await wait(500)
+                 out.before = before
+                 out.after = stackOf(side)
+                 return out
+               }
+               const railTray = await trayRound('.sv-rail')
+               const inspectorTray = await trayRound('.sv-inspector')
+
+               return {
+                 closed: closed,
+                 focusBack: focusBack,
+                 railKeys: railKeys,
+                 railTray: railTray,
+                 inspectorTray: inspectorTray,
+                 chipKeys: keys_,
+                 resize: resize,
+                 through: through,
+                 folding: folding,
+                 fits: fits,
+                 pinch: pinch,
+                 roles: walked.filter((r, at) => walked.indexOf(r) === at).sort(),
+                 panes: layout.length,
+                 paneMarked: Boolean(on) && paint(on) !== paint(off),
+                 // The visibility filter is the single-select group: whatever
+                 // the stylesheet calls on should be what the group calls
+                 // checked, or the two have drifted apart.
+                 visibilityAgrees: Array.from(
+                   document.querySelectorAll('.sv-field .sv-chip')
+                 ).every(c => (c.className.indexOf('sv-chip-on') !== -1)
+                   === (c.getAttribute('aria-checked') === 'true'))
+               }
+             })()`
+          )
+
+          expect(!menus.error, `menu: ${menus.error}`)
+          expect(menus.closed, 'Escape did not close the picker')
+          expect(menus.focusBack, 'closing the picker did not give focus back to its trigger')
+          expect(menus.panes === 2, `the dock offered ${menus.panes} pane layouts`)
+          expect(menus.paneMarked, 'the chosen pane layout does not look chosen')
+          expect(menus.visibilityAgrees, 'the visibility chips disagree about which one is on')
+          expect(menus.chipKeys, 'no categorical filter with two chips to walk')
+          expect(menus.chipKeys.reachable, 'a group of chips cannot be reached with Tab')
+          expect(
+            menus.chipKeys.role === 'group',
+            `a column's values are marked up as a ${menus.chipKeys.role}, not a group`
+          )
+          expect(menus.chipKeys.moved, 'an arrow key does not move between chips in a group')
+          expect(menus.pinch, 'no two-thumb filter to pinch')
+          expect(
+            menus.pinch.met,
+            `the two thumbs would not meet on one value (${menus.pinch.met_})`
+          )
+          expect(
+            menus.pinch.freed,
+            `the thumbs met and would not come apart again (${menus.pinch.apart})`
+          )
+          expect(menus.pinch.ordered, `the thumbs came apart crossed (${menus.pinch.apart})`)
+          expect(menus.through, 'no centre column to look through')
+          expect(
+            String(menus.through.id).indexOf('gl-canvas') !== -1,
+            `the middle of the gap is ${menus.through.id}, not the scene -- ` +
+              'something over the canvas is taking the pointer'
+          )
+          expect(menus.fits, 'no inspector or rail to measure the gap against')
+          expect(
+            menus.fits.ok,
+            `the centre column strays under a side column: ${menus.fits.strays}`
+          )
+          expect(menus.railKeys, 'no handle on the rail')
+          {
+            const k = menus.railKeys
+            expect(k.now > k.was, `a key on the rail's handle left it at ${k.now}px, from ${k.was}px`)
+            // The HUD's left edge is the rail's right edge, so the two moves
+            // are the same distance.
+            expect(
+              Math.abs(k.insetNow - k.insetWas - (k.now - k.was)) <= 3,
+              `the rail grew ${k.now - k.was}px and the HUD's left inset ` +
+                `${k.insetNow - k.insetWas}px -- the scene is framed against the old column`
+            )
+            expect(pointsIn(k.stats) > 0, `the scene stopped drawing after the rail moved: ${k.stats}`)
+            expect(
+              typeof k.kept === 'number' && Math.abs(k.kept - k.now) <= 2,
+              `the rail is ${k.now}px but the settings hold ${k.kept}`
+            )
+            expect(
+              Math.abs(k.reset - k.was) <= 2,
+              `a double-click put the rail at ${k.reset}px, not back at ${k.was}px`
+            )
+            expect(k.cleared === null, `a double-click left ${k.cleared} in the settings`)
+          }
+          for (const [name, t] of [
+            ['rail', menus.railTray],
+            ['inspector', menus.inspectorTray]
+          ] as const) {
+            expect(t.hidden === 2, `the ${name} offered ${t.hidden} cards to put away`)
+            expect(
+              Math.abs(t.asideW - t.trayW) <= 2 && t.trayW >= 30,
+              `the ${name} folded to ${t.asideW}px around a ${t.trayW}px tray`
+            )
+            expect(t.onScreen, `the ${name}'s tray is off the screen`)
+            expect(t.clear, `the dock lies over the ${name}'s tray`)
+            expect(t.reachable, `something covers the ${name}'s tray button`)
+            expect(
+              Math.abs(t.after - t.before) <= 2,
+              `the ${name} came back at ${t.after}px, not the ${t.before}px it was`
+            )
+          }
+          expect(menus.folding, 'no fold control on the dock')
+          expect(menus.folding.standing, 'folding the dock crashed the renderer')
+          expect(
+            menus.folding.folded < menus.folding.tall / 2,
+            `folding the dock left it ${menus.folding.folded}px, from ${menus.folding.tall}px ` +
+              `-- ${menus.folding.layers}`
+          )
+          expect(
+            Math.abs(menus.folding.back - menus.folding.tall) <= 2,
+            `unfolding the dock brought it back to ${menus.folding.back}px, not ${menus.folding.tall}px`
+          )
+          expect(menus.resize, 'no handle between the camera and the curves')
+          expect(
+            menus.resize.now < menus.resize.was,
+            `the inspector handle took three arrows and left the camera at ` +
+              `${menus.resize.now}px, from ${menus.resize.was}px`
+          )
+          expect(
+            menus.resize.frameHeld,
+            `resizing with the arrows also scrubbed the transport, from frame ${menus.resize.frame}`
+          )
+          // Both controls in a row, not just the name. The combine box is the
+          // one that is easy to lose: it is a native input, and a menu
+          // library walks its own items rather than whatever else is inside
+          // it, so this is the assertion that caught it going missing.
+          for (const role of ['menuitemradio', 'menuitemcheckbox']) {
+            expect(
+              menus.roles.includes(role),
+              `the arrows reached ${menus.roles.join(', ')} -- no ${role} among them`
+            )
           }
 
           expect(!summary.error, `renderer could not read the case: ${summary.error}`)
@@ -1205,7 +1753,20 @@ export async function runSmoke(
             `${inspector.ready}/${inspector.videos} videos at ${inspector.size}, ` +
             `${inspector.traces} traces in ${inspector.plots} plots; ` +
             `dock ${dock.views.map((v: string) => `${v} ${dock.drawn[v].marks} marks`).join(', ')}; ` +
-            `${selection}; ${multi}; ${exports}`
+            `${selection}; ${multi}; ` +
+            `menu keys reach ${menus.roles.join(' + ')}, Escape closes and hands focus back, ` +
+            `the chosen pane and visibility chips still read as chosen, ` +
+            `${menus.chipKeys.chips} chips make a group the arrows move within, ` +
+            `two thumbs meet on one value and come apart to ${menus.pinch.apart}, ` +
+            `the inspector handle resizes ${menus.resize.was} -> ${menus.resize.now}px ` +
+            `without scrubbing, the gap's middle is still the scene and its ` +
+            `contents stay inside it, ` +
+            `the dock folds ${menus.folding.tall} -> ${menus.folding.folded} -> ` +
+            `${menus.folding.back}px, ` +
+            `the rail resizes ${menus.railKeys.was} -> ${menus.railKeys.now}px with the HUD ` +
+            `following and the width kept, both sides fold to a ` +
+            `${menus.railTray.trayW}px tray and come back; ` +
+            `${exports}`
           )
         } finally {
           probe.destroy()
@@ -1249,6 +1810,15 @@ export async function runSmoke(
             `(async () => {
                const dir = ${JSON.stringify(caseDir)}
                await window.sensorview.settings.set({ recent: [dir] })
+               // Two widths nobody would land on by accident, for the cold
+               // start to come back to. Nested, so the whole layout is read
+               // back and written whole: set merges only the top level.
+               const was = await window.sensorview.settings.get()
+               if (was.ok) {
+                 await window.sensorview.settings.set({
+                   layout: Object.assign({}, was.data.layout, { railW: 333, inspectorW: 444 })
+                 })
+               }
                await window.sensorview.settings.rememberView(dir, {
                  colormap: 'Jet',
                  decay: 4,
@@ -1288,7 +1858,7 @@ export async function runSmoke(
           await relaunched.loadFile(rendererHtml)
 
           const back = await relaunched.webContents.executeJavaScript(
-            `(async () => {
+            `(async () => {${DRIVE}
                const field = (label) => Array.from(document.querySelectorAll('.sv-field'))
                  .find(f => ((f.querySelector('.sv-section-label') || {}).textContent || '')
                    .trim() === label)
@@ -1309,15 +1879,22 @@ export async function runSmoke(
                }
                const colormap = field('Colormap')
                const decay = field('Decay')
-               const click = Array.from(document.querySelectorAll('.sv-rail .sv-switch-row'))
-                 .find(r => (r.textContent || '').indexOf('Click a point') !== -1)
+               const click = switchRow(document.querySelector('.sv-rail'), 'Click a point')
                return {
                  crumb: crumb ? crumb.textContent : null,
                  colormap: colormap ? colormap.querySelector('select').value : null,
                  decay: decay ? decay.querySelector('input').value : null,
-                 clickToHide: click ? click.querySelector('input').checked : null,
+                 clickToHide: click ? isOn(click) : null,
                  slots: Array.from(document.querySelectorAll('.sv-slot-picker select'))
                    .map(s => s.value),
+                 railW: (() => {
+                   const el = document.querySelector('.sv-rail .sv-stack')
+                   return el ? Math.round(el.getBoundingClientRect().width) : null
+                 })(),
+                 inspectorW: (() => {
+                   const el = document.querySelector('.sv-inspector .sv-stack')
+                   return el ? Math.round(el.getBoundingClientRect().width) : null
+                 })(),
                  points: document.getElementById('gl-stats')
                    ? document.getElementById('gl-stats').textContent
                    : null
@@ -1333,6 +1910,14 @@ export async function runSmoke(
           expect(back.colormap === 'Jet', `the colormap came back as ${back.colormap}`)
           expect(back.decay === '4', `the decay came back as ${back.decay}`)
           expect(back.clickToHide === true, 'click-to-hide did not come back on')
+          expect(
+            back.railW !== null && Math.abs(back.railW - 333) <= 2,
+            `the rail came back at ${back.railW}px, not the 333px stored`
+          )
+          expect(
+            back.inspectorW !== null && Math.abs(back.inspectorW - 444) <= 2,
+            `the inspector came back at ${back.inspectorW}px, not the 444px stored`
+          )
           // The panes are the dock's own state, written separately and
           // reconciled against whatever columns this log has.
           expect(

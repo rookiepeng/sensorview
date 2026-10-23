@@ -11,20 +11,39 @@
 // the cloud, the pose and the exports have room for one answer and take the
 // head of the set.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { positionsOf, stemRuns } from '@shared/logs'
 import type { CurvePlot, ImageStream } from '@shared/types'
 
 import { CameraPanel, type ClipSource } from './CameraPanel'
 import { Group, IconButton } from './Controls'
-import { Splitter } from './Splitter'
+import {
+  Group as Panes,
+  Panel,
+  Separator,
+  type PanelImperativeHandle
+} from 'react-resizable-panels'
 import { CurvePanel, growYRanges } from './CurvePanel'
-import { BOUNDS, useLayout } from '../layout'
+import { useLayout, type Presence } from '../layout'
 import { useStore } from '../store'
 import { useTheme } from '../useTheme'
 
-export function Inspector() {
+/**
+ * The floor for either card, which is also the other one's ceiling.
+ *
+ * Both are "a picture or a plot still worth looking at", which is what the
+ * pair of bounds in `layout.ts` used to say -- one of them by measuring the
+ * stack and subtracting. Two floors say it without measuring anything.
+ */
+const CARD_MIN = 140
+
+export function Inspector({
+  onPresence
+}: {
+  /** Told which of its three shapes the column is in, whenever that changes. */
+  onPresence?: (presence: Presence) => void
+} = {}) {
   const dir = useStore((s) => s.dir)
   const stems = useStore((s) => s.stems)
   const ownerSets = useStore((s) => s.ownerSets)
@@ -49,7 +68,14 @@ export function Inspector() {
   // The same list the left-hand overlays use -- away is away.
   const hidden = useLayout((s) => s.hidden)
   const toggleHidden = useLayout((s) => s.toggleHidden)
+  const camera = useRef<PanelImperativeHandle | null>(null)
   const cameraH = useLayout((s) => s.cameraH)
+  // Read once, on purpose. `defaultSize` is where the panel starts, and
+  // feeding the stored height back into it closes a loop: the drag writes
+  // the store, the store re-renders this with a new `defaultSize`, the group
+  // lays out again and writes the store again. React calls that "maximum
+  // update depth exceeded" and the error boundary takes the window.
+  const startAt = useRef(cameraH)
   const setSize = useLayout((s) => s.setSize)
   const theme = useTheme()
 
@@ -251,6 +277,24 @@ export function Inspector() {
   // when there is nothing. A read that *failed* is the other case, and used
   // to be indistinguishable from it: the panel simply never appeared.
   const broken = failed.camera ?? failed.curves
+
+  // Which shape the column takes, for the panel holding it to size itself
+  // to. Reported rather than worked out by the shell, because whether there
+  // is anything to show depends on reads only this component makes -- and
+  // reported from here, above the early return, because that is the case
+  // the shell most needs to hear about.
+  const presence: Presence =
+    clips.length === 0 && plots.length === 0 && !broken
+      ? 'none'
+      : broken ||
+          (clips.length > 0 && !hidden.includes('camera')) ||
+          (plots.length > 0 && !hidden.includes('curves'))
+        ? 'cards'
+        : 'tray'
+  useEffect(() => {
+    onPresence?.(presence)
+  }, [presence, onPresence])
+
   if (clips.length === 0 && plots.length === 0 && !broken) {
     return null
   }
@@ -265,15 +309,13 @@ export function Inspector() {
   const away = panels.filter((panel) => panel.has && hidden.includes(panel.id))
   const showCamera = clips.length > 0 && !hidden.includes('camera')
   const showCurves = plots.length > 0 && !hidden.includes('curves')
-  // A dragged height only means anything while there are two cards to
-  // divide: one on its own takes the column whatever was dragged before.
-  const split = showCamera && showCurves && cameraH !== null
+  // Both cards, so there is a division to make. One on its own takes the
+  // column whatever was dragged before, and a group of one panel with no
+  // handle in it is not a thing the library has.
+  const dividing = showCamera && showCurves
 
   return (
-    <aside
-      className={`sv-inspector${split ? ' sv-split' : ''}`}
-      style={split ? ({ '--sv-camera-h': `${cameraH}px` } as React.CSSProperties) : undefined}
-    >
+    <aside className="sv-inspector">
       <div className="sv-stack">
       {/* A read that failed, rather than a log that carries nothing. It gets
           a plate of its own, because the column behind it is the scene. */}
@@ -283,6 +325,142 @@ export function Inspector() {
         </div>
       )}
 
+      {/* Two cards divide the column; one takes it whole. The library has
+          no group of a single panel, so the undivided case is the bare card
+          it always was. */}
+      {dividing ? (
+        <Panes
+          orientation="vertical"
+          className="sv-inspector-split"
+          // `height: 100%` is the library's own, and against a stack whose
+          // height is its content that resolves to nothing useful. These
+          // three say "take what the column has left", as the two cards
+          // used to say for themselves.
+          style={{ height: 'auto', flex: '1 1 auto', minHeight: 0 }}
+          onLayoutChanged={(_layout, meta) => {
+            // Only what a person did. Every layout reaches this -- mount and
+            // the double-click reset included -- and only a drag or a key on
+            // the handle is a height someone chose.
+            if (!meta.isUserInteraction) {
+              return
+            }
+            const size = camera.current?.getSize()
+            if (!size) {
+              return
+            }
+            // And only on a real change, so a layout that rounds to the
+            // height already stored writes nothing.
+            const px = Math.round(size.inPixels)
+            if (px !== cameraH) {
+              setSize('cameraH', px)
+            }
+          }}
+        >
+          <Panel
+            panelRef={camera}
+            className="sv-inspector-pane"
+            // The library gives every panel `overflow: auto`. These hold a
+            // 16:9 still and a stack of plots, both of which size themselves
+            // against their box, so a scrollbar here is the box giving up.
+            style={{ overflow: 'visible' }}
+            defaultSize={startAt.current ?? '50'}
+            minSize={CARD_MIN}
+          >
+          {showCamera && (
+            <Group
+              className="sv-card-camera"
+              icon="camera-video"
+              title="Camera"
+              reading={`${clips.length} ${clips.length === 1 ? 'view' : 'views'}`}
+              onHide={() => toggleHidden('camera')}
+            >
+              {/* The pickers sit in the body rather than the head. At 380px a
+                  head carrying a title, a reading, two selects and a close is
+                  a row of ellipses. */}
+              {streamChoices.length > 1 && (
+                <div className="sv-group-controls">
+                  <select
+                    value={oneStream}
+                    aria-label="Camera stream"
+                    onChange={(event) => setOneStream(event.target.value)}
+                  >
+                    <option value="">All streams</option>
+                    {streamChoices.map(([id, label]) => (
+                      <option key={id} value={id}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <CameraPanel clips={clips} />
+            </Group>
+          )}
+
+          </Panel>
+
+          {/* Double-click is the library's, but what it restores is the
+              `defaultSize` -- which is the dragged height, so it would
+              restore nothing. Ours clears the stored number instead, which
+              is what "back to the stylesheet's own answer" meant. */}
+          <Separator
+            className="sv-splitter sv-splitter-row"
+            disableDoubleClick
+            onDoubleClick={() => {
+              camera.current?.resize('50')
+              setSize('cameraH', null)
+            }}
+          />
+
+          <Panel className="sv-inspector-pane" style={{ overflow: 'visible' }} minSize={CARD_MIN}>
+          {showCurves && (
+            <Group
+              className="sv-card-curves"
+              icon="graph-up"
+              title="Curves"
+              reading={`${shownPlots.length} ${shownPlots.length === 1 ? 'plot' : 'plots'}`}
+              onHide={() => toggleHidden('curves')}
+            >
+              {(plotChoices.length > 1 || sources.length > 1) && (
+                <div className="sv-group-controls">
+                  {plotChoices.length > 1 && (
+                    <select
+                      value={onePlot}
+                      aria-label="Curve plot"
+                      onChange={(event) => setOnePlot(event.target.value)}
+                    >
+                      <option value="">All plots</option>
+                      {plotChoices.map(([id, label]) => (
+                        <option key={id} value={id}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {/* Only when there is a choice: one sidecar needs no picker,
+                      and a select with a single option is furniture. */}
+                  {sources.length > 1 && (
+                    <select
+                      value={source ?? ''}
+                      aria-label="Curve source"
+                      onChange={(event) => setSource(event.target.value)}
+                    >
+                      {sources.map((entry) => (
+                        <option key={entry.id} value={entry.id}>
+                          {entry.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+              <CurvePanel plots={shownPlots} yRanges={yRanges} theme={theme} />
+            </Group>
+          )}
+          </Panel>
+        </Panes>
+      ) : (
+        <>
       {showCamera && (
         <Group
           className="sv-card-camera"
@@ -312,23 +490,6 @@ export function Inspector() {
           )}
           <CameraPanel clips={clips} />
         </Group>
-      )}
-
-      {/* Only between two cards: a handle with nothing on one side of it
-          resizes nothing. */}
-      {showCamera && showCurves && (
-        <Splitter
-          id="camera-splitter"
-          axis="row"
-          label="Camera height"
-          measure={() =>
-            document.querySelector('.sv-card-camera')?.getBoundingClientRect().height ?? 0
-          }
-          onResize={(px) => setSize('cameraH', px)}
-          onReset={() => setSize('cameraH', null)}
-          value={cameraH}
-          {...BOUNDS.camera}
-        />
       )}
 
       {showCurves && (
@@ -374,6 +535,8 @@ export function Inspector() {
           )}
           <CurvePanel plots={shownPlots} yRanges={yRanges} theme={theme} />
         </Group>
+      )}
+        </>
       )}
       </div>
 

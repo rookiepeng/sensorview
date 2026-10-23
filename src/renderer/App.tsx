@@ -18,17 +18,22 @@
 // neither a recording nor curves, the dock until a case is open. A region that
 // reserved its space empty would make the scene smaller to say nothing.
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  Group as Panes,
+  Panel,
+  Separator,
+  type PanelImperativeHandle
+} from 'react-resizable-panels'
 
 import { FilterRail } from './components/FilterRail'
-import { Splitter } from './components/Splitter'
 import { GlStage } from './components/GlStage'
 import { AnalysisDock } from './components/AnalysisDock'
 import { Inspector } from './components/Inspector'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
-import { BOUNDS, OVERLAYS, useLayout, useLayoutPersistence } from './layout'
+import { BOUNDS, OVERLAYS, useLayout, useLayoutPersistence, type Presence } from './layout'
 import { useViewPersistence } from './view'
 import { useCloud } from './useCloud'
 import { useHotkeys } from './useHotkeys'
@@ -39,8 +44,77 @@ import { useStore } from './store'
 import { useTheme } from './useTheme'
 import { parseColor } from '@gl/sv_color.esm.js'
 
-const sizeOf = (selector: string, axis: 'width' | 'height') => () =>
-  document.querySelector(selector)?.getBoundingClientRect()[axis] ?? 0
+/**
+ * The width of a tray on its own: a 26px icon button, 3px of padding and a
+ * 1px border either side, as `.sv-tray` draws it in `app.css`.
+ *
+ * A number here because a panel's constraints are numbers. If the tray's
+ * styling changes this has to follow it, and `smoke.ts` checks that a column
+ * folded to its tray still shows the whole tray and nothing lies over it.
+ */
+const TRAY_W = 34
+
+/**
+ * The constraints a side panel takes for the shape its column is in.
+ *
+ * Pinned rather than collapsed. A collapsed panel has one width to collapse
+ * to, and the inspector needs two -- its tray, or nothing at all for a log
+ * with nothing to show -- so `minSize` and `maxSize` are set equal to
+ * whichever width that is. Widths are the column plus the gap it keeps from
+ * the window, which the panel carries as padding.
+ */
+function pinned(presence: Presence, min: number, max: number, gap: number) {
+  if (presence === 'cards') {
+    return { minSize: min + gap, maxSize: Math.max(min, max) + gap }
+  }
+  const width = presence === 'tray' ? TRAY_W + gap : 0
+  return { minSize: width, maxSize: width }
+}
+
+/** Resize a side panel to `want` if it shows its cards and is not there yet. */
+function putBack(pane: PanelImperativeHandle | null, presence: Presence, want: number) {
+  if (!pane || presence !== 'cards') {
+    return
+  }
+  if (Math.abs(pane.getSize().inPixels - want) > 1) {
+    console.log('SV10 putBack', presence, pane.getSize().inPixels.toFixed(1), '->', want)
+    pane.resize(want)
+  }
+}
+
+/**
+ * Store a side column's width after a layout settles.
+ *
+ * Only while it shows its cards, and only a width at or above its floor: a
+ * pinned tray or an empty column is never a width someone chose, and either
+ * stored would come back as a column too narrow to use.
+ */
+function remember(
+  pane: PanelImperativeHandle | null,
+  presence: Presence,
+  stored: number | null,
+  floor: number,
+  gap: number,
+  store: (width: number) => void
+) {
+  if (!pane || presence !== 'cards') {
+    return
+  }
+  const column = Math.round(pane.getSize().inPixels) - gap
+  if (column >= floor && column !== stored) {
+    console.log('SV10 remember store', column, 'was', stored)
+    store(column)
+  }
+}
+
+/**
+ * The strip a folded dock keeps, which is `--sv-dock-tabs-h` in `app.css`.
+ *
+ * Here as a number because the panel's `collapsedSize` is one, and the two
+ * `!important` rules that used to force this height existed only to beat the
+ * inline token a drag left behind. Nothing writes that token now.
+ */
+const DOCK_TABS_H = 38
 
 export function App() {
   const frame = useStore((s) => s.frame)
@@ -65,7 +139,50 @@ export function App() {
   const filters = useStore((s) => s.filters)
   const railW = useLayout((s) => s.railW)
   const inspectorW = useLayout((s) => s.inspectorW)
+
+  // The widths a column starts from when nothing has been dragged, read
+  // once from the stylesheet so the numbers live in one place. `--sv-gap` is
+  // the inset each column keeps from the window's edge.
+  const tokens = useRef<{ rail: number; inspector: number; gap: number } | null>(null)
+  if (tokens.current === null) {
+    const root = getComputedStyle(document.documentElement)
+    const read = (name: string, fallback: number) =>
+      parseFloat(root.getPropertyValue(name)) || fallback
+    tokens.current = {
+      rail: read('--sv-rail-w', 288),
+      inspector: read('--sv-inspector-w', 480),
+      gap: read('--sv-gap', 10)
+    }
+  }
+  const { gap } = tokens.current
+
+  // The side columns' ceilings are shares of the window as well as pixel
+  // caps, so they are worked out again whenever the window changes.
+  const [windowW, setWindowW] = useState(() => window.innerWidth)
+  useEffect(() => {
+    const onResize = () => setWindowW(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
+  const railPane = useRef<PanelImperativeHandle | null>(null)
+  const inspectorPane = useRef<PanelImperativeHandle | null>(null)
+  // What `defaultSize` gets, read once. As with the dock: a `defaultSize`
+  // that follows the store re-registers the panel on every write, and the
+  // re-layout writes again.
+  const startRailAt = useRef((railW ?? tokens.current.rail) + gap)
+  const startInspectorAt = useRef((inspectorW ?? tokens.current.inspector) + gap)
+  // The inspector says which shape it is in; whether it has anything to
+  // show depends on reads only it makes.
+  const [inspectorPresence, setInspectorPresence] = useState<Presence>('none')
   const dockH = useLayout((s) => s.dockH)
+  const dockCollapsed = useLayout((s) => s.dockCollapsed)
+  const toggleLayout = useLayout((s) => s.toggle)
+  const dockPane = useRef<PanelImperativeHandle | null>(null)
+  // Read once. Feeding the stored height back into `defaultSize` is the loop
+  // that took the window in the inspector's split: the write re-renders, the
+  // new prop re-lays out, and the layout writes again.
+  const startDockAt = useRef(dockH)
   const hidden = useLayout((s) => s.hidden)
   const setSize = useLayout((s) => s.setSize)
   const cloud = useStore((s) => s.cloud)
@@ -204,14 +321,62 @@ export function App() {
   // so the geometry stays in app.css and this only supplies a number. Unset
   // means the stylesheet's own value, which is how a panel nobody has touched
   // keeps its 288px and its 34vh without those numbers being written here.
-  const sizes = {
-    ...(railW !== null && { '--sv-rail-w': `${railW}px` }),
-    ...(inspectorW !== null && { '--sv-inspector-w': `${inspectorW}px` }),
-    ...(dockH !== null && { '--sv-dock-h': `${dockH}px` })
-  } as React.CSSProperties
+  // The store stays the one answer to whether the dock is folded: it is
+  // persisted, the head's chevron reads it, and the panel is told rather
+  // than asked. Both directions are guarded on disagreement, so neither can
+  // chase the other.
+  useEffect(() => {
+    const pane = dockPane.current
+    if (!pane) {
+      return
+    }
+    if (dockCollapsed !== pane.isCollapsed()) {
+      if (dockCollapsed) {
+        pane.collapse()
+      } else {
+        pane.expand()
+      }
+    }
+  }, [dockCollapsed])
+
+  // The rail's shape needs no reporting: no case means no rail, and the
+  // rest is which of its two overlays are away.
+  const railPresence: Presence =
+    frameCount === 0
+      ? 'none'
+      : OVERLAYS.left.some((id) => !hidden.includes(id))
+        ? 'cards'
+        : 'tray'
+
+  // Back to the dragged width whenever a column returns to its cards. While
+  // it was away its constraints were pinned to the tray or to nothing, and
+  // widening them again lands the panel on the new floor rather than where
+  // it was -- so it is put back. Also when the stored width arrives late,
+  // from the settings read at startup. Not on a drag: that stores the width
+  // the panel already has, so the two agree and this does nothing.
+  useEffect(() => {
+    putBack(railPane.current, railPresence, (railW ?? tokens.current!.rail) + gap)
+  }, [railPresence, railW, gap])
+  useEffect(() => {
+    putBack(
+      inspectorPane.current,
+      inspectorPresence,
+      (inspectorW ?? tokens.current!.inspector) + gap
+    )
+  }, [inspectorPresence, inspectorW, gap])
+
+  // Read through refs in the layout handler below. The library keeps the
+  // handler it was given on a ref of its own, refreshed after the commit
+  // that re-registers a panel -- so on the very layout a presence change
+  // causes, the handler it calls can be the one from before the change, and
+  // would store a tray's width as if someone had dragged to it.
+  const railPresenceNow = useRef(railPresence)
+  railPresenceNow.current = railPresence
+  const inspectorPresenceNow = useRef(inspectorPresence)
+  inspectorPresenceNow.current = inspectorPresence
 
   return (
-    <div className="sv-shell" style={sizes}>
+    <div className="sv-shell">
       {/* No handler at all when the toggle is off, so a click reaches the
           picker and does nothing rather than being read and discarded. */}
       <GlStage
@@ -221,53 +386,171 @@ export function App() {
       />
 
       <div className="sv-view">
-        <div className="sv-hud-col sv-hud-left">
-          <FilterRail />
-          {/* One handle for the column, so long as something is in it. */}
-          {OVERLAYS.left.some((id) => !hidden.includes(id)) && (
-            <Splitter
-              id="rail-splitter"
-              axis="col"
-              label="Filter rail width"
-              measure={sizeOf('.sv-rail .sv-stack', 'width')}
-              onResize={(px) => setSize('railW', px)}
-              onReset={() => setSize('railW', null)}
-              value={railW}
-              {...BOUNDS.rail}
-            />
-          )}
-        </div>
+        {/* Three columns: the rail, the gap, the inspector. The side ones keep
+            their pixel width when the window changes and the gap takes the
+            difference, which is what absolutely placed columns used to do
+            without anything deciding it. The insets `Hud.reflow()` measures
+            off the rail and the inspector no longer place anything here --
+            they frame the scene and park the HUD furniture, as before. */}
+        <Panes
+          orientation="horizontal"
+          className="sv-hud-row"
+          style={{ overflow: 'visible' }}
+          onLayoutChanged={(_layout, meta) => {
+            console.log('SV10 row changed user=', meta.isUserInteraction, 'railW=', railW)
+            // Only what a person did. The library calls this after every layout --
+            // mount, a constraint changing, the imperative resizes this file makes --
+            // and storing those is a loop: the panels' own restore runs, its layout
+            // lands here, and the store moves the target the restore aims at. It also
+            // stored a dock 0px tall, from the first layout of a group whose panel
+            // had no height yet.
+            if (!meta.isUserInteraction) {
+              return
+            }
+            remember(
+              railPane.current,
+              railPresenceNow.current,
+              railW,
+              BOUNDS.rail.min,
+              gap,
+              (width) => setSize('railW', width)
+            )
+            remember(
+              inspectorPane.current,
+              inspectorPresenceNow.current,
+              inspectorW,
+              BOUNDS.inspector.min,
+              gap,
+              (width) => setSize('inspectorW', width)
+            )
+          }}
+        >
+          <Panel
+            id="rail"
+            panelRef={railPane}
+            className="sv-hud-col sv-hud-left"
+            style={{ overflow: 'visible' }}
+            groupResizeBehavior="preserve-pixel-size"
+            defaultSize={startRailAt.current}
+            {...pinned(railPresence, BOUNDS.rail.min, BOUNDS.rail.max(windowW), gap)}
+          >
+            <FilterRail />
+          </Panel>
 
-        {/* The gap the two columns leave, placed from the insets the HUD
-            measures. The top bar sits at its head and the transport and the
-            dock at its foot, so the middle of it stays the scene. */}
-        <div className="sv-center">
-          <TopBar />
-          <div className="sv-center-foot">
-            {frameCount > 0 && <Transport />}
-            <AnalysisDock theme={theme} />
-          </div>
-        </div>
-
-        {/* The inspector draws nothing for a log with neither a recording
-            nor curves, which would leave this column holding a handle that
-            resizes nothing. `.sv-hud-right:not(:has(.sv-inspector))` is what
-            takes the column away with it -- React cannot see from here
-            whether the component returned null. */}
-        <div className="sv-hud-col sv-hud-right">
-          <Splitter
-            id="inspector-splitter"
-            axis="col"
-            label="Inspector width"
-            measure={sizeOf('.sv-inspector .sv-stack', 'width')}
-            onResize={(px) => setSize('inspectorW', px)}
-            onReset={() => setSize('inspectorW', null)}
-            value={inspectorW}
-            invert
-            {...BOUNDS.inspector}
+          {/* Double-click is ours, as on the other handles: the library's
+              would restore `defaultSize`, which is the dragged width. */}
+          <Separator
+            className="sv-splitter sv-splitter-col"
+            aria-label="Filter rail width"
+            disabled={railPresence !== 'cards'}
+            disableDoubleClick
+            onDoubleClick={() => {
+              railPane.current?.resize(tokens.current!.rail + gap)
+              setSize('railW', null)
+            }}
           />
-          <Inspector />
-        </div>
+
+          <Panel id="gap" className="sv-hud-centre" style={{ overflow: 'visible' }} minSize="20">
+            <Panes
+              orientation="vertical"
+              className="sv-center"
+              // The library writes `width: 100%; height: 100%; overflow: hidden`
+              // inline. The panel this sits in is a column and this grows to fill
+              // it, so `auto` lets that decide. Overflow stays open for the menus
+              // that hang off the top bar; the dock clips its own charts.
+              style={{ width: 'auto', height: 'auto', overflow: 'visible' }}
+              onLayoutChanged={(_layout, meta) => {
+                // Only what a person did -- see the row's handler above.
+                if (!meta.isUserInteraction) {
+                  return
+                }
+                const pane = dockPane.current
+                if (!pane || pane.isCollapsed()) {
+                  return
+                }
+                const px = Math.round(pane.getSize().inPixels)
+                if (px !== dockH) {
+                  setSize('dockH', px)
+                }
+              }}
+            >
+              <Panel className="sv-center-gap" style={{ overflow: 'visible' }} minSize="20">
+                <TopBar />
+                <div className="sv-center-foot">{frameCount > 0 && <Transport />}</div>
+              </Panel>
+
+              <Separator
+                className="sv-splitter sv-splitter-row"
+                disabled={dockCollapsed}
+                disableDoubleClick
+                onDoubleClick={() => {
+                  dockPane.current?.resize('34')
+                  setSize('dockH', null)
+                }}
+              />
+
+              <Panel
+                panelRef={dockPane}
+                // Not `sv-dock-pane`: that is each of the dock's two chart slots,
+                // hidden unless it is one of the two in use. Borrowing it hid the
+                // whole dock.
+                className="sv-dock-region"
+                style={{ overflow: 'visible' }}
+                // `--sv-dock-h` is `34vh` and this gap is the window's height,
+                // so the token transfers as a percentage. The floor stays in
+                // pixels: it is a head plus `--sv-pane-plot-min`, which is a
+                // number of pixels and not a share of anything.
+                defaultSize={startDockAt.current ?? '34'}
+                minSize={BOUNDS.dock.min}
+                maxSize="65"
+                collapsible
+                collapsedSize={DOCK_TABS_H}
+                onResize={() => {
+                  const pane = dockPane.current
+                  // A drag past the threshold folds the dock without going
+                  // through the head, so the store has to hear about it.
+                  if (pane && pane.isCollapsed() !== dockCollapsed) {
+                    toggleLayout('dockCollapsed')
+                  }
+                }}
+              >
+                <AnalysisDock theme={theme} />
+              </Panel>
+            </Panes>
+          </Panel>
+
+          <Separator
+            className="sv-splitter sv-splitter-col"
+            aria-label="Inspector width"
+            disabled={inspectorPresence !== 'cards'}
+            disableDoubleClick
+            onDoubleClick={() => {
+              inspectorPane.current?.resize(tokens.current!.inspector + gap)
+              setSize('inspectorW', null)
+            }}
+          />
+
+          {/* Always mounted, even with nothing to show: the inspector is what
+              reads whether there is anything, so unmounting it would leave
+              nothing to say so when there is something again. Pinned to zero
+              instead, which `:has()` used to manage with `display`. */}
+          <Panel
+            id="inspector"
+            panelRef={inspectorPane}
+            className="sv-hud-col sv-hud-right"
+            style={{ overflow: 'visible' }}
+            groupResizeBehavior="preserve-pixel-size"
+            defaultSize={startInspectorAt.current}
+            {...pinned(
+              inspectorPresence,
+              BOUNDS.inspector.min,
+              BOUNDS.inspector.max(windowW),
+              gap
+            )}
+          >
+            <Inspector onPresence={setInspectorPresence} />
+          </Panel>
+        </Panes>
       </div>
     </div>
   )

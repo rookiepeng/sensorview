@@ -25,9 +25,10 @@ import type { DockSlot } from '@shared/types'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
+import { ToggleGroup } from 'radix-ui'
+
 import { CollapseButton, IconButton, Picker, Switch } from './Controls'
-import { Splitter } from './Splitter'
-import { BOUNDS, useLayout } from '../layout'
+import { useLayout } from '../layout'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
 
@@ -98,8 +99,6 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
 
   const collapsed = useLayout((s) => s.dockCollapsed)
   const toggleCollapsed = useLayout((s) => s.toggle)
-  const dockH = useLayout((s) => s.dockH)
-  const setSize = useLayout((s) => s.setSize)
   const wanted = useLayout((s) => s.dockPanes)
   const setPanes = useLayout((s) => s.setPanes)
   const dock = useRef<HTMLDivElement>(null)
@@ -264,45 +263,51 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   }
 
   return (
-    <div className="sv-dock-wrap">
-      {/* `.sv-dock-wrap:has(.sv-dock.sv-collapsed) .sv-splitter` has been in
-          app.css since the port, waiting for a handle to hide. */}
-      {!collapsed && (
-        <Splitter
-          id="dock-splitter"
-          axis="row"
-          label="Analysis dock height"
-          measure={() => document.querySelector('.sv-dock')?.getBoundingClientRect().height ?? 0}
-          onResize={(px) => setSize('dockH', px)}
-          onReset={() => setSize('dockH', null)}
-          value={dockH}
-          invert
-          {...BOUNDS.dock}
-        />
-      )}
-      <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`} ref={dock}>
+    // The handle above this, and the height it sets, belong to the panel
+    // group in `App.tsx` now. What is left here is the dock itself.
+    <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`} ref={dock}>
         <div className="sv-dock-head">
           {/* How many panes, said as a shape. Each pane's own view is picked
               on the pane, where the chart it names is. */}
-          <div className="sv-dock-layout" role="group" aria-label="Analysis panes">
-            <IconButton
-              icon="square"
+          {/* One of two, so a single-select group rather than two toggle
+              buttons that happened to agree. The items are written out here
+              rather than through `IconButton`: they need Radix's own props
+              and its ref, and `IconButton` passes on neither. */}
+          <ToggleGroup.Root
+            type="single"
+            className="sv-dock-layout"
+            aria-label="Analysis panes"
+            value={String(panes)}
+            // Empty means the active one was pressed again. There is no
+            // "no panes", so that answer is ignored.
+            onValueChange={(next) => {
+              if (next) {
+                setPanes(Number(next))
+              }
+            }}
+          >
+            <ToggleGroup.Item
+              value="1"
+              className="sv-icon-btn"
               title="One pane"
-              pressed={panes === 1}
-              onClick={() => setPanes(1)}
-            />
-            <IconButton
-              icon="layout-split"
+              aria-label="One pane"
+            >
+              <i className="bi bi-square" aria-hidden="true" />
+            </ToggleGroup.Item>
+            <ToggleGroup.Item
+              value="2"
+              className="sv-icon-btn"
+              disabled={cramped}
               title={
                 cramped
                   ? 'Not enough width for two panes -- widen the window, or hide a panel'
                   : 'Two panes, side by side'
               }
-              pressed={panes === 2}
-              disabled={cramped}
-              onClick={() => setPanes(2)}
-            />
-          </div>
+              aria-label="Two panes, side by side"
+            >
+              <i className="bi bi-layout-split" aria-hidden="true" />
+            </ToggleGroup.Item>
+          </ToggleGroup.Root>
 
           {/* Swapping beats re-picking both views when the comparison is the
               right way round but on the wrong sides. Nothing to swap with
@@ -398,7 +403,6 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           })}
         </div>
       </div>
-    </div>
   )
 }
 

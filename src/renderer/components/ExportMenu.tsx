@@ -11,6 +11,7 @@
 // opens a save dialog, and a dismissed dialog is a null rather than an error.
 
 import { useEffect, useRef, useState } from 'react'
+import { DropdownMenu } from 'radix-ui'
 
 import { filterAll, frameRows } from '@shared/table'
 
@@ -18,7 +19,6 @@ import { maskedRows } from '../figures/common'
 import { recordScene, toBase64 } from '../export/animation'
 import { exportName, snapshotHtml, standaloneHtml, tableCsv } from '../export/exporters'
 import { getScene } from '../sceneHandle'
-import { useMenu } from '../useMenu'
 import { useStore } from '../store'
 
 /** Long enough to read a filename, short enough not to outlive its moment. */
@@ -33,7 +33,7 @@ export function ExportMenu() {
   const frameCount = useStore((s) => s.frameCount)
   const setFrame = useStore((s) => s.setFrame)
 
-  const menu = useMenu()
+  const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const cancelled = useRef(false)
@@ -74,9 +74,9 @@ export function ExportMenu() {
   }
 
   async function run(label: string, job: () => Promise<void>) {
-    // Closing returns focus to the trigger, which is also the cancel button
-    // for the job about to start -- so the keyboard lands where it is needed.
-    menu.close()
+    // The menu has closed itself by the time this runs, returning focus to
+    // the trigger -- which is also the cancel button for the job about to
+    // start, so the keyboard lands where it is needed.
     setBusy(label)
     setNote(null)
     try {
@@ -226,68 +226,92 @@ export function ExportMenu() {
       )
     })
 
+  // The trigger is two controls in one: it opens the menu when idle and stops
+  // the running job otherwise. Radix owns the open half, so the busy half has
+  // to stop the event reaching it -- `onPointerDown` rather than `onClick`,
+  // because that is where `DropdownMenu.Trigger` opens.
+  const stopIfBusy = (event: React.PointerEvent | React.KeyboardEvent) => {
+    if (busy) {
+      event.preventDefault()
+      cancelled.current = true
+    }
+  }
+
   return (
-    <div className="sv-export" ref={menu.containerRef}>
-      <button
-        type="button"
-        className="sv-icon-btn"
-        onClick={() => (busy ? (cancelled.current = true) : menu.toggle())}
-        {...menu.triggerProps}
-        title={busy ? `${busy} — click to stop` : 'Export'}
-        // The same button is "open the menu" when idle and "stop" while a job
-        // runs. The name has to say which, or a job is cancelled by a button
-        // that still announces itself as Export.
-        aria-label={busy ? `Stop the ${busy} export` : 'Export'}
-      >
-        <i className={`bi bi-${busy ? 'stop-circle' : 'download'}`} aria-hidden="true" />
-      </button>
+    <DropdownMenu.Root open={open} onOpenChange={setOpen} modal={false}>
+      <div className="sv-export">
+        <DropdownMenu.Trigger asChild>
+          <button
+            type="button"
+            className="sv-icon-btn"
+            onPointerDown={stopIfBusy}
+            title={busy ? `${busy} — click to stop` : 'Export'}
+            // The same button is "open the menu" when idle and "stop" while a
+            // job runs. The name has to say which, or a job is cancelled by a
+            // button that still announces itself as Export.
+            aria-label={busy ? `Stop the ${busy} export` : 'Export'}
+          >
+            <i className={`bi bi-${busy ? 'stop-circle' : 'download'}`} aria-hidden="true" />
+          </button>
+        </DropdownMenu.Trigger>
 
-      {busy && <span className="sv-export-note">{busy}…</span>}
-      {!busy && note && (
-        <span className="sv-export-note" role="status">
-          {note}
-        </span>
-      )}
+        {busy && <span className="sv-export-note">{busy}…</span>}
+        {!busy && note && (
+          <span className="sv-export-note" role="status">
+            {note}
+          </span>
+        )}
 
-      {menu.open && (
-        <div className="sv-menu sv-menu-right" role="menu" ref={menu.menuRef}>
+        {/* Not portalled: `smoke.ts` finds this through `.sv-export .sv-menu`,
+            and a portal would move it to the body and out of that reach. */}
+        <DropdownMenu.Content
+          className="sv-menu"
+          side="bottom"
+          align="end"
+          sideOffset={5}
+        >
           <Item
             label="Table as CSV"
             hint="every filtered row"
-            onClick={() => exportCsv('all')}
+            onSelect={() => exportCsv('all')}
           />
           <Item
             label="This frame as CSV"
             hint="the rows on screen"
-            onClick={() => exportCsv('current')}
+            onSelect={() => exportCsv('current')}
           />
-          <Item label="Scene as PNG" hint="this frame" onClick={exportPng} />
-          <Item label="Scene as HTML" hint="this frame, with a caption" onClick={exportHtml} />
+          <Item label="Scene as PNG" hint="this frame" onSelect={exportPng} />
+          <Item label="Scene as HTML" hint="this frame, with a caption" onSelect={exportHtml} />
           <Item
             label="Figure as HTML"
             hint="the dock view, self-contained"
-            onClick={exportFigureHtml}
+            onSelect={exportFigureHtml}
           />
-          <Item label="Animation" hint="every frame, as video" onClick={exportAnimation} />
-        </div>
-      )}
-    </div>
+          <Item label="Animation" hint="every frame, as video" onSelect={exportAnimation} />
+        </DropdownMenu.Content>
+      </div>
+    </DropdownMenu.Root>
   )
 }
 
 function Item({
   label,
   hint,
-  onClick
+  onSelect
 }: {
   label: string
   hint: string
-  onClick: () => void
+  onSelect: () => void
 }) {
   return (
-    <button type="button" role="menuitem" className="sv-menu-item" onClick={onClick}>
-      <span className="sv-menu-label">{label}</span>
-      <span className="sv-menu-marks">{hint}</span>
-    </button>
+    // `asChild` so the button and its two spans stay exactly as they were:
+    // `smoke.ts` reads `.sv-menu-item`, `.sv-menu-label` and `.sv-menu-marks`
+    // and counts on the shape.
+    <DropdownMenu.Item asChild onSelect={onSelect}>
+      <button type="button" className="sv-menu-item">
+        <span className="sv-menu-label">{label}</span>
+        <span className="sv-menu-marks">{hint}</span>
+      </button>
+    </DropdownMenu.Item>
   )
 }
