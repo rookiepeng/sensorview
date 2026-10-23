@@ -26,6 +26,7 @@ import type { DockSlot } from '@shared/types'
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
 import { LARGE_ROWS, clearLoading, countOf, nextFrames, withLoading } from '../busy'
+import { regionsOfEvent, rowsInRegions, thinRows } from '@shared/thin'
 import { ToggleGroup } from 'radix-ui'
 
 import { CollapseButton, IconButton, Picker, Switch } from './Controls'
@@ -554,9 +555,49 @@ function Pane({
     void withLoading(`Drawing ${countOf(rows.length)} points`, () => onChange(patch))
   }
 
+  // Where the user has zoomed the scatter to, so a thinned one can be thinned
+  // again inside it. Forgotten when the pane starts showing something else,
+  // which is also when Plotly lets go of the zoom (see `revision` below).
+  const [zoom, setZoom] = useState<{ x: [number, number]; y: [number, number] } | null>(null)
+  const subject = [stems.join('+'), slot.view, slot.x, slot.y, slot.colour, slot.scope].join('|')
+  useEffect(() => setZoom(null), [subject])
+
+  // A scatter of more rows than SVG draws quickly is drawn as one row per
+  // small cell of the plot -- the same picture, a bounded number of points.
+  // Thinned within the zoom, widened a little so a short pan still has
+  // points to show, or within the pane's fixed limits when it has them.
+  const drawn = useMemo(() => {
+    if (slot.view !== 'scatter') {
+      return scoped
+    }
+    const fixed = (lo: string, hi: string) => {
+      const a = Number.parseFloat(lo)
+      const b = Number.parseFloat(hi)
+      return Number.isFinite(a) && Number.isFinite(b) ? ([a, b] as [number, number]) : null
+    }
+    const widen = ([lo, hi]: [number, number]): [number, number] => {
+      const pad = (hi - lo) * 0.25
+      return [lo - pad, hi + pad]
+    }
+    const limitX = fixed(slot.limits.xMin, slot.limits.xMax)
+    const limitY = fixed(slot.limits.yMin, slot.limits.yMax)
+    const x = zoom ? widen(zoom.x) : limitX
+    const y = zoom ? widen(zoom.y) : limitY
+    return thinRows(table, scoped, slot.x, slot.y, x && y ? { x, y } : null)
+  }, [slot.view, slot.x, slot.y, slot.limits, scoped, table, zoom])
+  const thinned = drawn !== scoped
+
+  // Plotly reports the points it enclosed, which for a thinned scatter is a
+  // sample. The region the user drew is what was meant, so it is tested
+  // against every row the scatter stands for.
+  const select = (rows: number[], event?: unknown) => {
+    const regions = thinned ? regionsOfEvent(event) : null
+    onSelectRows(regions ? rowsInRegions(table, scoped, slot.x, slot.y, regions) : rows)
+  }
+
   const figure = useMemo(
     () =>
-      buildView(slot.view, table, scoped, {
+      buildView(slot.view, table, drawn, {
         x: slot.x,
         y: slot.y,
         colour: slot.colour,
@@ -567,7 +608,7 @@ function Pane({
         histnorm: slot.histnorm,
         logScale: slot.logScale
       }),
-    [slot, table, scoped, colormap, keys, theme]
+    [slot, table, drawn, colormap, keys, theme]
   )
 
   // Applied over the built figure rather than inside the builders: a limit is
@@ -581,18 +622,43 @@ function Pane({
     }
     const x = span(slot.limits.xMin, slot.limits.xMax)
     const y = span(slot.limits.yMin, slot.limits.yMax)
+    // A thinned scatter says so, or a zoom that turns up points nobody saw
+    // before looks like the data changed.
+    const note = thinned
+      ? {
+          // Room above the plot for the line. The base layout keeps a 10px
+          // top margin, which cut the text off at its cap height.
+          margin: { ...(figure.layout.margin as object | undefined), t: 26 },
+          annotations: [
+            ...((figure.layout.annotations as object[] | undefined) ?? []),
+            {
+              text: `${countOf(drawn.length)} of ${countOf(scoped.length)} points drawn · selections use all`,
+              xref: 'paper',
+              yref: 'paper',
+              x: 0,
+              y: 1,
+              xanchor: 'left',
+              yanchor: 'bottom',
+              yshift: 4,
+              showarrow: false,
+              font: { size: 10, color: theme === 'dark' ? '#8a939e' : '#5d656f' }
+            }
+          ]
+        }
+      : {}
     if (!x && !y) {
-      return figure
+      return thinned ? { data: figure.data, layout: { ...figure.layout, ...note } } : figure
     }
     return {
       data: figure.data,
       layout: {
         ...figure.layout,
+        ...note,
         xaxis: { ...figure.layout.xaxis, ...(x ? { range: x, autorange: false } : {}) },
         yaxis: { ...figure.layout.yaxis, ...(y ? { range: y, autorange: false } : {}) }
       }
     }
-  }, [figure, slot.limits])
+  }, [figure, slot.limits, thinned, drawn.length, scoped.length, theme])
 
   const view = slot.view
   const revision = [stems.join('+'), view, slot.x, slot.y, slot.colour].join('|')
@@ -736,7 +802,8 @@ function Pane({
         // Only the scatter carries row ids, so only it can turn a selection
         // into a visibility change. A lasso on a histogram encloses bars,
         // not rows.
-        onSelected={view === 'scatter' ? onSelectRows : undefined}
+        onSelected={view === 'scatter' ? select : undefined}
+        onView={view === 'scatter' && scoped.length > LARGE_ROWS ? setZoom : undefined}
         onSelecting={view === 'scatter' ? onSelecting : undefined}
         // The toolbar is how box and lasso select are reached. Without it
         // the selection path exists and nothing can start one.

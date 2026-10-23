@@ -36,7 +36,7 @@ export interface PlotlyFigureProps {
    * cleared by double-click; that arrives here as an empty array, which is
    * the deselect and not an error.
    */
-  onSelected?: (rows: number[]) => void
+  onSelected?: (rows: number[], event?: unknown) => void
   /**
    * Called as a box or lasso drag starts selecting, and again as it moves.
    *
@@ -46,6 +46,12 @@ export interface PlotlyFigureProps {
    * there is still a frame to paint it in.
    */
   onSelecting?: () => void
+  /**
+   * Called when the user zooms or pans, with the axes' new ranges -- or
+   * null when they double-click back to the full extent. A thinned scatter
+   * re-thins inside the view, so a zoom shows the detail it went for.
+   */
+  onView?: (view: { x: [number, number]; y: [number, number] } | null) => void
   /**
    * Show Plotly's toolbar.
    *
@@ -101,6 +107,7 @@ export function PlotlyFigure({
   revision,
   onSelected,
   onSelecting,
+  onView,
   tools = false
 }: PlotlyFigureProps) {
   const host = useRef<HTMLDivElement>(null)
@@ -112,6 +119,8 @@ export function PlotlyFigure({
   selected.current = onSelected
   const selecting = useRef(onSelecting)
   selecting.current = onSelecting
+  const viewed = useRef(onView)
+  viewed.current = onView
 
   // A draw waiting for the element to have a size, and whether it has been
   // drawn into at all. Plotly cannot lay a figure out in a box with no width
@@ -152,7 +161,24 @@ export function PlotlyFigure({
                 rows.push(row)
               }
             }
-            selected.current?.(rows)
+            selected.current?.(rows, event)
+          })
+          element.on?.('plotly_relayout', (change) => {
+            const keys = Object.keys(change ?? {})
+            if (!keys.some((key) => /^[xy]axis\.(range|autorange)/.test(key))) {
+              return
+            }
+            const layout = (element as unknown as {
+              _fullLayout?: { xaxis?: { range?: number[] }; yaxis?: { range?: number[] } }
+            })._fullLayout
+            const auto = keys.some((key) => key.endsWith('autorange'))
+            const x = layout?.xaxis?.range
+            const y = layout?.yaxis?.range
+            viewed.current?.(
+              auto || !x || !y
+                ? null
+                : { x: [Number(x[0]), Number(x[1])], y: [Number(y[0]), Number(y[1])] }
+            )
           })
           element.on?.('plotly_selecting', () => selecting.current?.())
           // A click that clears the selection, or a drag abandoned: no
@@ -178,6 +204,7 @@ export function PlotlyFigure({
       element?.removeAllListeners?.('plotly_selected')
       element?.removeAllListeners?.('plotly_selecting')
       element?.removeAllListeners?.('plotly_deselect')
+      element?.removeAllListeners?.('plotly_relayout')
     }
   }, [])
 
