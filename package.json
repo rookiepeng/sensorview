@@ -29,7 +29,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-resizable-panels": "4.14.8",
-    "three": "^0.180.0",
+    "three": "^0.186.1",
     "zustand": "^5.0.15"
   },
   "devDependencies": {
