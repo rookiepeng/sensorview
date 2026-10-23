@@ -398,13 +398,18 @@ if (!process.env.SENSORVIEW_SMOKE && !app.requestSingleInstanceLock()) {
       // prove it can reach.
       await rm(join(app.getPath('userData'), 'settings.json'), { force: true })
       const { runSmoke } = await import('./smoke')
+      // A run that throws is a failed run, and still has to end the process:
+      // without the catch it left Electron open until something killed it.
       app.exit(
         await runSmoke(
           smokeFile,
           data,
           join(here, '../renderer/index.html'),
           process.env.SENSORVIEW_SMOKE_URL
-        )
+        ).catch((problem: unknown) => {
+          console.error(`smoke: ${problem instanceof Error ? problem.message : String(problem)}`)
+          return 1
+        })
       )
       return
     }

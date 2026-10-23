@@ -16,6 +16,7 @@ import { Group, IconButton, Picker, Switch } from './Controls'
 import { RangeSlider } from './RangeSlider'
 import { OVERLAYS, useLayout } from '../layout'
 import { useStore } from '../store'
+import { LARGE_ROWS, withLoading } from '../busy'
 import { levelsOf, rangeOf, type ColumnMeta } from '@shared/table'
 
 /** The overlays this column holds, in the order their icons stack. */
@@ -258,7 +259,14 @@ export function FilterRail() {
                 onValueChange={(next) => {
                   const choice = VISIBILITIES.find((c) => c.label === next)
                   if (choice) {
-                    setVisibility([...choice.states])
+                    // Every view redraws for this; on a large table, behind
+                    // the loading message.
+                    const apply = () => setVisibility([...choice.states])
+                    if (table && table.rows > LARGE_ROWS) {
+                      void withLoading(`Showing ${choice.label.toLowerCase()} points`, apply)
+                    } else {
+                      apply()
+                    }
                   }
                 }}
               >
@@ -292,7 +300,15 @@ export function FilterRail() {
                 Click a point to hide it
               </Switch>
               {hiddenCount > 0 && (
-                <button type="button" className="sv-text-btn sv-rail-action" onClick={showAllRows}>
+                <button
+                  type="button"
+                  className="sv-text-btn sv-rail-action"
+                  onClick={() =>
+                    table && table.rows > LARGE_ROWS
+                      ? void withLoading('Showing every point', showAllRows)
+                      : showAllRows()
+                  }
+                >
                   Show all again
                 </button>
               )}

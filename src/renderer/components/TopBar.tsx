@@ -16,7 +16,8 @@ import type { CaseSummary, LogSummary } from '@shared/types'
 import { ColumnConfig } from './ColumnConfig'
 import { ExportMenu } from './ExportMenu'
 import { IconButton } from './Controls'
-import { Welcome } from './Welcome'
+import { Welcome, nameOf } from './Welcome'
+import { nextFrames } from '../busy'
 import { useStore } from '../store'
 import logo from '../assets/logo.svg'
 
@@ -30,6 +31,7 @@ export function TopBar() {
   const summary = useStore((s) => s.summary)
   const setSummary = useStore((s) => s.setSummary)
   const frameCount = useStore((s) => s.frameCount)
+  const setLoading = useStore((s) => s.setLoading)
   const [theme, setTheme] = useState('dark')
   const [error, setError] = useState<string | null>(null)
   // Cases to offer on an empty window, and the one being read, which is what
@@ -88,6 +90,12 @@ export function TopBar() {
     await load(chosen.data)
   }
 
+  /** The load is over, however it ended. */
+  function settle() {
+    setBusy(false)
+    setLoading(null)
+  }
+
   /** True while this call is still the newest one. */
   function claim(): () => boolean {
     const mine = ++load_id.current
@@ -100,12 +108,13 @@ export function TopBar() {
     setError(null)
     setOpening(caseDir)
     const mine = claim()
+    setLoading(`Scanning ${nameOf(caseDir)}`)
     const scan = await window.sensorview.data('scanCase', { dir: caseDir })
     if (!mine()) {
       return
     }
     if (!scan.ok || !scan.data) {
-      setBusy(false)
+      settle()
       setOpening(null)
       setError(scan.error ?? 'could not read the case')
       return
@@ -113,7 +122,7 @@ export function TopBar() {
 
     const first = scan.data.logs[0]
     if (!first) {
-      setBusy(false)
+      settle()
       setOpening(null)
       setError('no logs in that folder')
       return
@@ -145,6 +154,7 @@ export function TopBar() {
     const mine = claim()
     const primary = chosen[0]!
     const stems = chosen.map((log) => log.stem)
+    setLoading(chosen.length > 1 ? `Reading ${chosen.length} logs` : `Reading ${baseName(primary.stem)}`)
 
     const read = await window.sensorview.data('readTable', {
       path: chosen.map((log) => log.file)
@@ -153,7 +163,7 @@ export function TopBar() {
       return
     }
     if (!read.ok || !read.data) {
-      setBusy(false)
+      settle()
       setError(read.error ?? 'could not read the table')
       return
     }
@@ -175,7 +185,13 @@ export function TopBar() {
       }
     }
 
-    setBusy(false)
+    // Indexing is synchronous and, for a large table, long: say so, and give
+    // the overlay two frames to paint before the main thread is taken.
+    setLoading(`Indexing ${read.data.rows.toLocaleString()} rows`)
+    await nextFrames(2)
+    if (!mine()) {
+      return
+    }
     try {
       // A frame key the user chose in the column config overrides the
       // manifest's, since the manifest has just been told about it too.
@@ -197,6 +213,8 @@ export function TopBar() {
       })
     } catch (problem) {
       setError(problem instanceof Error ? problem.message : String(problem))
+    } finally {
+      settle()
     }
   }
 
@@ -447,4 +465,10 @@ function Mark({ icon, name }: { icon: string; name: string }) {
   return (
     <i className={`bi bi-${icon}`} role="img" aria-label={name} title={name} />
   )
+}
+
+/** The last part of a stem: `run_1/radar` -> `radar`, with its folder kept short. */
+function baseName(stem: string): string {
+  const parts = stem.split('/')
+  return parts.length > 1 ? `${parts[parts.length - 2]}/${parts[parts.length - 1]}` : stem
 }

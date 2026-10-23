@@ -38,6 +38,15 @@ export interface PlotlyFigureProps {
    */
   onSelected?: (rows: number[]) => void
   /**
+   * Called as a box or lasso drag starts selecting, and again as it moves.
+   *
+   * Plotly works out the enclosed points during the drag and again on
+   * release, synchronously -- on a scatter of every frame that is seconds
+   * with nothing painted. This is the moment to put a message up, while
+   * there is still a frame to paint it in.
+   */
+  onSelecting?: () => void
+  /**
    * Show Plotly's toolbar.
    *
    * On for anything a selection can be made in; off for the inspector's
@@ -53,7 +62,11 @@ const BASE = {
   // deliberately, at the right size, and with the data rebuilt rather than
   // scraped off the page.
   staticPlot: false,
-  displaylogo: false
+  displaylogo: false,
+  // Plotly 4 turned this on by default: a "Share chart" button that sends
+  // the chart's data to an external server. Nothing here is shared that way,
+  // and a click on it would put sensor data on someone else's machine.
+  showSendToCloud: false
 }
 
 /**
@@ -65,14 +78,19 @@ const BASE = {
  *
  * `toImage` is dropped because the export menu owns that and does it better;
  * the autoscale and reset pair is kept because fixed limits make it possible
- * to lose the data off-screen.
+ * to lose the data off-screen. The share button goes too, by its Plotly 4
+ * name -- `sendDataToCloud` was the old one, and no longer removed anything.
+ *
+ * Shown on hover only: a row of icons over the top of every chart covers
+ * the data it sits on, and it is needed for the moment of making a selection.
  */
 const WITH_TOOLS = {
   ...BASE,
-  displayModeBar: true,
-  modeBarButtonsToRemove: ['toImage', 'sendDataToCloud'],
+  displayModeBar: 'hover' as const,
+  modeBarButtonsToRemove: ['toImage', 'sendChartToCloud'],
   modeBarButtonsToAdd: [] as string[]
-}
+  // Through `unknown`: the type definitions predate Plotly 4's button names.
+} as unknown as Partial<Plotly.Config>
 
 const WITHOUT_TOOLS = { ...BASE, displayModeBar: false }
 
@@ -82,6 +100,7 @@ export function PlotlyFigure({
   className,
   revision,
   onSelected,
+  onSelecting,
   tools = false
 }: PlotlyFigureProps) {
   const host = useRef<HTMLDivElement>(null)
@@ -91,6 +110,8 @@ export function PlotlyFigure({
   // resize wiring with them.
   const selected = useRef(onSelected)
   selected.current = onSelected
+  const selecting = useRef(onSelecting)
+  selecting.current = onSelecting
 
   // A draw waiting for the element to have a size, and whether it has been
   // drawn into at all. Plotly cannot lay a figure out in a box with no width
@@ -133,6 +154,11 @@ export function PlotlyFigure({
             }
             selected.current?.(rows)
           })
+          element.on?.('plotly_selecting', () => selecting.current?.())
+          // A click that clears the selection, or a drag abandoned: no
+          // `plotly_selected` with points follows, and the caller still has
+          // to hear that the selecting is over.
+          element.on?.('plotly_deselect', () => selected.current?.([]))
         }
       })
     }
@@ -150,6 +176,8 @@ export function PlotlyFigure({
       // `removeAllListeners` with a name, not the bare form: the bare one
       // would also drop whatever else is attached to this element.
       element?.removeAllListeners?.('plotly_selected')
+      element?.removeAllListeners?.('plotly_selecting')
+      element?.removeAllListeners?.('plotly_deselect')
     }
   }, [])
 

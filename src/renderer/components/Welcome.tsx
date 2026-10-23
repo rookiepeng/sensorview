@@ -11,7 +11,7 @@
 // two things this can do.
 
 /** The folder's own name, which is what the user called the case. */
-function nameOf(dir: string): string {
+export function nameOf(dir: string): string {
   return dir.split(/[\\/]/).filter(Boolean).pop() ?? dir
 }
 

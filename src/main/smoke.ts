@@ -2154,11 +2154,24 @@ async function lookAt(caseDir: string, out: string, rendererHtml: string): Promi
     // what it answers, printed, for measuring what a shot shows.
     const before = process.env.SENSORVIEW_SMOKE_LOOK_JS
     if (before) {
-      const answer = await probe.webContents.executeJavaScript(`(async () => {${DRIVE}
+      // Caught here, so a script that throws says so and the window still
+      // closes -- uncaught, the rejection left Electron running until killed.
+      try {
+        const answer = await probe.webContents.executeJavaScript(`(async () => {${DRIVE}
  ${before} })()`)
-      console.log(`  look: ${JSON.stringify(answer)}`)
+        console.log(`  look: ${JSON.stringify(answer)}`)
+      } catch (problem) {
+        console.error(`  look: the page script threw: ${problem instanceof Error ? problem.message : String(problem)}`)
+        return 1
+      }
     }
     for (const [index, step] of steps.entries()) {
+      if (step === 'now') {
+        // A shot of the page as the script left it, with nothing clicked.
+        await writeFile(out, (await probe.webContents.capturePage()).toPNG())
+        console.log(`  look: now -> ${out}`)
+        continue
+      }
       const [, preset = 'iso', wheel = '0'] = /^([a-z]*)([+-]\d+)?$/.exec(step) ?? []
       await probe.webContents.executeJavaScript(
         `(async () => {

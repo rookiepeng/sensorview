@@ -30,6 +30,7 @@ import { FilterRail } from './components/FilterRail'
 import { GlStage } from './components/GlStage'
 import { AnalysisDock } from './components/AnalysisDock'
 import { Inspector } from './components/Inspector'
+import { LoadingOverlay } from './components/LoadingOverlay'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
@@ -527,6 +528,7 @@ export function App() {
             >
               <Panel className="sv-center-gap" style={{ overflow: 'visible' }} minSize="20">
                 <TopBar />
+                <LoadingOverlay />
                 <div className="sv-center-foot">{frameCount > 0 && <Transport />}</div>
               </Panel>
 

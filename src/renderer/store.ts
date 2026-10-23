@@ -130,11 +130,19 @@ export interface CaseState {
   clickToHide: boolean
   /** The frame currently handed to the scene, or null before the first. */
   payload: ScenePayload | null
+  /**
+   * What a load is doing right now -- "Reading 4 logs", "Indexing 1.2M
+   * rows" -- or null when nothing is. The scene shows it over itself, because
+   * a large table takes long enough to read and index that a window with the
+   * old log still on it looks like it ignored the click.
+   */
+  loading: string | null
 }
 
 export interface Actions {
   openCase(dir: string, frameCount: number): void
   setSummary(summary: CaseSummary | null): void
+  setLoading(loading: string | null): void
   openLog(payload: {
     dir: string
     stem: string
@@ -201,7 +209,8 @@ const initial: CaseState = {
   hiddenCount: 0,
   visibleRev: 0,
   clickToHide: false,
-  payload: null
+  payload: null,
+  loading: null
 }
 
 export const useStore = create<CaseState & Actions>((set) => ({
@@ -210,6 +219,8 @@ export const useStore = create<CaseState & Actions>((set) => ({
   openCase: (dir, frameCount) => set({ ...initial, dir, frameCount }),
 
   setSummary: (summary) => set({ summary }),
+
+  setLoading: (loading) => set({ loading }),
 
   openLog: ({ dir, stem, stems, ownerSets, table, keys, axes, cloudDisplay }) =>
     set((s) => ({

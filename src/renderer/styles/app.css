@@ -492,6 +492,7 @@ body {
    foot, and the scene between them. What `.sv-center` used to say for
    itself, now that it is a group of two and this is the taller half. */
 .sv-center-gap {
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -1738,6 +1739,83 @@ body {
 @keyframes sv-loading-fade-in {
     to {
         opacity: 1;
+    }
+}
+
+/* A load in progress, centred in the gap over the scene. It fades in after a
+   short wait, so a log that opens at once never flashes a plate. The scene
+   stays orbitable underneath -- nothing here takes the pointer. */
+.sv-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: var(--sv-z-panel);
+    opacity: 0;
+    animation: sv-loading-fade-in 180ms ease-out 250ms forwards;
+}
+
+.sv-loading-plate {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px 14px 14px;
+    overflow: hidden;
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
+    background: color-mix(in srgb, var(--sv-surface) 90%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+    color: var(--sv-text);
+    font-size: var(--sv-font-control);
+}
+
+/* A ring with one bright arc, turning. */
+.sv-loading-ring {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 2.5px solid color-mix(in srgb, var(--sv-accent) 22%, transparent);
+    border-top-color: var(--sv-accent);
+    animation: sv-spin 800ms linear infinite;
+}
+
+.sv-loading-text {
+    white-space: nowrap;
+}
+
+/* An indeterminate sweep along the plate's foot. Moved with `transform`, as
+   the ring is turned: those run on the compositor, so both keep going while
+   the main thread is busy indexing -- which is exactly when they are shown. */
+.sv-loading-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    overflow: hidden;
+}
+
+.sv-loading-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, var(--sv-accent), transparent);
+    animation: sv-loading-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes sv-loading-sweep {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(250%);
     }
 }
 

@@ -25,6 +25,7 @@ import type { DockSlot } from '@shared/types'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
+import { LARGE_ROWS, clearLoading, countOf, nextFrames, withLoading } from '../busy'
 import { ToggleGroup } from 'radix-ui'
 
 import { CollapseButton, IconButton, Picker, Switch } from './Controls'
@@ -246,7 +247,26 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   // A selection is remembered rather than acted on: hiding on the lasso
   // itself would make an accidental drag destructive, and there is no undo
   // for something that leaves no trace of what it removed.
-  const selectRows = (rows: number[]) => setSelection(rows)
+  const selectRows = (rows: number[]) => {
+    setSelection(rows)
+    // Plotly has finished by the time this arrives; the message goes once
+    // the outlined points it redraws have painted.
+    void nextFrames(2).then(() => clearLoading(SELECTING))
+  }
+
+  // A large table makes every visibility change a redraw of everything that
+  // shows it -- the scene, both panes, the filters' counts -- so the change
+  // is made behind the loading message rather than as a frozen window.
+  const large = rows.length > LARGE_ROWS
+  const changeVisibility = (verb: 'Hiding' | 'Showing', apply: () => void) => {
+    const n = selection.length
+    setSelection([])
+    if (!large) {
+      apply()
+      return
+    }
+    void withLoading(`${verb} ${countOf(n)} points`, apply)
+  }
 
   // What is actually on screen, which is two only if two will fit.
   const panes = cramped ? 1 : wanted
@@ -330,8 +350,8 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
                 type="button"
                 className="sv-text-btn"
                 onClick={() => {
-                  hideRows(selection)
-                  setSelection([])
+                  const chosen = selection
+                  changeVisibility('Hiding', () => hideRows(chosen))
                 }}
               >
                 Hide
@@ -340,8 +360,8 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
                 type="button"
                 className="sv-text-btn"
                 onClick={() => {
-                  showRows(selection)
-                  setSelection([])
+                  const chosen = selection
+                  changeVisibility('Showing', () => showRows(chosen))
                 }}
               >
                 Show
@@ -396,6 +416,11 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
                   stems={stems}
                   frame={frame}
                   onSelectRows={selectRows}
+                  onSelecting={() => {
+                    if (large && useStore.getState().loading === null) {
+                      useStore.getState().setLoading(SELECTING)
+                    }
+                  }}
                   onChange={(patch) => set(index, patch)}
                 />
               </div>
@@ -486,6 +511,7 @@ function Pane({
   stems,
   frame,
   onSelectRows,
+  onSelecting,
   onChange
 }: {
   slot: SlotState
@@ -499,6 +525,7 @@ function Pane({
   stems: string[]
   frame: number
   onSelectRows: (rows: number[]) => void
+  onSelecting: () => void
   onChange: (patch: Partial<SlotState>) => void
 }) {
   // The scatter's scope narrows the shared rows to the frame on the slider.
@@ -513,6 +540,19 @@ function Pane({
   }, [slot.view, slot.scope, rows, table, frame])
 
   const [showLimits, setShowLimits] = useState(false)
+
+  // A change that leaves this pane drawing every frame of a large table --
+  // turning the scope to all, or changing a column while it is -- is a
+  // redraw of all of it, so it goes behind the loading message.
+  const change = (patch: Partial<SlotState>) => {
+    const next = { ...slot, ...patch }
+    const heavy = next.view === 'scatter' && next.scope === 'all' && rows.length > LARGE_ROWS
+    if (!heavy) {
+      onChange(patch)
+      return
+    }
+    void withLoading(`Drawing ${countOf(rows.length)} points`, () => onChange(patch))
+  }
 
   const figure = useMemo(
     () =>
@@ -571,7 +611,7 @@ function Pane({
             value: id,
             label: VIEW_LABELS[id]
           }))}
-          onChange={(view) => onChange({ view: view as ViewId })}
+          onChange={(view) => change({ view: view as ViewId })}
           className="sv-pane-field sv-slot-picker"
         />
         {/* Only the scatter: the other four draw a distribution, which one
@@ -581,7 +621,7 @@ function Pane({
             label="Frames"
             value={slot.scope}
             choices={['current', 'all']}
-            onChange={(scope) => onChange({ scope: scope as SlotState['scope'] })}
+            onChange={(scope) => change({ scope: scope as SlotState['scope'] })}
           />
         )}
         {view !== 'parcats' && (
@@ -589,18 +629,18 @@ function Pane({
             label="X"
             value={slot.x}
             choices={xChoices}
-            onChange={(x) => onChange({ x })}
+            onChange={(x) => change({ x })}
           />
         )}
         {wantsY && (
-          <Picker label="Y" value={slot.y} choices={numeric} onChange={(y) => onChange({ y })} />
+          <Picker label="Y" value={slot.y} choices={numeric} onChange={(y) => change({ y })} />
         )}
         {view !== 'heatmap' && (
           <Picker
             label="Colour"
             value={slot.colour}
             choices={['None', ...categorical, ...numeric]}
-            onChange={(colour) => onChange({ colour })}
+            onChange={(colour) => change({ colour })}
           />
         )}
         {view === 'histogram' && (
@@ -609,12 +649,12 @@ function Pane({
             value={slot.histnorm}
             choices={['probability', 'density']}
             onChange={(histnorm) =>
-              onChange({ histnorm: histnorm as SlotState['histnorm'] })
+              change({ histnorm: histnorm as SlotState['histnorm'] })
             }
           />
         )}
         {view === 'heatmap' && (
-          <Switch checked={slot.logScale} onChange={(logScale) => onChange({ logScale })}>
+          <Switch checked={slot.logScale} onChange={(logScale) => change({ logScale })}>
             Log counts
           </Switch>
         )}
@@ -646,7 +686,7 @@ function Pane({
                 } else {
                   dimensions[at] = name
                 }
-                onChange({ dimensions: dimensions.filter(Boolean) })
+                change({ dimensions: dimensions.filter(Boolean) })
               }}
             />
           ))}
@@ -669,7 +709,7 @@ function Pane({
                 value={slot.limits[field]}
                 placeholder="auto"
                 onChange={(event) =>
-                  onChange({ limits: { ...slot.limits, [field]: event.target.value } })
+                  change({ limits: { ...slot.limits, [field]: event.target.value } })
                 }
               />
             </label>
@@ -677,7 +717,7 @@ function Pane({
           <button
             type="button"
             className="sv-text-btn"
-            onClick={() => onChange({ limits: { xMin: '', xMax: '', yMin: '', yMax: '' } })}
+            onClick={() => change({ limits: { xMin: '', xMax: '', yMin: '', yMax: '' } })}
           >
             Auto
           </button>
@@ -697,6 +737,7 @@ function Pane({
         // into a visibility change. A lasso on a histogram encloses bars,
         // not rows.
         onSelected={view === 'scatter' ? onSelectRows : undefined}
+        onSelecting={view === 'scatter' ? onSelecting : undefined}
         // The toolbar is how box and lasso select are reached. Without it
         // the selection path exists and nothing can start one.
         tools
@@ -705,3 +746,6 @@ function Pane({
     </div>
   )
 }
+
+/** The message a drag-select puts up on a large table. */
+const SELECTING = 'Selecting points'
