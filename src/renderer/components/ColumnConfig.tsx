@@ -76,6 +76,12 @@ export function ColumnConfig() {
 
   const pickAxis = (axis: 'x' | 'y' | 'z', column: string) => {
     setAxis(axis, column)
+    // The scanned summary is what the next log opens with, so it follows the
+    // file it was read from.
+    const summary = useStore.getState().summary
+    if (summary) {
+      useStore.getState().setSummary({ ...summary, axes: { ...summary.axes, [axis]: column } })
+    }
     void save({ table: { [`${axis}_3d`]: column } })
   }
 

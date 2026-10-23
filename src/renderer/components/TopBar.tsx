@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DropdownMenu } from 'radix-ui'
 
 import { buildTable, type Column } from '@shared/table'
+import { pickAxes } from '@shared/axes'
 import { buildFrameOwners } from '@shared/logs'
 import type { CaseSummary, LogSummary } from '@shared/types'
 
@@ -188,7 +189,7 @@ export function TopBar() {
         ownerSets,
         table,
         keys: scan.keys,
-        axes: pickAxes(table, key),
+        axes: pickAxes(table, key, scan.axes),
         // Case-wide styling, but only when some open log has a cloud beside
         // it -- otherwise the rail offers a switch for a file that is not
         // there.
@@ -446,36 +447,4 @@ function Mark({ icon, name }: { icon: string; name: string }) {
   return (
     <i className={`bi bi-${icon}`} role="img" aria-label={name} title={name} />
   )
-}
-
-/**
- * Choose sensible starting axes.
- *
- * The manifest does name them, in `table.x_3d` and friends, but a log whose
- * manifest says nothing should still open -- so this falls back to the first
- * numeric columns that are not the frame key, which for a radar table is
- * almost always the position.
- */
-function pickAxes(
-  table: ReturnType<typeof buildTable>,
-  frameKey: string
-): { x: string; y: string; z: string; colour: string } {
-  const numeric = [...table.columns.values()]
-    .filter((column) => column.kind === 'number' && column.name !== frameKey)
-    .map((column) => column.name)
-  const categorical = [...table.columns.values()]
-    .filter((column) => column.kind === 'string')
-    .map((column) => column.name)
-
-  const pick = (want: string, fallback: string | undefined) =>
-    numeric.includes(want) ? want : (fallback ?? numeric[0] ?? frameKey)
-
-  return {
-    x: pick('X', numeric[0]),
-    y: pick('Y', numeric[1]),
-    z: pick('Z', numeric[2]),
-    // Colour by a category when there is one: it is more legible than a
-    // gradient on first open, and it shows the legend doing something.
-    colour: categorical[0] ?? numeric[0] ?? frameKey
-  }
 }

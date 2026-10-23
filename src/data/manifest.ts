@@ -505,6 +505,13 @@ export class Manifest {
     return this.table.slider || 'Frame'
   }
 
+  /** The 3D view's axes as the manifest names them; null where it does not. */
+  get axes3d(): { x: string | null; y: string | null; z: string | null } {
+    const name = (value: unknown) =>
+      typeof value === 'string' && value.trim() !== '' ? value : null
+    return { x: name(this.table.x_3d), y: name(this.table.y_3d), z: name(this.table.z_3d) }
+  }
+
   /** Column metadata driving the filter UI and hover text. */
   get keys(): Dict {
     return this.table.keys ?? {}

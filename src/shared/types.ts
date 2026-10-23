@@ -33,6 +33,11 @@ export interface CaseSummary {
   dir: string
   name: string
   frameKey: string
+  /**
+   * The 3D view's starting axes, from `table.x_3d`/`y_3d`/`z_3d`. A field is
+   * null when the manifest leaves it out.
+   */
+  axes: { x: string | null; y: string | null; z: string | null }
   /** Column metadata driving the filters and hover text. */
   keys: Record<string, ColumnMeta>
   /** How the cloud is drawn, or null when the case declares none. */

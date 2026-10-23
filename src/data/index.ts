@@ -172,8 +172,11 @@ const handlers: Record<DataMethod, Handler> = {
 
   logReference: async ({ dir, stem, frameId }) => {
     const { store, display } = await openReference(dir, stem)
-    const pose = store?.pose(frameId) ?? null
-    if (!store || !pose) {
+    // No sidecar for a reference the manifest declares: the shape is still
+    // drawn, parked at the origin. A sidecar with no row for this frame is a
+    // different answer -- the pose is unknown there, so nothing is drawn.
+    const pose = store ? store.pose(frameId) : display.declared ? ORIGIN_POSE : null
+    if (!pose) {
       return ok(null)
     }
 
@@ -196,8 +199,9 @@ const handlers: Record<DataMethod, Handler> = {
   logReferenceBounds: async ({ dir, stems }) => {
     let merged: Record<string, [number, number]> | null = null
     for (const stem of stems) {
-      const { store } = await openReference(dir, stem)
-      const bounds = store?.bounds()
+      const { store, display } = await openReference(dir, stem)
+      // The parked reference sits at the origin, which the box has to hold.
+      const bounds = store ? store.bounds() : display.declared ? ORIGIN_BOUNDS : null
       if (!bounds) {
         continue
       }
@@ -215,6 +219,14 @@ const handlers: Record<DataMethod, Handler> = {
 }
 
 type Dict = Record<string, unknown>
+
+/** Where a declared reference with no sidecar is drawn: the origin, unrotated. */
+const ORIGIN_POSE = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0, roll: 0 }
+const ORIGIN_BOUNDS: Record<'x' | 'y' | 'z', [number, number]> = {
+  x: [0, 0],
+  y: [0, 0],
+  z: [0, 0]
+}
 
 /** Open a log's reference sidecar with the mapping the manifest configured. */
 async function openReference(

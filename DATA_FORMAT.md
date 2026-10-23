@@ -723,7 +723,7 @@ nothing on. Give a block you mean to enable at least its `suffix`.
 | Key | Type | Notes |
 |---|---|---|
 | `description` | string | Label in pickers, filters, axis titles, and hover. Falls back to the column name. |
-| `type` | `"numerical"` \| `"categorical"` | Numerical gets a range slider and can drive a continuous color scale; categorical gets a multi-select and can split the statistical views. |
+| `type` | `"numerical"` \| `"categorical"` | Numerical gets a range slider and can drive a continuous color scale; categorical gets a multi-select and can split the statistical views. A categorical column stored as numbers (`0`/`1` flags, small enums) still gets the multi-select, one chip per distinct value, unless it has more than 64 distinct values, when it keeps the slider. |
 | `decimal` | int | Decimal places in hover text. |
 | `format` | string | A Python format spec (e.g. `"{:.3e}"`) used for hover instead of `decimal`. |
 

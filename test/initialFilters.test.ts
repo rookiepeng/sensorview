@@ -10,6 +10,7 @@ import {
   buildTable,
   filterAll,
   initialFilters,
+  levelsOf,
   type Column,
   type ColumnMeta
 } from '../src/shared/table'
@@ -97,5 +98,54 @@ describe('initialFilters', () => {
     const filters = initialFilters(makeTable([FRAME, empty]), KEYS)
 
     expect(filters.numeric[0]).toEqual({ column: 'X', min: 0, max: 0 })
+  })
+})
+
+describe('a categorical column stored as numbers', () => {
+  const BISTATIC: Column = {
+    name: 'Bistatic',
+    kind: 'number',
+    values: Float64Array.from([1, 0, NaN, 1])
+  }
+  const keys: Record<string, ColumnMeta> = { ...KEYS, Bistatic: { type: 'categorical' } }
+
+  it('gets chips, one per distinct value, not a slider', () => {
+    const table = makeTable([FRAME, X, BISTATIC])
+    const filters = initialFilters(table, keys)
+
+    expect(filters.numeric.map((entry) => entry.column)).toEqual(['X'])
+    expect(filters.categorical).toEqual([{ column: 'Bistatic', allowed: ['0', '1'] }])
+    expect(levelsOf(table, 'Bistatic')).toEqual(['0', '1'])
+  })
+
+  it('filters by the chosen values', () => {
+    const table = makeTable([FRAME, X, BISTATIC])
+    const filters = initialFilters(table, keys)
+    filters.categorical = [{ column: 'Bistatic', allowed: ['1'] }]
+
+    expect([...filterAll(table, filters)]).toEqual([1, 0, 0, 1])
+  })
+
+  it('keeps a slider when there are too many values for chips', () => {
+    const many: Column = {
+      name: 'Bistatic',
+      kind: 'number',
+      values: Float64Array.from({ length: 100 }, (_, i) => i)
+    }
+    const table = buildTable(100, [
+      { name: 'Frame', kind: 'number', values: new Float64Array(100) },
+      many
+    ], 'Frame')
+    const filters = initialFilters(table, { Bistatic: { type: 'categorical' } })
+
+    expect(filters.categorical).toEqual([])
+    expect(filters.numeric.map((entry) => entry.column)).toEqual(['Bistatic'])
+  })
+
+  it('keeps a slider for a column with no values', () => {
+    const empty: Column = { name: 'Bistatic', kind: 'number', values: Float64Array.from([NaN, NaN, NaN, NaN]) }
+    const filters = initialFilters(makeTable([FRAME, empty]), keys)
+
+    expect(filters.categorical).toEqual([])
   })
 })

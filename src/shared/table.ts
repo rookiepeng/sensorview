@@ -243,12 +243,25 @@ export function filterAll(table: Table, filters: FilterState): Uint8Array {
 
   for (const filter of filters.categorical) {
     const column = table.columns.get(filter.column)
-    if (!column || column.kind !== 'string') {
+    if (!column) {
       continue
     }
     if (filter.allowed.length === 0) {
       mask.fill(0)
       return mask
+    }
+
+    if (column.kind === 'number') {
+      // A categorical column stored as numbers: its levels are the values
+      // written out, so they read back with Number. NaN is in no set.
+      const allowed = new Set(filter.allowed.map(Number))
+      const { values } = column
+      for (let row = 0; row < table.rows; row++) {
+        if (mask[row] === 1 && !allowed.has(values[row]!)) {
+          mask[row] = 0
+        }
+      }
+      continue
     }
 
     // Allowed levels resolved to codes once, so the inner loop is an integer
@@ -315,10 +328,43 @@ export function visibleRows(table: Table, position: number, mask: Uint8Array): I
   return out
 }
 
-/** Distinct level names of a categorical column, in the order they appear. */
+/**
+ * Most distinct values a numeric column may have and still be filtered with
+ * chips. Past this a column the manifest calls categorical is more likely
+ * mislabelled than meant to fill the rail with chips, so it keeps its slider.
+ */
+export const MAX_NUMERIC_LEVELS = 64
+
+/** Distinct values of numeric columns, worked out once per column. */
+const numericLevels = new WeakMap<NumericColumn, string[]>()
+
+/**
+ * Distinct level names of a column.
+ *
+ * A text column's levels in the order they appear. A numeric column's
+ * distinct finite values, ascending, written as numbers (`0`, `1`, `2.5`) --
+ * what a categorical column stored as small integers is filtered by.
+ */
 export function levelsOf(table: Table, name: string): string[] {
   const column = table.columns.get(name)
-  return column && column.kind === 'string' ? column.levels : []
+  if (!column) {
+    return []
+  }
+  if (column.kind === 'string') {
+    return column.levels
+  }
+  let levels = numericLevels.get(column)
+  if (!levels) {
+    const seen = new Set<number>()
+    for (const value of column.values) {
+      if (Number.isFinite(value)) {
+        seen.add(value)
+      }
+    }
+    levels = [...seen].sort((a, b) => a - b).map(String)
+    numericLevels.set(column, levels)
+  }
+  return levels
 }
 
 /**
@@ -398,6 +444,13 @@ export function initialFilters(table: Table, keys: Record<string, ColumnMeta>): 
     }
     if (meta.type === 'categorical' && column.kind === 'string') {
       categorical.push({ column: name, allowed: [...column.levels] })
+    } else if (
+      meta.type === 'categorical' &&
+      levelsOf(table, name).length > 0 &&
+      levelsOf(table, name).length <= MAX_NUMERIC_LEVELS
+    ) {
+      // Stored as numbers, filtered as categories: the manifest's word wins.
+      categorical.push({ column: name, allowed: [...levelsOf(table, name)] })
     } else if (column.kind === 'number') {
       const [min, max] = rangeOf(table, name)
       numeric.push({ column: name, min, max })

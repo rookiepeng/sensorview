@@ -101,6 +101,7 @@ export async function scanCase(dir: string): Promise<CaseSummary> {
     dir,
     name: manifest.name,
     frameKey: manifest.frameKey,
+    axes: manifest.axes3d,
     logs,
     keys: manifest.keys,
     cloud: manifest.cloud ? (manifest.cloudDisplay() as unknown as CloudDisplay) : null
