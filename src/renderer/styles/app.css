@@ -48,6 +48,9 @@
     --sv-radius-sm: 4px;
     --sv-radius-pill: 999px;
     --sv-gap: 10px;
+    /* Room between a side column's cards and its splitter, so the handle
+       is drawn clear of the panel rather than partly behind it. */
+    --sv-handle-clear: 6px;
     --sv-font-sm: 0.78rem;
     --sv-font-xs: 0.72rem;
     /* Below --sv-font-xs: counts, badges, tick furniture. Replaces a cluster
@@ -416,7 +419,7 @@ body {
 }
 
 .sv-hud-left {
-    padding: var(--sv-gap) 0 var(--sv-gap) var(--sv-gap);
+    padding: var(--sv-gap) var(--sv-handle-clear) var(--sv-gap) var(--sv-gap);
 }
 
 /* Floor to ceiling, unlike the left: what this column holds is a picture
@@ -424,7 +427,7 @@ body {
    The left column is a set of controls, which are worth exactly their own
    height and no more. */
 .sv-hud-right {
-    padding: var(--sv-gap) var(--sv-gap) var(--sv-gap) 0;
+    padding: var(--sv-gap) var(--sv-gap) var(--sv-gap) var(--sv-handle-clear);
 }
 
 .sv-hud-right > .sv-inspector {
@@ -606,6 +609,31 @@ body {
     padding: 3px;
     border: 1px solid var(--sv-glass-border);
     border-radius: var(--sv-radius);
+}
+
+/* With cards showing, the column's edge facing the scene is its splitter,
+   and a tray there sat under the handle -- which can be grabbed up to 5px
+   either side of its line, so a press on an icon could start a resize. So
+   the tray hangs on the far side of the handle instead, out in the scene:
+   right of it for the rail, left of it for the inspector. A column down to
+   its tray has no handle, and keeps the tray in its own width as before.
+   The presence is on the library's outer panel element, the class on the
+   one inside it. */
+[data-presence="cards"] > .sv-hud-col {
+    position: relative;
+}
+
+[data-presence="cards"] > .sv-hud-col .sv-tray {
+    position: absolute;
+    top: var(--sv-gap);
+}
+
+[data-presence="cards"] > .sv-hud-left .sv-tray {
+    left: calc(100% + var(--sv-handle-clear));
+}
+
+[data-presence="cards"] > .sv-hud-right .sv-tray {
+    right: calc(100% + var(--sv-handle-clear));
 }
 
 .sv-tray .sv-icon-btn {

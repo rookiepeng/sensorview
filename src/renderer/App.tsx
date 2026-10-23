@@ -68,7 +68,7 @@ const TRAY_W = 34
  * to, and the inspector needs two -- its tray, or nothing at all for a log
  * with nothing to show -- so `minSize` and `maxSize` are set equal to
  * whichever width that is. Widths are the column plus the gap it keeps from
- * the window, which the panel carries as padding.
+ * the window and from its splitter, which the panel carries as padding.
  */
 function pinned(presence: Presence, min: number, max: number, gap: number) {
   if (presence === 'cards') {
@@ -147,7 +147,9 @@ export function App() {
 
   // The widths a column starts from when nothing has been dragged, read
   // once from the stylesheet so the numbers live in one place. `--sv-gap` is
-  // the inset each column keeps from the window's edge.
+  // the inset each column keeps from the window's edge, and
+  // `--sv-handle-clear` the room it keeps from its splitter; a panel carries
+  // both as padding, so `gap` here is their sum.
   const tokens = useRef<{ rail: number; inspector: number; gap: number } | null>(null)
   if (tokens.current === null) {
     const root = getComputedStyle(document.documentElement)
@@ -156,7 +158,7 @@ export function App() {
     tokens.current = {
       rail: read('--sv-rail-w', 288),
       inspector: read('--sv-inspector-w', 480),
-      gap: read('--sv-gap', 10)
+      gap: read('--sv-gap', 10) + read('--sv-handle-clear', 6)
     }
   }
   const { gap } = tokens.current
