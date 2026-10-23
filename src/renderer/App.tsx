@@ -33,7 +33,14 @@ import { Inspector } from './components/Inspector'
 import { TopBar } from './components/TopBar'
 import { Transport } from './components/Transport'
 import { buildFrame } from './buildFrame'
-import { BOUNDS, OVERLAYS, useLayout, useLayoutPersistence, type Presence } from './layout'
+import {
+  BOUNDS,
+  OVERLAYS,
+  pixelsOf,
+  useLayout,
+  useLayoutPersistence,
+  type Presence
+} from './layout'
 import { useViewPersistence } from './view'
 import { useCloud } from './useCloud'
 import { useHotkeys } from './useHotkeys'
@@ -77,7 +84,6 @@ function putBack(pane: PanelImperativeHandle | null, presence: Presence, want: n
     return
   }
   if (Math.abs(pane.getSize().inPixels - want) > 1) {
-    console.log('SV10 putBack', presence, pane.getSize().inPixels.toFixed(1), '->', want)
     pane.resize(want)
   }
 }
@@ -90,19 +96,18 @@ function putBack(pane: PanelImperativeHandle | null, presence: Presence, want: n
  * stored would come back as a column too narrow to use.
  */
 function remember(
-  pane: PanelImperativeHandle | null,
+  px: number | null,
   presence: Presence,
   stored: number | null,
   floor: number,
   gap: number,
   store: (width: number) => void
 ) {
-  if (!pane || presence !== 'cards') {
+  if (px === null || presence !== 'cards') {
     return
   }
-  const column = Math.round(pane.getSize().inPixels) - gap
+  const column = Math.round(px) - gap
   if (column >= floor && column !== stored) {
-    console.log('SV10 remember store', column, 'was', stored)
     store(column)
   }
 }
@@ -167,6 +172,10 @@ export function App() {
 
   const railPane = useRef<PanelImperativeHandle | null>(null)
   const inspectorPane = useRef<PanelImperativeHandle | null>(null)
+  // The two groups' own boxes, which turn a layout's percentages back into
+  // pixels -- see `pixelsOf`.
+  const row = useRef<HTMLDivElement | null>(null)
+  const column = useRef<HTMLDivElement | null>(null)
   // What `defaultSize` gets, read once. As with the dock: a `defaultSize`
   // that follows the store re-registers the panel on every write, and the
   // re-layout writes again.
@@ -354,16 +363,31 @@ export function App() {
   // it was -- so it is put back. Also when the stored width arrives late,
   // from the settings read at startup. Not on a drag: that stores the width
   // the panel already has, so the two agree and this does nothing.
+  //
+  // A frame later, not now. Changing a panel's `minSize` or `maxSize`
+  // re-registers it, and the group rebuilds its whole axis in a render after
+  // this one -- laying the panel out from `defaultSize`. A resize from this
+  // effect acts on the old constraints and is then laid over: a cold start
+  // came up at the default width with the stored one ignored, and a column
+  // back from its tray at the default rather than where it had been.
+  //
+  // Both columns, whichever one changed. A panel whose constraints change
+  // re-registers, and the group then rebuilds the whole row, not just that
+  // panel -- so the inspector reporting its shape, which it does only once
+  // its reads come back and so at no fixed point in a startup, could knock a
+  // rail that had already been put back down onto its floor. With each
+  // column put back only on its own changes, nothing put it back again.
   useEffect(() => {
-    putBack(railPane.current, railPresence, (railW ?? tokens.current!.rail) + gap)
-  }, [railPresence, railW, gap])
-  useEffect(() => {
-    putBack(
-      inspectorPane.current,
-      inspectorPresence,
-      (inspectorW ?? tokens.current!.inspector) + gap
-    )
-  }, [inspectorPresence, inspectorW, gap])
+    const frame = requestAnimationFrame(() => {
+      putBack(railPane.current, railPresence, (railW ?? tokens.current!.rail) + gap)
+      putBack(
+        inspectorPane.current,
+        inspectorPresence,
+        (inspectorW ?? tokens.current!.inspector) + gap
+      )
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [railPresence, inspectorPresence, railW, inspectorW, gap])
 
   // Read through refs in the layout handler below. The library keeps the
   // handler it was given on a ref of its own, refreshed after the commit
@@ -395,9 +419,9 @@ export function App() {
         <Panes
           orientation="horizontal"
           className="sv-hud-row"
+          elementRef={row}
           style={{ overflow: 'visible' }}
-          onLayoutChanged={(_layout, meta) => {
-            console.log('SV10 row changed user=', meta.isUserInteraction, 'railW=', railW)
+          onLayoutChanged={(layout, meta) => {
             // Only what a person did. The library calls this after every layout --
             // mount, a constraint changing, the imperative resizes this file makes --
             // and storing those is a loop: the panels' own restore runs, its layout
@@ -408,7 +432,7 @@ export function App() {
               return
             }
             remember(
-              railPane.current,
+              pixelsOf(layout, 'rail', row.current, 'width'),
               railPresenceNow.current,
               railW,
               BOUNDS.rail.min,
@@ -416,7 +440,7 @@ export function App() {
               (width) => setSize('railW', width)
             )
             remember(
-              inspectorPane.current,
+              pixelsOf(layout, 'inspector', row.current, 'width'),
               inspectorPresenceNow.current,
               inspectorW,
               BOUNDS.inspector.min,
@@ -427,6 +451,9 @@ export function App() {
         >
           <Panel
             id="rail"
+            // Which shape the column is in, on the panel's own element: what
+            // the constraints below are pinned to, readable from outside.
+            data-presence={railPresence}
             panelRef={railPane}
             className="sv-hud-col sv-hud-left"
             style={{ overflow: 'visible' }}
@@ -454,21 +481,39 @@ export function App() {
             <Panes
               orientation="vertical"
               className="sv-center"
+              elementRef={column}
               // The library writes `width: 100%; height: 100%; overflow: hidden`
               // inline. The panel this sits in is a column and this grows to fill
               // it, so `auto` lets that decide. Overflow stays open for the menus
               // that hang off the top bar; the dock clips its own charts.
               style={{ width: 'auto', height: 'auto', overflow: 'visible' }}
-              onLayoutChanged={(_layout, meta) => {
+              onLayoutChanged={(layout, meta) => {
                 // Only what a person did -- see the row's handler above.
                 if (!meta.isUserInteraction) {
                   return
                 }
-                const pane = dockPane.current
-                if (!pane || pane.isCollapsed()) {
+                const tall = pixelsOf(layout, 'dock', column.current, 'height')
+                if (tall === null) {
                   return
                 }
-                const px = Math.round(pane.getSize().inPixels)
+                // A drag past the threshold folds the dock without going
+                // through its head, so the store hears about the fold here --
+                // and only here, behind the check above. It used to be heard
+                // from the panel's onResize, which also fires for the group
+                // laying itself out: inside its panel the column is no height
+                // at all on its first layout, a dock of no height reads as
+                // folded, and that one write marked the layout as touched
+                // before the settings had been read. A cold start then never
+                // read them, and came up at every default.
+                const folded = tall <= DOCK_TABS_H + 1
+                if (folded !== dockCollapsed) {
+                  toggleLayout('dockCollapsed')
+                }
+                // Folded is not a height anyone chose.
+                if (folded) {
+                  return
+                }
+                const px = Math.round(tall)
                 if (px !== dockH) {
                   setSize('dockH', px)
                 }
@@ -490,6 +535,7 @@ export function App() {
               />
 
               <Panel
+                id="dock"
                 panelRef={dockPane}
                 // Not `sv-dock-pane`: that is each of the dock's two chart slots,
                 // hidden unless it is one of the two in use. Borrowing it hid the
@@ -505,14 +551,6 @@ export function App() {
                 maxSize="65"
                 collapsible
                 collapsedSize={DOCK_TABS_H}
-                onResize={() => {
-                  const pane = dockPane.current
-                  // A drag past the threshold folds the dock without going
-                  // through the head, so the store has to hear about it.
-                  if (pane && pane.isCollapsed() !== dockCollapsed) {
-                    toggleLayout('dockCollapsed')
-                  }
-                }}
               >
                 <AnalysisDock theme={theme} />
               </Panel>
@@ -536,6 +574,9 @@ export function App() {
               instead, which `:has()` used to manage with `display`. */}
           <Panel
             id="inspector"
+            // Which shape the column is in, on the panel's own element: what
+            // the constraints below are pinned to, readable from outside.
+            data-presence={inspectorPresence}
             panelRef={inspectorPane}
             className="sv-hud-col sv-hud-right"
             style={{ overflow: 'visible' }}

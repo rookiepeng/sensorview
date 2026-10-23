@@ -52,6 +52,21 @@ const DRIVE = `
                // only the click and the menu never opens. The trailing click
                // is what every plain button still needs, so this one call is
                // right for both.
+               // Resolves after n animation frames; false if they never came.
+               // Anything the app asked to run on the next frame has run by
+               // then, because frame callbacks run in the order they were asked
+               // for. A hidden window does get frames, but late and unevenly,
+               // so a fixed wait is a guess where this is an ordering -- and
+               // polling for a size to stop moving reads one that has not
+               // started moving yet.
+               const frames = (n) => new Promise((done) => {
+                 setTimeout(() => done(false), 5000)
+                 const step = (left) => (left === 0
+                   ? done(true)
+                   : requestAnimationFrame(() => step(left - 1)))
+                 step(n)
+               })
+
                const press = (el) => {
                  const opts = { bubbles: true, cancelable: true, button: 0, pointerId: 1, isPrimary: true }
                  el.dispatchEvent(new PointerEvent('pointerdown', opts))
@@ -1559,14 +1574,34 @@ export async function runSmoke(
                // button has to be what is under the pointer where it sits, or
                // the way back is covered. Then both brought back, and the column
                // has to return to the width it had.
-               const trayRound = async (side) => {
+               const trayRound = async (side, handleLabel, widen) => {
+                 // Off the default width first. A column rebuilt from its
+                 // default and a column put back where it was look the same
+                 // from the default, which is how a restore that did nothing
+                 // passed here once.
+                 const handle = document.querySelector('[aria-label="' + handleLabel + '"]')
+                 if (handle) {
+                   handle.focus()
+                   handle.dispatchEvent(new KeyboardEvent('keydown', {
+                     key: widen, bubbles: true, cancelable: true
+                   }))
+                   await wait(800)
+                 }
                  const before = stackOf(side)
-                 const hides = Array.from(document.querySelectorAll(side + ' .sv-group-hide'))
-                 for (const hide of hides) {
+                 // One at a time, found afresh each time: hiding the camera
+                 // takes the inspector's split down and its curves card comes
+                 // back as a different element, so a button found before the
+                 // first press can be detached by the second.
+                 let hidden = 0
+                 for (let i = 0; i < 4; i++) {
+                   const hide = document.querySelector(side + ' .sv-group-hide')
+                   if (!hide) break
                    press(hide)
+                   hidden++
                    await wait(250)
                  }
                  await wait(400)
+                 await frames(2)
                  const aside = document.querySelector(side)
                  const tray = document.querySelector(side + ' .sv-tray')
                  const box = tray ? tray.getBoundingClientRect() : null
@@ -1578,8 +1613,16 @@ export async function runSmoke(
                    : null
                  const dock = document.querySelector('.sv-dock')
                  const dockBox = dock ? dock.getBoundingClientRect() : null
+                 const panel = aside ? aside.closest('[data-panel]') : null
+                 const sideHandle = document.querySelector('[aria-label="' + handleLabel + '"]')
                  const out = {
-                   hidden: hides.length,
+                   // A column down to its tray has nothing to resize, so its
+                   // handle should not be there to grab.
+                   handleShown: sideHandle ? getComputedStyle(sideHandle).visibility !== 'hidden' : false,
+                   presence: panel ? panel.getAttribute('data-presence') : 'no panel',
+                   note: (document.querySelector(side + ' .sv-note') || {}).textContent || '',
+                   share: panel ? (panel.style.flex || '').split(' ')[0] : '',
+                   hidden: hidden,
                    asideW: aside ? Math.round(aside.getBoundingClientRect().width) : -1,
                    trayW: box ? Math.round(box.width) : -1,
                    onScreen: box ? box.left >= 0 && box.right <= window.innerWidth : false,
@@ -1597,12 +1640,13 @@ export async function runSmoke(
                    await wait(300)
                  }
                  await wait(500)
+                 await frames(2)
                  out.before = before
                  out.after = stackOf(side)
                  return out
                }
-               const railTray = await trayRound('.sv-rail')
-               const inspectorTray = await trayRound('.sv-inspector')
+               const railTray = await trayRound('.sv-rail', 'Filter rail width', 'ArrowRight')
+               const inspectorTray = await trayRound('.sv-inspector', 'Inspector width', 'ArrowLeft')
 
                return {
                  closed: closed,
@@ -1693,14 +1737,21 @@ export async function runSmoke(
             expect(t.hidden === 2, `the ${name} offered ${t.hidden} cards to put away`)
             expect(
               Math.abs(t.asideW - t.trayW) <= 2 && t.trayW >= 30,
-              `the ${name} folded to ${t.asideW}px around a ${t.trayW}px tray`
+              `the ${name} folded to ${t.asideW}px around a ${t.trayW}px tray ` +
+                `(panel says ${t.presence}, share ${t.share}%${t.note ? ', note: ' + t.note : ''})`
             )
             expect(t.onScreen, `the ${name}'s tray is off the screen`)
+            expect(!t.handleShown, `the ${name} is down to its tray and its handle is still showing`)
             expect(t.clear, `the dock lies over the ${name}'s tray`)
             expect(t.reachable, `something covers the ${name}'s tray button`)
             expect(
               Math.abs(t.after - t.before) <= 2,
               `the ${name} came back at ${t.after}px, not the ${t.before}px it was`
+            )
+            expect(
+              t.before !== (name === 'rail' ? 288 : 480),
+              `the ${name} was still at its default width going in, so a restore ` +
+                'that did nothing would pass'
             )
           }
           expect(menus.folding, 'no fold control on the dock')
@@ -1855,6 +1906,14 @@ export async function runSmoke(
             }
           })
           probe.destroy()
+          // The cold start says what it is doing too. Without this the one
+          // window whose startup is the whole point of the check was the one
+          // window verbose mode could not hear.
+          if (process.env.SENSORVIEW_SMOKE_VERBOSE) {
+            relaunched.webContents.on('console-message', (event) => {
+              console.log(`      relaunched: ${event.message}`)
+            })
+          }
           await relaunched.loadFile(rendererHtml)
 
           const back = await relaunched.webContents.executeJavaScript(
@@ -1879,6 +1938,10 @@ export async function runSmoke(
                }
                const colormap = field('Colormap')
                const decay = field('Decay')
+               const widthOf = (sel) => {
+                 const el = document.querySelector(sel)
+                 return el ? Math.round(el.getBoundingClientRect().width) : null
+               }
                const click = switchRow(document.querySelector('.sv-rail'), 'Click a point')
                return {
                  crumb: crumb ? crumb.textContent : null,
@@ -1887,14 +1950,18 @@ export async function runSmoke(
                  clickToHide: click ? isOn(click) : null,
                  slots: Array.from(document.querySelectorAll('.sv-slot-picker select'))
                    .map(s => s.value),
-                 railW: (() => {
-                   const el = document.querySelector('.sv-rail .sv-stack')
-                   return el ? Math.round(el.getBoundingClientRect().width) : null
+                 storedLayout: await (async () => {
+                   const read = await window.sensorview.settings.get()
+                   return read.ok ? JSON.stringify(read.data.layout) : read.error
                  })(),
-                 inspectorW: (() => {
-                   const el = document.querySelector('.sv-inspector .sv-stack')
-                   return el ? Math.round(el.getBoundingClientRect().width) : null
-                 })(),
+                 // Read two frames on. The widths come back a frame after the
+                 // case does: a column is pinned until it has something to show,
+                 // and the stored width is put back on the frame after the panels
+                 // are laid out for what is in them. Read on the frame the case
+                 // lands and the answer is the default.
+                 framesRun: await frames(2),
+                 railW: widthOf('.sv-rail .sv-stack'),
+                 inspectorW: widthOf('.sv-inspector .sv-stack'),
                  points: document.getElementById('gl-stats')
                    ? document.getElementById('gl-stats').textContent
                    : null
@@ -1910,9 +1977,11 @@ export async function runSmoke(
           expect(back.colormap === 'Jet', `the colormap came back as ${back.colormap}`)
           expect(back.decay === '4', `the decay came back as ${back.decay}`)
           expect(back.clickToHide === true, 'click-to-hide did not come back on')
+          expect(back.framesRun, 'the relaunched window never ran an animation frame')
           expect(
             back.railW !== null && Math.abs(back.railW - 333) <= 2,
-            `the rail came back at ${back.railW}px, not the 333px stored`
+            `the rail came back at ${back.railW}px, not the 333px stored ` +
+              `(settings now hold ${back.storedLayout})`
           )
           expect(
             back.inspectorW !== null && Math.abs(back.inspectorW - 444) <= 2,

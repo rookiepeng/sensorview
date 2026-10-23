@@ -26,6 +26,29 @@ import { DEFAULT_LAYOUT, sanitiseLayout, type Layout } from '@shared/types'
  */
 export type Presence = 'none' | 'tray' | 'cards'
 
+/**
+ * A panel's size in pixels, from the layout a group hands its change handler.
+ *
+ * Not from the panel's own handle. Inside `onLayoutChanged` the handle still
+ * reports the size from *before* the change -- the new layout exists only in
+ * the callback's argument -- so reading it stores every size one step late,
+ * and anything that restores from the store then undoes the step the user
+ * just took. The layout is each panel's share of the group in percent; the
+ * group's own box turns that back into pixels.
+ */
+export function pixelsOf(
+  layout: Record<string, number>,
+  id: string,
+  group: HTMLElement | null,
+  axis: 'width' | 'height'
+): number | null {
+  const share = layout[id]
+  if (share === undefined || group === null) {
+    return null
+  }
+  return (share / 100) * group.getBoundingClientRect()[axis]
+}
+
 /** The overlays down each side, each shown or hidden on its own. */
 export const OVERLAYS = {
   left: ['display', 'filters'],

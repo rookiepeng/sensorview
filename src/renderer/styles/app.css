@@ -1204,9 +1204,11 @@ body {
 
 /* ── Bottom dock: the six analysis charts ────────────────────────────── */
 
-/* A collapsed dock cannot be resized, so its handle would be a lie. The
-   handle is `disabled` then, which is what this greys. */
-.sv-splitter[data-disabled] {
+/* A handle with nothing to resize would be a lie: the dock folded, a column
+   down to its tray or empty. Each is `disabled` then, which the library
+   writes as `data-separator="disabled"` -- not `data-disabled`, which this
+   rule first looked for and which nothing ever sets. */
+.sv-splitter[data-separator="disabled"] {
     visibility: hidden;
 }
 

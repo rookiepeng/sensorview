@@ -92,40 +92,64 @@ export function PlotlyFigure({
   const selected = useRef(onSelected)
   selected.current = onSelected
 
+  // A draw waiting for the element to have a size, and whether it has been
+  // drawn into at all. Plotly cannot lay a figure out in a box with no width
+  // or no height: it draws what it can and leaves itself a redraw for when
+  // the margins can be worked out -- and if the figure is purged first, that
+  // redraw runs against a figure that no longer exists and throws. A panel
+  // the library sizes can be zero wide for a commit before it widens, which
+  // is exactly when a figure mounting inside it gets its first data. So the
+  // first draw waits for a box, and the resize observer below is what
+  // notices one arriving.
+  const pending = useRef<(() => void) | null>(null)
+  const drawn = useRef(false)
+
   useEffect(() => {
-    const element = host.current
+    const element = host.current as (HTMLDivElement & Plotly.PlotlyHTMLElement) | null
     if (!element) {
       return
     }
-    void Plotly.react(
-      element,
-      data,
-      { uirevision: revision ?? 'no_change', ...layout },
-      tools ? WITH_TOOLS : WITHOUT_TOOLS
-    )
+    const draw = () => {
+      void Plotly.react(
+        element,
+        data,
+        { uirevision: revision ?? 'no_change', ...layout },
+        tools ? WITH_TOOLS : WITHOUT_TOOLS
+      ).then(() => {
+        // Selection is listened for once the figure exists: `on` is
+        // something Plotly puts on the element when it first draws, so a
+        // figure whose first draw waited for a box would otherwise never
+        // hear a lasso.
+        if (!drawn.current) {
+          drawn.current = true
+          element.on?.('plotly_selected', (event) => {
+            const points = (event as Plotly.PlotSelectionEvent | undefined)?.points ?? []
+            const rows: number[] = []
+            for (const point of points) {
+              const row = (point as { customdata?: unknown }).customdata
+              if (typeof row === 'number') {
+                rows.push(row)
+              }
+            }
+            selected.current?.(rows)
+          })
+        }
+      })
+    }
+    if (element.offsetWidth > 0 && element.offsetHeight > 0) {
+      pending.current = null
+      draw()
+    } else {
+      pending.current = draw
+    }
   }, [data, layout, revision, tools])
 
   useEffect(() => {
     const element = host.current as (HTMLDivElement & Plotly.PlotlyHTMLElement) | null
-    if (!element?.on) {
-      return
-    }
-    const handler = (event: Plotly.PlotSelectionEvent | undefined) => {
-      const points = event?.points ?? []
-      const rows: number[] = []
-      for (const point of points) {
-        const row = (point as { customdata?: unknown }).customdata
-        if (typeof row === 'number') {
-          rows.push(row)
-        }
-      }
-      selected.current?.(rows)
-    }
-    element.on('plotly_selected', handler)
     return () => {
       // `removeAllListeners` with a name, not the bare form: the bare one
       // would also drop whatever else is attached to this element.
-      element.removeAllListeners?.('plotly_selected')
+      element?.removeAllListeners?.('plotly_selected')
     }
   }, [])
 
@@ -141,7 +165,16 @@ export function PlotlyFigure({
       return
     }
     const observer = new ResizeObserver(() => {
-      if (element.offsetWidth > 0 && element.offsetHeight > 0) {
+      if (element.offsetWidth === 0 || element.offsetHeight === 0) {
+        return
+      }
+      // The first box this element has had: draw what was waiting for one.
+      // Resizing a figure that was never drawn is not a thing Plotly does.
+      const waiting = pending.current
+      if (waiting) {
+        pending.current = null
+        waiting()
+      } else if (drawn.current) {
         Plotly.Plots.resize(element)
       }
     })
