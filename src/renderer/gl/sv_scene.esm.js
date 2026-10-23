@@ -455,6 +455,10 @@ export function create(host, options = {}) {
 
     slot.layers.forEach((layer, i) => {
       if (i >= n) {
+        // Zero the count too: `applyVisibility` shows any layer whose count
+        // is above zero, so a stale one would bring back the last frame's
+        // points -- every point, when a filter leaves nothing to draw.
+        layer.count = 0;
         layer.points.visible = false;
         if (layer.pickPoints) {
           layer.pickPoints.visible = false;
