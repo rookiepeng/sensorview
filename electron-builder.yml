@@ -18,6 +18,7 @@ asarUnpack:
   # paths do not always satisfy.
   - '**/node_modules/h5wasm/dist/**'
 win:
+  icon: build/icon.ico
   target:
     - nsis
     - portable
@@ -25,6 +26,8 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
 linux:
+  # electron-builder's Linux icon tool reads .png/.svg/.icns, not .ico.
+  icon: build/icon.png
   target:
     - AppImage
   category: Science
