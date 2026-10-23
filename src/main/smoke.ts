@@ -1580,6 +1580,15 @@ export async function runSmoke(
                  // Past the 400ms the layout write waits for.
                  await wait(800)
                  const now = stackOf('.sv-rail')
+                 // The inset follows on the scene's ResizeObserver, which
+                 // runs only when this hidden window is given a frame -- and
+                 // those come late and unevenly, so a fixed wait read the old
+                 // inset about half the time. Wait for it to move instead,
+                 // with a deadline that still fails a HUD that never follows.
+                 const insetBy = Date.now() + 3000
+                 while (insetL() === insetWas && Date.now() < insetBy) {
+                   await wait(100)
+                 }
                  const insetNow = insetL()
                  const kept = await railWidthStored()
                  railHandle.dispatchEvent(new MouseEvent('dblclick', {
