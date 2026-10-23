@@ -525,6 +525,28 @@ body {
     height: 3px;
 }
 
+/* The library writes `flex: 0 0 auto` inline, which beats the 5px basis
+   above and leaves a handle of no height: its grip then straddles the two
+   cards it sits between and is mostly behind them. A height is what `auto`
+   resolves to, so this gives the row handle a band of its own -- the gap
+   stacked cards keep anyway -- with the grip clear in the middle of it.
+   The band stays clear; the grip is what lights up. */
+.sv-splitter-row {
+    height: var(--sv-gap);
+    background: transparent;
+}
+
+.sv-splitter-row:hover,
+.sv-splitter-row[data-separator="active"] {
+    background: transparent;
+}
+
+.sv-splitter-row:hover::after,
+.sv-splitter-row[data-separator="hover"]::after,
+.sv-splitter-row[data-separator="active"]::after {
+    background: var(--sv-accent);
+}
+
 .sv-splitter-col {
     cursor: col-resize;
 }
