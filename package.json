@@ -20,7 +20,7 @@
     "web": "vite --config vite.web.config.ts"
   },
   "dependencies": {
-    "bootstrap-icons": "^1.13.1",
+    "bootstrap-icons": "^1.13.2",
     "ffmpeg-static": "^5.3.0",
     "h5wasm": "^0.10.3",
     "nodejs-polars": "^0.26.1",
