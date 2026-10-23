@@ -265,6 +265,7 @@ export function TopBar() {
           {/* Decorative: the name beside it already says what it is. */}
           <img className="sv-brand-logo" src={logo} alt="" draggable={false} />
           <span className="sv-brand-name">SensorView</span>
+          <span className="sv-brand-version">v{__APP_VERSION__}</span>
         </div>
 
         {/* Two targets, not one: the case name reopens the dialog and the stem

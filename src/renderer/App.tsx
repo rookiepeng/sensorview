@@ -450,6 +450,10 @@ export function App() {
         subject={stem}
       />
 
+      {/* The window's title bar, now that it has no frame: a strip across the
+          top that moves the window wherever no panel covers it. */}
+      <div className="sv-drag-strip" aria-hidden="true" />
+
       <div className="sv-view">
         {/* Three columns: the rail, the gap, the inspector. The side ones keep
             their pixel width when the window changes and the gap takes the

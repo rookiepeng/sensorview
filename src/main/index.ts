@@ -55,6 +55,39 @@ let win: BrowserWindow | null = null
  * main cannot read a stylesheet it never loads. */
 const BACKGROUND: Record<string, string> = { dark: '#0a0c0f', light: '#eceef1' }
 
+/** `--sv-text` for each theme, for the window buttons. Same rule as above. */
+const CAPTION_SYMBOL: Record<string, string> = { dark: '#dfe4ea', light: '#12161c' }
+
+/** Height of the window-button strip drawn over the page on Windows and Linux.
+ * The page reads it back as `env(titlebar-area-height)`. */
+const CAPTION_HEIGHT = 32
+
+/**
+ * The window buttons for a theme.
+ *
+ * There is no native frame: the scene runs to the top edge and the buttons
+ * float over it like the rest of the HUD, so their strip is transparent and
+ * only the glyphs follow the theme.
+ */
+function captionFor(theme: string): Electron.TitleBarOverlayOptions {
+  return {
+    color: '#00000000',
+    symbolColor: CAPTION_SYMBOL[theme] ?? CAPTION_SYMBOL.dark,
+    height: CAPTION_HEIGHT
+  }
+}
+
+/** Repaint the frame for a theme the renderer has just switched to. */
+function applyTheme(theme: string): void {
+  if (!win || win.isDestroyed()) {
+    return
+  }
+  win.setBackgroundColor(BACKGROUND[theme] ?? BACKGROUND.dark)
+  if (process.platform !== 'darwin') {
+    win.setTitleBarOverlay(captionFor(theme))
+  }
+}
+
 /** The size a window opens at before it has ever been moved. */
 const DEFAULT_SIZE = { width: 1600, height: 1000 }
 
@@ -119,6 +152,10 @@ function createWindow(theme: string, bounds: WindowBounds | null): void {
     show: false,
     backgroundColor: BACKGROUND[theme] ?? BACKGROUND.dark,
     title: app.getName(),
+    // No OS frame and no menu bar: the top bar is the title bar. The menu is
+    // still installed, so its shortcuts (Ctrl+O, reload, zoom) keep working.
+    titleBarStyle: 'hidden',
+    ...(process.platform === 'darwin' ? {} : { titleBarOverlay: captionFor(theme) }),
     webPreferences: {
       preload: join(here, '../preload/index.cjs'),
       contextIsolation: true,
@@ -353,9 +390,14 @@ function registerIpc(): void {
   ipcMain.handle('case:initial', () => initialCase())
   ipcMain.handle('file:save', (_event, request) => saveFile(request))
   ipcMain.handle('settings:get', async () => ok(await settings.get()))
-  ipcMain.handle('settings:set', async (_event, patch: Partial<Settings>) =>
-    ok(await settings.set(patch))
-  )
+  ipcMain.handle('settings:set', async (_event, patch: Partial<Settings>) => {
+    // The theme lives in the renderer, but the window buttons and the
+    // pre-paint background are main's to draw.
+    if (typeof patch.theme === 'string') {
+      applyTheme(patch.theme)
+    }
+    return ok(await settings.set(patch))
+  })
   ipcMain.handle('settings:view', async (_event, dir: string, patch: CaseView) =>
     ok(await settings.rememberView(dir, patch))
   )

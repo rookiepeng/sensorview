@@ -58,6 +58,10 @@
     /* Room between a side column's cards and its splitter, so the handle
        is drawn clear of the panel rather than partly behind it. */
     --sv-handle-clear: 6px;
+    /* Where the side columns start: below the window buttons in the
+       frameless Electron window, which draws them over the page's top edge;
+       just the gap anywhere else, where the strip is 0 tall. */
+    --sv-hud-top: max(var(--sv-gap), calc(env(titlebar-area-height, 0px) + var(--sv-handle-clear)));
     --sv-font-sm: 0.78rem;
     --sv-font-xs: 0.72rem;
     /* Below --sv-font-xs: counts, badges, tick furniture. Replaces a cluster
@@ -168,6 +172,41 @@ body {
     border-radius: var(--sv-radius);
     position: relative;
     z-index: var(--sv-z-topbar);
+    /* The window has no frame, so this is what moves it. */
+    -webkit-app-region: drag;
+}
+
+/* The rest of the title bar: the window's top edge, as tall as the window
+   buttons. Above the scene and below every panel, so a panel over it still
+   takes its own clicks. Zero tall outside the frameless Electron window. */
+.sv-drag-strip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(titlebar-area-height, 0px);
+    z-index: 0;
+    -webkit-app-region: drag;
+}
+
+/* Panels lying over the strip are carved out of it. */
+.sv-group,
+.sv-tray,
+.sv-splitter,
+.sv-hud,
+.sv-welcome-plate,
+[data-radix-popper-content-wrapper] {
+    -webkit-app-region: no-drag;
+}
+
+/* Anything that takes a click has to opt back out, or the drag eats it. */
+.sv-topbar button,
+.sv-topbar input,
+.sv-topbar select,
+.sv-topbar a,
+.sv-topbar [role],
+.sv-topbar [tabindex] {
+    -webkit-app-region: no-drag;
 }
 
 .sv-brand {
@@ -184,6 +223,15 @@ body {
     font-size: 0.85rem;
     font-weight: 650;
     letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+/* Beside the name, quiet: there to be read when asked about, not noticed. */
+.sv-brand-version {
+    margin-left: -4px;
+    font-size: var(--sv-font-2xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--sv-text-faint);
     white-space: nowrap;
 }
 
@@ -440,6 +488,7 @@ body {
 
 .sv-hud-left {
     padding: var(--sv-gap) var(--sv-handle-clear) var(--sv-gap) var(--sv-gap);
+    padding-top: var(--sv-hud-top);
 }
 
 /* Floor to ceiling, unlike the left: what this column holds is a picture
@@ -448,6 +497,7 @@ body {
    height and no more. */
 .sv-hud-right {
     padding: var(--sv-gap) var(--sv-gap) var(--sv-gap) var(--sv-handle-clear);
+    padding-top: var(--sv-hud-top);
 }
 
 .sv-hud-right > .sv-inspector {
@@ -673,7 +723,7 @@ body {
 
 [data-presence="cards"] > .sv-hud-col .sv-tray {
     position: absolute;
-    top: var(--sv-gap);
+    top: var(--sv-hud-top);
 }
 
 [data-presence="cards"] > .sv-hud-left .sv-tray {
