@@ -1,0 +1,123 @@
+{
+ "table": "data/NuScenes/scene_0061.parquet",
+ "x": "X",
+ "y": "Y",
+ "categorical": "Sensor",
+ "levels": [
+  "RADAR_BACK_LEFT",
+  "RADAR_BACK_RIGHT",
+  "RADAR_FRONT",
+  "RADAR_FRONT_LEFT",
+  "RADAR_FRONT_RIGHT"
+ ],
+ "rows": 19756,
+ "numeric": [
+  "Frame",
+  "Time",
+  "X",
+  "Y",
+  "Z",
+  "Range",
+  "Azimuth",
+  "RCS",
+  "Range_Rate",
+  "Range_Rate_Comp",
+  "Speed"
+ ],
+ "scatter": {
+  "groups": [
+   {
+    "name": "RADAR_BACK_LEFT",
+    "n": 4875,
+    "firstX": 7.079999923706055,
+    "firstY": 6.607999801635742
+   },
+   {
+    "name": "RADAR_BACK_RIGHT",
+    "n": 4875,
+    "firstX": 5.953000068664551,
+    "firstY": 2.747999906539917
+   },
+   {
+    "name": "RADAR_FRONT",
+    "n": 4874,
+    "firstX": -0.414000004529953,
+    "firstY": -11.944000244140625
+   },
+   {
+    "name": "RADAR_FRONT_LEFT",
+    "n": 1940,
+    "firstX": 9.824000358581543,
+    "firstY": -4.744999885559082
+   },
+   {
+    "name": "RADAR_FRONT_RIGHT",
+    "n": 3192,
+    "firstX": -13.972999572753906,
+    "firstY": 3.627000093460083
+   }
+  ]
+ },
+ "heatmap": {
+  "shape": [
+   74,
+   119
+  ],
+  "xCenters": [
+   -250.4328663289046,
+   -246.73060582265134,
+   -243.02834531639803,
+   -239.32608481014478,
+   -235.62382430389147
+  ],
+  "yCenters": [
+   -290.33057697399244,
+   -284.8377392227585,
+   -279.3449014715246,
+   -273.85206372029074,
+   -268.3592259690568
+  ],
+  "zMax": 5.472270673671475,
+  "zSum": 3488.3495798626545,
+  "nonZero": 1949
+ },
+ "violin": {
+  "groups": [
+   {
+    "name": "RADAR_BACK_LEFT",
+    "n": 4875,
+    "min": -143.51699829101562,
+    "max": 107.9280014038086,
+    "mean": -13.571295793987238
+   },
+   {
+    "name": "RADAR_BACK_RIGHT",
+    "n": 4875,
+    "min": -152.19000244140625,
+    "max": 113.39299774169922,
+    "mean": -16.34593087384143
+   },
+   {
+    "name": "RADAR_FRONT",
+    "n": 4874,
+    "min": -192.6269989013672,
+    "max": -10.097000122070312,
+    "mean": -90.98964492013624
+   },
+   {
+    "name": "RADAR_FRONT_LEFT",
+    "n": 1940,
+    "min": -136.1999969482422,
+    "max": 73.13600158691406,
+    "mean": -38.380241774891495
+   },
+   {
+    "name": "RADAR_FRONT_RIGHT",
+    "n": 3192,
+    "min": -293.0769958496094,
+    "max": 74.46600341796875,
+    "mean": -64.42694296712466
+   }
+  ]
+ }
+}

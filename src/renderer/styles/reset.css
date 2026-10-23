@@ -1,0 +1,75 @@
+/* The small part of Bootstrap's reboot the app actually relied on.
+ *
+ * `app.css` was written against Bootstrap, so it assumed a reset it never
+ * declared: border-box sizing, no body margin, and controls that inherit the
+ * page font. Dropping Bootstrap took those assumptions with it -- a 288px rail
+ * became 288px *plus* its padding, and the shell sat 8px off the corner.
+ *
+ * This is deliberately not a full normalize. Everything here is something the
+ * layout depends on, which is why each rule can say what breaks without it. */
+
+*,
+*::before,
+*::after {
+    /* A panel's declared width is its width. Every fixed-size region in
+       app.css -- the rail, the inspector, the transport -- is written on that
+       assumption, and padding would otherwise push each of them wider than the
+       token says. */
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    /* Bootstrap's reboot set this and nothing else did, so dropping Bootstrap
+       dropped the page to the user-agent default -- which on Windows is a
+       serif, and every label and readout in the app rendered in it. The stack
+       is reboot's own, minus the Bootstrap variable indirection. */
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+        Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    font-size: 0.875rem;
+    line-height: 1.5;
+
+    /* The scene is a fixed layer behind the shell; a scrollbar here would both
+       be meaningless and change the viewport the canvas sizes itself to. */
+    overflow: hidden;
+}
+
+/* Form controls do not inherit the page font on their own, and the rail is
+   mostly form controls. Without this the filters render in the browser's UI
+   font at its own size, next to labels that do not. */
+button,
+input,
+select,
+textarea {
+    font: inherit;
+    color: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+/* The shell lays its regions out with flex and margins of its own. Heading and
+   list margins from the user-agent stylesheet fight that, and show up as
+   panels that will not sit flush. */
+h1,
+h2,
+h3,
+h4,
+p,
+dl,
+dd,
+figure {
+    margin: 0;
+}
+
+/* Only ever used as a positioned layer. */
+canvas {
+    display: block;
+}

@@ -1,0 +1,2392 @@
+/*
+ * SensorView workbench shell.
+ *
+ * The app owns the viewport: nothing outside a panel ever scrolls. Regions are
+ * sized by flex so the 3D canvas absorbs every pixel the docks are not using,
+ * and collapsing a dock hands its space straight back to the canvas.
+ *
+ * Design tokens, then region geometry. `hud.css` is imported after this one
+ * and overrides the panels into glass floating over the scene, which is what
+ * lets it win without !important.
+ *
+ * Author: Zhengyu Peng
+ * License: GPL-3.0
+ */
+
+/* ── Design tokens ────────────────────────────────────────────────────────
+   Dark is the working theme: near-black surfaces so the only bright thing on
+   screen is the data. Light is a full peer, not an afterthought. */
+:root {
+    /* Both bars were 46px of chrome around the one thing worth looking at.
+       The top bar holds a 28px button and a one-line breadcrumb; the
+       transport holds the same button and a slider. */
+    --sv-topbar-h: 38px;
+    --sv-transport-h: 40px;
+    /* The two side columns' widths before anything is dragged. No rule
+       reads either any more -- the panels own the widths -- but `App.tsx`
+       reads both once, so these stay the one place the numbers live. */
+    --sv-rail-w: 288px;
+    /* Wide enough for a 16:9 still to be worth looking at, and for a curve
+       to have an axis either side of its trace. 380 was the width of a
+       column beside the scene; this is a panel over it. */
+    --sv-inspector-w: 480px;
+    /* No longer read by any rule: the dock's height belongs to its panel
+       now. Kept because it is where `defaultSize="34"` in `App.tsx` comes
+       from -- the gap the dock sits in is the window's height, so 34vh and
+       34 percent of the gap are the same answer. Change one, change both. */
+    --sv-dock-h: 34vh;
+    --sv-dock-tabs-h: 38px;
+    /* Floor for a pane's plot area. The figures reserve 120px of vertical
+       margin for their axes, so anything much below this leaves a drawing area
+       of a few pixels -- a shape Plotly still accepts and scattergl still
+       allocates GL buffers for, but which is no longer a chart. The dock
+       splitter's floor is this plus the head, in `BOUNDS` in App.tsx. */
+    --sv-pane-plot-min: 180px;
+    --sv-radius: 6px;
+    /* Small inner elements -- menu rows, chips of chrome, swatches. Three
+       values (4px, 3px, 2px) used to do this job in two files. */
+    --sv-radius-sm: 4px;
+    --sv-radius-pill: 999px;
+    /* Swatches and other marks too small for the control radius. */
+    --sv-radius-xs: 2px;
+    /* One size for the text in every control and every popup list, so a
+       select, its list and a menu beside it read as one family. */
+    --sv-font-control: var(--sv-font-sm);
+    --sv-control-h: 26px;
+    --sv-control-h-sm: 24px;
+    --sv-gap: 10px;
+    /* Room between a side column's cards and its splitter, so the handle
+       is drawn clear of the panel rather than partly behind it. */
+    --sv-handle-clear: 6px;
+    --sv-font-sm: 0.78rem;
+    --sv-font-xs: 0.72rem;
+    /* Below --sv-font-xs: counts, badges, tick furniture. Replaces a cluster
+       of 0.6/0.62/0.65/0.7rem that differed by less than a pixel. */
+    --sv-font-2xs: 0.65rem;
+    --sv-weight-med: 600;
+    --sv-ease: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Stacking, bottom to top. The ladder is documented at the head of
+       hud.css; these are the numbers it describes, so the two cannot drift.
+       Menus sit above the panels they hang from; the scene's hover tooltip
+       is above everything, because it tracks the pointer and must never be
+       the thing that is covered. The axis text used to have a layer here
+       and no longer does -- it lies in the floor as geometry. */
+    --sv-z-splitter: 5;
+    --sv-z-hud: 6;
+    --sv-z-panel: 10;
+    --sv-z-topbar: 20;
+    --sv-z-menu: 40;
+    --sv-z-tooltip: 50;
+}
+
+[data-bs-theme="dark"] {
+    --sv-bg: #0a0c0f;
+    --sv-surface: #111419;
+    --sv-surface-2: #171b22;
+    --sv-surface-3: #1e232b;
+    /* Carrying a little of the accent rather than being neutral grey: the
+       lines are most of what is on screen, and a cool cast on them is what
+       makes the whole window look of a piece with the blue. */
+    --sv-border: #1d2b2f;
+    --sv-border-strong: #2d4851;
+    --sv-text: #dfe4ea;
+    --sv-text-dim: #8a929e;
+    --sv-text-faint: #5d656f;
+    --sv-accent: #2ec5d8;
+    --sv-accent-soft: rgba(46, 197, 216, 0.16);
+    /* A trace of the accent over a surface, for the bands that separate one
+       thing from another -- panel heads, the dock's head, a segmented
+       group. Every neutral in this theme is a grey, and a UI built only of
+       greys reads as switched off however carefully the greys are chosen. */
+    --sv-accent-wash: rgba(46, 197, 216, 0.07);
+    --sv-warn: #f0a020;
+    --sv-danger: #e5484d;
+    --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
+    --sv-shadow-menu: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+[data-bs-theme="light"] {
+    --sv-bg: #eceef1;
+    --sv-surface: #ffffff;
+    --sv-surface-2: #f6f7f9;
+    --sv-surface-3: #eceef1;
+    --sv-border: #dbe4e6;
+    --sv-border-strong: #bfcccf;
+    --sv-text: #12161c;
+    --sv-text-dim: #5e6773;
+    --sv-text-faint: #8d959f;
+    /* Darker than the dark theme's: a #2ec5d8 on white is a highlighter
+       pen, and this has to carry text and a focus ring. */
+    --sv-accent: #0e7c8c;
+    --sv-accent-soft: rgba(14, 124, 140, 0.12);
+    --sv-accent-wash: rgba(14, 124, 140, 0.05);
+    --sv-warn: #b46b00;
+    --sv-danger: #c53030;
+    --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
+    --sv-shadow-menu: 0 12px 28px rgba(20, 30, 45, 0.22);
+}
+
+/* ── Page frame ───────────────────────────────────────────────────────────
+   Dash nests the layout two divs deep; both need full height or the shell
+   collapses to its content. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: var(--sv-bg);
+    color: var(--sv-text);
+    font-size: 0.875rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Not a layout any more: the scene is a fixed layer and everything else
+   floats over it, so this only bounds the window and carries the width
+   tokens a splitter drag writes. */
+.sv-shell {
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ── Top bar ──────────────────────────────────────────────────────────────
+   One line: identity, what is loaded, which panels are, global actions.
+   A plate as wide as what it holds, centred at the head of the gap, rather
+   than a band across the window -- the scene runs to the top edge behind it
+   and the corners stay the scene's. */
+.sv-topbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 100%;
+    height: var(--sv-topbar-h);
+    padding: 0 6px 0 10px;
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
+    position: relative;
+    z-index: var(--sv-z-topbar);
+}
+
+.sv-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 10px;
+    border-right: 1px solid var(--sv-border);
+    height: 100%;
+    flex: 0 0 auto;
+}
+
+.sv-brand-name {
+    font-size: 0.85rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+/* Breadcrumb doubles as the data picker: reading and changing the loaded log
+   are the same control, so there is nothing to hunt for. */
+.sv-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    max-width: 38vw;
+    padding: 3px 9px;
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    color: var(--sv-text);
+    font-size: var(--sv-font-sm);
+    line-height: 1.3;
+    position: relative;
+    transition: border-color var(--sv-ease), background var(--sv-ease);
+}
+
+.sv-breadcrumb:hover {
+    border-color: var(--sv-accent);
+}
+
+/* Each half of the breadcrumb is its own target -- the case name reopens the
+   dialog, the stem picks among the logs -- so each lights on its own. A single
+   hover over the whole chip would say they do the same thing. */
+.sv-crumb-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 1px 5px;
+    margin: -1px -2px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--sv-radius-sm);
+    color: inherit;
+}
+
+.sv-crumb-btn:hover:not(:disabled) {
+    background: var(--sv-surface-3);
+}
+
+.sv-crumb-btn:disabled {
+    cursor: default;
+}
+
+.sv-crumb-caret {
+    flex: 0 0 auto;
+    font-size: 0.65rem !important;
+}
+
+/* The surface alone. A Radix popper hangs it off its trigger, setting its own
+   transform on a wrapper around this element -- so this must not position
+   itself, and carries `relative` only so the z-index has something to apply
+   to. The `top`/`left` that used to be here, and the `.sv-menu-right` that
+   flipped them, are now `side`/`align`/`sideOffset` on each Content. */
+.sv-menu {
+    position: relative;
+    z-index: var(--sv-z-menu);
+    min-width: 100%;
+    max-height: min(60vh, var(--radix-dropdown-menu-content-available-height, 60vh));
+    overflow-y: auto;
+    padding: 4px;
+    color: var(--sv-text);
+    font-size: var(--sv-font-control);
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border-strong);
+    border-radius: var(--sv-radius);
+    box-shadow: var(--sv-shadow-menu);
+}
+
+.sv-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 5px 8px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-text);
+    font-size: var(--sv-font-control);
+    line-height: 1.35;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: none;
+}
+
+.sv-menu-item {
+    transition: background var(--sv-ease), color var(--sv-ease);
+}
+
+/* One highlight for every list in the app -- menus, selects, the log
+   picker -- whether it got there by pointer or by arrow key. */
+.sv-menu-item:hover,
+.sv-menu-item[data-highlighted],
+.sv-menu-combine:has([data-highlighted]) {
+    background: var(--sv-accent-soft);
+    color: var(--sv-text);
+}
+
+.sv-menu-item[data-disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.sv-menu-item-on {
+    color: var(--sv-accent);
+    font-weight: 600;
+}
+
+.sv-menu-label {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-menu-marks {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 6px;
+    color: var(--sv-text-faint);
+}
+
+.sv-breadcrumb .bi {
+    color: var(--sv-text-dim);
+    font-size: 0.8rem;
+}
+
+.sv-crumb {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sv-crumb-file {
+    font-weight: 600;
+    flex: 1 1 auto;
+}
+
+.sv-crumb-sep {
+    color: var(--sv-text-faint);
+    flex: 0 0 auto;
+}
+
+.sv-crumb-empty {
+    color: var(--sv-text-faint);
+    font-style: italic;
+}
+
+/* A read that failed, said where the thing that failed lives. Capped and
+   clipped: a main-process error can be a paragraph, and the breadcrumb beside
+   it must not move when one arrives. The full text is in the title. */
+.sv-topbar-error {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 38vw;
+    padding: 2px 8px;
+    background: color-mix(in srgb, var(--sv-danger) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sv-danger) 40%, transparent);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-danger);
+    font-size: var(--sv-font-xs);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-topbar-error .bi {
+    flex: 0 0 auto;
+}
+
+.sv-topbar-spacer {
+    flex: 1 1 auto;
+}
+
+.sv-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+/* Icon buttons: quiet until touched. */
+.sv-icon-btn,
+.sv-topbar-actions .dropdown > button.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 7px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--sv-radius);
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+    line-height: 1;
+    box-shadow: none;
+    transition: background var(--sv-ease), color var(--sv-ease),
+        border-color var(--sv-ease);
+}
+
+.sv-icon-btn:hover,
+.sv-topbar-actions .dropdown > button.btn:hover {
+    background: var(--sv-surface-3);
+    border-color: var(--sv-border);
+    color: var(--sv-text);
+}
+
+.sv-icon-btn.active,
+.sv-icon-btn[data-state="on"] {
+    background: var(--sv-accent-soft);
+    border-color: transparent;
+    color: var(--sv-accent);
+}
+
+.sv-icon-btn .bi {
+    font-size: 0.95rem;
+}
+
+/* ── Body: a layer over the scene ─────────────────────────────────────────
+   Deliberately without a z-index. `position: fixed` alone does not start a
+   stacking context, so the panels inside keep stacking against `#gl-stage`
+   exactly as they did when they were siblings of it. */
+.sv-view {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}
+
+/* A column down one side, as a panel: the row of three in `App.tsx` gives it
+   its width, and this gives what is inside it a column to sit in. The gap a
+   column keeps from the window's edges is padding now rather than an offset,
+   which is why each panel's width is its column plus `--sv-gap`.
+   The panel is the full height of the window but transparent and taking no
+   pointer, and the glass inside is as tall as what it holds -- so a short rail
+   still leaves the scene showing, and orbitable, under it. */
+.sv-hud-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+}
+
+.sv-hud-left {
+    padding: var(--sv-gap) var(--sv-handle-clear) var(--sv-gap) var(--sv-gap);
+}
+
+/* Floor to ceiling, unlike the left: what this column holds is a picture
+   and a stack of plots, both of which are worth more the taller they are.
+   The left column is a set of controls, which are worth exactly their own
+   height and no more. */
+.sv-hud-right {
+    padding: var(--sv-gap) var(--sv-gap) var(--sv-gap) var(--sv-handle-clear);
+}
+
+.sv-hud-right > .sv-inspector {
+    flex: 1 1 auto;
+}
+
+/* The middle panel, which the gap's own group fills. A column, for the same
+   reason as the side ones. */
+.sv-hud-centre {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+}
+
+/* The gap between the columns. It used to be placed from the insets
+   `Hud.reflow()` measures; the panel it sits in places it now, and the
+   insets go on framing the scene and parking the HUD furniture, which is
+   what keeps the chrome and the data agreeing about where the middle is. */
+.sv-center {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    padding: var(--sv-gap);
+    /* So the plate at its head can shed what it can as the gap narrows,
+       which is a question about the gap and not about the window. */
+    container-type: inline-size;
+}
+
+/* The breadcrumb is the one thing on the plate that cannot be read at any
+   other size, so it is the last to give up room: the name goes first, and
+   the brand with it. */
+@container (max-width: 880px) {
+    .sv-brand {
+        display: none;
+    }
+}
+
+/* Everything above the dock: the plate at the head, the transport at the
+   foot, and the scene between them. What `.sv-center` used to say for
+   itself, now that it is a group of two and this is the taller half. */
+.sv-center-gap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 0;
+}
+
+/* The transport, pinned to the foot of the gap. */
+.sv-center-foot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sv-gap);
+    width: 100%;
+    min-height: 0;
+}
+
+/* ── Splitters ───────────────────────────────────────────────────────────
+   One handle for both axes: a 5px band between two regions, with a centered
+   grip so it reads as draggable before the pointer reaches it. The drag is
+   `components/Splitter.tsx`, which writes the region's own `--sv-*-w` token
+   onto the shell rather than an inline width -- hence the !important on the
+   collapsed rules, since a collapse has to beat whatever the last drag left
+   behind. */
+.sv-splitter {
+    flex: 0 0 5px;
+    position: relative;
+    background: var(--sv-border);
+    z-index: var(--sv-z-splitter);
+}
+
+.sv-splitter::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: var(--sv-radius-xs);
+    background: var(--sv-border-strong);
+}
+
+.sv-splitter:hover {
+    background: var(--sv-accent);
+}
+
+.sv-splitter-row {
+    cursor: row-resize;
+}
+
+.sv-splitter-row::after {
+    width: 44px;
+    height: 3px;
+}
+
+/* The library writes `flex: 0 0 auto` inline, which beats the 5px basis
+   above and leaves a handle of no height: its grip then straddles the two
+   cards it sits between and is mostly behind them. A height is what `auto`
+   resolves to, so this gives the row handle a band of its own -- the gap
+   stacked cards keep anyway -- with the grip clear in the middle of it.
+   The band stays clear; the grip is what lights up. */
+.sv-splitter-row {
+    height: var(--sv-gap);
+    background: transparent;
+}
+
+/* Both directions light the same way: the grip, on hover and for the whole
+   of a drag. The library marks a drag with `data-separator="active"`, which
+   holds after the pointer leaves the thin handle -- `:hover` alone dropped
+   the column handles' highlight a few pixels into every drag. */
+.sv-splitter:hover,
+.sv-splitter[data-separator="hover"],
+.sv-splitter[data-separator="active"] {
+    background: transparent;
+}
+
+.sv-splitter:hover::after,
+.sv-splitter[data-separator="hover"]::after,
+.sv-splitter[data-separator="active"]::after {
+    background: var(--sv-accent);
+}
+
+.sv-splitter-col {
+    cursor: col-resize;
+}
+
+.sv-splitter-col::after {
+    width: 3px;
+    height: 44px;
+}
+
+/* A column down to its tray, or with nothing in it, has no width to give,
+   so its handle is `disabled` and the rule with the dock's hides it. The
+   `:has()` that used to find those columns from the markup is not needed:
+   the shell knows which shape each column is in and says so. */
+
+/* ── Left rail: filters ───────────────────────────────────────────────────
+   `flex: 0 1 auto` rather than a fixed basis: the column's height is what the
+   panel asks for, up to the window, and past that the panel shrinks and its
+   body scrolls. */
+/* Not a panel: a stack of them. Transparent and taking no pointer events of
+   its own, so the gaps between its cards are scene rather than a column of
+   glass with lines drawn on it. The stack scrolls as a whole -- a card is
+   the unit that folds, and folding is how a long rail is shortened. */
+/* A row, not a column: the cards stack inside `.sv-stack` and the tray of
+   hidden ones sits beside it, on the edge facing the scene. Above the cards
+   the tray pushed the panel down and read as part of it; beside them it is
+   a tab on the panel's side, which is what it is. */
+.sv-rail,
+.sv-inspector {
+    flex: 0 1 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    min-height: 0;
+}
+
+/* What actually holds the cards, and what the splitter sizes. */
+.sv-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sv-gap);
+    min-height: 0;
+    max-height: 100%;
+    padding-bottom: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* The column's width less the tray's, when there is one. It used to carry
+   the column's width itself and the tray made the column wider; the panel
+   owns the width now, so a tray narrows the cards beside it instead. */
+.sv-rail .sv-stack {
+    flex: 1 1 auto;
+    min-width: 0;
+    /* Scrollbar on the outer edge. A scroller puts its bar on the trailing
+       side, which on the left-hand column is the side facing the scene --
+       where the tray and the splitter already are, and where it reads as a
+       line drawn down the middle of the window. `direction` is the only
+       thing that moves it; the children take theirs back so nothing inside
+       is laid out right to left. The right-hand column needs none of this:
+       its trailing side is already the window's edge. */
+    direction: rtl;
+}
+
+.sv-rail .sv-stack > * {
+    direction: ltr;
+}
+
+/* Nothing in it, so it reserves nothing: the row is then the tray alone. */
+.sv-stack:empty {
+    display: none;
+}
+
+/* An overlay that is away leaves its icon here, beside the cards it came
+   from rather than stacked on top of them. With every overlay away the row
+   is the tray and nothing else, so it reserves no panel width at all. */
+.sv-tray {
+    flex: 0 0 auto;
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 3px;
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
+}
+
+/* With cards showing, the column's edge facing the scene is its splitter,
+   and a tray there sat under the handle -- which can be grabbed up to 5px
+   either side of its line, so a press on an icon could start a resize. So
+   the tray hangs on the far side of the handle instead, out in the scene:
+   right of it for the rail, left of it for the inspector. A column down to
+   its tray has no handle, and keeps the tray in its own width as before.
+   The presence is on the library's outer panel element, the class on the
+   one inside it. */
+[data-presence="cards"] > .sv-hud-col {
+    position: relative;
+}
+
+[data-presence="cards"] > .sv-hud-col .sv-tray {
+    position: absolute;
+    top: var(--sv-gap);
+}
+
+[data-presence="cards"] > .sv-hud-left .sv-tray {
+    left: calc(100% + var(--sv-handle-clear));
+}
+
+[data-presence="cards"] > .sv-hud-right .sv-tray {
+    right: calc(100% + var(--sv-handle-clear));
+}
+
+/* A tray hanging out into the gap sits at the gap's top corner, which is the
+   row the plate is centred in. A long log name widened the plate over it and
+   hid the way back to the panel, so while a tray hangs there the plate keeps
+   clear of both corners: the tray's width and the clearance either side.
+   Both sides, because the plate is centred. */
+.sv-hud-row:has([data-presence="cards"] > .sv-hud-col .sv-tray) .sv-topbar {
+    max-width: calc(100% - 2 * (34px + 2 * var(--sv-handle-clear)));
+}
+
+.sv-tray .sv-icon-btn {
+    height: 26px;
+    min-width: 26px;
+    padding: 0 4px;
+    color: var(--sv-accent);
+}
+
+.sv-tray .sv-icon-btn:hover {
+    background: var(--sv-accent-soft);
+    border-color: transparent;
+    color: var(--sv-accent);
+}
+
+/* The one control on a card head that is not about the data in it. */
+.sv-group-hide {
+    flex: 0 0 auto;
+    height: 20px;
+    min-width: 20px;
+    padding: 0 2px;
+}
+
+.sv-group-hide .bi {
+    font-size: 0.7rem;
+}
+
+/* ── Shared panel chrome ─────────────────────────────────────────────── */
+.sv-panel-head {
+    flex: 0 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 0 6px 0 12px;
+    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
+    border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-panel-title .bi {
+    color: var(--sv-accent);
+}
+
+.sv-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: var(--sv-font-xs);
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+}
+
+.sv-section-label {
+    display: block;
+    font-size: var(--sv-font-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sv-text-faint);
+    margin-bottom: 4px;
+}
+
+.sv-field {
+    display: block;
+    margin-bottom: 12px;
+}
+
+.sv-divider {
+    height: 1px;
+    background: var(--sv-border);
+    margin: 14px 0;
+}
+
+/* ── Rail groups ──────────────────────────────────────────────────────────
+   The rail does two jobs: scene appearance, which is set once, and the
+   per-column filters, which are the working surface. In one flat scroll the
+   first pushed the second below the fold on any log with ten numeric columns.
+   Two groups, each with a head that stays put while its body scrolls under
+   it, and the set-once half folds away. */
+/* A card: its own plate, with a head that names it and a body it can fold
+   away. The glass is in hud.css with the rest of the floating surfaces. */
+.sv-group {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.sv-group-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
+    border-bottom: 1px solid var(--sv-border);
+    border-radius: calc(var(--sv-radius) - 1px) calc(var(--sv-radius) - 1px) 0 0;
+}
+
+/* The icon is the card's whole identity once the rail is a strip, so it sits
+   with the title rather than being decoration on the label. */
+/* The icon is the one thing on a head that is allowed colour. It names the
+   card, it is the same glyph the tray shows when the card is away, and it
+   is enough to stop a column of heads reading as a stack of grey bars. */
+.sv-group-icon {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+    color: var(--sv-accent);
+}
+
+.sv-group-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-group-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: var(--sv-font-xs);
+    font-weight: 650;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+}
+
+/* What the card is worth at a glance: the column the scene is coloured by,
+   how much of the filtering is on, how many plots are behind a minimized
+   heading. It stays in the head when the card folds, so folding one away
+   costs the controls and not the answer they were set to. */
+.sv-group-reading {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--sv-font-2xs);
+    color: var(--sv-text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.sv-group-body {
+    min-height: 0;
+    padding: 10px 12px 12px;
+}
+
+/* ── Rail controls ──────────────────────────────────────────── */
+
+.sv-rail .sv-select {
+    width: 100%;
+}
+
+.sv-rail input[type='range'] {
+    width: 100%;
+    accent-color: var(--sv-accent);
+}
+
+.sv-switch-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-size: var(--sv-font-control);
+    cursor: pointer;
+}
+
+/* -- Toggle switch ---------------------------------------------------
+   A Radix `button role=switch`. Only the thumb's position is transitioned:
+   a transitioned colour sticks on the old theme after a flip (see Theme). */
+.sv-switch {
+    flex: 0 0 auto;
+    position: relative;
+    width: 28px;
+    height: 16px;
+    padding: 0;
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border-strong);
+    border-radius: var(--sv-radius-pill);
+    cursor: pointer;
+}
+
+.sv-switch:hover:not(:disabled) {
+    border-color: var(--sv-accent);
+}
+
+.sv-switch[data-state="checked"] {
+    background: var(--sv-accent);
+    border-color: var(--sv-accent);
+}
+
+.sv-switch-thumb {
+    display: block;
+    width: 10px;
+    height: 10px;
+    background: var(--sv-text-dim);
+    border-radius: 50%;
+    transform: translateX(2px);
+    transition: transform var(--sv-ease);
+}
+
+.sv-switch[data-state="checked"] .sv-switch-thumb {
+    background: var(--sv-bg);
+    transform: translateX(14px);
+}
+
+.sv-field-value {
+    display: block;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.sv-rail-note {
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-faint);
+    margin: 0 0 10px;
+}
+
+.sv-filter {
+    margin-bottom: 14px;
+}
+
+/* One slider, two thumbs. The pair used to be two stacked native ranges,
+   because overlaying two of them leaves only the top one grabbable once the
+   thumbs meet. The track takes the press here and decides which thumb it
+   meant, so they can sit on the same value and stay separable --
+   `components/RangeSlider.tsx` has the reasoning. */
+.sv-range {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* The slider root. A flex row, which is what centres the thumbs: Radix
+   positions each one absolutely with a `left` and no `top`, so the top it
+   falls back to is its static position -- the middle of this line. */
+.sv-range-track {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 18px;
+    cursor: pointer;
+    touch-action: none;
+}
+
+.sv-range-rail {
+    position: relative;
+    flex-grow: 1;
+    height: 4px;
+    border-radius: var(--sv-radius-pill);
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+}
+
+/* The span that survives the filter, which is the thing being chosen.
+   Radix writes the two ends of it inline. */
+.sv-range-fill {
+    position: absolute;
+    height: 100%;
+    border-radius: var(--sv-radius-pill);
+    background: var(--sv-accent);
+}
+
+/* The look alone. Where the thumb sits belongs to the wrapper Radix puts
+   around it, which owns `position`, `left` and `transform` -- so none of
+   those can be set here without fighting it. */
+.sv-range-thumb {
+    display: block;
+    width: 13px;
+    height: 13px;
+    margin: 0;
+    border-radius: 50%;
+    background: var(--sv-accent);
+    border: 2px solid var(--sv-surface);
+    box-shadow: 0 0 0 1px var(--sv-border-strong);
+    cursor: grab;
+    transition: box-shadow var(--sv-ease);
+}
+
+.sv-range-thumb:hover,
+.sv-range-thumb:focus-visible {
+    box-shadow: 0 0 0 1px var(--sv-accent);
+}
+
+/* Both thumbs at one value overlap exactly; nothing here needs to tell them
+   apart, because the track is what the pointer talks to. */
+.sv-range-thumb:active {
+    cursor: grabbing;
+}
+
+.sv-range-boxes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sv-range-box {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 2px 4px;
+    background: var(--sv-surface-2);
+    color: inherit;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius-sm);
+    font-size: var(--sv-font-xs);
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    /* The spinners are 20px of chrome on a 1fr box in a 288px rail, and
+       their arrows duplicate what the thumb already does better. */
+    appearance: textfield;
+    transition: border-color var(--sv-ease);
+}
+
+.sv-range-box:hover:not(:disabled) {
+    border-color: var(--sv-accent);
+}
+
+.sv-range-box::-webkit-inner-spin-button,
+.sv-range-box::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+}
+
+.sv-range-dash {
+    flex: 0 0 auto;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-faint);
+}
+
+/* A column whose rows all hold one value: there is nothing to pick within,
+   and a live-looking control that cannot move is worse than a dim one. */
+.sv-range-dead {
+    opacity: 0.5;
+}
+
+.sv-range-dead .sv-range-track {
+    cursor: default;
+}
+
+.sv-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.sv-chip {
+    padding: 2px 8px;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    background: transparent;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius-pill);
+    cursor: pointer;
+    transition: background var(--sv-ease), color var(--sv-ease),
+        border-color var(--sv-ease);
+}
+
+.sv-chip-on {
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-color: var(--sv-accent);
+}
+
+.sv-text-btn {
+    padding: 0 4px;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.sv-text-btn {
+    transition: color var(--sv-ease);
+}
+
+.sv-text-btn:hover {
+    color: var(--sv-accent);
+}
+
+/* The categorical filter buttons had an on/off class and nothing else: no
+   hover, so a chip gave no sign it was a control until it was clicked. */
+.sv-chip:hover:not(.sv-chip-on) {
+    border-color: var(--sv-border-strong);
+    color: var(--sv-text);
+}
+
+/* ── Transport bar ───────────────────────────────────────────────────── */
+.sv-transport {
+    position: relative;
+    flex: 0 0 var(--sv-transport-h);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 14px;
+    height: var(--sv-transport-h);
+    background: var(--sv-surface);
+}
+
+.sv-transport-slider {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+/* The one control in the bar that is pressed repeatedly, and it used to be
+   pixel-identical to the two frame-step buttons beside it. */
+.sv-transport-play {
+    color: var(--sv-accent);
+}
+
+.sv-transport-play .bi {
+    font-size: 1.1rem;
+}
+
+.sv-transport-play:hover:not(:disabled) {
+    background: var(--sv-accent-soft);
+    border-color: transparent;
+    color: var(--sv-accent);
+}
+
+/* Nothing is open, so there is no position to report. */
+.sv-frame-readout-empty {
+    color: var(--sv-text-faint);
+}
+
+.sv-frame-readout {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    font-size: var(--sv-font-sm);
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+}
+
+.sv-frame-readout b {
+    color: var(--sv-text);
+    font-weight: 650;
+}
+
+/* ── Inspector: the recording and the curves, down the right ─────────────
+   The same shape as the rail: not a panel but a stack of them, transparent,
+   so the gaps between its cards are scene. Cards are sized by their content
+   and never shrink into one another -- the video keeps its aspect ratio
+   whatever box it is given, so a shrunk card would not shrink the picture,
+   it would let it spill over the card below. When the sum no longer fits,
+   the column scrolls. */
+.sv-inspector .sv-stack {
+    flex: 1 1 auto;
+    min-width: 0;
+    /* The column runs floor to ceiling here, and the cards divide it. */
+    align-self: stretch;
+}
+
+/* The tray goes on the edge facing the scene, which on this side is the
+   left -- so it comes first in the row whatever order the markup is in. */
+.sv-inspector .sv-tray {
+    order: -1;
+}
+
+/* The cards divide the column's height between them rather than each
+   taking its content's -- a 16:9 still and a stack of plots both read
+   better larger, and the space under them was doing nothing. A note is not
+   a card in this sense and keeps its own height. */
+/* Descendant, not child: with two cards to divide, each one sits inside a
+   panel, and a panel is two elements deep before the card. The `:not()`
+   still carries the specificity the dragged-height rules below used to need
+   to beat. */
+.sv-inspector .sv-group:not(.sv-note) {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.sv-inspector .sv-group:not(.sv-note) > .sv-group-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* The handle between the two, which a column of otherwise-stretched items
+   would leave at its own width -- nothing. */
+.sv-inspector .sv-splitter {
+    align-self: stretch;
+}
+
+/* The group of panels takes what the column has left, and each panel is a
+   column of its own so the card inside can stretch to fill it. The library
+   gives the panel no layout beyond a flex basis. */
+.sv-inspector-split {
+    display: flex;
+    min-height: 0;
+}
+
+.sv-inspector-pane {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* A read that failed, on a plate of its own. */
+.sv-note {
+    padding: 8px 10px;
+}
+
+/* The inspector's cards hold things that size themselves against their box
+   -- a 16:9 picture, a stack of plots -- so their bodies are the column
+   those things expect rather than a plain block. `.sv-curve` grows from a
+   basis it fits in and the card grows with it; without this the plots have
+   no flex parent and resolve to their floor. */
+.sv-inspector .sv-group-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+/* A card's own pickers, above what they pick. */
+.sv-group-controls {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sv-group-controls .sv-select {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* Combined logs that share frame ids each get their own element, so the
+   section holds a grid rather than a single picture. It wraps to one column in
+   a narrow dock and pairs them up once it is dragged wide enough for two to
+   still be worth looking at. */
+.sv-video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    /* The rows share whatever height the card has, down to a floor below
+       which a frame is not worth showing; past that the body scrolls. The
+       pictures are `object-fit: contain`, so a row taller or shorter than
+       16:9 letterboxes rather than distorting. */
+    grid-auto-rows: minmax(110px, 1fr);
+    gap: 6px;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.sv-video-cell {
+    position: relative;
+    min-width: 0;
+    /* A grid item stretches to its row, and the picture inside is sized
+       against that -- without this the row's height has nothing to push
+       into and the cell falls back to the video's own. */
+    min-height: 0;
+}
+
+.sv-video {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: contain;
+    background: #000;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    display: block;
+}
+
+/* Which recording is which only matters once there are two of them. */
+.sv-video-label {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    max-width: calc(100% - 8px);
+    padding: 1px 6px;
+    border-radius: var(--sv-radius);
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+.sv-video-grid:not(:has(> .sv-video-cell ~ .sv-video-cell)) .sv-video-label {
+    display: none;
+}
+
+/* One curve plot. Several stack in the section, each taking an equal share of
+   whatever the camera above left over -- so a log with one plot gets a tall
+   one rather than a short one with empty space under it. */
+.sv-curve {
+    display: flex;
+    flex-direction: column;
+    /* `flex: 1 1 0` divides the section evenly and then lets each plot's own
+       min-height push past its share, which draws the second plot's heading
+       over the first. Growing from a basis the plot actually fits in keeps
+       them stacked, and the section scrolls once they no longer fit. */
+    flex: 1 1 auto;
+    min-height: 170px;
+}
+
+.sv-curve + .sv-curve {
+    margin-top: 8px;
+}
+
+.sv-curve-graph {
+    width: 100%;
+    flex: 1 1 auto;
+    /* Enough for the axis and a readable trace; past that the plot takes
+       whatever the dock has spare. */
+    min-height: 150px;
+}
+
+.sv-curve-graph .js-plotly-plot,
+.sv-curve-graph .plot-container {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+
+/* ── Bottom dock: the six analysis charts ────────────────────────────── */
+
+/* A handle with nothing to resize would be a lie: the dock folded, a column
+   down to its tray or empty. Each is `disabled` then, which the library
+   writes as `data-separator="disabled"` -- not `data-disabled`, which this
+   rule first looked for and which nothing ever sets. */
+.sv-splitter[data-separator="disabled"] {
+    visibility: hidden;
+}
+
+/* The panel the dock lives in. A column, so the dock can grow into it --
+   the same arrangement as the inspector's panes, and for the same reason.
+   Named apart from `.sv-dock-pane` below, which is a chart slot inside the
+   dock and is hidden unless it is one of the two in use. */
+.sv-dock-region {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* The dock fills the panel that sizes it, by growing rather than by
+   `height: 100%`. A percentage resolves against the panel's inner element,
+   which has no height of its own to give -- measured, it came out at 0px and
+   the dock with it, while every check that only counted chart marks went on
+   passing. Its own height, the collapsed override that needed `!important`
+   to beat a dragged token, and the transition that would have fought a drag
+   have all gone to the panel. */
+.sv-dock {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--sv-surface);
+}
+
+.sv-dock.sv-collapsed .sv-dock-grid {
+    display: none;
+}
+
+.sv-dock-grid {
+    transition: opacity var(--sv-ease);
+}
+
+/* Header: how the dock is arranged, and what to do with a selection. What
+   each pane is a chart *of* is picked on the pane, where the chart is. */
+.sv-dock-head {
+    position: relative;
+    flex: 0 0 var(--sv-dock-tabs-h);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 6px;
+    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
+    border-bottom: 1px solid var(--sv-border);
+    /* The same inset corners as a card head, so the tint does not poke past
+       the dock's rounded glass. */
+    border-radius: calc(var(--sv-radius) - 1px) calc(var(--sv-radius) - 1px) 0 0;
+}
+
+/* Folded away, the head is the whole dock. */
+.sv-dock.sv-collapsed .sv-dock-head {
+    border-bottom-color: transparent;
+    border-radius: calc(var(--sv-radius) - 1px);
+}
+
+/* One pane or two, as a shape rather than a word. The same segmented idiom
+   as the top bar's view cluster, because it is the same kind of question. */
+.sv-dock-layout {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 0 0 auto;
+    padding: 2px;
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+}
+
+.sv-dock-layout .sv-icon-btn {
+    height: 22px;
+    min-width: 26px;
+    padding: 0 4px;
+}
+
+.sv-dock-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: auto;
+}
+
+/* Two slots, filled by the gate in app.py. Every pane lives here permanently --
+   ids are unique, so a pane cannot move -- and `order` puts the two chosen ones
+   in the order they were picked regardless of their position in the markup. */
+.sv-dock-grid {
+    flex: 1 1 auto;
+    display: flex;
+    min-height: 0;
+}
+
+.sv-dock-pane {
+    display: none;
+    flex: 1 1 50%;
+    min-width: 0;
+}
+
+.sv-dock-pane.sv-slot-a,
+.sv-dock-pane.sv-slot-b {
+    display: block;
+}
+
+.sv-dock-pane.sv-slot-a {
+    order: 1;
+}
+
+/* An empty slot leaves its partner as the only flex item, which then takes the
+   whole dock -- that is how a single view goes full width. */
+.sv-dock-pane.sv-slot-b {
+    order: 2;
+}
+
+/* The divider belongs to the pair, not to slot B: hidden siblings still count
+   as children, so `:only-child` cannot tell a lone pane from a paired one. The
+   gate marks the pairing instead. */
+.sv-dock-pane.sv-slot-paired {
+    border-left: 1px solid var(--sv-border);
+}
+
+/* Each pane is a control strip over a graph that takes the rest. */
+.sv-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding: 6px 10px 8px;
+}
+
+.sv-pane-controls {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+/* One labelled select. The label sits above rather than beside it, so a strip
+   of five pickers stays on one row -- a second row costs a fifth of the plot's
+   height, which is the whole reason the strip is this tight. */
+.sv-pane-field {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.sv-pane-field .sv-section-label {
+    margin-bottom: 0;
+}
+
+.sv-dock .sv-select {
+    height: var(--sv-control-h-sm);
+    max-width: 180px;
+}
+
+/* The strip was tuned for a 780px pane. In the centre column a pane is about
+   450px, where five pickers at 180px wrap to a second row -- and a second row
+   costs a fifth of the plot's height, which is the whole reason the strip is
+   this tight. So the fields share the strip's width instead of each claiming
+   a fixed slice of it. */
+/* The view picker is the pane's title: wider than the fields beside it, and
+   first, so the strip reads as "a histogram of X, coloured by Y". */
+.sv-pane-controls .sv-slot-picker {
+    flex: 0 1 auto;
+    min-width: 76px;
+    max-width: 164px;
+}
+
+.sv-pane-controls .sv-slot-picker .sv-section-label {
+    color: var(--sv-text-dim);
+}
+
+.sv-pane-controls .sv-pane-field {
+    flex: 1 1 0;
+    /* Low enough that the widest strip -- a scatter's frames, x, y, colour
+       and its limits button -- still fits one row in the narrowest pane the
+       centre column gives. They grow to fill whatever is actually there. */
+    min-width: 56px;
+    max-width: 150px;
+}
+
+.sv-pane-controls .sv-pane-field .sv-select {
+    width: 100%;
+    max-width: none;
+}
+
+/* Except the limits row, whose four boxes are read against the plot they
+   bound and are sized by what a coordinate looks like. */
+.sv-pane-limits .sv-pane-field {
+    flex: 0 0 auto;
+    max-width: none;
+}
+
+.sv-dock .sv-switch-row {
+    margin-bottom: 0;
+    font-size: var(--sv-font-xs);
+    align-self: end;
+}
+
+/* The plot takes everything the control strip left. Plotly sizes itself to
+   this box, so it needs a real height rather than one that depends on the
+   figure it is about to draw. */
+.sv-pane-graph {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+}
+
+.sv-pane-graph.js-plotly-plot,
+.sv-pane-graph .plot-container {
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+}
+
+
+/* ── The empty window ─────────────────────────────────────────────────────
+   What is left once the panels below have taken themselves away: a first
+   run, or a case that has been moved since it was last opened. It has the
+   window to itself, so it is the one place that can say what a case is --
+   and it offers the recent ones, which is the short way back for everybody
+   who is not on their first run.
+
+   Fixed to the window rather than placed in the centre column: the columns
+   either side are empty here, and centring in the gap they leave would put
+   the plate off to one side of a window that has nothing else in it. */
+.sv-welcome {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    /* Clear of the top bar, which is the one piece of chrome still on
+       screen, so the plate is centred in what is left rather than under it. */
+    padding: calc(var(--sv-topbar-h) + 24px) 16px 24px;
+    pointer-events: none;
+    z-index: var(--sv-z-panel);
+}
+
+.sv-welcome-plate {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: min(440px, 100%);
+    padding: 20px 22px;
+}
+
+.sv-welcome-mark {
+    font-size: 1.1rem;
+    color: var(--sv-accent);
+}
+
+.sv-welcome-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 650;
+    letter-spacing: 0.01em;
+}
+
+.sv-welcome-sub {
+    margin: 0;
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+    line-height: 1.5;
+}
+
+.sv-welcome-sub code {
+    padding: 1px 4px;
+    background: var(--sv-surface-3);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-text);
+    font-size: 0.95em;
+}
+
+/* The one thing to do here, so it is the one filled control in the window. */
+.sv-welcome-open {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    align-self: stretch;
+    margin-top: 2px;
+    padding: 8px 12px;
+    background: var(--sv-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--sv-accent) 45%, transparent);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-text);
+    font-size: var(--sv-font-sm);
+    font-weight: var(--sv-weight-med);
+    transition: background var(--sv-ease), border-color var(--sv-ease);
+}
+
+.sv-welcome-open:hover {
+    background: color-mix(in srgb, var(--sv-accent) 26%, transparent);
+    border-color: var(--sv-accent);
+}
+
+.sv-welcome-open .bi {
+    color: var(--sv-accent);
+}
+
+/* The accelerator, said once here and once in the File menu. */
+.sv-welcome-key {
+    margin-left: auto;
+    padding: 1px 6px;
+    border: 1px solid var(--sv-border-strong);
+    border-radius: var(--sv-radius-sm);
+    color: var(--sv-text-dim);
+    font-family: inherit;
+    font-size: var(--sv-font-2xs);
+}
+
+.sv-welcome-recent {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    gap: 2px;
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid var(--sv-border);
+}
+
+.sv-welcome-recent .sv-section-label {
+    margin-bottom: 4px;
+}
+
+/* The whole row is the target. Two cases are usually named by their folder
+   and told apart by the path above it, so both are in the row and only the
+   name is given the weight. */
+.sv-welcome-case {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+    padding: 6px 8px;
+    background: transparent;
+    border: 0;
+    border-radius: var(--sv-radius-sm);
+    color: inherit;
+    text-align: left;
+}
+
+.sv-welcome-case:hover {
+    background: var(--sv-surface-3);
+}
+
+.sv-welcome-case .bi {
+    flex: 0 0 auto;
+    color: var(--sv-text-faint);
+}
+
+.sv-welcome-case:hover .bi {
+    color: var(--sv-accent);
+}
+
+.sv-welcome-case-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.3;
+}
+
+.sv-welcome-case-name {
+    font-size: var(--sv-font-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Dimmed and ellipsised from the left, so the end of a long path -- which is
+   the part that differs -- is what survives. */
+.sv-welcome-case-path {
+    color: var(--sv-text-faint);
+    font-size: var(--sv-font-2xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    direction: rtl;
+    text-align: left;
+}
+
+.sv-welcome-busy {
+    margin: 0;
+    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+}
+
+.sv-welcome-busy b {
+    color: var(--sv-text);
+    font-weight: var(--sv-weight-med);
+}
+
+/* ── Nothing open ─────────────────────────────────────────────────────────
+   Every readout here is of a frame, and without one they each report their
+   own emptiness: a colorbar with no range, a legend with no groups, a stats
+   line counting zero points, camera presets for a scene with nothing in it,
+   and a transport reading "-- / --". Together they look like an app that
+   has failed rather than one that is waiting, so the window holds only the
+   plate that says what to do about it. */
+.sv-no-case #gl-colorbar,
+.sv-no-case #gl-legend,
+.sv-no-case #gl-stats,
+.sv-no-case #gl-camera-presets {
+    display: none;
+}
+
+/* ── A case on its way ───────────────────────────────────────────────────
+   Open, but not yet shown: the inspector has not said whether it has a
+   column, and drawing the case before it does means drawing it twice. Only
+   the "Opening ..." plate shows meanwhile. Visibility rather than display, so
+   the panels still lay out and the scene still sizes itself underneath. */
+.sv-settling > * {
+    visibility: hidden;
+}
+
+.sv-settling .sv-welcome {
+    visibility: visible;
+}
+
+/* ── Loading overlays ────────────────────────────────────────────────── */
+@keyframes sv-loading-fade-in {
+    to {
+        opacity: 1;
+    }
+}
+
+/* A load in progress, centred in the gap over the scene. It fades in after a
+   short wait, so a log that opens at once never flashes a plate. The scene
+   stays orbitable underneath -- nothing here takes the pointer. */
+.sv-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: var(--sv-z-panel);
+    opacity: 0;
+    animation: sv-loading-fade-in 180ms ease-out 250ms forwards;
+}
+
+.sv-loading-plate {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px 14px 14px;
+    overflow: hidden;
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
+    background: color-mix(in srgb, var(--sv-surface) 90%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+    color: var(--sv-text);
+    font-size: var(--sv-font-control);
+}
+
+/* A ring with one bright arc, turning. */
+.sv-loading-ring {
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 2.5px solid color-mix(in srgb, var(--sv-accent) 22%, transparent);
+    border-top-color: var(--sv-accent);
+    animation: sv-spin 800ms linear infinite;
+}
+
+.sv-loading-text {
+    white-space: nowrap;
+}
+
+/* An indeterminate sweep along the plate's foot. Moved with `transform`, as
+   the ring is turned: those run on the compositor, so both keep going while
+   the main thread is busy indexing -- which is exactly when they are shown. */
+.sv-loading-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    overflow: hidden;
+}
+
+.sv-loading-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, var(--sv-accent), transparent);
+    animation: sv-loading-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes sv-loading-sweep {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(250%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* The boundary's own screen. Centred on the window rather than docked into
+   the shell, because when this shows there is no shell. */
+.sv-crash {
+    position: fixed;
+    inset: 0;
+    z-index: var(--sv-z-tooltip);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 40px;
+    background: var(--sv-bg);
+    color: var(--sv-text);
+    text-align: center;
+}
+
+.sv-crash h1 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: var(--sv-weight-med);
+}
+
+.sv-crash p {
+    margin: 0;
+    max-width: 52ch;
+    color: var(--sv-danger);
+    font-size: var(--sv-font-sm);
+}
+
+.sv-crash-hint {
+    color: var(--sv-text-dim) !important;
+}
+
+/* A note the user needs rather than one they asked for: a read that failed
+   where the thing that failed lives, instead of a panel that simply never
+   appears. */
+.sv-rail-note-bad {
+    color: var(--sv-danger);
+}
+
+/* The one spinner in the app, for the only wait long enough to need one. */
+.sv-spin {
+    display: inline-block;
+    animation: sv-spin 900ms linear infinite;
+}
+
+@keyframes sv-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Visible to a screen reader, to nothing else. For the few places where a
+   glyph or an abbreviation carries meaning the markup has to spell out. */
+.sv-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ── Interaction states ──────────────────────────────────────────────────
+   Nothing here sets `outline: none`; the point is the opposite. Without a
+   ring of our own, every unstyled control fell back to Chromium's default,
+   which is an amber double ring that belongs to no theme in this app. */
+
+:focus-visible {
+    outline: 2px solid var(--sv-accent);
+    outline-offset: 2px;
+    border-radius: var(--sv-radius-sm);
+}
+
+/* The scene takes the whole viewport, so a ring drawn flush against the
+   window edge would be clipped. Tuck the panel-edge controls' rings inward. */
+.sv-splitter:focus-visible {
+    outline-offset: -2px;
+}
+
+/* A list item says it has focus with the highlight; a ring on top of it
+   would be a second answer. */
+.sv-menu-item:focus-visible {
+    outline: none;
+}
+
+/* A disabled control used to look and feel exactly like a live one: the only
+   rule in the app was `cursor: default` on one crumb button. */
+button:disabled,
+input:disabled,
+select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.sv-crumb-btn:disabled {
+    opacity: 1;
+    cursor: default;
+}
+
+/* A press should be visible before its result is. */
+.sv-icon-btn:active:not(:disabled),
+.sv-chip:active,
+.sv-text-btn:active,
+.sv-menu-item:active {
+    transform: translateY(1px);
+}
+
+::selection {
+    background: var(--sv-accent-soft);
+    color: var(--sv-text);
+}
+
+/* ── Controls ────────────────────────────────────────────────────────────
+   The selects and ranges were styled for colour and left alone for state. */
+
+.sv-select:hover:not(:disabled) {
+    border-color: var(--sv-accent);
+}
+
+/* A field being typed into, which the focus ring says from outside the
+   control; this says it on the control itself. */
+.sv-select[data-state="open"],
+input[type="number"]:focus,
+input[type="text"]:focus {
+    border-color: var(--sv-accent);
+}
+
+input[type="range"] {
+    accent-color: var(--sv-accent);
+}
+
+.sv-transport-slider input[type="range"] {
+    display: block;
+    width: 100%;
+    height: 18px;
+    cursor: pointer;
+}
+
+.sv-transport-slider input[type="range"]:disabled {
+    cursor: not-allowed;
+}
+
+/* ── Theme ───────────────────────────────────────────────────────────────
+   Deliberately not transitioned. A theme flip changes only custom properties
+   on <html>, and Chromium does not re-run style for a transition driven by
+   nothing else -- so a transitioned `background-color` or `border-color`
+   starts, never advances, and sticks on the *previous* theme's value for as
+   long as the app is open. Measured: with a 180ms border-color transition on
+   the rail, light theme kept the dark #242a33 border indefinitely; with no
+   transition it is correct on the first frame.
+
+   A cross-fade here would be nice. It is not worth a theme that only half
+   applies. */
+
+/* ── Scrollbars ──────────────────────────────────────────────────────── */
+
+/* Stop a wheel that reaches the end of a panel from scrolling whatever is
+   behind it. `#gl-legend` is the one that matters: it is glass floating over
+   the scene with `pointer-events: auto`, so the chain ran straight into the
+   canvas. */
+.sv-stack,
+.sv-group-body,
+.sv-video-grid,
+.sv-menu {
+    overscroll-behavior: contain;
+}
+
+/* The gutter is one width always. What changes is how much of it the thumb
+   paints: a transparent border clipped away by `background-clip` leaves a
+   hairline at rest and something worth aiming at once the pointer is in
+   the panel. Growing the scrollbar itself would reflow the content under
+   the pointer every time it crossed the edge. */
+::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--sv-border-strong);
+    background-clip: padding-box;
+    border: 4px solid transparent;
+    border-radius: var(--sv-radius-pill);
+}
+
+/* Two states, and the second one is the pointer on the bar itself rather
+   than anywhere in the panel -- a panel-wide trigger means every pass over
+   a card lights up a control nobody was reaching for. The target is not
+   the three visible pixels: the thumb's box is the whole gutter and the
+   border is transparent padding inside it, so anywhere in those eleven
+   pixels counts. `:active` is here so a drag that outruns the bar keeps
+   it, not to add a third look. */
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+    background-color: var(--sv-accent);
+    border-width: 2px;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Deliberately no `scrollbar-width` or `scrollbar-color`. Chromium honours
+   the standard properties in preference to the `::-webkit-scrollbar`
+   pseudo-elements and ignores them entirely once either is set, which is
+   what left every rule above doing nothing and the gutter at the platform
+   default. The standard properties cannot express a thumb that thickens
+   without the gutter moving -- `thin` and `auto` are the only widths -- so
+   the pseudo-elements it is. This is an Electron app; there is one engine
+   to satisfy. */
+
+/* No drag bookkeeping here any more. `.sv-resizing` was the class the hand-
+   written splitter put on the body for the length of a drag; the library
+   prevents the selection a press would start, sets its own drag cursor, and
+   nothing animates a width it could lag behind. */
+
+/* ── Top-bar menus ───────────────────────────────────────────────────── */
+
+/* Shared by the export menu and the column config: a button with a popover
+   hung from it. Both also carry an identifying class of their own, because a
+   selector that cannot tell them apart found the wrong one. */
+.sv-topbar-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sv-export-note {
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+    max-width: 30vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* The hint beside each entry says what the export covers -- "the filtered
+   rows", "this frame" -- because that is the question someone asks before
+   clicking, and answering it in the menu is cheaper than a dialog. */
+.sv-menu-item .sv-menu-marks {
+    font-size: var(--sv-font-xs);
+}
+
+/* ── Combining logs ──────────────────────────────────────────────────── */
+
+/* A combine row is a checkbox, a name that opens the log alone, and what the
+   log carries. Three targets in a menu row, so the name takes the space and
+   the rest sit at the ends. */
+.sv-menu-combine {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: default;
+}
+
+/* Still a native checkbox (smoke.ts reads `.checked`), drawn to match the
+   theme rather than the platform. */
+.sv-menu-combine input[type="checkbox"] {
+    flex: 0 0 auto;
+    appearance: none;
+    display: grid;
+    place-content: center;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    background: var(--sv-surface);
+    border: 1px solid var(--sv-border-strong);
+    border-radius: var(--sv-radius-sm);
+    cursor: pointer;
+}
+
+.sv-menu-combine input[type="checkbox"]:hover {
+    border-color: var(--sv-accent);
+}
+
+.sv-menu-combine input[type="checkbox"]:checked {
+    background: var(--sv-accent);
+    border-color: var(--sv-accent);
+}
+
+.sv-menu-combine input[type="checkbox"]:checked::after {
+    content: "";
+    width: 4px;
+    height: 8px;
+    border: solid var(--sv-bg);
+    border-width: 0 2px 2px 0;
+    transform: translateY(-1px) rotate(45deg);
+}
+
+.sv-menu-open {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+}
+
+.sv-menu-open:hover .sv-menu-label {
+    text-decoration: underline;
+}
+
+/* Which log leads. Everything with room for one answer -- the cloud, the
+   pose, an export -- reads the primary, so it is worth saying which it is. */
+.sv-menu-primary {
+    flex: 0 0 auto;
+    padding: 0 5px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: var(--sv-radius-pill);
+}
+
+/* The breadcrumb names the primary and counts the rest: it is a path, and
+   three stems in it stop reading as one. */
+.sv-crumb-more {
+    flex: 0 0 auto;
+    padding: 0 5px;
+    font-size: var(--sv-font-xs);
+    font-weight: 650;
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: var(--sv-radius-pill);
+}
+
+/* The curve section's sensor picker, parked at the end of its heading. */
+/* Both the card heads' pickers and the bodies' are small and quiet. */
+.sv-group-controls .sv-select {
+    height: var(--sv-control-h-sm);
+    max-width: 160px;
+}
+
+/* What to do with a lasso selection, in the dock's header beside its own
+   controls. Present only while something is selected. */
+.sv-dock-selection {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    padding: 0 4px;
+    white-space: nowrap;
+}
+
+/* Then the collapse toggle is no longer the thing pushed to the end. */
+.sv-dock-selection + .sv-dock-actions {
+    margin-left: 0;
+}
+
+/* The rail's "show all again", which is a sentence rather than a chip. */
+.sv-rail-action {
+    display: block;
+    margin-top: 8px;
+    padding-left: 0;
+}
+
+/* A control that is inert because another one supersedes it -- the decay
+   slider while overlay is on. Dimmed rather than removed: it says the
+   setting still exists and will come back. */
+.sv-field-off {
+    opacity: 0.45;
+}
+
+/* The column config popover. Wider than a menu of names because every row is
+   a label and a select, and two columns of those read faster than one long
+   list. */
+.sv-config {
+    width: 340px;
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 10px 12px 12px;
+}
+
+.sv-config-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 10px;
+    margin-bottom: 4px;
+}
+
+.sv-config .sv-select {
+    width: 100%;
+    max-width: none;
+}
+
+.sv-config .sv-rail-note {
+    margin-bottom: 6px;
+}
+
+/* The one line that says the file on disk changed. */
+.sv-config-note {
+    margin-top: 10px;
+    color: var(--sv-accent);
+}
+
+/* Fixed axis limits: a second control row, shown only while it is wanted.
+   Four narrow number boxes rather than a popover, because they are read
+   against the plot they bound. */
+.sv-pane-limits {
+    margin-top: -4px;
+}
+
+.sv-pane-limits input[type='number'] {
+    width: 62px;
+    height: var(--sv-control-h-sm);
+    padding: 2px 6px;
+    font-size: var(--sv-font-control);
+    background: var(--sv-surface-2);
+    color: inherit;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+}
+
+/* The toggle reads as pressed while the row is open, since the row is the
+   only other thing that says so. */
+.sv-limits-btn {
+    margin-left: auto;
+}
+
+.sv-limits-on {
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+}
+
+/* ── Select ──────────────────────────────────────────────────────────────
+   The trigger looks like the field it replaced; its list is a `.sv-menu`,
+   so it shares the menus' surface, font and highlight. */
+.sv-select {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    height: var(--sv-control-h);
+    padding: 0 6px 0 8px;
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    color: var(--sv-text);
+    font: inherit;
+    font-size: var(--sv-font-control);
+    line-height: 1;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sv-select-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    /* Its own line height, not the trigger's 1: with `overflow: hidden` for
+       the ellipsis, a line box exactly one em tall cut the descenders off --
+       the tail of the g in "RangeRate". The trigger's fixed height and its
+       centring keep the control the same size. */
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sv-select-caret {
+    flex: 0 0 auto;
+    color: var(--sv-text-dim);
+    font-size: 0.65rem;
+}
+
+.sv-select-menu {
+    min-width: var(--radix-select-trigger-width);
+    max-width: min(360px, calc(100vw - 16px));
+    max-height: var(--radix-select-content-available-height, 60vh);
+    overflow: hidden;
+}
+
+.sv-select-item {
+    gap: 10px;
+}
+
+.sv-select-item > span:first-child {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-select-item[data-state="checked"] {
+    color: var(--sv-accent);
+    font-weight: var(--sv-weight-med);
+}
+
+.sv-menu-check {
+    flex: 0 0 auto;
+    display: inline-flex;
+    color: var(--sv-accent);
+}
+
+.sv-config {
+    max-height: min(70vh, var(--radix-popover-content-available-height, 70vh));
+}
+
+/* Popups arrive rather than appear. Opacity and a short slide only. */
+@keyframes sv-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(-3px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes sv-pop-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.sv-menu[data-state="open"] {
+    animation: sv-pop-in 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sv-menu[data-side="top"][data-state="open"] {
+    animation-name: sv-pop-in-up;
+}
+
+/* The app's mark, at the head of the top bar. */
+.sv-brand-logo {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+}

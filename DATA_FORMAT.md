@@ -142,8 +142,8 @@ block that turns the panel on. That block has to carry something — an **empty*
 
 ## File Naming and Association
 
-Files are associated by **basename**. There are no subfolders and no per-file
-entries in the manifest.
+Files are associated by **basename** within the folder a table sits in. There
+are no per-file entries in the manifest.
 
 ```
 stem         = basename(<table file>) with ".parquet" removed
@@ -157,10 +157,11 @@ pose file    = <stem><reference.suffix>                exactly one per log
 
 Rules a converter has to respect:
 
-- **The table must sit at the top level of the case folder.** Sidecars resolve
-  against the case directory, not against the table's own directory. The file
-  picker will list a table found in a subfolder, but that log's sidecars will
-  not be found.
+- **Tables may sit anywhere under the case folder.** `info.json` stays at the
+  top; every table below it, in any subfolder, is listed as a log. A table in a
+  subfolder keeps that folder in its stem (`run_1/radar`), so runs that reuse
+  the same file names stay apart, and its sidecars must sit beside it in that
+  same subfolder. Hidden folders (names starting with `.`) are skipped.
 - **`<stem>.<id>` uses a dot separator.** `drive_01_rear.mp4` is not a second
   stream of `drive_01`; it is a stream of a log called `drive_01_rear`. A file
   whose name continues past the stem with anything other than `.` is skipped as
@@ -722,7 +723,7 @@ nothing on. Give a block you mean to enable at least its `suffix`.
 | Key | Type | Notes |
 |---|---|---|
 | `description` | string | Label in pickers, filters, axis titles, and hover. Falls back to the column name. |
-| `type` | `"numerical"` \| `"categorical"` | Numerical gets a range slider and can drive a continuous color scale; categorical gets a multi-select and can split the statistical views. |
+| `type` | `"numerical"` \| `"categorical"` | Numerical gets a range slider and can drive a continuous color scale; categorical gets a multi-select and can split the statistical views. A categorical column stored as numbers (`0`/`1` flags, small enums) still gets the multi-select, one chip per distinct value, unless it has more than 64 distinct values, when it keeps the slider. |
 | `decimal` | int | Decimal places in hover text. |
 | `format` | string | A Python format spec (e.g. `"{:.3e}"`) used for hover instead of `decimal`. |
 
@@ -963,8 +964,8 @@ pattern expects.
 Run through this before opening the case; each item is a failure mode that
 surfaces as silence rather than an error.
 
-- [ ] `info.json` sits in the case folder, and the table sits **beside it**, not
-      in a subfolder.
+- [ ] `info.json` sits at the top of the case folder; tables sit beside it or in
+      subfolders under it, each with its sidecars in the same folder.
 - [ ] Every sidecar filename starts with the table's exact stem, and any extra
       id is separated with a `.`.
 - [ ] `table.slider` names a column that exists and is integer-valued.
@@ -1033,7 +1034,7 @@ error. Find the symptom, and the cause is almost always one of these.
 
 | Symptom | Usually means |
 |---|---|
-| The log is not offered in the file picker | The table sits in a subfolder instead of beside `info.json`, or its name ends in the `reference` suffix — those are filtered out on purpose. |
+| The log is not offered in the file picker | The table sits outside the folder holding `info.json` or in a hidden (`.`-prefixed) folder, or its name ends in the `reference` suffix — those are filtered out on purpose. |
 | `Unsupported file type` | Not Parquet. It is the only table format the loader reads. |
 | The log opens but the 3D view is empty | `table.slider` names a column that is not in the file, or the `x_3d`/`y_3d`/`z_3d` columns are missing from this log. |
 

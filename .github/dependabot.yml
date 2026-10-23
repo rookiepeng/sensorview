@@ -2,7 +2,7 @@ version: 2
 
 updates:
   # Keeps the action majors in .github/workflows current. This is the entry that
-  # earns its keep today: it is what will tell you when checkout, setup-python,
+  # earns its keep today: it is what will tell you when checkout, setup-node,
   # upload-artifact or codeql-action publish a new major.
   - package-ecosystem: github-actions
     directory: "/"
@@ -11,10 +11,10 @@ updates:
     commit-message:
       prefix: "ci"
 
-  # requirements.txt currently pins nothing, so there is no version for dependabot
-  # to raise and this entry stays quiet. It starts producing updates as soon as
-  # the requirements are pinned, and security alerts reach it either way.
-  - package-ecosystem: pip
+  # The app's own dependencies. Electron and electron-builder move fast and
+  # three.js is pinned deliberately -- a bump there is a visual change and
+  # wants looking at, not merging on green.
+  - package-ecosystem: npm
     directory: "/"
     schedule:
       interval: weekly

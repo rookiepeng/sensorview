@@ -15,31 +15,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  pytest:
-    name: pytest
+  vitest:
+    name: vitest
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v7
 
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v7
+    - name: Set up Node
+      uses: actions/setup-node@v6
       with:
-        python-version: "3.14"
-        cache: pip
-        cache-dependency-path: |
-          requirements.txt
-          requirements-dev.txt
+        node-version: "24"
+        cache: npm
 
-    # The full runtime set is needed, not just pytest: tests/test_utils.py and
-    # tests/test_video_frame_mapping.py import utils and frame_sources, which
-    # reach settings and therefore dash and diskcache. There is no lighter
-    # install under which those two modules import at all.
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt -r requirements-dev.txt
+      run: npm ci
 
-    # Configuration lives in pytest.ini, which confines discovery to tests/.
-    - name: Run pytest
-      run: pytest
+    # Types first: a type error is a faster and more precise failure than
+    # whatever the tests would report downstream of it.
+    - name: Typecheck
+      run: npm run typecheck
+
+    - name: Run vitest
+      run: npm test

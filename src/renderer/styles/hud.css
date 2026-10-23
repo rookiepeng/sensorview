@@ -1,0 +1,364 @@
+/* SensorView -- WebGL renderer and HUD layout
+ *
+ * The scene as the page's background rather than a pane among panes: a fixed
+ * canvas spanning the viewport at the bottom of the stacking order, with every
+ * panel floating over it as glass.
+ *
+ * Imported after `app.css`, which is what lets it override the panel rules
+ * there without `!important`. Under Dash this was arranged by filename,
+ * because assets were served alphabetically; an import order is better in
+ * every way and is the one thing a bundler makes free.
+ *
+ * There is no longer a second renderer to gate this on: the scene is how the
+ * canvas looks, so these rules are unconditional.
+ *
+ * Stacking, bottom to top. The numbers are `--sv-z-*` in app.css, so this
+ * list and the rules that use it cannot drift:
+ *     0  #gl-stage       the scene
+ *     5  .sv-splitter
+ *     6  HUD furniture, collapsed panel heads
+ *    10  floating glass panels: rail, inspector, transport, dock
+ *    20  .sv-topbar
+ *    40  .sv-menu        hangs off a control in the top bar
+ *    50  #gl-tooltip     tracks the pointer, so it is never the thing covered
+ */
+
+/* ── Scene colours ───────────────────────────────────────────────────────── */
+
+/* The floor and the axis stubs, after movens-link's 3D view. These are read
+   back by `sv_scene.esm.js` through getComputedStyle rather than duplicated in
+   JavaScript, so the scene and the chrome cannot drift -- and a theme change
+   reaches the floor on the same repaint as everything else.
+
+   The ground is a shade off the page background rather than a contrasting
+   slab: the plane is meant to read as the surface the cloud stands on, and it
+   fades into the background at its rim, so a strong colour would only draw a
+   hard edge where the fade is supposed to hide one. */
+[data-bs-theme="dark"] {
+    /* Dim. The floor is the surface the cloud stands on, not a feature:
+       against a near-black page the old #232f3d read as a lit slab and the
+       returns had to compete with it. The grid comes down with it, or a
+       dimmer floor just means the lines sit on top of nothing. */
+    --sv-view-ground: #111f24;
+    --sv-view-grid: #27505a;
+    --sv-ax-x: #ff5f5f;
+    --sv-ax-y: #4fd06a;
+    --sv-ax-z: #4e9eff;
+    --sv-glass-border: color-mix(in srgb, var(--sv-border) 70%, transparent);
+}
+
+[data-bs-theme="light"] {
+    --sv-view-ground: #d4e1e3;
+    --sv-view-grid: #7fa2a8;
+    --sv-ax-x: #d93a3a;
+    --sv-ax-y: #1f9c42;
+    --sv-ax-z: #1266cc;
+    --sv-glass-border: color-mix(in srgb, var(--sv-border) 70%, transparent);
+}
+
+/* ── The scene layer ─────────────────────────────────────────────────────── */
+
+#gl-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+}
+
+#gl-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* ── HUD mode ────────────────────────────────────────────────────────────── */
+
+/* Every structural wrapper stops catching the pointer, so an orbit drag
+   reaches the canvas through the gaps between panels; the panels take it back
+   below. Enumerated in one rule on purpose: a wrapper left opaque to the
+   pointer swallows drags over a region that looks empty, which is the hardest
+   fault here to spot.
+   `pointer-events` is inherited, so these are documentation as much as
+   rules: everything under `.sv-view` is already `none` until something says
+   `auto`. That includes the resizable panels, whose outer element carries no
+   class of ours and so could not be listed here anyway. The fault to watch
+   for is therefore not a wrapper missing from this list but one handed
+   `auto` -- and `smoke.ts` checks for exactly that, by asking what is under
+   the middle of the gap and expecting the canvas. */
+.sv-view,
+.sv-hud-row,
+.sv-hud-col,
+.sv-hud-centre,
+.sv-center,
+.sv-center-gap,
+.sv-center-foot {
+    pointer-events: none;
+    background: transparent;
+}
+
+.sv-group,
+.sv-tray,
+.sv-transport,
+.sv-dock,
+.sv-topbar,
+.sv-splitter,
+.sv-hud {
+    pointer-events: auto;
+}
+
+/* A stack that is scrolling has to take the pointer, or its scrollbar is
+   not there to grab: a wheel reaches the scroller by chaining up from the
+   card under the pointer, but the thumb is hit-tested like anything else
+   and `none` makes it inert. Only while it holds cards -- a column that is
+   just a tray would otherwise be a full-height strip of the scene that
+   cannot be dragged. The cost is the gap between two cards, which stops
+   being scene you can orbit from. */
+.sv-stack:has(.sv-group) {
+    pointer-events: auto;
+}
+
+/* One glass recipe for every floating surface -- the same one the canvas tool
+   cluster has always used, so the HUD extends the existing idiom rather than
+   introducing a second one. */
+.sv-topbar,
+.sv-group,
+.sv-tray,
+.sv-transport,
+.sv-dock,
+.sv-welcome-plate,
+.sv-hud {
+    background: color-mix(in srgb, var(--sv-surface) 86%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+}
+
+/* Every panel is a plate: the gap it keeps from the window edge belongs to
+   the column or the gap that places it, so none of them carries a margin of
+   its own any more. */
+.sv-group,
+.sv-tray,
+.sv-transport,
+.sv-dock,
+.sv-welcome-plate {
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
+    z-index: var(--sv-z-panel);
+}
+
+/* The stacks themselves are not surfaces -- they only place the cards --
+   but they still have to sit over the scene with them. */
+.sv-rail,
+.sv-inspector,
+.sv-stack {
+    z-index: var(--sv-z-panel);
+}
+
+/* There is no join to draw any more, only a handle. */
+.sv-splitter {
+    background: transparent;
+}
+
+/* ── HUD furniture ───────────────────────────────────────────────────────── */
+
+/* Built by assets/gl/sv_hud.esm.js out of the frame the renderer already
+   holds, so none of it costs a Dash callback. Positioned against #gl-stage,
+   which is the viewport. */
+
+.sv-hud {
+    position: absolute;
+    z-index: var(--sv-z-hud);
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
+    padding: 7px 9px;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text);
+}
+
+/* Below the canvas tool cluster, which already occupies the top-left of the
+   stage -- the two would otherwise land on the same pixel. */
+#gl-camera-presets {
+    display: flex;
+    gap: 3px;
+    padding: 4px;
+}
+
+.sv-gl-preset {
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: var(--sv-radius-sm);
+    background: transparent;
+    color: var(--sv-text-dim);
+    line-height: 1;
+    cursor: pointer;
+    transition: background var(--sv-ease), color var(--sv-ease);
+}
+
+.sv-gl-preset:hover {
+    background: var(--sv-accent-soft);
+    color: var(--sv-accent);
+}
+
+#gl-colorbar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 180px;
+}
+
+.sv-gl-colorbar-label {
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sv-gl-colorbar-strip {
+    display: flex;
+    gap: 6px;
+    height: 132px;
+}
+
+.sv-gl-colorbar-gradient {
+    width: 12px;
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius-sm);
+}
+
+.sv-gl-colorbar-ticks {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: var(--sv-text-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+#gl-legend {
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 200px;
+    max-height: 40vh;
+    overflow-y: auto;
+}
+
+.sv-gl-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 2px 3px;
+    border-radius: var(--sv-radius-sm);
+    cursor: pointer;
+    transition: background var(--sv-ease), opacity var(--sv-ease);
+}
+
+.sv-gl-legend-row:hover {
+    background: var(--sv-accent-soft);
+}
+
+/* Switched off reads as dimmed rather than gone, so the row is still there to
+   click back on -- the affordance a Plotly legend entry has. */
+.sv-gl-legend-off {
+    opacity: 0.4;
+}
+
+.sv-gl-legend-off .sv-gl-legend-name {
+    text-decoration: line-through;
+}
+
+.sv-gl-legend-swatch {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--sv-radius-xs);
+}
+
+.sv-gl-legend-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#gl-stats {
+    padding: 3px 7px;
+    color: var(--sv-text-faint);
+    font-variant-numeric: tabular-nums;
+}
+
+/* Software rendering is worth surfacing: it is the one configuration in which
+   the GL renderer is slower than the Plotly one it replaces. */
+.sv-gl-stats-warn {
+    color: var(--sv-warn);
+}
+
+#gl-notice {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 320px;
+    padding: 12px 16px;
+    color: var(--sv-warn);
+    text-align: center;
+}
+
+#gl-tooltip {
+    position: fixed;
+    z-index: var(--sv-z-tooltip);
+    max-width: 320px;
+    padding: 7px 9px;
+    pointer-events: none;
+    border: 1px solid var(--sv-glass-border);
+    border-radius: var(--sv-radius);
+    background: color-mix(in srgb, var(--sv-surface) 94%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: var(--sv-shadow);
+    color: var(--sv-text);
+    font-size: var(--sv-font-xs);
+    line-height: 1.45;
+    /* Hover text is set with textContent, not innerHTML, so the breaks that
+       were `<br>` for Plotly have to come from here. */
+    white-space: pre-line;
+}
+
+/* How much of each edge the panels cover. Written onto the document by
+   `Hud.reflow()`, which measures them -- a CSS-only version would have to
+   trust `--sv-rail-w` and `--sv-inspector-w`, which go stale the moment a
+   handle is dragged, and would know nothing about a panel that is absent.
+   The same four numbers frame the camera, so the HUD and the data cannot
+   disagree about where the gap is. They used to place `.sv-center` too; the
+   panel group in `App.tsx` does that now, from the same two asides these
+   are measured off. */
+:root {
+    --sv-inset-l: 0px;
+    --sv-inset-r: 0px;
+    --sv-inset-t: 0px;
+    --sv-inset-b: 0px;
+}
+
+#gl-colorbar,
+#gl-legend {
+    right: calc(var(--sv-inset-r) + 12px);
+}
+
+#gl-camera-presets,
+#gl-stats {
+    left: calc(var(--sv-inset-l) + 12px);
+}
+
+#gl-legend {
+    bottom: calc(var(--sv-inset-b) + 32px);
+}
+
+#gl-colorbar {
+    top: calc(var(--sv-inset-t) + 10px);
+}
+
+#gl-camera-presets {
+    top: calc(var(--sv-inset-t) + 52px);
+}
+
+#gl-stats {
+    bottom: calc(var(--sv-inset-b) + 12px);
+}

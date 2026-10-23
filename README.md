@@ -2,13 +2,17 @@
 
 <img src="./assets/sensorview_logo.svg" alt="logo" width="200"/>
 
-A Flask/Dash workbench for exploring multi-sensor logs. Its core purpose is
-data analysis across three axes: **filtering** the frame table down to the
-data that matters, **multi-dimensional inspection** of the same instant
-through a 3D point cloud, camera frame, and 1D curves side by side, and
-**statistical analysis** via six linked views — all driven by one frame
-slider and one set of filters.
+A desktop workbench for exploring multi-sensor logs. Its core purpose is data
+analysis across three axes: **filtering** the frame table down to the data that
+matters, **multi-dimensional inspection** of the same instant through a 3D
+point cloud, camera frame and 1D curves side by side, and **statistical
+analysis** via six linked views -- all driven by one frame slider and one set
+of filters.
 
+Electron, React and TypeScript throughout. It was a Flask/Dash application
+until the port recorded in `git log`; nothing of that remains, and the tests
+that pinned its behaviour were transliterated rather than rewritten, with the
+numeric ones asserting against answers captured from it.
 ## Screenshots
 
 The workbench on a nuScenes scene: the radar point cloud with its decimated
@@ -33,8 +37,15 @@ from visible — which is the point, since all of them describe the same frame.
 | **Analysis dock** | Two slots, each showing any one of the six statistical views |
 
 The rail, inspector, and dock each have a splitter on their inner edge; whatever
-they give up, the canvas takes. Collapse, drag, and theme all run clientside
-(`assets/workbench.js`) — none of it is anything the server knows about.
+they give up, the canvas takes. Drag one, or focus it and use the arrow keys;
+double-click or press Home to put it back. Each of the three also collapses to a
+narrow strip from the chevron in its head. Where the panels are, and whether
+they are open, is remembered between runs. Collapse, drag and theme are the
+renderer's own: there is no server for them to be anything to.
+
+Space plays and pauses, the arrow keys step a frame, Shift and an arrow steps
+ten, and Home and End go to the ends of the log -- except while a control that
+wants those keys itself has focus.
 
 ### 3D Canvas
 
@@ -42,7 +53,29 @@ Interactive 3D scatter with color mapping, a decay slider that fades previous
 frames in behind the current one, and an overlay mode that draws every frame at
 once. View settings float over the plot instead of docking above it, since
 they're touched only a few times a session. Axis and reference-column mapping
-live behind the sliders button.
+### The Scene
+
+three.js, and the whole window: the canvas spans the viewport and every panel
+floats over it as glass, so the cloud is the background rather than a pane
+among panes. There is no box cage -- the extent is given by a ground plane at
+zero height that fades into the page background at its rim, with the range
+labels lying in that plane and three short coloured axes out of the origin,
+after the 3D view in
+[movens-link](https://github.com/rookidroid/movens-link). The floor is centred
+on the data's origin rather than the middle of the filter box, so it reads as
+ground around the sensor even when the box is far off-centre.
+
+It owns its camera and its own on-demand render loop -- `invalidate()` on
+change, idle at zero cost -- so React never drives a frame. Over the scene sit
+a colorbar, a clickable legend, the axis ranges, camera presets and a
+frame-rate and point-count readout. Hover and click-to-hide work through GPU
+colour picking: one pixel is rendered and read back per pointer move, so cost
+does not grow with the number of points.
+
+The scene and the 2D views read one palette. Plotly's own colorway and
+colorscales are captured into `src/shared/palette.ts`, so a category coloured
+one way in the dock and another in the scene is not a thing that can happen.
+
 
 ### Filter Rail
 
@@ -77,24 +110,34 @@ Slot assignment is the enable switch: a view in a slot is live, everything else
 is idle, and a collapsed dock computes nothing.
 
 ### Transport and Buffering
+### Transport
 
-The frame slider is the single source of truth for time: the video element
-never plays on its own, it's seeked to whatever frame the rest of the app
-shows, and playback runs the same path. Server- and browser-side buffering
-progress ride as two hairlines on the transport's top edge, visible when
-looked for.
+The frame slider is the single source of truth for time: a video element never
+plays on its own, it is seeked to whatever frame the rest of the app shows, and
+playback runs the same path. There is no buffering apparatus -- the table is in
+memory, so scrubbing it costs nothing and there is nothing to pre-fetch.
+
+### Combining Logs
+
+Several logs open at once from the breadcrumb, checkbox per log, the first
+leading. Combining concatenates their rows, so a frame id is the only thing
+tying a slider position back to the log whose sidecars hold its cloud, pose,
+curves and video -- and logs are free to number their frames the same way, so
+one position can belong to several. The camera and curve panels draw one per
+owner; the cloud, the pose and the exports take the leader.
+
+A clip is seeked by its log's **own** frame number, not the slider position, so
+a log whose frames sit after another's still maps onto its own recording end to
+end.
 
 ### Other
 
-- **Multiple File Support**: combine additional logs from the top bar and
-  compare them in one view
-- **Session Isolation**: each browser session gets its own cache namespace
-- **Data Buffering**: a WebWorker pre-fetches frames into IndexedDB so scrubbing
-  does not wait on the server
-- **Dark/Light Theme**: chrome and Plotly templates switch together; the choice
-  persists in `localStorage`
-- **Export**: current plot as PNG or HTML, all frames as an HTML video, or the
-  filtered data itself as Parquet for the current frame or all frames
+- **Dark/Light theme** -- chrome, Plotly figures and the WebGL scene switch
+  together. The scene reads its colours back off the same CSS custom
+  properties, so the two cannot drift. The choice persists in the settings file
+- **Export** -- the filtered table as CSV, the scene as PNG or as a captioned
+  HTML page, the open dock view as a self-contained HTML page with Plotly
+  inlined, and every frame as a video recorded from the scene itself
 
 ---
 
@@ -124,8 +167,8 @@ The reasoning behind the split:
 - **Images are seeked client-side** via a native `<video>` element and
   `currentTime`, so scrubbing costs no server round trip. All-intra encoding
   lets the browser seek to any frame; a container it can't play (a vendor
-  `.avi` off a logger) is transcoded once, on first request, and cached under
-  `cache/video`.
+  `.avi` off a logger) is transcoded once, on first request, and cached under the
+  OS temp directory.
 - **Reference pose is per frame, not per detection** — six extra columns on
   every one of a log's 300k rows to say where one vehicle was would be
   wasteful, and table columns can't express orientation anyway.
@@ -142,241 +185,125 @@ a worked converter and a validation checklist — lives in
 
 ---
 
+---
+
 ## Installation
 
-1. Clone the repository:
-
 ```bash
-git clone https://github.com/rookiepeng/sensorview.git
-cd sensorview
+npm ci
 ```
 
-1. Install Python dependencies:
-
-```bash
-pip install -r requirements.txt
-```
+Node 24 or newer. Nothing else: the Parquet reader, the HDF5 reader and ffmpeg
+all arrive as npm packages, two of them native and unpacked from the asar at
+build time.
 
 ## Usage
 
-### Preparing Data
+### Preparing data
 
-1. Put each case in its own folder under `./data` (or point the app at any
-   other directory from the open dialog).
-2. Give the case an `info.json` — see the [manifest
-   reference](DATA_FORMAT.md#infojson-reference), or the [minimal
-   manifest](DATA_FORMAT.md#minimal-manifest) to start from.
-3. Drop the logs in: `<stem>.parquet` plus whatever sidecars exist for it.
-   Anything missing simply does not appear.
+A case is a folder of logs plus an `info.json` manifest. SensorView reads these
+files and does not write them, apart from the manifest when you change an axis
+mapping. The complete on-disk contract lives in
+[DATA_FORMAT.md](DATA_FORMAT.md).
 
-The file picker offers `.parquet` tables only. A v1 `info.json` with its keys at
-the top level still loads and is upgraded in memory, but a `.csv` or `.pkl`
-table has to be converted first — see
-[Writing a Converter](DATA_FORMAT.md#writing-a-converter).
+### Bundled case
 
-### Bundled cases
+`data/NuScenes` holds five scenes converted from nuScenes -- radar tables,
+decimated lidar clouds, curve sidecars, camera mp4s and ego-vehicle pose. It is
+what the checks run against. `data/NuScenes/build_nuscenes_case.py` is the
+converter that produced it; it is not part of the application and needs the
+nuScenes devkit.
 
-- **`data/NuScenes`** — five logs built from the nuScenes v1.0-mini split, with
-  every block filled in: a decimated lidar backdrop, six curve sources across
-  five radars plus the lidar, two camera streams, and a per-frame ego pose the
-  host mesh turns with. `README.txt` in that folder documents what each column
-  holds; `build_nuscenes_case.py` rebuilds the whole case from the original
-  archive. The data is derived from nuScenes and carries **CC BY-NC-SA**
-  (non-commercial) terms, not this repository's GPL-3.0.
-
-### Running the Application
-
-#### Desktop app
+### Running
 
 ```bash
-python main.py
+npm run dev
 ```
 
-Waitress serves the app on `127.0.0.1:8521` and pywebview shows it in a native
-window -- WebView2 on Windows, WKWebView on macOS, WebKitGTK on Linux. Closing
-the window ends the process.
+Opens the app with the renderer on Vite's dev server. `SENSORVIEW_OPEN_CASE`
+names a case to open at startup instead of using the dialog.
 
-The window brings native dialogs with it: the browse button beside the data path
-in the open dialog, and a save dialog for every export, which asks where the
-file should go rather than dropping it in the downloads folder. Served to a
-browser instead, the browse button is disabled and the path is typed.
-
-On Linux the GTK bindings are system packages rather than wheels, so a window
-there needs `pip install "pywebview[gtk]"` alongside `gir1.2-webkit2-4.1` and
-`python3-gi`. Without them SensorView opens in the default browser instead, and
-has to be stopped with Ctrl+C rather than by closing the window.
-
-#### Development
-
-Set `DEBUG = True` in `main.py` for the Dash dev server with hot reload.
-
-#### Server
-
-`server/dash_app.py` exposes a wired `app` that any WSGI server can host, so a
-deployment skips `main.py` and its window entirely:
-
-```python
-from waitress import serve
-from server.dash_app import app
-
-serve(app.server, listen="*:8000")
+```bash
+npm run web
 ```
+
+Serves the renderer alone in a browser tab against a checked-in fixture, which
+is faster to iterate on than an Electron restart. The bridge the renderer talks
+to is the same interface either way -- `src/preload` provides it in Electron,
+`src/renderer/lib/webBridge.ts` in a tab.
+
+### Checks
+
+```bash
+npm run typecheck
+npm test
+npm run lint
+npm run smoke -- --case data/NuScenes
+```
+
+The smoke run is the one worth knowing about. It builds, then runs fifteen
+checks **inside Electron against that build**: the `sv://` protocol and its
+Range handling, the data process reading real Parquet and HDF5, and a probe
+window that opens the bundled case and asserts what the scene drew, what the
+dock rendered, that combining two logs seeks each camera by its own frame, and
+that every export writes a file -- reopening the exported HTML page in a window
+with no preload to prove it is self-contained.
+
+Flags: `--save-dir` runs the exports, `--shot` captures a PNG of the probe
+window, `--packaged` runs `dist/win-unpacked` instead of the dev build, which
+is the only configuration where an asar or a missing runtime can show up.
+
+### Packaging
+
+```bash
+npm run dist
+```
+
+---
 
 ## Architecture
 
-### Server Components
+Four processes, and a contract between them.
 
-- **Flask/Dash Server**: main application server with REST API endpoints
-- **REST API**: `/api/data/<session>/<start_index>` streams buffered frame data
-  to the client, `/api/cloud/<session>/<frame>` serves the decimated backdrop,
-  and `/api/camera/<session>/<log>/<stream>` serves (and, if needed, transcodes)
-  one log's video
-- **Background Callbacks**: 3D frames are pre-computed off the request thread
-  through a `diskcache` job manager, with cooperative cancellation when a newer
-  request supersedes an in-flight one
-- **Cache Management**: multi-level — server-side `diskcache` FanoutCache for
-  session/frame data, client-side IndexedDB via WebWorker
-- **Session Isolation**: independent data sessions for multiple users
-
-### Client Components
-
-- **Workbench chrome** (`assets/workbench.js`): panel collapse, splitter drags,
-  theme persistence, and the Plotly re-fit that follows any layout change
-- **WebWorker** (`assets/worker.js`): pulls frames from the REST API and stores
-  them in IndexedDB ahead of the slider
-- **Clientside callbacks** (`assets/client_side.js`): worker startup, figure
-  swapping from the local buffer, and a bounded in-memory cache of cloud
-  backdrops so revisiting a frame costs nothing
-
-## Dependencies
-
-### Python Modules
-
-See `requirements.txt` for the complete list:
-
-- **dash**, **dash-bootstrap-components**, **dash-daq**: web framework and interactive UI components
-- **polars**, **pandas**, **numpy**, **pyarrow**: data manipulation and Parquet I/O
-- **h5py**: HDF5 sidecars for point clouds and 1D curves
-- **imageio-ffmpeg**: bundles a static ffmpeg, used to count a recording's frames, extract the stills the HTML export inlines, and transcode containers a browser cannot play
-- **diskcache**: server-side FanoutCache for session and frame data
-- **orjson**: high-performance JSON serialization for API responses
-- **kaleido**: static image export for plots
-- **pywebview**: native window shell for the desktop app
-- **waitress**: WSGI server behind that window
-- **waitress**: production WSGI server (optional)
-
-## Development
-
-### Package Map
-
-Two modules sit at the root; everything else is a package named for what it owns:
-
-| Module | Role |
+| | |
 |---|---|
-| `main.py` | **The entry point.** The only module with a `__main__`; `python main.py` runs the app. |
-| `settings.py` | The Dash instance, the disk caches, and the shared constants every module reads. |
-| `server/` | Assembling the app and putting it in front of a user; see below. |
-| `layouts/` | The component tree, one module per region of the shell. |
-| `view_callbacks/` | The server-side callbacks, one module per view. |
-| `viz/` | Data to Plotly figures, plus the per-frame pipeline that feeds them. |
-| `frame_sources/` | Resolves a session's manifest, logs, and per-frame sidecar data. |
-| `dataio/` | The read layer: Parquet, HDF5, mp4, and the manifest that describes them. |
-| `utils/` | The session cache, JSON persistence, table loading, and filtering. |
+| `src/main` | The window, the menus, the save and open dialogs, the `sv://` protocol, and the client for the data process |
+| `src/preload` | The bridge. ~20 lines, annotated with the contract |
+| `src/shared` | The IPC contract plus the logic both sides need: the table and its filters, calibration, the video frame mapping, log combining, numpy's histogram binning |
+| `src/data` | A `utilityProcess` running polars, h5wasm and ffmpeg |
+| `src/renderer` | React, the three.js modules under `gl/`, the Plotly figures under `figures/` |
 
-Nothing but `main.py` runs on its own, and nothing starts a server on import —
-which is what lets background-callback workers re-import these modules safely.
+**The data layer is its own process** because its readers are native. A
+sandboxed renderer cannot `require` a `.node`, and loading a 40 MB addon on the
+window's process would stall the window; a native fault in a separate process
+costs a reload of the data layer rather than the app.
 
-### Application Shell (`server/`)
+**The contract is one TypeScript interface.** `src/shared/types.ts` describes
+every channel, and the preload is annotated with it -- so typechecking the
+preload is what guarantees the renderer's calls. Every result is normalized to
+`{ok, status, data?, error?}`: errors do not cross as exceptions, and renderer
+code has no try/catch around IPC.
 
-Everything that exists to assemble the app and serve it, in the order it happens:
+**The table lives in the renderer.** It is 19,756 rows here, and filtering it
+is one pass over typed arrays -- sub-millisecond, so it runs on every filter
+change with no caching anywhere. The Dash app had a disk cache, a background
+worker pre-computing every frame and an IndexedDB prefetch; all three existed
+because each filter change crossed a network boundary, and none of them was
+ported because none of them has a reason to exist.
 
-- `dash_app`: wires the layout, the routes, and every callback module into the
-  `app` from `settings`, and stops there — importing it starts nothing
-- `clientside`: the callbacks that run in the browser, with no server round trip
-  — the frame buffer, the transport readout, and the dock's slot bookkeeping
-- `routes`: the plain HTTP endpoints the browser fetches outside Dash's callback
-  protocol
-- `desktop`: serves a wired app with waitress and shows it in a native window.
-  Imported by `main.py`, never run directly
+**`sv://` replaces the media routes.** A `<video>` cannot scrub a file it
+cannot range-request, so main serves one with Range support -- and only from
+directories the user has opened this session. The renderer may ask for any
+path and can widen nothing.
 
-### Layout Package (`layouts/`)
+### Tests
 
-One module per region of the shell:
-
-- `app_layout`: the shell itself — which region owns what, and the stores the
-  views coordinate through
-- `topbar_layout`: brand, dataset breadcrumb, combine-logs, theme, export
-- `filter_panel_layout`: the collapsible left rail
-- `canvas_layout`: the 3D stage, its floating controls, and the transport
-- `inspector_layout`: the camera and curve sections of the right dock
-- `analysis_dock_layout`: the two-slot bottom dock and the six panes it hosts
-- `modal_layout`: the open-dataset dialog and the load-failure dialog
-
-### Callback Architecture
-
-A modular callback system, one module per view:
-
-- `file_modal_view`: the open-dataset dialog — data path, case, and log choice
-- `test_case_view`: dataset loading, and the filter rail it builds
-- `control_view`: playback and navigation controls
-- `scatter_3d_view`: 3D visualization callbacks
-- `scatter_3d_view_background`: background callback pre-computing and buffering
-  3D frame data
-- `scatter_2d_left_view` & `scatter_2d_right_view`: the two 2D scatter panes
-- `heatmap_view`: statistical heatmap visualization
-- `histogram_view`: distribution analysis
-- `parcats_view`: parallel categories visualization
-- `violin_view`: violin plot analysis
-- `camera_view`: mp4 stream selection, clientside frame-exact seeking, and
-  inspector visibility
-- `threshold_view`: per-frame 1D curve plot rendering
-
-### Frame Sources Package (`frame_sources/`)
-
-Bridges the session cache to the `dataio` stores, one module per store. The
-table is refiltered whenever a filter changes; everything here is display-only
-and re-reads only when the frame changes.
-
-- `session`: which manifest a session holds, and which log owns each slider
-  position once several are combined — the only module the other four depend on
-- `cloud`: the point-cloud backdrop
-- `reference`: the moving origin and the axis bounds that follow it
-- `image`: camera streams, transcoding, and the stills the HTML export inlines
-- `curve`: per-frame 1D curves and their held y ranges
-
-`__init__` re-exports the public names, so callers import from the package.
-
-### Data IO Package (`dataio/`)
-
-- `manifest`: `info.json` v2 parsing, v1 upgrade, basename sidecar resolution,
-  curve plot definitions, non-destructive persistence
-- `frames`: frame ids derived from the Parquet data
-- `radar_store`: Parquet table loading with projection/predicate pushdown
-- `reference`: per-frame reference pose from a Parquet sidecar, with the
-  configurable column mapping
-- `dense_store`: HDF5 readers for cloud points and 1D curves
-- `calibration`: extrinsics → 4×4 transform for cross-sensor alignment
-- `video`: on-demand transcoding of foreign containers
-
-### Visualization Package (`viz/`)
-
-- `graph_data`: traces from a DataFrame
-- `graph_layout`: the scene, axes, and colourbar around them
-- `viz`: the high-level plots the 2D and camera views call
-- `figure_kwargs`: resolves the axis, colour, and reference arguments the three
-  above all take
-- `frame_figure`: the pipeline — gathers one frame from the session cache and
-  the sidecar stores, then calls the four above. The only module here that knows
-  a session exists
-
-### Shared Helpers (`utils/`)
-
-One concern per module, and none of them know about the others:
-
-- `cache`: the session disk cache, keyed by session id
-- `config`: JSON persistence for `info.json` and `config.json`
-- `data`: loading the radar table through `dataio`
-- `filters`: reducing a frame to the rows the filter rail allows
+`test/` holds vitest suites over `src/shared` and `src/data` in a node
+environment; the React tree is verified by running the app, which is what the
+smoke run does. Where a port had numeric or formatting behaviour, the answers
+were captured from the Python into `test/fixtures` and are asserted against --
+see [test/fixtures/README.md](test/fixtures/README.md) for what each one pins
+and where it came from.
 
 ## License
 

@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 # A new push to the same branch makes the in-flight build obsolete; drop it
-# rather than paying for two full PyInstaller runs.
+# rather than paying for two full electron-builder runs.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -37,10 +37,10 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact: sensorview-linux
-            archive: sensorview-linux.tar.gz
+            target: --linux
           - os: windows-latest
             artifact: sensorview-windows
-            archive: sensorview-windows.zip
+            target: --win
 
     # Git Bash ships on the Windows runners, so a single shell keeps every
     # build step identical across platforms.
@@ -49,55 +49,50 @@ jobs:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
-    - name: Set up Python 3.14
-      uses: actions/setup-python@v7
-      with:
-        python-version: "3.14"
-        cache: pip
-        cache-dependency-path: requirements.txt
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
+      - name: Install dependencies
+        run: npm ci
 
-    # pywebview has no webview of its own on Linux: it reaches the OS one
-    # through GTK or Qt bindings, and PyInstaller bundles whichever of them is
-    # importable at build time. With neither, the built app finds no GUI backend
-    # and opens a browser tab instead of its own window. PySide6 carries
-    # QtWebEngine into the bundle, so the app brings its own renderer rather
-    # than depending on the user having WebKitGTK installed; qtpy is the binding
-    # shim webview.platforms.qt imports through, and pulls nothing on its own.
-    - name: Install Linux webview backend
-      if: runner.os == 'Linux'
-      run: pip install qtpy PySide6
+      - name: Typecheck
+        run: npm run typecheck
 
-    - name: PyInstaller
-      run: python -m PyInstaller sensorview.spec
+      - name: Build
+        run: npm run build
 
-    - name: Copy example
-      run: cp -r ./data ./dist/sensorview/data
+      # The spine check: the data utility process forks and answers, and the
+      # sv:// scheme honours Range. Both fail in ways only a real Electron run
+      # shows, and both are what the camera panel and every reader depend on.
+      # Linux runners have no display, so Electron needs a virtual one.
+      - name: Smoke test
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb
+            xvfb-run --auto-servernum node scripts/smoke.mjs
+          else
+            node scripts/smoke.mjs
+          fi
 
-    # Each platform is packed into one archive, which then serves as both the CI
-    # artifact and the release asset. tar is what preserves the executable bit on
-    # ./sensorview, which upload-artifact's own zip would otherwise drop.
-    - name: Package built app (Linux)
-      if: runner.os == 'Linux'
-      run: tar -czf ${{ matrix.archive }} -C ./dist sensorview
+      # electron-builder emits the installer and a portable/AppImage build into
+      # dist/, already packaged -- there is nothing to archive by hand.
+      - name: Package
+        run: npx electron-builder ${{ matrix.target }} --publish never
 
-    - name: Package built app (Windows)
-      if: runner.os == 'Windows'
-      run: pwsh -NoProfile -Command "Compress-Archive -Path dist/sensorview -DestinationPath ${{ matrix.archive }}"
-
-    - name: Archive built app
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ matrix.artifact }}
-        path: ./${{ matrix.archive }}
-        retention-days: 1
+      - name: Archive built app
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+          retention-days: 1
 
   release:
     name: Publish release
@@ -111,26 +106,26 @@ jobs:
       contents: write
 
     steps:
-    - uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
-    - name: Download built apps
-      uses: actions/download-artifact@v8
-      with:
-        path: artifacts
-        merge-multiple: true
+      - name: Download built apps
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
 
-    # --clobber keeps a re-run of the same tag idempotent rather than erroring on
-    # an asset that is already attached.
-    - name: Publish to GitHub release
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        set -euo pipefail
-        ls -lh artifacts
-        if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes \
-            --verify-tag
-        fi
-        gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber
+      # --clobber keeps a re-run of the same tag idempotent rather than erroring
+      # on an asset that is already attached.
+      - name: Publish to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ls -lh artifacts
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" \
+              --title "$GITHUB_REF_NAME" \
+              --generate-notes \
+              --verify-tag
+          fi
+          gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber

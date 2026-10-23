@@ -9,8 +9,8 @@
 /coverage
 
 # production
-# PyInstaller writes its work tree to /build and the bundled app to /dist.
-/build
+# electron-builder reads its resources from /build -- which is checked in, it
+# holds the app icon -- and writes the packaged app to /dist.
 /dist
 
 # misc
@@ -24,29 +24,29 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-python/.ipynb_checkpoints/
-
-python/__pycache__/
 .vscode/
 
+# data/NuScenes/build_nuscenes_case.py is the only Python left; it is run by
+# hand and leaves these behind.
 __pycache__/
-
 .ipynb_checkpoints/
 
-.pytest_cache/
-
 *.mat
-
-figures/
-
-cache/
-
-images/
 *.feather
 *.tar
 
+# Anchored, every one of them. An unanchored `figures/` matches a directory of
+# that name at any depth -- which silently excluded src/renderer/figures, the
+# six analysis views, from four commits. A pattern meant for one directory
+# says which one.
+/figures
+/images
+
 data/*
 !data/NuScenes/
-/temp
 config.json
 /.claude
+
+# Electron / Node
+node_modules/
+out/
