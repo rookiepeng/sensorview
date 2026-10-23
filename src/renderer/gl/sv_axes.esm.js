@@ -43,22 +43,36 @@ import {
   Mesh,
   MeshBasicMaterial,
   PlaneGeometry,
+  Vector2,
+  Vector3,
 } from "three";
 
 
 const AXES = ["x", "y", "z"];
-
-// Subdivision of the ground plane. The fade is per-vertex, so this is what
-// decides how smooth it looks; 24 is past the point where more shows.
-const PLANE_STEPS = 24;
 
 // Where the fade starts and ends, as a fraction of the floor's radius.
 // Solid through the middle, gone by the rim -- the floor in movens-link.
 const FADE_FROM = 0.3;
 const FADE_TO = 1.0;
 
-// Axis stubs out of the origin, as a fraction of each range's span.
-const AXIS_LENGTH = 0.12;
+// How big the lit floor is. It covers whichever is larger: the data the
+// camera was last framed on, padded by `DATA_PAD`, or the view itself at the
+// current zoom, padded by `VIEW_PAD` -- so zooming out widens the floor with
+// the view rather than leaving a small disc in the middle of an empty window,
+// and zooming in still keeps the data on lit ground.
+const DATA_PAD = 1.25;
+const VIEW_PAD = 0.75;
+
+// The grid is built this far past the lit radius, so a pan or a zoom only
+// rebuilds it once it has run off the edge of what is already there.
+const GRID_SLACK = 1.6;
+
+// Axis stubs out of the origin, in grid steps. The step is chosen to cover a
+// fixed number of pixels, so the stubs keep one size on screen at any zoom.
+// They used to be a fraction of each range's span, which made them as uneven
+// as the ranges: a radar whose far detections reach 150 m up drew a 35 m
+// "up" stub over data a metre off the ground.
+const AXIS_LENGTH = 0.4;
 
 // Roughly how far apart the grid lines should look, in pixels. The step is
 // chosen to land near this at the camera's current distance and snapped to
@@ -72,9 +86,64 @@ const GRID_TARGET_PX = 96;
 // floor -- tens of thousands of segments and a label on each.
 const GRID_MAX_LINES = 160;
 
-function smoothstep(value, from, to) {
-  const t = Math.min(1, Math.max(0, (value - from) / (to - from)));
-  return t * t * (3 - 2 * t);
+/**
+ * Fade a basic material into the page background away from a centre.
+ *
+ * The fade used to be baked into vertex colours, which fixed it to a circle
+ * chosen once per layout. Done per fragment it follows two uniforms instead,
+ * so the lit floor can move with the camera's target and grow with the zoom
+ * for the cost of setting a vector and a float.
+ *
+ * Patched into the stock basic shader rather than written as a ShaderMaterial,
+ * so the colour management and everything else the basic material does is
+ * unchanged. `transformed` is the vertex in the floor's own (data) units,
+ * which is what the centre and radius are given in.
+ *
+ * @param {Material} material A MeshBasicMaterial or LineBasicMaterial.
+ * @param {Object} uniforms Shared `{uCentre, uRadius, uGround, uBackground, uGrid}`.
+ * @param {boolean} lines Whether this is the grid, which tints over the floor
+ *     and reads a per-vertex `aMajor`.
+ */
+function fadeFloor(material, uniforms, lines) {
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying vec2 vFloor;
+${lines ? "attribute float aMajor;\nvarying float vMajor;" : ""}`
+      )
+      .replace(
+        "#include <begin_vertex>",
+        `#include <begin_vertex>
+vFloor = transformed.xy;
+${lines ? "vMajor = aMajor;" : ""}`
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+varying vec2 vFloor;
+${lines ? "varying float vMajor;" : ""}
+uniform vec2 uCentre;
+uniform float uRadius;
+uniform vec3 uGround;
+uniform vec3 uBackground;
+uniform vec3 uGrid;`
+      )
+      .replace(
+        "vec4 diffuseColor = vec4( diffuse, opacity );",
+        `float fade = smoothstep(${FADE_FROM.toFixed(3)}, ${FADE_TO.toFixed(3)},
+  length(vFloor - uCentre) / max(uRadius, 1e-6));
+vec3 floorColour = mix(uGround, uBackground, fade);
+${lines ? "floorColour = mix(floorColour, uGrid, (1.0 - fade) * mix(0.55, 1.0, vMajor));" : ""}
+vec4 diffuseColor = vec4(floorColour, opacity);`
+      );
+  };
+  // Both materials patch the same chunks with the same closure source, which
+  // three would otherwise take for one program.
+  material.customProgramCacheKey = () => (lines ? "sv-floor-grid" : "sv-floor-ground");
 }
 
 /**
@@ -252,13 +321,23 @@ export class Axes {
       axis: { x: new Color("#ff5f5f"), y: new Color("#4fd06a"), z: new Color("#4e9eff") },
     };
 
-    // `vertexColors` everywhere: the fade is baked into the geometry rather
-    // than done in a shader, which keeps these ordinary materials and lets a
-    // theme change rewrite one attribute instead of recompiling anything.
+    // The fade is per fragment, from these. Shared by the floor and the grid,
+    // so one write moves both.
+    this.uniforms = {
+      uCentre: { value: new Vector2(0, 0) },
+      uRadius: { value: 1 },
+      uGround: { value: this.theme.ground.clone() },
+      uBackground: { value: this.theme.background.clone() },
+      uGrid: { value: this.theme.grid.clone() },
+    };
+    /** How far the data reaches from where the camera was framed. */
+    this.dataRadius = 1;
+    /** The square the grid was last built over, and at what spacing. */
+    this.gridBuilt = null;
+
     this.groundMesh = new Mesh(
       new BufferGeometry(),
       new MeshBasicMaterial({
-        vertexColors: true,
         transparent: true,
         opacity: 1,
         depthWrite: false,
@@ -274,14 +353,16 @@ export class Axes {
         polygonOffsetUnits: 1,
       })
     );
+    fadeFloor(this.groundMesh.material, this.uniforms, false);
     this.groundMesh.frustumCulled = false;
     this.groundMesh.renderOrder = -2;
     this.group.add(this.groundMesh);
 
     this.gridLines = new LineSegments(
       new BufferGeometry(),
-      new LineBasicMaterial({ vertexColors: true, transparent: true })
+      new LineBasicMaterial({ transparent: true })
     );
+    fadeFloor(this.gridLines.material, this.uniforms, true);
     this.gridLines.frustumCulled = false;
     this.gridLines.renderOrder = -1;
     this.group.add(this.gridLines);
@@ -325,37 +406,47 @@ export class Axes {
     // bound rather than hanging outside the data.
     this.planeZ = Math.min(Math.max(0, ranges.z[0]), ranges.z[1]);
     this.floor = this._floorFrame();
+    // Until the scene says where it framed the camera, the floor lights the
+    // part of the box around the data's origin, as it always did.
+    this.dataRadius = this.floor.radius;
+    this.uniforms.uCentre.value.set(this.floor.centre.x, this.floor.centre.y);
+    this.uniforms.uRadius.value = this.floor.radius;
+    this.gridBuilt = null;
 
     this._buildGround();
-    this._buildGrid();
+    this._buildGrid(this.floor.centre, this.floor.radius * GRID_SLACK, this._fallbackStep());
     this._buildAxes();
     this._buildText();
   }
 
   /**
-   * Where the floor is centred, and how far it reaches before it is gone.
+   * Say how far the data reaches from the point the camera was framed on.
+   *
+   * @param {number} radius In data units.
+   */
+  setDataRadius(radius) {
+    if (radius > 0 && Number.isFinite(radius)) {
+      this.dataRadius = radius;
+    }
+  }
+
+  /** A spacing for before the camera has been placed. */
+  _fallbackStep() {
+    const ticks = this.ticks.x;
+    return ticks.length > 1 ? ticks[1] - ticks[0] : 1;
+  }
+
+  /**
+   * Where the tick labels are anchored, and the floor's starting extent.
    *
    * Centred on the data's own origin, not on the middle of the box. The box is
    * the filter sliders' extent and is routinely far off-centre -- a log that
-   * drives north for 300 m has its sensor at one corner of it -- so fading
-   * from the box centre would thin the floor out exactly where the sensor,
-   * and therefore the data, actually is. Centring on the origin is what makes
-   * it read as ground around the vehicle rather than a rectangle around the
-   * numbers, which is the same thing movens-link does by centring its floor on
-   * the robot's base.
+   * drives north for 300 m has its sensor at one corner of it -- so the labels
+   * run along the lines through where the sensor is.
    *
-   * The radius is isotropic, so the fade is a circle on the ground rather than
-   * an ellipse stretched by whatever the two ranges happen to be.
-   *
-   * `span` is the rectangle the floor is actually drawn over, and it is not
-   * the data's ranges. The radius reaches the *longer* half of each axis, so
-   * on the side where the box is shorter than that the rim of the box sits at
-   * a falloff well under 1 -- a log running from -252 to 204 east fades to
-   * 0.81 at its east edge, which is a fifth of the ground colour still there
-   * when the geometry stops. That is a hard line across the floor, which is
-   * the one thing the fade exists to avoid. The span is the box widened to
-   * hold the whole circle, so every point on its boundary is at falloff 1 or
-   * past it and the plane ends where it has already gone.
+   * The radius is only where the floor starts: once the camera is placed,
+   * `retick` centres the lit floor on what the camera is looking at and sizes
+   * it from the data and the zoom.
    */
   _floorFrame() {
     const r = this.ranges;
@@ -363,160 +454,81 @@ export class Axes {
       x: Math.min(Math.max(0, r.x[0]), r.x[1]),
       y: Math.min(Math.max(0, r.y[0]), r.y[1]),
     };
-    // Far enough to cover the shorter half of the box from wherever the origin
-    // sits in it; the corners beyond that are the part meant to fade away.
     const reach = Math.min(
       Math.max(centre.x - r.x[0], r.x[1] - centre.x),
       Math.max(centre.y - r.y[0], r.y[1] - centre.y)
     );
-    const radius = reach || 1;
-    return {
-      centre,
-      radius,
-      span: {
-        x: [Math.min(r.x[0], centre.x - radius), Math.max(r.x[1], centre.x + radius)],
-        y: [Math.min(r.y[0], centre.y - radius), Math.max(r.y[1], centre.y + radius)],
-      },
-    };
+    return { centre, radius: reach || 1 };
   }
 
   /**
-   * How far out a point on the plane is, 0 at the centre and 1 at the rim.
+   * The floor: one quad, as wide as the lit circle.
+   *
+   * The fade is per fragment now, so the quad needs no subdivision; it only
+   * has to reach the rim, past which the floor is the background colour and
+   * might as well not be there.
    */
-  _falloff(x, y) {
-    const { centre, radius } = this.floor || this._floorFrame();
-    return Math.hypot(x - centre.x, y - centre.y) / radius;
-  }
-
-  _groundColor(x, y) {
-    return this.theme.ground
-      .clone()
-      .lerp(this.theme.background, smoothstep(this._falloff(x, y), FADE_FROM, FADE_TO));
-  }
-
-  _gridColor(x, y, major) {
-    // The line is tinted over the floor beneath it and fades out with it, so a
-    // line never outlives the ground it is drawn on.
-    const strength = (1 - smoothstep(this._falloff(x, y), FADE_FROM, FADE_TO)) *
-      (major ? 1 : 0.55);
-    return this._groundColor(x, y).lerp(this.theme.grid, strength);
-  }
-
   _buildGround() {
-    // The floor's own span, not the data's ranges: the fade has to finish
-    // inside the geometry or it ends in a line.
-    const r = (this.floor || this._floorFrame()).span;
-    const count = PLANE_STEPS;
-    const positions = new Float32Array((count + 1) * (count + 1) * 3);
-    const index = [];
-
-    for (let iy = 0; iy <= count; iy++) {
-      const y = r.y[0] + ((r.y[1] - r.y[0]) * iy) / count;
-      for (let ix = 0; ix <= count; ix++) {
-        const x = r.x[0] + ((r.x[1] - r.x[0]) * ix) / count;
-        const o = (iy * (count + 1) + ix) * 3;
-        positions[o] = x;
-        positions[o + 1] = y;
-        positions[o + 2] = this.planeZ;
-      }
-    }
-    for (let iy = 0; iy < count; iy++) {
-      for (let ix = 0; ix < count; ix++) {
-        const a = iy * (count + 1) + ix;
-        const b = a + 1;
-        const c = a + count + 1;
-        const d = c + 1;
-        index.push(a, c, d, a, d, b);
-      }
-    }
-
-    this.groundMesh.geometry.dispose();
     const geometry = new BufferGeometry();
-    geometry.setAttribute("position", new BufferAttribute(positions, 3));
-    geometry.setAttribute(
-      "color",
-      new BufferAttribute(new Float32Array(positions.length), 3)
-    );
-    geometry.setIndex(index);
+    geometry.setAttribute("position", new BufferAttribute(new Float32Array(12), 3));
+    geometry.setIndex([0, 2, 3, 0, 3, 1]);
+    this.groundMesh.geometry.dispose();
     this.groundMesh.geometry = geometry;
-    this._colorGround();
+    this._placeGround();
   }
 
-  _colorGround() {
-    const geometry = this.groundMesh.geometry;
-    const position = geometry.getAttribute("position");
-    const color = geometry.getAttribute("color");
-    if (!position || !color) {
+  _placeGround() {
+    const centre = this.uniforms.uCentre.value;
+    const radius = this.uniforms.uRadius.value;
+    const position = this.groundMesh.geometry.getAttribute("position");
+    if (!position) {
       return;
     }
-    for (let i = 0; i < position.count; i++) {
-      const c = this._groundColor(position.getX(i), position.getY(i));
-      color.setXYZ(i, c.r, c.g, c.b);
-    }
-    color.needsUpdate = true;
+    const x0 = centre.x - radius;
+    const x1 = centre.x + radius;
+    const y0 = centre.y - radius;
+    const y1 = centre.y + radius;
+    position.setXYZ(0, x0, y0, this.planeZ);
+    position.setXYZ(1, x1, y0, this.planeZ);
+    position.setXYZ(2, x0, y1, this.planeZ);
+    position.setXYZ(3, x1, y1, this.planeZ);
+    position.needsUpdate = true;
   }
 
-  _buildGrid() {
-    // Over the floor's span too, so a line never outlives the ground under
-    // it by stopping where the ground is still visible.
-    const r = (this.floor || this._floorFrame()).span;
-    const positions = [];
-    this.gridMajor = [];
-
-    // Each line is cut at every crossing tick rather than drawn end to end, so
-    // it can fade along its own length the way the floor does under it. A
-    // single long segment could only take one colour at each end.
-    const run = (alongAxis, acrossValue, major) => {
-      const ticks = this.ticks[alongAxis];
-      const bounds = r[alongAxis];
-      const stops = [bounds[0], ...ticks.filter((t) => t > bounds[0] && t < bounds[1]), bounds[1]];
-      for (let i = 0; i < stops.length - 1; i++) {
-        for (const value of [stops[i], stops[i + 1]]) {
-          if (alongAxis === "x") {
-            positions.push(value, acrossValue, this.planeZ);
-          } else {
-            positions.push(acrossValue, value, this.planeZ);
-          }
-          this.gridMajor.push(major ? 1 : 0);
-        }
-      }
+  /**
+   * Grid lines over a square around `centre`, `half` out each way.
+   *
+   * Each line is one segment end to end -- the fade is per fragment, so it no
+   * longer has to be cut at every crossing to fade along its length. Every
+   * fifth line reads as major, counted from zero rather than from the edge so
+   * the major lines stay put as the square moves.
+   */
+  _buildGrid(centre, half, step) {
+    const span = {
+      x: [centre.x - half, centre.x + half],
+      y: [centre.y - half, centre.y + half],
     };
+    const positions = [];
+    const major = [];
+    const isMajor = (value) => Math.round(value / step) % 5 === 0;
 
-    // Every fifth tick reads as major, which is what gives the floor a sense
-    // of scale without labelling every line.
-    this.ticks.y.forEach((y, i) => run("x", y, i % 5 === 0));
-    this.ticks.x.forEach((x, i) => run("y", x, i % 5 === 0));
+    for (const y of ticksAtStep(span.y[0], span.y[1], step)) {
+      positions.push(span.x[0], y, this.planeZ, span.x[1], y, this.planeZ);
+      const m = isMajor(y) ? 1 : 0;
+      major.push(m, m);
+    }
+    for (const x of ticksAtStep(span.x[0], span.x[1], step)) {
+      positions.push(x, span.y[0], this.planeZ, x, span.y[1], this.planeZ);
+      const m = isMajor(x) ? 1 : 0;
+      major.push(m, m);
+    }
 
     this.gridLines.geometry.dispose();
     const geometry = new BufferGeometry();
-    geometry.setAttribute(
-      "position",
-      new BufferAttribute(new Float32Array(positions), 3)
-    );
-    geometry.setAttribute(
-      "color",
-      new BufferAttribute(new Float32Array(positions.length), 3)
-    );
+    geometry.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+    geometry.setAttribute("aMajor", new BufferAttribute(new Float32Array(major), 1));
     this.gridLines.geometry = geometry;
-    this._colorGrid();
-  }
-
-  _colorGrid() {
-    const geometry = this.gridLines.geometry;
-    const position = geometry.getAttribute("position");
-    const color = geometry.getAttribute("color");
-    if (!position || !color || !this.gridMajor) {
-      return;
-    }
-    for (let i = 0; i < position.count; i++) {
-      const c = this._gridColor(
-        position.getX(i),
-        position.getY(i),
-        this.gridMajor[i] === 1
-      );
-      color.setXYZ(i, c.r, c.g, c.b);
-    }
-    color.needsUpdate = true;
+    this.gridBuilt = { span, step };
   }
 
   _buildAxes() {
@@ -531,11 +543,8 @@ export class Axes {
     }
     this.axisLines.visible = true;
 
-    const span = {
-      x: (r.x[1] - r.x[0]) * AXIS_LENGTH,
-      y: (r.y[1] - r.y[0]) * AXIS_LENGTH,
-      z: (r.z[1] - r.z[0]) * AXIS_LENGTH,
-    };
+    const length = (this.step || this._fallbackStep()) * AXIS_LENGTH;
+    const span = { x: length, y: length, z: length };
     const origin = [0, 0, this.planeZ];
     const ends = {
       x: [span.x, 0, this.planeZ],
@@ -604,49 +613,81 @@ export class Axes {
   }
 
   /**
-   * Choose a grid spacing for how close the camera is, and rebuild if it
-   * has changed.
+   * Follow the camera: light the floor around what it is looking at, and pick
+   * a grid spacing for how close it is.
    *
    * The floor is drawn in data units, so the step has to be converted from
    * the pixels it should cover: one pixel is `2 * d * tan(fov / 2) / height`
-   * world units at the box's distance, and the root's scale turns those into
-   * the data's own. Snapped, so the spacing steps between readable values
-   * instead of sliding, and floored so a close-up cannot ask for ten
-   * thousand lines across the floor.
+   * world units at the target's distance, and the root's scale turns those
+   * into the data's own. Snapped, so the spacing steps between readable values
+   * instead of sliding, and floored so neither the grid nor the labels can ask
+   * for thousands of lines.
+   *
+   * The lit radius is the larger of the data's reach and the view's own half
+   * width at the target, so the floor fills the view when zoomed out and
+   * still covers the data when zoomed in.
    *
    * @param {THREE.PerspectiveCamera} camera The scene camera.
    * @param {THREE.Object3D} root The data's transform.
    * @param {number} height Viewport height in pixels.
-   * @returns {boolean} Whether the grid was rebuilt.
+   * @param {THREE.Vector3} [target] What the camera orbits, in world space.
+   * @returns {boolean} Whether the grid or the labels were rebuilt.
    */
-  retick(camera, root, height) {
+  retick(camera, root, height, target) {
     const scale = root.scale.x;
     if (!(scale > 0) || !(height > 0)) {
       return false;
     }
-    // The box centre sits at the world origin -- `applyLayout` puts it
-    // there -- so the camera's own length is its distance from the data.
-    const distance = camera.position.length();
+    const aim = target || new Vector3();
+    const distance = camera.position.distanceTo(aim);
     const worldPerPx = (2 * distance * Math.tan((camera.fov / 2) * (Math.PI / 180))) / height;
+    const viewHalf = (worldPerPx * height * Math.max(camera.aspect || 1, 1)) / 2 / scale;
+
+    root.updateMatrixWorld();
+    const local = root.worldToLocal(aim.clone());
+    const radius = Math.max(this.dataRadius * DATA_PAD, viewHalf * VIEW_PAD);
+    this.uniforms.uCentre.value.set(local.x, local.y);
+    this.uniforms.uRadius.value = radius;
+    this._placeGround();
+
     const span = Math.max(
       this.ranges.x[1] - this.ranges.x[0],
       this.ranges.y[1] - this.ranges.y[0]
     );
+    const half = radius * GRID_SLACK;
     const step = Math.max(
       niceStep((GRID_TARGET_PX * worldPerPx) / scale),
-      niceStep(span / GRID_MAX_LINES)
+      niceStep(span / GRID_MAX_LINES),
+      niceStep((2 * half) / GRID_MAX_LINES)
     );
-    if (step === this.step) {
-      return false;
+
+    // Rebuilt when the spacing changes, or when the lit floor has run past
+    // the square already built -- with slack, so a pan does not rebuild on
+    // every frame.
+    const built = this.gridBuilt;
+    const covered =
+      built &&
+      built.step === step &&
+      local.x - radius >= built.span.x[0] &&
+      local.x + radius <= built.span.x[1] &&
+      local.y - radius >= built.span.y[0] &&
+      local.y + radius <= built.span.y[1];
+    if (!covered) {
+      this._buildGrid({ x: local.x, y: local.y }, half, step);
     }
 
+    if (step === this.step) {
+      return !covered;
+    }
     this.step = step;
+    this._buildAxes();
+    // The labels stay over the data's box: they say where the data is, and
+    // a number out on the faded floor is one nobody reads.
     this.ticks = {
       x: ticksAtStep(this.ranges.x[0], this.ranges.x[1], step),
       y: ticksAtStep(this.ranges.y[0], this.ranges.y[1], step),
       z: ticksAtStep(this.ranges.z[0], this.ranges.z[1], step),
     };
-    this._buildGrid();
     this._buildText();
     return true;
   }
@@ -724,9 +765,9 @@ export class Axes {
     }
   }
 
-  update(camera, root, height) {
-    // Only the spacing follows the camera now; where the text sits does not.
-    return this.retick(camera, root, height);
+  update(camera, root, height, target) {
+    // The lit floor and the spacing follow the camera; the text does not.
+    return this.retick(camera, root, height, target);
   }
 
   /**
@@ -750,8 +791,9 @@ export class Axes {
       },
     };
     this.ink = theme.ink || this.ink;
-    this._colorGround();
-    this._colorGrid();
+    this.uniforms.uGround.value.copy(this.theme.ground);
+    this.uniforms.uBackground.value.copy(this.theme.background);
+    this.uniforms.uGrid.value.copy(this.theme.grid);
     this._buildAxes();
     // The text is baked into a texture, so a theme change redraws it.
     this._buildText();

@@ -153,6 +153,12 @@ export async function runSmoke(
   const { dirname } = await import('node:path')
   const { promises: fs } = await import('node:fs')
 
+  const look = process.env.SENSORVIEW_SMOKE_LOOK
+  const lookCase = process.env.SENSORVIEW_SMOKE_CASE
+  if (look && lookCase) {
+    return lookAt(lookCase, look, rendererHtml)
+  }
+
   allowRoot(dirname(media))
   const size = (await fs.stat(media)).size
   const url = mediaUrl(media)
@@ -636,7 +642,19 @@ export async function runSmoke(
                const deadline = Date.now() + 15000
                while (Date.now() < deadline) {
                  const after = document.getElementById('gl-stats').textContent
-                 if (after !== before) return { before: before, after: after }
+                 if (after !== before) {
+                   // Off again. The cloud is part of the case's view and now
+                   // survives a log switch, and seven thousand cloud points
+                   // round every later count to the same "7.6k" -- which hid
+                   // the 25 detections the hiding check takes away.
+                   flip(row)
+                   const off = Date.now() + 5000
+                   while (Date.now() < off
+                     && document.getElementById('gl-stats').textContent === after) {
+                     await new Promise(r => setTimeout(r, 100))
+                   }
+                   return { before: before, after: after }
+                 }
                  await new Promise(r => setTimeout(r, 200))
                }
                return { error: 'the cloud never reached the scene' }
@@ -979,7 +997,7 @@ export async function runSmoke(
           // both lose points. That they disagreed is what this is for.
           expect(
             views.after.scene < views.before.scene,
-            `hiding left the scene at ${views.after.scene}`
+            `hiding left the scene at ${views.after.scene} (was ${views.before.scene}; dock ${views.before.dock} -> ${views.after.dock}, ${views.rows} rows)`
           )
           expect(
             views.after.dock < views.before.dock,
@@ -2080,4 +2098,91 @@ export async function runSmoke(
 
   console.log(failed === 0 ? `\n${checks.length} checks passed` : `\n${failed} failed`)
   return failed
+}
+
+/**
+ * Open a case and photograph the scene, with no checks.
+ *
+ * For looking at what any case draws -- the checks above are written against
+ * the NuScenes case and fail before their own shot on anything else. Each
+ * entry of `SENSORVIEW_SMOKE_LOOK_STEPS` (comma-separated) is a camera preset
+ * id, optionally followed by `+N` or `-N` wheel ticks over the scene centre;
+ * one PNG is written per step, beside `out` with the step appended.
+ * `SENSORVIEW_SMOKE_LOOK_JS` is run in the page first (as an async function
+ * body) and its answer printed; `SENSORVIEW_SMOKE_LOOK_WIDTH` sets the window
+ * width.
+ *
+ * @param caseDir The case to open.
+ * @param out Where the first PNG goes; later ones get `-<step>` suffixes.
+ * @returns 0 once the shots are written, 1 if the scene never drew.
+ */
+async function lookAt(caseDir: string, out: string, rendererHtml: string): Promise<number> {
+  const { dirname: dirOf, join: joinPath } = await import('node:path')
+  const { writeFile } = await import('node:fs/promises')
+  const steps = (process.env.SENSORVIEW_SMOKE_LOOK_STEPS || 'iso').split(',')
+  const probe = new BrowserWindow({
+    show: true,
+    width: Number(process.env.SENSORVIEW_SMOKE_LOOK_WIDTH) || 1800,
+    height: 1000,
+    webPreferences: {
+      preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
+      contextIsolation: true,
+      sandbox: true,
+      backgroundThrottling: false
+    }
+  })
+  try {
+    process.env.SENSORVIEW_OPEN_CASE = caseDir
+    await probe.loadFile(rendererHtml)
+    const drew = await probe.webContents.executeJavaScript(
+      `(async () => {
+         const deadline = Date.now() + 30000
+         while (Date.now() < deadline) {
+           const stats = (document.getElementById('gl-stats') || {}).textContent || ''
+           const ticks = Number((document.getElementById('gl-stage') || {}).dataset?.tickLabels || 0)
+           if (/[1-9][0-9.]*k? pts/.test(stats) && ticks > 0) return stats
+           await new Promise(r => setTimeout(r, 200))
+         }
+         return null
+       })()`
+    )
+    if (!drew) {
+      console.error('  look: the scene never drew')
+      return 1
+    }
+    // Anything to do to the page first -- hide a panel, open a menu -- and
+    // what it answers, printed, for measuring what a shot shows.
+    const before = process.env.SENSORVIEW_SMOKE_LOOK_JS
+    if (before) {
+      const answer = await probe.webContents.executeJavaScript(`(async () => {${DRIVE}
+ ${before} })()`)
+      console.log(`  look: ${JSON.stringify(answer)}`)
+    }
+    for (const [index, step] of steps.entries()) {
+      const [, preset = 'iso', wheel = '0'] = /^([a-z]*)([+-]\d+)?$/.exec(step) ?? []
+      await probe.webContents.executeJavaScript(
+        `(async () => {
+           const button = Array.from(document.querySelectorAll('.sv-gl-preset'))
+             .find(b => (b.title || '').toLowerCase().includes(${JSON.stringify(preset)}))
+           if (button) button.click()
+           const canvas = document.getElementById('gl-canvas')
+           const box = canvas.getBoundingClientRect()
+           const ticks = ${Number(wheel)}
+           for (let i = 0; i < Math.abs(ticks); i++) {
+             canvas.dispatchEvent(new WheelEvent('wheel', {
+               deltaY: ticks > 0 ? 100 : -100, bubbles: true, cancelable: true,
+               clientX: box.left + box.width / 2, clientY: box.top + box.height / 2
+             }))
+           }
+           await new Promise(r => setTimeout(r, 800))
+         })()`
+      )
+      const path = index === 0 ? out : out.replace(/\.png$/i, '') + `-${step}.png`
+      await writeFile(path, (await probe.webContents.capturePage()).toPNG())
+      console.log(`  look: ${step} -> ${path}`)
+    }
+    return 0
+  } finally {
+    probe.destroy()
+  }
 }

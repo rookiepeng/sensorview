@@ -200,6 +200,8 @@ export function App() {
   const cloudDisplay = useStore((s) => s.cloudDisplay)
   const reference = useStore((s) => s.reference)
   const referenceBounds = useStore((s) => s.referenceBounds)
+  // The manifest's position columns, which the reference's pose is in.
+  const positionAxes = useStore((s) => s.summary?.axes)
 
   // Keeps the cloud in step with the frame. Nothing is returned: the read
   // lands in the store, which is what the payload below is built from.
@@ -255,6 +257,7 @@ export function App() {
               // just the detections: it is fixed for the log, and a pose
               // outside it would simply be clipped.
               refBounds: referenceBounds,
+              position: positionAxes,
               overlay,
               withHover: !playing
             })
@@ -325,7 +328,8 @@ export function App() {
     cloud,
     cloudDisplay,
     reference,
-    referenceBounds
+    referenceBounds,
+    positionAxes
   ])
 
   // A dragged size overrides the token the region already sizes itself from,

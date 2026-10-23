@@ -221,3 +221,18 @@ describe('rangeOf', () => {
     expect(rangeOf(table, 'NotAColumn')).toEqual([0, 0])
   })
 })
+
+describe('rangeOf with a mask', () => {
+  it('only counts the rows the mask keeps', () => {
+    const table = buildTable(
+      4,
+      [
+        { name: 'Frame', kind: 'number', values: Float64Array.from([0, 0, 1, 1]) },
+        { name: 'V', kind: 'number', values: Float64Array.from([-50, 2, 7, 25]) }
+      ],
+      'Frame'
+    )
+    expect(rangeOf(table, 'V')).toEqual([-50, 25])
+    expect(rangeOf(table, 'V', Uint8Array.from([0, 1, 1, 0]))).toEqual([2, 7])
+  })
+})

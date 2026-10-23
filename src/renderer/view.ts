@@ -97,6 +97,15 @@ export function useViewPersistence(): void {
     }
 
     const stop = useStore.subscribe((state) => {
+      // A different log opening. `openLog` resets the store, and this
+      // listener -- still the previous log's until React gets to the cleanup
+      // -- took that reset for a change of the user's: it overwrote the view
+      // held for the case with the defaults, which the next log then put
+      // back, and saved them over the stored view too. So switching logs
+      // reset the colour and the colormap. Not this log's state, not ours.
+      if (state.table !== table || state.dir !== dir) {
+        return
+      }
       const now = JSON.stringify(viewOf(state))
       if (now === last) {
         return

@@ -40,6 +40,11 @@ export interface BuildOptions {
    */
   refBounds?: Record<'x' | 'y' | 'z', [number, number]> | null
   /**
+   * The columns a reference pose is in: the manifest's `x_3d`/`y_3d`/`z_3d`.
+   * Missing fields fall back to `X`/`Y`/`Z`.
+   */
+  position?: { x: string | null; y: string | null; z: string | null }
+  /**
    * Draw every filtered row rather than one frame's.
    *
    * Overlay mode. The slider position still names the frame for the title
@@ -250,7 +255,13 @@ export function buildFrame(table: Table, position: number, options: BuildOptions
     z: padded(widened(axisRange(table, options, 'z'), options, 'z'))
   }
 
-  const cRange: [number, number] = numeric ? rangeOf(table, options.colour) : [0, 1]
+  // Over the rows the filters leave, across the whole log: the scale follows
+  // a filter change, but not the frame, so a colour means the same value as
+  // the slider moves. With every row filtered out there is nothing to fit,
+  // and the column's own range is a better colorbar than [0, 0].
+  const cRange: [number, number] = numeric
+    ? rangeOf(table, options.colour, mask.includes(1) ? mask : undefined)
+    : [0, 1]
 
   return {
     index: position,
@@ -288,14 +299,15 @@ function widened(
   axis: 'x' | 'y' | 'z'
 ): [number, number] {
   const bounds = options.refBounds?.[axis]
-  if (!bounds || options[axis] !== DEFAULT_POSITION[axis]) {
+  const position = options.position?.[axis] || DEFAULT_POSITION[axis]
+  if (!bounds || options[axis] !== position) {
     return range
   }
   return [Math.min(range[0], bounds[0]), Math.max(range[1], bounds[1])]
 }
 
 /**
- * The columns the reference's own x/y/z mean.
+ * The columns the reference's own x/y/z mean, when the manifest names none.
  *
  * A pose is in the log's position columns by definition, so widening an axis
  * by it only makes sense while that axis is showing one of them.

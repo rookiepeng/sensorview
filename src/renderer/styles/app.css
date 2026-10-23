@@ -683,6 +683,15 @@ body {
     right: calc(100% + var(--sv-handle-clear));
 }
 
+/* A tray hanging out into the gap sits at the gap's top corner, which is the
+   row the plate is centred in. A long log name widened the plate over it and
+   hid the way back to the panel, so while a tray hangs there the plate keeps
+   clear of both corners: the tray's width and the clearance either side.
+   Both sides, because the plate is centred. */
+.sv-hud-row:has([data-presence="cards"] > .sv-hud-col .sv-tray) .sv-topbar {
+    max-width: calc(100% - 2 * (34px + 2 * var(--sv-handle-clear)));
+}
+
 .sv-tray .sv-icon-btn {
     height: 26px;
     min-width: 26px;
@@ -2205,6 +2214,11 @@ input[type="range"] {
 .sv-select-value {
     flex: 1 1 auto;
     min-width: 0;
+    /* Its own line height, not the trigger's 1: with `overflow: hidden` for
+       the ellipsis, a line box exactly one em tall cut the descenders off --
+       the tail of the g in "RangeRate". The trigger's fixed height and its
+       centring keep the control the same size. */
+    line-height: 1.3;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

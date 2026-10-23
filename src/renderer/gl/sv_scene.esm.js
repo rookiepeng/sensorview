@@ -119,7 +119,7 @@ export function create(host, options = {}) {
       if (state.dirty || moving) {
         // The height is what the grid's spacing is chosen against: the step
         // is picked to cover a number of pixels, not a number of metres.
-        if (axes.update(camera, root, state.height || stage.clientHeight)) {
+        if (axes.update(camera, root, state.height || stage.clientHeight, controls.target)) {
           // Lines or labels changed; nothing else to do, it is drawn below.
         }
         renderer.render(scene, camera);
@@ -334,11 +334,72 @@ export function create(host, options = {}) {
     }
   }
 
+  /**
+   * Where the data on screen is, and how far it reaches.
+   *
+   * The box is the filter sliders' extent over the whole log, and for a radar
+   * that is set by a handful of far detections: hundreds of metres across,
+   * with the frame's points in one corner of it. Framing the box put the
+   * camera's target in empty space, so the data sat off to one side and slid
+   * away on every zoom. This is the live frame's own extent -- its points and
+   * the reference -- which is what a preset is asked to show.
+   *
+   * @returns {{centre: Vector3, radius: number} | null} In data units, or null
+   *     when the frame has nothing in it.
+   */
+  function dataFocus() {
+    const frame = state.frame;
+    if (!frame) {
+      return null;
+    }
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    const take = (position, count) => {
+      if (!position) {
+        return;
+      }
+      const n = Math.min(count ?? position.length / 3, position.length / 3);
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < 3; k++) {
+          const v = position[i * 3 + k];
+          if (Number.isFinite(v)) {
+            if (v < lo[k]) lo[k] = v;
+            if (v > hi[k]) hi[k] = v;
+          }
+        }
+      }
+    };
+    (frame.groups || []).forEach((group) => take(group.position, group.count));
+    if (frame.ref) {
+      take(frame.ref.mesh?.position);
+      take(frame.ref.marker?.position, frame.ref.marker?.count);
+    }
+    if (!(lo[0] <= hi[0])) {
+      return null;
+    }
+    const centre = new Vector3((lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2);
+    const radius = Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2;
+    return { centre, radius };
+  }
+
   function setPreset(id) {
     if (!state.distance) {
       return;
     }
-    const d = state.distance;
+    const tan = Math.tan((FOV / 2) * (Math.PI / 180));
+    const target = new Vector3(0, 0, 0);
+    let d = state.distance;
+    const focus = dataFocus();
+    if (focus) {
+      root.updateMatrixWorld();
+      target.copy(root.localToWorld(focus.centre.clone()));
+      // Fitted the way the box is, so the gap fitting in `frame` holds for
+      // it too. Floored so one point, or a frame of points stacked on one
+      // spot, does not put the camera inside them.
+      const reach = Math.max(focus.radius * root.scale.x, state.radius * 0.02, 1e-3);
+      d = (reach / tan) * FIT;
+      axes.setDataRadius(Math.max(focus.radius, 1e-6));
+    }
     const directions = {
       iso: EYE.clone(),
       top: new Vector3(0, 0, 1),
@@ -347,8 +408,8 @@ export function create(host, options = {}) {
     };
     const direction = (directions[id] || directions.iso).clone().normalize();
 
-    controls.target.set(0, 0, 0);
-    camera.position.copy(direction.multiplyScalar(d));
+    controls.target.copy(target);
+    camera.position.copy(direction.multiplyScalar(d).add(target));
     // A camera looking straight down a pole has an undefined roll; nudging the
     // up vector off the view axis is what keeps the top view from flipping.
     camera.up.set(0, 0, 1);

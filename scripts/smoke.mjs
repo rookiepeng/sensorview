@@ -10,6 +10,11 @@
 // --shot writes a PNG of the probe window once it has drawn the case, which
 // is the only way to look at the renderer without starting it by hand.
 //
+// --look <png> skips the checks: it opens --case, waits for the scene, and
+// writes one PNG per --steps entry (comma-separated camera preset ids, each
+// optionally followed by +N / -N wheel ticks, e.g. `iso,iso-5,top+3`). Works
+// on any case, where the checks assume the NuScenes one.
+//
 // --save-dir runs the exports, writing into that directory instead of asking
 // where to put them -- a native save dialog cannot be clicked from here.
 //
@@ -39,11 +44,13 @@ const flag = (name) => {
 const url = flag('--url')
 const caseDir = flag('--case')
 const shot = flag('--shot')
+const look = flag('--look')
+const lookSteps = flag('--steps')
 const saveDir = flag('--save-dir')
 const packaged = args.includes('--packaged')
 
 const consumed = new Set()
-for (const name of ['--url', '--case', '--shot', '--save-dir']) {
+for (const name of ['--url', '--case', '--shot', '--save-dir', '--look', '--steps']) {
   const at = args.indexOf(name)
   if (at !== -1) {
     consumed.add(at).add(at + 1)
@@ -81,6 +88,8 @@ const child = spawn(electron, packaged ? [] : ['.'], {
     ...(url ? { SENSORVIEW_SMOKE_URL: url } : {}),
     ...(caseDir ? { SENSORVIEW_SMOKE_CASE: resolve(caseDir) } : {}),
     ...(shot ? { SENSORVIEW_SMOKE_SHOT: resolve(shot) } : {}),
+    ...(look ? { SENSORVIEW_SMOKE_LOOK: resolve(look) } : {}),
+    ...(lookSteps ? { SENSORVIEW_SMOKE_LOOK_STEPS: lookSteps } : {}),
     ...(saveDir ? { SENSORVIEW_SMOKE_SAVE_DIR: resolve(saveDir) } : {})
   }
 })

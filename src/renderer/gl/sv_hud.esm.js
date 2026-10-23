@@ -191,9 +191,21 @@ export class Hud {
       this.gradient.style.background = `linear-gradient(to top, ${gradientStops(colormap)})`;
       this.colorbarLabel.textContent = frame.cLabel || "";
       this.ticks.innerHTML = "";
+      // One precision for all three, from the span: each rounded to four
+      // significant figures on its own put "-0.0007169" between 4.998 and -5.
+      const span = Math.abs(hi - lo);
+      const decimals = span > 0 && Number.isFinite(span)
+        ? Math.min(6, Math.max(0, 2 - Math.floor(Math.log10(span))))
+        : 2;
       [hi, (lo + hi) / 2, lo].forEach((value) => {
         const tick = div("sv-gl-colorbar-tick", this.ticks);
-        tick.textContent = Number.isFinite(value) ? String(Number(value.toPrecision(4))) : "";
+        if (!Number.isFinite(value)) {
+          tick.textContent = "";
+          return;
+        }
+        const text = value.toFixed(decimals);
+        // No "-0.00" for a midpoint that rounds to zero.
+        tick.textContent = Number(text) === 0 ? (0).toFixed(decimals) : text;
       });
     }
 

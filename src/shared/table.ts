@@ -370,12 +370,15 @@ export function levelsOf(table: Table, name: string): string[] {
 /**
  * Finite range of a numeric column.
  *
+ * @param mask Optional, one byte per row: only rows marked 1 count. How the
+ *     colour scale follows the filters -- its ends are the rows still shown,
+ *     not the whole log.
  * @returns `[min, max]`, or `[0, 0]` when the column has no finite value --
  *     numpy's `nanmin` raises on an all-NaN column and the Python guarded
  *     against it, so a column of nothing gets a degenerate range rather than
  *     taking the load down.
  */
-export function rangeOf(table: Table, name: string): [number, number] {
+export function rangeOf(table: Table, name: string, mask?: Uint8Array): [number, number] {
   const column = table.columns.get(name)
   if (!column || column.kind !== 'number') {
     return [0, 0]
@@ -384,6 +387,9 @@ export function rangeOf(table: Table, name: string): [number, number] {
   let min = Infinity
   let max = -Infinity
   for (let row = 0; row < column.values.length; row++) {
+    if (mask && mask[row] !== 1) {
+      continue
+    }
     const value = column.values[row]!
     if (Number.isFinite(value)) {
       if (value < min) {

@@ -101,7 +101,9 @@ export const BOUNDS = {
   // that width in state, and a resize is then a re-render that re-derives
   // the panel's constraints rather than a number nothing noticed change.
   rail: { min: 200, max: (width: number) => Math.min(480, width * 0.4) },
-  inspector: { min: 280, max: (width: number) => Math.min(760, width * 0.5) },
+  // Wide enough for the curve plots to be read side by side with the scene
+  // still in view; the gap keeps its own floor (`minSize` on its panel).
+  inspector: { min: 280, max: (width: number) => Math.min(1400, width * 0.65) },
   // The dock's ceiling is `maxSize="65"` on its panel -- a share of the gap
   // it sits in, which is what this used to measure the gap to work out.
   dock: { min: 218 }
