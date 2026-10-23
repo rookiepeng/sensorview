@@ -185,6 +185,21 @@ export function create(host, options = {}) {
     canvas = document.createElement("canvas");
     canvas.id = "gl-canvas";
     host.append(canvas);
+    // The panel splitters take presses up to a few pixels either side of the
+    // handle, from a document-level capture listener that marks the press as
+    // handled but lets it travel on. Without this the canvas beside a handle
+    // got the same press, and a column resize turned into an orbit as well.
+    // Registered first and in the capture phase, so it runs before the
+    // orbit controls and the picker see the event.
+    canvas.addEventListener(
+      "pointerdown",
+      (event) => {
+        if (event.defaultPrevented) {
+          event.stopImmediatePropagation();
+        }
+      },
+      true,
+    );
     // Remembered so dispose can take back exactly what mount added. React's
     // StrictMode mounts twice in development, so a dispose that misses one of
     // these leaves an orphan behind -- and `getElementById` then answers with
