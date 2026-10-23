@@ -35,7 +35,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "26.6.5",
-    "@types/plotly.js": "^3.0.6",
+    "@types/plotly.js": "^3.0.15",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@types/three": "^0.180.0",
