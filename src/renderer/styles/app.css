@@ -1735,6 +1735,19 @@ body {
     display: none;
 }
 
+/* ── A case on its way ───────────────────────────────────────────────────
+   Open, but not yet shown: the inspector has not said whether it has a
+   column, and drawing the case before it does means drawing it twice. Only
+   the "Opening ..." plate shows meanwhile. Visibility rather than display, so
+   the panels still lay out and the scene still sizes itself underneath. */
+.sv-settling > * {
+    visibility: hidden;
+}
+
+.sv-settling .sv-welcome {
+    visibility: visible;
+}
+
 /* ── Loading overlays ────────────────────────────────────────────────── */
 @keyframes sv-loading-fade-in {
     to {

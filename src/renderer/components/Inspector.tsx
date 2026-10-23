@@ -26,7 +26,7 @@ import {
 } from 'react-resizable-panels'
 import { CurvePanel, growYRanges } from './CurvePanel'
 import { pixelsOf, useLayout, type Presence } from '../layout'
-import { useStore } from '../store'
+import { caseKey, useStore } from '../store'
 import { useTheme } from '../useTheme'
 
 /**
@@ -49,6 +49,14 @@ export function Inspector({
   const ownerSets = useStore((s) => s.ownerSets)
   const table = useStore((s) => s.table)
   const frame = useStore((s) => s.frame)
+  const setSettled = useStore((s) => s.setSettled)
+  // Which logs each startup read has answered for, so the shell knows when
+  // this column's shape is final -- see `useSettling`. A failed read counts:
+  // it is shown as a note, which is a shape too.
+  const key = caseKey(dir, stems)
+  const [streamsFor, setStreamsFor] = useState<string | null>(null)
+  const [sourcesFor, setSourcesFor] = useState<string | null>(null)
+  const [curvesFor, setCurvesFor] = useState<string | null>(null)
 
   const [streams, setStreams] = useState<Record<string, ImageStream[]>>({})
   const [sources, setSources] = useState<Array<{ id: string; label: string }>>([])
@@ -113,6 +121,7 @@ export function Inspector({
       if (current) {
         setStreams(Object.fromEntries(pairs))
         setFailed((was) => ({ ...was, camera: problems[0] }))
+        setStreamsFor(caseKey(dir, stems))
       }
     })
     return () => {
@@ -140,6 +149,7 @@ export function Inspector({
           setSources(result.data)
           setSource(result.data[0]?.id ?? null)
         }
+        setSourcesFor(caseKey(dir, stems))
         setFailed((was) => ({
           ...was,
           curves: result.ok ? undefined : (result.error ?? 'could not list the curve sources')
@@ -200,6 +210,7 @@ export function Inspector({
       setPlots(all)
       setYRanges((ranges) => growYRanges(ranges, all))
       setFailed((was) => ({ ...was, curves: trouble[0] ?? was.curves }))
+      setCurvesFor(`${caseKey(dir, stems)}\n${source ?? ''}`)
     })
     return () => {
       // Scrubbing starts a read per position; only the newest may land.
@@ -296,6 +307,21 @@ export function Inspector({
   useEffect(() => {
     onPresence?.(presence)
   }, [presence, onPresence])
+
+  // Settled once the recordings and the curve sources are known, and the
+  // first sensor's curves have been read. With no sources there are no
+  // curves to wait for. Nothing open has nothing to wait for either.
+  const settled =
+    !dir ||
+    stems.length === 0 ||
+    (streamsFor === key &&
+      sourcesFor === key &&
+      (sources.length === 0 || curvesFor === `${key}\n${source ?? ''}`))
+  useEffect(() => {
+    if (settled) {
+      setSettled(key)
+    }
+  }, [settled, key, setSettled])
 
   if (clips.length === 0 && plots.length === 0 && !broken) {
     return null

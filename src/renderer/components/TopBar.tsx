@@ -18,7 +18,7 @@ import { ExportMenu } from './ExportMenu'
 import { IconButton } from './Controls'
 import { Welcome, nameOf } from './Welcome'
 import { nextFrames } from '../busy'
-import { useStore } from '../store'
+import { useSettling, useStore } from '../store'
 import logo from '../assets/logo.svg'
 
 export function TopBar() {
@@ -31,6 +31,8 @@ export function TopBar() {
   const summary = useStore((s) => s.summary)
   const setSummary = useStore((s) => s.setSummary)
   const frameCount = useStore((s) => s.frameCount)
+  // A case that is open but not yet shown keeps the "Opening ..." plate.
+  const settling = useSettling()
   const setLoading = useStore((s) => s.setLoading)
   const [theme, setTheme] = useState('dark')
   const [error, setError] = useState<string | null>(null)
@@ -249,10 +251,10 @@ export function TopBar() {
       {/* The window with nothing in it, which is a first run or a case that
           has been moved. Rendered from here because opening one is this
           component's job, not because it belongs in the bar. */}
-      {frameCount === 0 && (
+      {(frameCount === 0 || settling) && (
         <Welcome
           recent={recent}
-          busy={busy}
+          busy={busy || settling}
           opening={opening}
           onOpen={() => void choose()}
           onPick={(dir) => void load(dir)}

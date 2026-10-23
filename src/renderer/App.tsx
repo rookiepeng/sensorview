@@ -48,7 +48,7 @@ import { useHotkeys } from './useHotkeys'
 import { useReference } from './useReference'
 import { fixtureFrame } from './fixture'
 import type { ScenePayload } from './frame'
-import { useStore } from './store'
+import { caseKey, useSettling, useStore } from './store'
 import { useTheme } from './useTheme'
 import { parseColor } from '@gl/sv_color.esm.js'
 
@@ -121,6 +121,9 @@ function remember(
  * inline token a drag left behind. Nothing writes that token now.
  */
 const DOCK_TABS_H = 38
+
+/** The longest a newly opened case is kept hidden waiting for its inspector. */
+const REVEAL_CAP_MS = 3000
 
 export function App() {
   const frame = useStore((s) => s.frame)
@@ -223,6 +226,37 @@ export function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('sv-no-case', frameCount === 0)
   }, [frameCount])
+
+  // A newly opened case stays hidden behind the "Opening ..." plate until the
+  // inspector knows its shape, then is shown two frames later, once the
+  // panels have been laid out for it and the column put back to its stored
+  // width. Otherwise the first frame of a case is drawn without its
+  // inspector and everything shifts when the column arrives. Capped, so a
+  // slow read -- a recording being transcoded -- cannot hold the case back.
+  const settling = useSettling()
+  const dir = useStore((s) => s.dir)
+  const stems = useStore((s) => s.stems)
+  const settledFor = useStore((s) => s.settledFor)
+  const setRevealed = useStore((s) => s.setRevealed)
+  useEffect(() => {
+    if (!settling) {
+      return
+    }
+    const key = caseKey(dir, stems)
+    const cap = setTimeout(() => setRevealed(key), REVEAL_CAP_MS)
+    let second = 0
+    const first =
+      settledFor === key
+        ? requestAnimationFrame(() => {
+            second = requestAnimationFrame(() => setRevealed(key))
+          })
+        : 0
+    return () => {
+      clearTimeout(cap)
+      cancelAnimationFrame(first)
+      cancelAnimationFrame(second)
+    }
+  }, [settling, settledFor, dir, stems, setRevealed])
 
   // Browser mode has no readers behind it, so it starts on the fixture. In
   // Electron the top bar's breadcrumb opens a real case.
@@ -407,7 +441,7 @@ export function App() {
   inspectorPresenceNow.current = inspectorPresence
 
   return (
-    <div className="sv-shell">
+    <div className={settling ? 'sv-shell sv-settling' : 'sv-shell'}>
       {/* No handler at all when the toggle is off, so a click reaches the
           picker and does nothing rather than being read and discarded. */}
       <GlStage

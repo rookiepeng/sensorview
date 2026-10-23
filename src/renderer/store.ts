@@ -137,12 +137,23 @@ export interface CaseState {
    * old log still on it looks like it ignored the click.
    */
   loading: string | null
+  /**
+   * The open logs whose inspector reads have all come back, as a
+   * `caseKey`. Until they have, whether the inspector column exists at all
+   * is unknown, and showing the case would draw it full width and then
+   * shift everything over when the column arrives.
+   */
+  settledFor: string | null
+  /** The open logs now on screen, as a `caseKey`. See `useSettling`. */
+  revealedFor: string | null
 }
 
 export interface Actions {
   openCase(dir: string, frameCount: number): void
   setSummary(summary: CaseSummary | null): void
   setLoading(loading: string | null): void
+  setSettled(key: string | null): void
+  setRevealed(key: string | null): void
   openLog(payload: {
     dir: string
     stem: string
@@ -210,7 +221,9 @@ const initial: CaseState = {
   visibleRev: 0,
   clickToHide: false,
   payload: null,
-  loading: null
+  loading: null,
+  settledFor: null,
+  revealedFor: null
 }
 
 export const useStore = create<CaseState & Actions>((set) => ({
@@ -221,6 +234,8 @@ export const useStore = create<CaseState & Actions>((set) => ({
   setSummary: (summary) => set({ summary }),
 
   setLoading: (loading) => set({ loading }),
+  setSettled: (settledFor) => set({ settledFor }),
+  setRevealed: (revealedFor) => set({ revealedFor }),
 
   openLog: ({ dir, stem, stems, ownerSets, table, keys, axes, cloudDisplay }) =>
     set((s) => ({
@@ -403,4 +418,25 @@ function mark(
     hiddenCount: state.hiddenCount + (to === 1 ? moved : -moved),
     visibleRev: state.visibleRev + 1
   }
+}
+
+/** Which logs are open, as one comparable string. */
+export function caseKey(dir: string | null, stems: readonly string[]): string {
+  return `${dir ?? ''}\n${stems.join('\n')}`
+}
+
+/**
+ * True while a case is open but not yet shown.
+ *
+ * Opening a log is followed by the inspector's own reads, and only once
+ * those land is it known whether there is an inspector column. The shell
+ * stays hidden behind the "Opening ..." plate until then, so the first
+ * layout anyone sees is the final one. Derived from the store in the same
+ * render the case changes in, so there is no frame in which a new case is
+ * marked as shown.
+ */
+export function useSettling(): boolean {
+  return useStore(
+    (s) => s.frameCount > 0 && s.revealedFor !== caseKey(s.dir, s.stems)
+  )
 }
