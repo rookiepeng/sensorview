@@ -80,9 +80,32 @@ const DRIVE = `
                  Object.getOwnPropertyDescriptor(proto, 'value')
                    .set.call(el, String(value))
                }
-               const setSelectValue = (el, value) => {
-                 setNativeValue(window.HTMLSelectElement.prototype, el, value)
-                 el.dispatchEvent(new Event('change', { bubbles: true }))
+               // A picker is a Radix select: a trigger button carrying the
+               // current value as 'data-value', and a list of
+               // role=option items that exists only while it is open.
+               const selectIn = (root) => root.querySelector('.sv-select')
+               const escape = () => (document.activeElement || document.body)
+                 .dispatchEvent(new KeyboardEvent('keydown', {
+                   key: 'Escape', bubbles: true, cancelable: true
+                 }))
+               const openOptions = async (trigger) => {
+                 press(trigger)
+                 await frames(3)
+                 return Array.from(document.querySelectorAll('[role="option"]'))
+               }
+               const optionsOf = async (trigger) => {
+                 const values = (await openOptions(trigger)).map(o => o.dataset.value)
+                 escape()
+                 await frames(3)
+                 return values
+               }
+               const setSelectValue = async (trigger, value) => {
+                 if (!trigger || trigger.dataset.value === String(value)) return
+                 const item = (await openOptions(trigger))
+                   .find(o => o.dataset.value === String(value))
+                 if (item) press(item)
+                 else escape()
+                 await frames(3)
                }
                const setRangeValue = (el, value) => {
                  setNativeValue(window.HTMLInputElement.prototype, el, value)
@@ -97,8 +120,16 @@ const DRIVE = `
                    .find(r => (r.textContent || '').indexOf(text) !== -1)
                // Both of these also take a '.sv-menu-combine' row, which
                // carries its checkbox the same way.
-               const isOn = (row) => row.querySelector('input').checked
-               const flip = (row) => press(row.querySelector('input'))
+               // A rail toggle is a Radix 'role=switch' button; a combine
+               // row still holds a native checkbox.
+               const isOn = (row) => {
+                 const toggle = row.querySelector('[role="switch"]')
+                 return toggle
+                   ? toggle.getAttribute('aria-checked') === 'true'
+                   : row.querySelector('input').checked
+               }
+               const flip = (row) =>
+                 press(row.querySelector('[role="switch"]') || row.querySelector('input'))
 `
 
 /**
@@ -634,7 +665,7 @@ export async function runSmoke(
                // The name is a button inside the row now: the row also
                // carries the combine checkbox, and clicking it must not be
                // the same thing as opening the log alone.
-               const items = Array.from(document.querySelectorAll('.sv-breadcrumb .sv-menu-open'))
+               const items = Array.from(document.querySelectorAll('[data-sv-menu="logs"] .sv-menu-open'))
                if (items.length < 2) return { error: 'the picker listed ' + items.length + ' logs' }
                const other = items.find(i => i.textContent.indexOf(was) === -1)
                if (!other) return { error: 'every entry is the open log' }
@@ -724,16 +755,15 @@ export async function runSmoke(
                  }
                  return null
                }
-               const picker = document.querySelector('.sv-slot-picker select')
+               const picker = document.querySelector('.sv-slot-picker .sv-select')
                if (!picker) return { error: 'no dock' }
-               const views = Array.from(picker.options)
-                 .map(o => o.value)
-                 .filter(v => v.length > 0)
+               const views = (await optionsOf(picker))
+                 .filter(v => v && v.length > 0)
 
                const drawn = {}
                for (const view of views) {
                  const started = performance.now()
-                 setSelectValue(picker, view)
+                 await setSelectValue(picker, view)
                  const pane = await settle()
                  const took = Math.round(performance.now() - started)
                  if (!pane) return { error: 'the ' + view + ' view drew nothing' }
@@ -819,7 +849,7 @@ export async function runSmoke(
                const pick = (label) => Array.from(document.querySelectorAll('.sv-pane-field'))
                  .find(f => (f.textContent || '').indexOf(label) === 0)
                const setSelect = (field, value) =>
-                 setSelectValue(field.querySelector('select'), value)
+                 setSelectValue(selectIn(field), value)
 
                const out = {}
                const rail = document.querySelector('.sv-rail')
@@ -841,9 +871,9 @@ export async function runSmoke(
 
                // Both slots on a scatter, so the agreement below has two
                // views to agree between.
-               const slots = Array.from(document.querySelectorAll('.sv-slot-picker select'))
+               const slots = Array.from(document.querySelectorAll('.sv-slot-picker .sv-select'))
                for (const slot of slots) {
-                 setSelectValue(slot, 'scatter')
+                 await setSelectValue(slot, 'scatter')
                }
                await settle(1200)
 
@@ -852,10 +882,10 @@ export async function runSmoke(
                const scope = pick('FRAMES') || pick('Frames')
                if (!scope) return { error: 'no frame-scope picker on the scatter' }
                out.scopeCurrent = marks()
-               setSelect(scope, 'all')
+               await setSelect(scope, 'all')
                await settle(1500)
                out.scopeAll = marks()
-               setSelect(scope, 'current')
+               await setSelect(scope, 'current')
                await settle(1200)
 
                // The toolbar, which is how a selection is started at all.
@@ -992,7 +1022,7 @@ export async function runSmoke(
                const openMenu = async () => {
                  const buttons = Array.from(document.querySelectorAll('.sv-crumb-btn'))
                  const picker = buttons[buttons.length - 1]
-                 if (!document.querySelector('.sv-breadcrumb .sv-menu')) {
+                 if (!document.querySelector('[data-sv-menu="logs"]')) {
                    press(picker)
                    await new Promise(r => setTimeout(r, 200))
                  }
@@ -1117,11 +1147,11 @@ export async function runSmoke(
                  const openMenu = async () => {
                    const button = document.querySelector('.sv-export .sv-icon-btn')
                    if (!button) return null
-                   if (!document.querySelector('.sv-export .sv-menu')) {
+                   if (!document.querySelector('[data-sv-menu="export"]')) {
                      press(button)
                      await new Promise(r => setTimeout(r, 200))
                    }
-                   return Array.from(document.querySelectorAll('.sv-export .sv-menu-item'))
+                   return Array.from(document.querySelectorAll('[data-sv-menu="export"] .sv-menu-item'))
                  }
                  const items = await openMenu()
                  if (!items || items.length === 0) return { error: 'no export menu' }
@@ -1251,15 +1281,15 @@ export async function runSmoke(
               `(async () => {${DRIVE}
                  const off = document.querySelector('.sv-filter .sv-chip:not(.sv-chip-on)')
                  if (off) press(off)
-                 const pickers = Array.from(document.querySelectorAll('.sv-slot-picker select'))
+                 const pickers = Array.from(document.querySelectorAll('.sv-slot-picker .sv-select'))
                  // One pane is a legitimate state: the dock drops to it
                  // when the gap between the overlays is too narrow for two.
-                 const choose = (at, view) => {
+                 const choose = async (at, view) => {
                    if (!pickers[at]) return
-                   setSelectValue(pickers[at], view)
+                   await setSelectValue(pickers[at], view)
                  }
-                 choose(0, 'scatter')
-                 choose(1, 'heatmap')
+                 await choose(0, 'scatter')
+                 await choose(1, 'heatmap')
                  // The column config open, since that is the new surface.
                  const config = document.querySelector('.sv-topbar-menu .sv-icon-btn')
                  if (config) press(config)
@@ -1280,7 +1310,7 @@ export async function runSmoke(
           const menus = await probe.webContents.executeJavaScript(
             `(async () => {${DRIVE}
                const wait = (ms) => new Promise(r => setTimeout(r, ms))
-               const shown = () => !!document.querySelector('.sv-breadcrumb .sv-menu')
+               const shown = () => !!document.querySelector('[data-sv-menu="logs"]')
                const key = (name) => {
                  const el = document.activeElement || document.body
                  el.dispatchEvent(new KeyboardEvent('keydown', {
@@ -1931,7 +1961,7 @@ export async function runSmoke(
                  // The restore is a round trip of its own, after the case has
                  // loaded, so a crumb is not yet an answer.
                  if (crumb && crumb.textContent && colormap
-                     && colormap.querySelector('select').value === 'Jet') {
+                     && selectIn(colormap) && selectIn(colormap).dataset.value === 'Jet') {
                    break
                  }
                  await new Promise(r => setTimeout(r, 250))
@@ -1945,11 +1975,11 @@ export async function runSmoke(
                const click = switchRow(document.querySelector('.sv-rail'), 'Click a point')
                return {
                  crumb: crumb ? crumb.textContent : null,
-                 colormap: colormap ? colormap.querySelector('select').value : null,
+                 colormap: colormap && selectIn(colormap) ? selectIn(colormap).dataset.value : null,
                  decay: decay ? decay.querySelector('input').value : null,
                  clickToHide: click ? isOn(click) : null,
-                 slots: Array.from(document.querySelectorAll('.sv-slot-picker select'))
-                   .map(s => s.value),
+                 slots: Array.from(document.querySelectorAll('.sv-slot-picker .sv-select'))
+                   .map(s => s.dataset.value),
                  storedLayout: await (async () => {
                    const read = await window.sensorview.settings.get()
                    return read.ok ? JSON.stringify(read.data.layout) : read.error

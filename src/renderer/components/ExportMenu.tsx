@@ -262,13 +262,17 @@ export function ExportMenu() {
           </span>
         )}
 
-        {/* Not portalled: `smoke.ts` finds this through `.sv-export .sv-menu`,
-            and a portal would move it to the body and out of that reach. */}
+        {/* Portalled, so the glass top bar is not its containing block and
+            Radix can keep it inside the window. `smoke.ts` finds it by
+            `data-sv-menu`. */}
+        <DropdownMenu.Portal>
         <DropdownMenu.Content
           className="sv-menu"
+          data-sv-menu="export"
           side="bottom"
           align="end"
           sideOffset={5}
+          collisionPadding={8}
         >
           <Item
             label="Table as CSV"
@@ -289,6 +293,7 @@ export function ExportMenu() {
           />
           <Item label="Animation" hint="every frame, as video" onSelect={exportAnimation} />
         </DropdownMenu.Content>
+        </DropdownMenu.Portal>
       </div>
     </DropdownMenu.Root>
   )

@@ -12,6 +12,7 @@
 // them by index. Keep the markup these emit as it was.
 
 import type { ReactNode } from 'react'
+import { Select as RadixSelect, Switch as RadixSwitch } from 'radix-ui'
 
 /** A bootstrap-icons name without the `bi-` prefix, e.g. `chevron-down`. */
 type Icon = string
@@ -173,25 +174,130 @@ export function Group({
   )
 }
 
+/**
+ * An on/off setting, drawn as a toggle switch.
+ *
+ * The `<label>` wraps both the switch and its words, so clicking the words
+ * flips it and the words name it. Radix's switch is a `button role=switch`,
+ * which `smoke.ts` reads by `aria-checked`.
+ */
 export function Switch({
   checked,
   onChange,
-  children
+  children,
+  disabled
 }: {
   checked: boolean
   onChange: (checked: boolean) => void
-  /** The label. Wrapped by the `<label>`, so it names the input. */
+  /** The label. Wrapped by the `<label>`, so it names the switch. */
   children: ReactNode
+  disabled?: boolean
 }) {
   return (
-    <label className="sv-switch-row">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+    <label className={`sv-switch-row${disabled ? ' sv-field-off' : ''}`}>
+      <RadixSwitch.Root
+        className="sv-switch"
+        checked={checked}
+        disabled={disabled}
+        onCheckedChange={onChange}
+      >
+        <RadixSwitch.Thumb className="sv-switch-thumb" />
+      </RadixSwitch.Root>
       <span>{children}</span>
     </label>
   )
 }
 
 export type Choice = string | { value: string; label: string }
+
+/**
+ * Radix reserves the empty string for "nothing chosen", and several pickers
+ * use it for "all". This stands in for it inside the select only.
+ */
+const EMPTY = '__sv_empty__'
+const encode = (value: string) => (value === '' ? EMPTY : value)
+const decode = (value: string) => (value === EMPTY ? '' : value)
+
+/**
+ * A themed dropdown select with no label of its own.
+ *
+ * The list is portalled to the body and kept inside the window, rather than
+ * being the OS popup a native `<select>` opens -- which used the system font
+ * and highlight, and could hang outside the app window.
+ *
+ * The trigger and every item carry `data-value`, which is how `smoke.ts`
+ * reads and drives them.
+ */
+export function SelectMenu({
+  value,
+  choices,
+  onChange,
+  disabled = false,
+  label,
+  title,
+  className
+}: {
+  value: string
+  choices: readonly Choice[]
+  onChange: (value: string) => void
+  disabled?: boolean
+  /** The accessible name, when no `<label>` wraps this. */
+  label?: string
+  title?: string
+  className?: string
+}) {
+  const items = choices.map((choice) =>
+    typeof choice === 'string' ? { value: choice, label: choice } : choice
+  )
+  const shown = items.find((item) => item.value === value)?.label ?? value
+  return (
+    <RadixSelect.Root
+      value={encode(value)}
+      disabled={disabled}
+      onValueChange={(next) => onChange(decode(next))}
+    >
+      <RadixSelect.Trigger
+        className={className ? `sv-select ${className}` : 'sv-select'}
+        aria-label={label}
+        title={title ?? shown}
+        data-value={value}
+      >
+        <span className="sv-select-value">
+          <RadixSelect.Value>{shown}</RadixSelect.Value>
+        </span>
+        <RadixSelect.Icon asChild>
+          <i className="bi bi-chevron-down sv-select-caret" aria-hidden="true" />
+        </RadixSelect.Icon>
+      </RadixSelect.Trigger>
+      <RadixSelect.Portal>
+        <RadixSelect.Content
+          className="sv-menu sv-select-menu"
+          position="popper"
+          side="bottom"
+          align="start"
+          sideOffset={4}
+          collisionPadding={8}
+        >
+          <RadixSelect.Viewport className="sv-select-viewport">
+            {items.map((item) => (
+              <RadixSelect.Item
+                key={item.value}
+                value={encode(item.value)}
+                className="sv-menu-item sv-select-item"
+                data-value={item.value}
+              >
+                <RadixSelect.ItemText>{item.label}</RadixSelect.ItemText>
+                <RadixSelect.ItemIndicator className="sv-menu-check">
+                  <i className="bi bi-check2" aria-hidden="true" />
+                </RadixSelect.ItemIndicator>
+              </RadixSelect.Item>
+            ))}
+          </RadixSelect.Viewport>
+        </RadixSelect.Content>
+      </RadixSelect.Portal>
+    </RadixSelect.Root>
+  )
+}
 
 /**
  * A select with a label that names it.
@@ -221,23 +327,9 @@ export function Picker({
   return (
     <label className={`${className}${disabled ? ' sv-field-off' : ''}`}>
       <span className="sv-section-label">{label}</span>
-      <select
-        value={value}
-        disabled={disabled}
-        // A picker in a dock pane is as narrow as the strip can make it, so
-        // a long column name is clipped. The tooltip is the whole value.
-        title={value}
-        onChange={(event) => onChange(event.target.value)}
-      >
-        {choices.map((choice) => {
-          const [key, text] = typeof choice === 'string' ? [choice, choice] : [choice.value, choice.label]
-          return (
-            <option key={key} value={key}>
-              {text}
-            </option>
-          )
-        })}
-      </select>
+      {/* A picker in a dock pane is as narrow as the strip can make it, so a
+          long column name is clipped. The tooltip is the whole value. */}
+      <SelectMenu value={value} choices={choices} onChange={onChange} disabled={disabled} />
       {hint && <span className="sv-field-value">{hint}</span>}
     </label>
   )

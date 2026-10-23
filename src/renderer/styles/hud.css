@@ -158,10 +158,6 @@
     background: transparent;
 }
 
-.sv-splitter:hover {
-    background: color-mix(in srgb, var(--sv-accent) 50%, transparent);
-}
-
 /* ── HUD furniture ───────────────────────────────────────────────────────── */
 
 /* Built by assets/gl/sv_hud.esm.js out of the frame the renderer already
@@ -190,7 +186,7 @@
     width: 26px;
     height: 26px;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--sv-radius-sm);
     background: transparent;
     color: var(--sv-text-dim);
     line-height: 1;
@@ -226,7 +222,7 @@
 .sv-gl-colorbar-gradient {
     width: 12px;
     border: 1px solid var(--sv-border);
-    border-radius: 3px;
+    border-radius: var(--sv-radius-sm);
 }
 
 .sv-gl-colorbar-ticks {
@@ -252,7 +248,7 @@
     align-items: center;
     gap: 7px;
     padding: 2px 3px;
-    border-radius: 3px;
+    border-radius: var(--sv-radius-sm);
     cursor: pointer;
     transition: background var(--sv-ease), opacity var(--sv-ease);
 }
@@ -275,7 +271,7 @@
     flex: none;
     width: 10px;
     height: 10px;
-    border-radius: 2px;
+    border-radius: var(--sv-radius-xs);
 }
 
 .sv-gl-legend-name {

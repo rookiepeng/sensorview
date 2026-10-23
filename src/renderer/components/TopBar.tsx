@@ -17,6 +17,7 @@ import { ExportMenu } from './ExportMenu'
 import { IconButton } from './Controls'
 import { Welcome } from './Welcome'
 import { useStore } from '../store'
+import logo from '../assets/logo.svg'
 
 export function TopBar() {
   const dir = useStore((s) => s.dir)
@@ -240,6 +241,8 @@ export function TopBar() {
       )}
       <header className="sv-topbar">
         <div className="sv-brand">
+          {/* Decorative: the name beside it already says what it is. */}
+          <img className="sv-brand-logo" src={logo} alt="" draggable={false} />
           <span className="sv-brand-name">SensorView</span>
         </div>
 
@@ -301,10 +304,19 @@ export function TopBar() {
           </button>
           </DropdownMenu.Trigger>
 
-          {/* Not portalled: `smoke.ts` reaches this through
-              `.sv-breadcrumb .sv-menu`. */}
+          {/* Portalled, so the glass top bar is not its containing block and
+              Radix can keep it inside the window. `smoke.ts` finds it by
+              `data-sv-menu`. */}
           {summary && (
-            <DropdownMenu.Content className="sv-menu" side="bottom" align="start" sideOffset={5}>
+            <DropdownMenu.Portal>
+            <DropdownMenu.Content
+              className="sv-menu"
+              data-sv-menu="logs"
+              side="bottom"
+              align="start"
+              sideOffset={5}
+              collisionPadding={8}
+            >
               {logs.map((log) => {
                 const at = stems.indexOf(log.stem)
                 const open = at !== -1
@@ -398,6 +410,7 @@ export function TopBar() {
                 )
               })}
             </DropdownMenu.Content>
+            </DropdownMenu.Portal>
           )}
         </div>
         </DropdownMenu.Root>

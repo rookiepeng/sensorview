@@ -17,7 +17,7 @@ import { positionsOf, stemRuns } from '@shared/logs'
 import type { CurvePlot, ImageStream } from '@shared/types'
 
 import { CameraPanel, type ClipSource } from './CameraPanel'
-import { Group, IconButton } from './Controls'
+import { Group, IconButton, SelectMenu } from './Controls'
 import {
   Group as Panes,
   Panel,
@@ -388,18 +388,15 @@ export function Inspector({
                     a row of ellipses. */}
                 {streamChoices.length > 1 && (
                   <div className="sv-group-controls">
-                    <select
+                    <SelectMenu
                       value={oneStream}
-                      aria-label="Camera stream"
-                      onChange={(event) => setOneStream(event.target.value)}
-                    >
-                      <option value="">All streams</option>
-                      {streamChoices.map(([id, label]) => (
-                        <option key={id} value={id}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                      label="Camera stream"
+                      choices={[
+                        { value: '', label: 'All streams' },
+                        ...streamChoices.map(([id, label]) => ({ value: id, label }))
+                      ]}
+                      onChange={setOneStream}
+                    />
                   </div>
                 )}
                 <CameraPanel clips={clips} />
@@ -443,33 +440,25 @@ export function Inspector({
                 {(plotChoices.length > 1 || sources.length > 1) && (
                   <div className="sv-group-controls">
                     {plotChoices.length > 1 && (
-                      <select
+                      <SelectMenu
                         value={onePlot}
-                        aria-label="Curve plot"
-                        onChange={(event) => setOnePlot(event.target.value)}
-                      >
-                        <option value="">All plots</option>
-                        {plotChoices.map(([id, label]) => (
-                          <option key={id} value={id}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
+                        label="Curve plot"
+                        choices={[
+                          { value: '', label: 'All plots' },
+                          ...plotChoices.map(([id, label]) => ({ value: id, label }))
+                        ]}
+                        onChange={setOnePlot}
+                      />
                     )}
                     {/* Only when there is a choice: one sidecar needs no picker,
                         and a select with a single option is furniture. */}
                     {sources.length > 1 && (
-                      <select
+                      <SelectMenu
                         value={source ?? ''}
-                        aria-label="Curve source"
-                        onChange={(event) => setSource(event.target.value)}
-                      >
-                        {sources.map((entry) => (
-                          <option key={entry.id} value={entry.id}>
-                            {entry.label}
-                          </option>
-                        ))}
-                      </select>
+                        label="Curve source"
+                        choices={sources.map((entry) => ({ value: entry.id, label: entry.label }))}
+                        onChange={setSource}
+                      />
                     )}
                   </div>
                 )}

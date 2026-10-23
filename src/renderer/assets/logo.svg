@@ -1,0 +1,156 @@
+<svg
+   width="512"
+   height="512"
+   viewBox="0 0 512 512"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:2.33549"
+       width="512"
+       height="512"
+       x="0"
+       y="-3.6379787e-14"
+       rx="32" />
+    <g
+       transform="matrix(2.3269869,0,0,2.3269869,33.214515,23.982377)">
+      <g
+         transform="matrix(1.438112,0,0,1.438112,-4.6420388,-112.29088)">
+        <circle
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583"
+           cx="84.66391"
+           cy="137.9259"
+           r="5.0781207" />
+        <circle
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583"
+           cx="25.434448"
+           cy="157.01537"
+           r="5.0781207" />
+        <circle
+           transform="scale(-1,1)"
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583"
+           cx="-69.911903"
+           cy="128.38116"
+           r="5.0781207" />
+        <circle
+           transform="scale(-1,1)"
+           r="5.0781207"
+           cy="147.47063"
+           cx="-40.407883"
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           transform="scale(-1,1)"
+           r="5.0781207"
+           cy="137.9259"
+           cx="-55.159897"
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="176.10483"
+           cx="54.938465"
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="166.5601"
+           cx="40.186455"
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="185.64957"
+           cx="69.690483"
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="157.01537"
+           cx="-114.16794"
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583"
+           transform="scale(-1,1)" />
+        <circle
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583"
+           cx="-84.663918"
+           cy="176.10483"
+           r="5.0781207"
+           transform="scale(-1,1)" />
+        <circle
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583"
+           cx="-99.415932"
+           cy="166.5601"
+           r="5.0781207"
+           transform="scale(-1,1)" />
+        <circle
+           style="fill:#ffcdd2;fill-opacity:1;stroke-width:0.264583"
+           cx="99.415916"
+           cy="147.47063"
+           r="5.0781207" />
+      </g>
+      <g
+         transform="matrix(1.438112,0,0,1.438112,-4.6420388,-93.265858)">
+        <circle
+           r="5.0781207"
+           cy="115.03923"
+           cx="40.223362"
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="105.4945"
+           cx="55.012272"
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="95.94976"
+           cx="69.801193"
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="153.21815"
+           cx="69.690491"
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="143.67342"
+           cx="54.938469"
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           r="5.0781207"
+           cy="134.12869"
+           cx="40.186459"
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583" />
+        <circle
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583"
+           cx="25.434448"
+           cy="124.58396"
+           r="5.0781207" />
+        <circle
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583"
+           cx="-99.379028"
+           cy="115.03923"
+           r="5.0781207"
+           transform="scale(-1,1)" />
+        <circle
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583"
+           cx="-84.590118"
+           cy="105.4945"
+           r="5.0781207"
+           transform="scale(-1,1)" />
+        <circle
+           r="5.0781207"
+           cy="124.58396"
+           cx="-114.16794"
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583"
+           transform="scale(-1,1)" />
+        <circle
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583"
+           cx="-84.663918"
+           cy="143.67342"
+           r="5.0781207"
+           transform="scale(-1,1)" />
+        <circle
+           style="fill:#f44336;fill-opacity:1;stroke-width:0.264583"
+           cx="-99.415932"
+           cy="134.12869"
+           r="5.0781207"
+           transform="scale(-1,1)" />
+      </g>
+    </g>
+  </g>
+</svg>

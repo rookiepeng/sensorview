@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react'
 import { Popover } from 'radix-ui'
 
+import { Picker } from './Controls'
 import { useStore } from '../store'
 
 /** Pose fields, in the order the sidecar reader wants them. */
@@ -93,18 +94,17 @@ export function ColumnConfig() {
           </button>
         </Popover.Trigger>
 
-        {/* Not portalled, deliberately. The content stays inside
-            `.sv-topbar-menu`, which is what keeps that wrapper's `relative`
-            meaningful and what `smoke.ts` finds the trigger through. The
-            placement props replace the `top`/`left` this used to get from
-            `.sv-menu`; `align="end"` is what `.sv-menu-right` did.
-            It is a grid of selects, so Radix's `role="dialog"` describes it
-            better than the `role="menu"` it used to claim. */}
+        {/* Portalled, so the glass top bar is not its containing block and
+            Radix can keep it inside the window. It is a grid of selects, so
+            Radix's `role="dialog"` describes it better than `role="menu"`. */}
+        <Popover.Portal>
         <Popover.Content
           className="sv-menu sv-config"
+          data-sv-menu="config"
           side="bottom"
           align="end"
           sideOffset={5}
+          collisionPadding={8}
         >
           {/* Axes only. Colour lives in the rail beside the colormap: it is
               looked at while reading the scene, where this popover is for
@@ -174,6 +174,7 @@ export function ColumnConfig() {
             </p>
           )}
         </Popover.Content>
+        </Popover.Portal>
       </div>
     </Popover.Root>
   )
@@ -191,15 +192,11 @@ function Field({
   onChange: (value: string) => void
 }) {
   return (
-    <label className="sv-pane-field">
-      <span className="sv-section-label">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
-        {choices.map((choice) => (
-          <option key={choice || '(none)'} value={choice}>
-            {choice || '(none)'}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Picker
+      label={label}
+      value={value}
+      choices={choices.map((choice) => ({ value: choice, label: choice || '(none)' }))}
+      onChange={onChange}
+    />
   )
 }

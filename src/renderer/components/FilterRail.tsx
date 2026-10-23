@@ -210,14 +210,9 @@ export function FilterRail() {
             <span className="sv-field-value">{overlay ? 'all frames' : decay}</span>
           </label>
 
-          <label className="sv-switch-row">
-            <input
-              type="checkbox"
-              checked={overlay}
-              onChange={(event) => setOverlay(event.target.checked)}
-            />
-            <span>Overlay every frame</span>
-          </label>
+          <Switch checked={overlay} onChange={setOverlay}>
+            Overlay every frame
+          </Switch>
         </Group>
       )}
 
