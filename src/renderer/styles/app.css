@@ -1706,7 +1706,10 @@ body {
     max-width: none;
 }
 
+/* As tall as a select box and on the same bottom line, so the switch is
+   centred on the boxes beside it rather than sitting on their baseline. */
 .sv-dock .sv-switch-row {
+    height: var(--sv-control-h-sm);
     margin-bottom: 0;
     font-size: var(--sv-font-xs);
     align-self: end;
