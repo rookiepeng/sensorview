@@ -135,85 +135,95 @@ export function FilterRail() {
       <div className="sv-stack">
 
       {!hidden.includes('display') && (
-        <Group
-          icon="display"
-          title="Display"
-          // What the scene is coloured by, which is the one thing in here
-          // that is read rather than set.
-          reading={table ? axes.colour : null}
-          onHide={() => toggleHidden('display')}
-        >
-          <Switch checked={sizeVary} onChange={setSizeVary}>
-            Size varies with category
-          </Switch>
-
-          {/* Only when the case has one. A dead switch is worse than no
-              switch: it says the cloud is off rather than absent. */}
-          {cloudDisplay && (
-            <Switch checked={cloudOn} onChange={setCloudOn}>
-              {/* The manifest names the cloud, and that name is the whole
-                  label. A verb in front of it would be the same word twice
-                  for every case that calls its cloud "Lidar". */}
-              {cloudDisplay.name || 'Point cloud'}
-            </Switch>
-          )}
-
-          {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
-          {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
+        <Group icon="display" title="Display" onHide={() => toggleHidden('display')}>
+          {/* Three blocks, each one decision: what the colour means, what is
+              drawn, and how much of time is on screen at once. No reading
+              in the head -- it repeated the Colour by box right under it. */}
 
           {/* What the points are coloured by, and the ramp it is coloured
               with. Together because they are one decision read as one: the
-              ramp only means anything against the column it maps. This was in
-              the column config, where nobody would look for it -- that
-              popover is for what the dataset's columns *mean*, which is a
-              thing set once. */}
-          {table && (
-            <Picker
-              label="Colour by"
-              value={axes.colour}
-              choices={[...table.columns.keys()]}
-              onChange={(column) => setAxis('colour', column)}
-              className="sv-field"
-            />
-          )}
+              ramp only means anything against the column it maps. */}
+          <div className="sv-card-section">
+            {table && (
+              <Picker
+                label="Colour by"
+                value={axes.colour}
+                choices={[...table.columns.keys()]}
+                onChange={(column) => setAxis('colour', column)}
+                className="sv-field"
+              />
+            )}
 
-          <Picker
-            label="Colormap"
-            value={colormap}
-            choices={COLORMAPS}
-            onChange={setColormap}
-            className="sv-field"
-            // A categorical column takes its colours from the palette, not
-            // from a ramp, so the ramp has nothing to act on.
-            disabled={Boolean(table) && table!.columns.get(axes.colour)?.kind === 'string'}
-            hint={
-              table && table.columns.get(axes.colour)?.kind === 'string'
-                ? 'Categories use the palette'
-                : undefined
-            }
-          />
+            <Picker
+              label="Colormap"
+              value={colormap}
+              choices={COLORMAPS}
+              onChange={setColormap}
+              className="sv-field"
+              // A categorical column takes its colours from the palette, not
+              // from a ramp, so the ramp has nothing to act on.
+              disabled={Boolean(table) && table!.columns.get(axes.colour)?.kind === 'string'}
+              hint={
+                table && table.columns.get(axes.colour)?.kind === 'string'
+                  ? 'Categories use the palette'
+                  : undefined
+              }
+            />
+          </div>
+
+          <div className="sv-card-section">
+            <Switch checked={sizeVary} onChange={setSizeVary}>
+              Size varies with category
+            </Switch>
+
+            {/* Only when the case has one. A dead switch is worse than no
+                switch: it says the cloud is off rather than absent. */}
+            {cloudDisplay && (
+              <Switch checked={cloudOn} onChange={setCloudOn}>
+                {/* The manifest names the cloud, and that name is the whole
+                    label. A verb in front of it would be the same word twice
+                    for every case that calls its cloud "Lidar". */}
+                {cloudDisplay.name || 'Point cloud'}
+              </Switch>
+            )}
+
+            {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
+            {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
+          </div>
 
           {/* Decay trails a fixed number of frames behind the current one;
               overlay draws every frame at once. Two answers to one question,
-              so the slider goes dead rather than competing while overlay is
-              on. */}
-          <label className={`sv-field${overlay ? ' sv-field-off' : ''}`}>
-            <span className="sv-section-label">Decay</span>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={decay}
-              disabled={overlay}
-              onChange={(event) => setDecay(Number(event.target.value))}
-            />
-            <span className="sv-field-value">{overlay ? 'all frames' : decay}</span>
-          </label>
+              so they sit together and the slider goes dead rather than
+              competing while overlay is on. */}
+          <div className="sv-card-section">
+            <label className={`sv-field${overlay ? ' sv-field-off' : ''}`}>
+              {/* The value beside its name rather than under the track,
+                  where it read as a stray number. */}
+              <span className="sv-field-head">
+                <span className="sv-section-label">Decay</span>
+                <span className="sv-field-value">
+                  {overlay
+                    ? 'all frames'
+                    : decay === 0
+                      ? 'off'
+                      : `${decay} ${decay === 1 ? 'frame' : 'frames'}`}
+                </span>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={decay}
+                disabled={overlay}
+                onChange={(event) => setDecay(Number(event.target.value))}
+              />
+            </label>
 
-          <Switch checked={overlay} onChange={setOverlay}>
-            Overlay every frame
-          </Switch>
+            <Switch checked={overlay} onChange={setOverlay}>
+              Overlay every frame
+            </Switch>
+          </div>
         </Group>
       )}
 

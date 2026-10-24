@@ -974,6 +974,31 @@ body {
     transform: translateX(14px);
 }
 
+/* A block of related controls in a card. The rule between blocks does the
+   grouping, so the last control in each gives up its own bottom margin. */
+.sv-card-section + .sv-card-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--sv-border);
+}
+
+.sv-card-section > :last-child {
+    margin-bottom: 0;
+}
+
+/* A field's label with its value on the same line, at the far end. */
+.sv-field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.sv-field-head .sv-section-label {
+    margin-bottom: 0;
+}
+
 .sv-field-value {
     display: block;
     font-size: var(--sv-font-xs);
