@@ -36,6 +36,10 @@
        34 percent of the gap are the same answer. Change one, change both. */
     --sv-dock-h: 34vh;
     --sv-dock-tabs-h: 38px;
+    /* Every header bar -- a card's, the dock's -- is this tall, so heads
+       side by side or stacked line up whatever is in them. The dock's own
+       token is the same number: its folded strip is its head. */
+    --sv-head-h: 38px;
     /* Floor for a pane's plot area. The figures reserve 120px of vertical
        margin for their axes, so anything much below this leaves a drawing area
        of a few pixels -- a shape Plotly still accepts and scattergl still
@@ -759,13 +763,15 @@ body {
 /* The one control on a card head that is not about the data in it. */
 .sv-group-hide {
     flex: 0 0 auto;
-    height: 20px;
-    min-width: 20px;
-    padding: 0 2px;
+    height: 24px;
+    min-width: 24px;
+    padding: 0;
+    margin-right: -4px;
+    color: var(--sv-text-faint);
 }
 
 .sv-group-hide .sv-icon {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
 }
 
 /* ── Shared panel chrome ─────────────────────────────────────────────── */
@@ -832,13 +838,18 @@ body {
     min-height: 0;
 }
 
+/* A header bar, the same on every card and on the dock: a fixed height,
+   the accent fading down from the top edge rather than a flat tinted band,
+   and a hairline under it. */
 .sv-group-head {
-    flex: 0 0 auto;
+    flex: 0 0 var(--sv-head-h);
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
+    gap: 8px;
+    min-height: var(--sv-head-h);
+    padding: 0 10px 0 8px;
+    background:
+        linear-gradient(var(--sv-accent-wash), transparent) var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
     border-radius: calc(var(--sv-radius) - 1px) calc(var(--sv-radius) - 1px) 0 0;
 }
@@ -850,8 +861,14 @@ body {
    is enough to stop a column of heads reading as a stack of grey bars. */
 .sv-group-icon {
     flex: 0 0 auto;
+    box-sizing: content-box;
+    width: 0.85rem;
+    height: 0.85rem;
+    padding: 5px;
     font-size: 0.85rem;
     color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: var(--sv-radius-sm);
 }
 
 .sv-group-label {
@@ -859,17 +876,18 @@ body {
     text-overflow: ellipsis;
 }
 
+/* Sentence case in the body colour. Small capitals in the dim grey made
+   every head a faint label; the title is what the eye looks for first. */
 .sv-group-title {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex: 1 1 auto;
     min-width: 0;
-    font-size: var(--sv-font-xs);
-    font-weight: 650;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+    font-weight: var(--sv-weight-med);
+    letter-spacing: 0.01em;
+    color: var(--sv-text);
     white-space: nowrap;
 }
 
@@ -877,12 +895,18 @@ body {
    how much of the filtering is on, how many plots are behind a minimized
    heading. It stays in the head when the card folds, so folding one away
    costs the controls and not the answer they were set to. */
+/* A pill, so it reads as a value attached to the head rather than as a
+   second, smaller title. */
 .sv-group-reading {
     flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
+    padding: 2px 8px;
     font-size: var(--sv-font-2xs);
     color: var(--sv-text-dim);
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+    border-radius: 999px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -1415,9 +1439,10 @@ body {
     flex: 0 0 var(--sv-dock-tabs-h);
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 6px;
-    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
+    gap: 8px;
+    padding: 0 6px 0 8px;
+    background:
+        linear-gradient(var(--sv-accent-wash), transparent) var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
     /* The same inset corners as a card head, so the tint does not poke past
        the dock's rounded glass. */
@@ -1428,6 +1453,27 @@ body {
 .sv-dock.sv-collapsed .sv-dock-head {
     border-bottom-color: transparent;
     border-radius: calc(var(--sv-radius) - 1px);
+}
+
+/* The card title, without its stretch: here the controls follow it rather
+   than being pushed to the far end. A rule after it sets the name apart
+   from the controls, as a card's body is set apart from its head. */
+.sv-dock-title {
+    flex: 0 0 auto;
+    padding-right: 10px;
+    border-right: 1px solid var(--sv-border-strong);
+}
+
+/* A narrow centre column has no room for the name once a selection's
+   buttons arrive, and the icon still says what the dock is. */
+.sv-dock-head {
+    container-type: inline-size;
+}
+
+@container (max-width: 520px) {
+    .sv-dock-title .sv-group-label {
+        display: none;
+    }
 }
 
 /* One pane or two, as a shape rather than a word. The same segmented idiom
@@ -2260,10 +2306,61 @@ input[type="range"] {
 .sv-dock-selection {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-left: auto;
-    padding: 0 4px;
+    padding-right: 8px;
+    border-right: 1px solid var(--sv-border-strong);
     white-space: nowrap;
+}
+
+/* How many points the lasso caught: a count, so drawn as a badge in the
+   accent rather than as dim words beside the buttons it applies to. */
+.sv-dock-count {
+    margin-right: 2px;
+    padding: 3px 9px;
+    font-size: var(--sv-font-2xs);
+    font-weight: var(--sv-weight-med);
+    font-variant-numeric: tabular-nums;
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: 999px;
+}
+
+/* Hide and Show act on the selection, so they are drawn as buttons --
+   an edge, an icon and a hover -- rather than as words in the header. */
+.sv-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 9px;
+    font-size: var(--sv-font-xs);
+    line-height: 1;
+    color: var(--sv-text);
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    cursor: pointer;
+    transition: background var(--sv-ease), border-color var(--sv-ease), color var(--sv-ease);
+}
+
+.sv-action-btn:hover {
+    background: var(--sv-accent-soft);
+    border-color: var(--sv-accent);
+    color: var(--sv-accent);
+}
+
+.sv-action-btn:active {
+    transform: translateY(1px);
+}
+
+.sv-action-btn:focus-visible {
+    outline: 2px solid var(--sv-accent);
+    outline-offset: 1px;
+}
+
+.sv-action-btn .sv-icon {
+    font-size: 0.85rem;
 }
 
 /* Then the collapse toggle is no longer the thing pushed to the end. */

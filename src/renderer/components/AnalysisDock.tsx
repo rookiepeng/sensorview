@@ -289,6 +289,12 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
     // group in `App.tsx` now. What is left here is the dock itself.
     <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`} ref={dock}>
         <div className="sv-dock-head">
+          {/* Named like a card, with the card heads' own classes, so the
+              dock reads as one of the panels rather than a bare toolbar. */}
+          <span className="sv-group-title sv-dock-title">
+            <Icon name="analysis" className="sv-group-icon" />
+            <span className="sv-group-label">Analysis</span>
+          </span>
           {/* How many panes, said as a shape. Each pane's own view is picked
               on the pane, where the chart it names is. */}
           {/* One of two, so a single-select group rather than two toggle
@@ -347,25 +353,29 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
               nothing are worse than none. */}
           {selection.length > 0 && (
             <div className="sv-dock-selection">
-              <span className="sv-export-note">{selection.length} selected</span>
+              <span className="sv-dock-count">{selection.length.toLocaleString()} selected</span>
               <button
                 type="button"
-                className="sv-text-btn"
+                className="sv-action-btn"
+                title={`Hide the ${selection.length} selected`}
                 onClick={() => {
                   const chosen = selection
                   changeVisibility('Hiding', () => hideRows(chosen))
                 }}
               >
+                <Icon name="hide" />
                 Hide
               </button>
               <button
                 type="button"
-                className="sv-text-btn"
+                className="sv-action-btn"
+                title={`Show the ${selection.length} selected`}
                 onClick={() => {
                   const chosen = selection
                   changeVisibility('Showing', () => showRows(chosen))
                 }}
               >
+                <Icon name="show" />
                 Show
               </button>
             </div>

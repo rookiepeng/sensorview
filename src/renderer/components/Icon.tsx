@@ -11,6 +11,7 @@ import {
   Box,
   Car,
   ChartLine,
+  ChartScatter,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -18,6 +19,8 @@ import {
   ChevronUp,
   CircleStop,
   Columns2,
+  Eye,
+  EyeOff,
   Folder,
   FolderOpen,
   Funnel,
@@ -41,6 +44,7 @@ import {
 } from 'lucide-react'
 
 const ICONS = {
+  analysis: ChartScatter,
   'app-mark': Box,
   camera: Video,
   check: Check,
@@ -55,6 +59,7 @@ const ICONS = {
   export: Share,
   filters: Funnel,
   folder: Folder,
+  hide: EyeOff,
   'folder-open': FolderOpen,
   'axis-limits': RulerDimensionLine,
   'layout-one': Square,
@@ -64,6 +69,7 @@ const ICONS = {
   play: Play,
   'point-cloud': Radar,
   'previous-frame': SkipBack,
+  show: Eye,
   reference: Car,
   spinner: LoaderCircle,
   stop: CircleStop,
