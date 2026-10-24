@@ -44,7 +44,7 @@ export const DEFAULT_IMAGE_SUFFIXES = ['.mp4', '.avi']
 export const DEFAULT_CLOUD_PATTERN = '/frame_{frame_id}'
 export const DEFAULT_CURVE_PATTERN = '/frame_{frame_id}/{name}'
 
-/** Fallback trace colours, used in order for traces that declare none. */
+/** Fallback trace colors, used in order for traces that declare none. */
 const DEFAULT_TRACE_COLORS = ['#4c9be8', '#e8734c', '#5cb85c', '#c678dd', '#e8c34c', '#4cd4e8']
 
 export const DEFAULT_CLOUD_DISPLAY = {

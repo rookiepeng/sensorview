@@ -59,7 +59,7 @@ three.js, and the whole window: the canvas spans the viewport and every panel
 floats over it as glass, so the cloud is the background rather than a pane
 among panes. There is no box cage -- the extent is given by a ground plane at
 zero height that fades into the page background at its rim, with the range
-labels lying in that plane and three short coloured axes out of the origin,
+labels lying in that plane and three short colored axes out of the origin,
 after the 3D view in
 [movens-link](https://github.com/rookidroid/movens-link). The floor is centred
 on the data's origin rather than the middle of the filter box, so it reads as
@@ -69,11 +69,11 @@ It owns its camera and its own on-demand render loop -- `invalidate()` on
 change, idle at zero cost -- so React never drives a frame. Over the scene sit
 a colorbar, a clickable legend, the axis ranges, camera presets and a
 frame-rate and point-count readout. Hover and click-to-hide work through GPU
-colour picking: one pixel is rendered and read back per pointer move, so cost
+color picking: one pixel is rendered and read back per pointer move, so cost
 does not grow with the number of points.
 
 The scene and the 2D views read one palette. Plotly's own colorway and
-colorscales are captured into `src/shared/palette.ts`, so a category coloured
+colorscales are captured into `src/shared/palette.ts`, so a category colored
 one way in the dock and another in the scene is not a thing that can happen.
 
 
@@ -133,7 +133,7 @@ end.
 ### Other
 
 - **Dark/Light theme** -- chrome, Plotly figures and the WebGL scene switch
-  together. The scene reads its colours back off the same CSS custom
+  together. The scene reads its colors back off the same CSS custom
   properties, so the two cannot drift. The choice persists in the settings file
 - **Export** -- the filtered table as CSV, the scene as PNG or as a captioned
   HTML page, the open dock view as a self-contained HTML page with Plotly

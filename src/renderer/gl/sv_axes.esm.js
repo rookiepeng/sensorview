@@ -2,7 +2,7 @@
 //
 // Styled after movens-link's 3D view: a ground plane at zero height that fades
 // into the page background toward its edges, a grid fading with it, and three
-// short coloured axes out of the origin. There is no box cage. A cage states
+// short colored axes out of the origin. There is no box cage. A cage states
 // the extent six times over and puts half of itself between the viewer and the
 // data; a floor states it once, from underneath, and leaves the cloud in clear
 // air. The fade is what replaces the far edge -- the plane stops being visible
@@ -89,13 +89,13 @@ const GRID_MAX_LINES = 160;
 /**
  * Fade a basic material into the page background away from a centre.
  *
- * The fade used to be baked into vertex colours, which fixed it to a circle
+ * The fade used to be baked into vertex colors, which fixed it to a circle
  * chosen once per layout. Done per fragment it follows two uniforms instead,
  * so the lit floor can move with the camera's target and grow with the zoom
  * for the cost of setting a vector and a float.
  *
  * Patched into the stock basic shader rather than written as a ShaderMaterial,
- * so the colour management and everything else the basic material does is
+ * so the color management and everything else the basic material does is
  * unchanged. `transformed` is the vertex in the floor's own (data) units,
  * which is what the centre and radius are given in.
  *
@@ -136,9 +136,9 @@ uniform vec3 uGrid;`
         "vec4 diffuseColor = vec4( diffuse, opacity );",
         `float fade = smoothstep(${FADE_FROM.toFixed(3)}, ${FADE_TO.toFixed(3)},
   length(vFloor - uCentre) / max(uRadius, 1e-6));
-vec3 floorColour = mix(uGround, uBackground, fade);
-${lines ? "floorColour = mix(floorColour, uGrid, (1.0 - fade) * mix(0.55, 1.0, vMajor));" : ""}
-vec4 diffuseColor = vec4(floorColour, opacity);`
+vec3 floorColor = mix(uGround, uBackground, fade);
+${lines ? "floorColor = mix(floorColor, uGrid, (1.0 - fade) * mix(0.55, 1.0, vMajor));" : ""}
+vec4 diffuseColor = vec4(floorColor, opacity);`
       );
   };
   // Both materials patch the same chunks with the same closure source, which
@@ -249,11 +249,11 @@ const LABEL_OF_STEP = 0.14;
  * the floor is visible from underneath and so is anything painted on it.
  *
  * @param {string} text What to draw.
- * @param {string} colour Any CSS colour.
+ * @param {string} color Any CSS color.
  * @param {boolean} bold Titles are, ticks are not.
  * @returns {Mesh} A unit-height quad, its width set by the text.
  */
-function makeTextPlane(text, colour, bold) {
+function makeTextPlane(text, color, bold) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   const font = `${bold ? "600 " : ""}${LABEL_PX}px system-ui, -apple-system, "Segoe UI", sans-serif`;
@@ -269,7 +269,7 @@ function makeTextPlane(text, colour, bold) {
   context.font = font;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillStyle = colour;
+  context.fillStyle = color;
   context.fillText(text, width / 2, height / 2);
 
   const texture = new CanvasTexture(canvas);
@@ -377,7 +377,7 @@ export class Axes {
 
     this.tickLabels = [];
     this.titleLabels = {};
-    /** The colour the text is drawn with, read off the page with the rest. */
+    /** The color the text is drawn with, read off the page with the rest. */
     this.ink = "#dfe4ea";
     /** Told how many tick labels there are, so the count stays observable. */
     this.onLabels = null;
@@ -465,7 +465,7 @@ export class Axes {
    * The floor: one quad, as wide as the lit circle.
    *
    * The fade is per fragment now, so the quad needs no subdivision; it only
-   * has to reach the rim, past which the floor is the background colour and
+   * has to reach the rim, past which the floor is the background color and
    * might as well not be there.
    */
   _buildGround() {
@@ -699,7 +699,7 @@ export class Axes {
    * the camera, which kept them off the cloud but put them a long way from
    * the lines they label -- on a five-hundred-metre floor the reader is
    * matching a number at one rim to a line in the middle. They sit on the
-   * centre lines now, the same two the coloured axis stubs come out of, so
+   * centre lines now, the same two the colored axis stubs come out of, so
    * a tick is read against the grid line it names.
    *
    * Nothing here depends on where the camera is any more, so the quadrant
@@ -771,13 +771,13 @@ export class Axes {
   }
 
   /**
-   * Take the floor's colours from the stylesheet.
+   * Take the floor's colors from the stylesheet.
    *
-   * The fade is baked into vertex colours, so a theme change rewrites those
+   * The fade is baked into vertex colors, so a theme change rewrites those
    * two attributes rather than touching a material.
    *
    * @param {Object} theme `{ground, background, grid, axisX, axisY, axisZ}` as
-   *     CSS colour strings.
+   *     CSS color strings.
    */
   setTheme(theme) {
     this.theme = {

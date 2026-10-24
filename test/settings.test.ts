@@ -68,7 +68,7 @@ describe('sanitiseBounds', () => {
 describe('sanitiseView', () => {
   it('keeps the fields that are the type they claim', () => {
     const view = sanitiseView({
-      axes: { x: 'X', y: 'Y', z: 'Z', colour: 'Speed' },
+      axes: { x: 'X', y: 'Y', z: 'Z', color: 'Speed' },
       colormap: 'Viridis',
       decay: 3,
       overlay: true,
@@ -77,7 +77,7 @@ describe('sanitiseView', () => {
       clickToHide: true
     })
     expect(view).toEqual({
-      axes: { x: 'X', y: 'Y', z: 'Z', colour: 'Speed' },
+      axes: { x: 'X', y: 'Y', z: 'Z', color: 'Speed' },
       colormap: 'Viridis',
       decay: 3,
       overlay: true,
@@ -85,6 +85,12 @@ describe('sanitiseView', () => {
       sizeVary: false,
       clickToHide: true
     })
+  })
+
+  it('reads axes saved under the old spelling of the color key', () => {
+    // Settings written before the rename still restore their color column.
+    const view = sanitiseView({ axes: { x: 'X', y: 'Y', z: 'Z', colour: 'Speed' } })
+    expect(view.axes).toEqual({ x: 'X', y: 'Y', z: 'Z', color: 'Speed' })
   })
 
   it('drops a colormap the palette does not hold', () => {

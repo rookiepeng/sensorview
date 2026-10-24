@@ -141,11 +141,11 @@ describe('normalizeReferenceDisplay, mesh', () => {
     expect(mesh({ edges: [[0], 'nope', [0, 1, 2]] }).edges).toEqual([])
   })
 
-  it('follows the colour when edge_color is unset', () => {
+  it('follows the color when edge_color is unset', () => {
     expect(mesh({ color: '#abcdef' }).edge_color).toBe('#abcdef')
   })
 
-  it('lets an explicit edge colour win', () => {
+  it('lets an explicit edge color win', () => {
     expect(mesh({ color: '#abcdef', edge_color: '#123456' }).edge_color).toBe('#123456')
   })
 

@@ -1,14 +1,14 @@
 // Finding the point under the cursor, at a hundred thousand points.
 //
 // Raycasting a `Points` cloud means a distance test per vertex on the CPU, per
-// pointer move. GPU colour picking instead renders the scene once into a
-// one-by-one target with each point's id as its colour, and reads that single
+// pointer move. GPU color picking instead renders the scene once into a
+// one-by-one target with each point's id as its color, and reads that single
 // pixel back -- so the cost is one tiny draw regardless of how many points are
 // in it, and the answer is exactly what the user sees because the pick shader
 // is the display shader with a different output.
 //
 // Ids are *draw-order ordinals*, not the DataFrame index. The index is int64
-// and can exceed the 2^24 a 24-bit colour carries; the ordinal is bounded by
+// and can exceed the 2^24 a 24-bit color carries; the ordinal is bounded by
 // the points actually on screen. A side table maps back.
 //
 // Only the live frame is pickable. The decay trail and the cloud backdrop are
@@ -78,9 +78,9 @@ export class Picker {
   }
 
   /**
-   * Assign pick colours for a frame and build the lookup tables.
+   * Assign pick colors for a frame and build the lookup tables.
    *
-   * Called before the layers upload, because the colour is a vertex attribute
+   * Called before the layers upload, because the color is a vertex attribute
    * that goes up with the positions.
    *
    * @param {Object} frame The decoded live frame.

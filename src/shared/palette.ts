@@ -4,15 +4,15 @@
 //
 // The Dash app resolved these in Python and shipped them to the browser in a
 // store, so that the Plotly renderer and the WebGL one could not disagree
-// about what colour a point is. Only the WebGL renderer survives, but the 2D
-// views in the analysis dock are still Plotly, and a category coloured one way
+// about what color a point is. Only the WebGL renderer survives, but the 2D
+// views in the analysis dock are still Plotly, and a category colored one way
 // in the scene and another in a histogram is the same bug. So the values are
 // still Plotly's own, and still captured by a script.
 
 export interface Palette {
   /** Continuous colormaps, keyed by the name the rail offers. */
   colorscales: Record<string, [number, string][]>
-  /** Categorical colours, assigned in group order and wrapping. */
+  /** Categorical colors, assigned in group order and wrapping. */
   colorway: string[]
 }
 

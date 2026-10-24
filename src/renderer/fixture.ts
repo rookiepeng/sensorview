@@ -60,7 +60,7 @@ function buildGroup(groupIndex: number, frame: number, count: number): Group {
     position[i * 3 + 1] = along
     position[i * 3 + 2] = (hash(base + i + 0.5) - 0.3) * 2.2
 
-    // Something monotonic to colour by, so the colormap is legible.
+    // Something monotonic to color by, so the colormap is legible.
     value[i] = along
     ids[i] = base + i
   }
@@ -155,7 +155,7 @@ export const FIXTURE_FRAMES = 60
  * Build one synthetic frame.
  *
  * @param index Slider position.
- * @param options `categorical` colours by sensor rather than by distance;
+ * @param options `categorical` colors by sensor rather than by distance;
  *     `hidden` drops rows by their id, standing in for click-to-hide.
  */
 export function fixtureFrame(

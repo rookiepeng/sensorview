@@ -34,6 +34,6 @@ describe('pickAxes', () => {
   it('falls back to the first numeric columns without a manifest', () => {
     const table = tableOf(['Frame', 'A', 'B', 'C'], ['Source'])
     const axes = pickAxes(table, 'Frame')
-    expect(axes).toEqual({ x: 'A', y: 'B', z: 'C', colour: 'Source' })
+    expect(axes).toEqual({ x: 'A', y: 'B', z: 'C', color: 'Source' })
   })
 })

@@ -136,20 +136,20 @@ export function FilterRail() {
 
       {!hidden.includes('display') && (
         <Group icon="display" title="Display" onHide={() => toggleHidden('display')}>
-          {/* Three blocks, each one decision: what the colour means, what is
+          {/* Three blocks, each one decision: what the color means, what is
               drawn, and how much of time is on screen at once. No reading
-              in the head -- it repeated the Colour by box right under it. */}
+              in the head -- it repeated the Color by box right under it. */}
 
-          {/* What the points are coloured by, and the ramp it is coloured
+          {/* What the points are colored by, and the ramp it is colored
               with. Together because they are one decision read as one: the
               ramp only means anything against the column it maps. */}
           <div className="sv-card-section">
             {table && (
               <Picker
-                label="Colour by"
-                value={axes.colour}
+                label="Color by"
+                value={axes.color}
                 choices={[...table.columns.keys()]}
-                onChange={(column) => setAxis('colour', column)}
+                onChange={(column) => setAxis('color', column)}
                 className="sv-field"
               />
             )}
@@ -160,11 +160,11 @@ export function FilterRail() {
               choices={COLORMAPS}
               onChange={setColormap}
               className="sv-field"
-              // A categorical column takes its colours from the palette, not
+              // A categorical column takes its colors from the palette, not
               // from a ramp, so the ramp has nothing to act on.
-              disabled={Boolean(table) && table!.columns.get(axes.colour)?.kind === 'string'}
+              disabled={Boolean(table) && table!.columns.get(axes.color)?.kind === 'string'}
               hint={
-                table && table.columns.get(axes.colour)?.kind === 'string'
+                table && table.columns.get(axes.color)?.kind === 'string'
                   ? 'Categories use the palette'
                   : undefined
               }

@@ -89,7 +89,7 @@ export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
     scene.current = instance
     // Published for the exports, which read the canvas directly.
     setScene(instance)
-    // Before the first frame: the colorway decides every categorical colour,
+    // Before the first frame: the colorway decides every categorical color,
     // and the scene falls back to one flat blue without it.
     instance.setPalette(PALETTE)
     instance.setTheme()

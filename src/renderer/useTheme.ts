@@ -1,7 +1,7 @@
 // Which theme the document is in.
 //
 // The attribute on <html> is the single source: the scene re-reads its palette
-// from it, the CSS switches on it, and anything that has to pass a colour into
+// from it, the CSS switches on it, and anything that has to pass a color into
 // a library -- Plotly, which has no idea the attribute exists -- reads it
 // through here rather than keeping its own copy in step.
 

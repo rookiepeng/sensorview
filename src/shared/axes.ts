@@ -19,7 +19,7 @@ export function pickAxes(
     y: null,
     z: null
   }
-): { x: string; y: string; z: string; colour: string } {
+): { x: string; y: string; z: string; color: string } {
   const numeric = [...table.columns.values()]
     .filter((column) => column.kind === 'number' && column.name !== frameKey)
     .map((column) => column.name)
@@ -38,8 +38,8 @@ export function pickAxes(
     x: pick(declared.x, 'X', numeric[0]),
     y: pick(declared.y, 'Y', numeric[1]),
     z: pick(declared.z, 'Z', numeric[2]),
-    // Colour by a category when there is one: it is more legible than a
+    // Color by a category when there is one: it is more legible than a
     // gradient on first open, and it shows the legend doing something.
-    colour: categorical[0] ?? numeric[0] ?? frameKey
+    color: categorical[0] ?? numeric[0] ?? frameKey
   }
 }
