@@ -839,8 +839,7 @@ body {
 }
 
 /* A header bar, the same on every card and on the dock: a fixed height,
-   the accent fading down from the top edge rather than a flat tinted band,
-   and a hairline under it. */
+   one flat surface with no gradient or tint, and a hairline under it. */
 .sv-group-head {
     flex: 0 0 var(--sv-head-h);
     display: flex;
@@ -848,8 +847,7 @@ body {
     gap: 8px;
     min-height: var(--sv-head-h);
     padding: 0 10px 0 8px;
-    background:
-        linear-gradient(var(--sv-accent-wash), transparent) var(--sv-surface-2);
+    background: var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
     border-radius: calc(var(--sv-radius) - 1px) calc(var(--sv-radius) - 1px) 0 0;
 }
@@ -1441,8 +1439,7 @@ body {
     align-items: center;
     gap: 8px;
     padding: 0 6px 0 8px;
-    background:
-        linear-gradient(var(--sv-accent-wash), transparent) var(--sv-surface-2);
+    background: var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
     /* The same inset corners as a card head, so the tint does not poke past
        the dock's rounded glass. */
