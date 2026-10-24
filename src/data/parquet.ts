@@ -149,3 +149,33 @@ export function readTable(path: string | string[], columns?: string[]): TableDat
 
   return { rows: df.height, columns: out }
 }
+
+/**
+ * Columns as a Parquet file, for the export menu.
+ *
+ * The renderer holds the filtered rows, so it sends them here rather than
+ * this re-reading the source: a combined log has no one file to re-read, and
+ * the filters and hidden points live only in the renderer. NaN goes back to
+ * null and level codes back to text, undoing what `readTable` did, so the
+ * file reads like the one it came from rather than like the app's memory.
+ *
+ * Numbers are written as Float64, which is what the app holds. An integer
+ * column in the source comes back as a float of the same value.
+ */
+export function tableParquet(columns: Column[]): Uint8Array {
+  const series = columns.map((column) => {
+    if (column.kind === 'string') {
+      const levels = column.levels ?? []
+      const codes = column.codes ?? new Int32Array(0)
+      const text = Array.from(codes, (code) => (code >= 0 ? (levels[code] ?? null) : null))
+      return pl.Series(column.name, text, pl.Utf8)
+    }
+    return pl.Series(column.name, column.values ?? new Float64Array(0), pl.Float64)
+  })
+  const numeric = columns.filter((column) => column.kind === 'number').map((c) => c.name)
+  let df = pl.DataFrame(series)
+  if (numeric.length > 0) {
+    df = df.withColumns(...numeric.map((name) => pl.col(name).fillNan(null).alias(name)))
+  }
+  return new Uint8Array(df.writeParquet())
+}

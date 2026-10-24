@@ -10,7 +10,7 @@
 
 import type { DataMethod, Result } from '../shared/types'
 import { fail, ok } from '../shared/types'
-import { frameIds, readTable } from './parquet'
+import { frameIds, readTable, tableParquet } from './parquet'
 import { curveDataset, hdf5Id, readCloudFrame, readCurve } from './hdf5'
 import { Manifest } from './manifest'
 import { scanCase } from './caseScan'
@@ -25,6 +25,8 @@ const handlers: Record<DataMethod, Handler> = {
   frameIds: ({ path, frameKey }) => ok(frameIds(path, frameKey)),
 
   readTable: ({ path, columns }) => ok(readTable(path, columns)),
+
+  tableParquet: ({ columns }) => ok(tableParquet(columns)),
 
   cloudFrame: async ({ path, dataset }) => ok(await readCloudFrame(path, dataset)),
 

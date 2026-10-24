@@ -24,7 +24,9 @@ import {
   Separator,
   type PanelImperativeHandle
 } from 'react-resizable-panels'
-import { CurvePanel, growYRanges } from './CurvePanel'
+import { CurvePanel, curveData, curveLayout, growYRanges } from './CurvePanel'
+import { FigureExportMenu, type FigureTarget } from './FigureExport'
+import { exportSize } from '../export/figure'
 import { pixelsOf, useLayout, type Presence } from '../layout'
 import { caseKey, useStore } from '../store'
 import { useTheme } from '../useTheme'
@@ -285,6 +287,22 @@ export function Inspector({
 
   const shownPlots = onePlot ? plots.filter((plot) => plot.rangeKey === onePlot) : plots
 
+  // One entry per plot on the card, each rebuilt in the light theme with the
+  // y range it is drawn with. Titled with the frame, since a curve is of one.
+  const curveTargets: FigureTarget[] = shownPlots.map((plot) => ({
+    id: `curve-${plot.id.replace(/[^A-Za-z0-9_-]+/g, '-')}`,
+    label: plot.label,
+    build: () => ({
+      data: curveData(plot),
+      layout: curveLayout(plot.xLabel, plot.yLabel, yRanges[plot.rangeKey], 'light'),
+      ...exportSize(
+        document.querySelector(`[data-sv-curve="${CSS.escape(plot.id)}"] .sv-curve-graph`)
+      ),
+      name: `${stems.join(' + ') || 'SensorView'} — ${plot.label}`,
+      title: `${plot.label} · frame ${frame + 1}`
+    })
+  }))
+
   // A section with an empty body says the log has a camera that is not
   // working, rather than that it has none -- which is why this draws nothing
   // when there is nothing. A read that *failed* is the other case, and used
@@ -462,6 +480,7 @@ export function Inspector({
                 title="Curves"
                 reading={`${shownPlots.length} ${shownPlots.length === 1 ? 'plot' : 'plots'}`}
                 onHide={() => toggleHidden('curves')}
+                actions={<FigureExportMenu targets={curveTargets} subject="curve" />}
               >
                 {(plotChoices.length > 1 || sources.length > 1) && (
                   <div className="sv-group-controls">

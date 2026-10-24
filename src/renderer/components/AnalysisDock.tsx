@@ -25,12 +25,15 @@ import { LEGACY_COLOR, type DockSlot } from '@shared/types'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
+import type { Figure } from '../figures/common'
+import { exportSize, type ExportFigure } from '../export/figure'
 import { LARGE_ROWS, clearLoading, countOf, nextFrames, withLoading } from '../busy'
 import { regionsOfEvent, rowsInRegions, thinRows } from '@shared/thin'
 import { ToggleGroup } from 'radix-ui'
 
 import { CollapseButton, IconButton, Picker, SelectMenu, Switch } from './Controls'
 import { useLayout } from '../layout'
+import { FigureExportMenu, type FigureTarget } from './FigureExport'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
 import { Icon } from './Icon'
@@ -105,6 +108,9 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   const wanted = useLayout((s) => s.dockPanes)
   const setPanes = useLayout((s) => s.setPanes)
   const dock = useRef<HTMLDivElement>(null)
+  // Each pane's light-theme rebuild, for the export menu. Set by the pane,
+  // since only it knows what it has drawn: the thinning, the zoom.
+  const exporters = useRef<[Exporter | null, Exporter | null]>([null, null])
   // Measured rather than derived from the window: the dock is as wide as
   // the gap the overlays leave, so hiding one changes this without the
   // window moving at all.
@@ -284,6 +290,21 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
     })
   }
 
+  // What the export menu offers: each pane on screen that has a chart in
+  // it, named by side when there are two.
+  const targets: FigureTarget[] = ([0, 1] as const)
+    .slice(0, panes)
+    .filter((index) => slots[index].x)
+    .map((index) => {
+      const side = index === 0 ? 'left' : 'right'
+      const label = VIEW_LABELS[slots[index].view]
+      return {
+        id: panes === 2 ? `figure-${side}` : 'figure',
+        label: panes === 2 ? `${index === 0 ? 'Left' : 'Right'} pane · ${label}` : label,
+        build: () => exporters.current[index]?.() ?? null
+      }
+    })
+
   return (
     // The handle above this, and the height it sets, belong to the panel
     // group in `App.tsx` now. What is left here is the dock itself.
@@ -382,6 +403,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
           )}
 
           <div className="sv-dock-actions">
+            {!collapsed && <FigureExportMenu targets={targets} subject="dock" />}
             <CollapseButton
               collapsed={collapsed}
               onToggle={() => toggleCollapsed('dockCollapsed')}
@@ -434,6 +456,9 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
                     }
                   }}
                   onChange={(patch) => set(index, patch)}
+                  onExportable={(build) => {
+                    exporters.current[index] = build
+                  }}
                 />
               </div>
             )
@@ -525,7 +550,8 @@ function Pane({
   frame,
   onSelectRows,
   onSelecting,
-  onChange
+  onChange,
+  onExportable
 }: {
   slot: SlotState
   table: Table
@@ -540,7 +566,10 @@ function Pane({
   onSelectRows: (rows: number[]) => void
   onSelecting: () => void
   onChange: (patch: Partial<SlotState>) => void
+  /** Hands the dock this pane's light-theme rebuild, or null on unmount. */
+  onExportable: (build: Exporter | null) => void
 }) {
+  const host = useRef<HTMLDivElement>(null)
   // The scatter's scope narrows the shared rows to the frame on the slider.
   // `frameRows` is what `buildFrame` uses, so a current-frame scatter and the
   // scene resolve a slider position identically.
@@ -626,51 +655,64 @@ function Pane({
   // Applied over the built figure rather than inside the builders: a limit is
   // a view setting, not a property of the data, and the builders stay pure
   // functions of the table.
-  const limited = useMemo(() => {
-    const span = (low: string, high: string) => {
-      const a = Number.parseFloat(low)
-      const b = Number.parseFloat(high)
-      return Number.isFinite(a) && Number.isFinite(b) ? ([a, b] as [number, number]) : null
-    }
-    const x = span(slot.limits.xMin, slot.limits.xMax)
-    const y = span(slot.limits.yMin, slot.limits.yMax)
-    // A thinned scatter says so, or a zoom that turns up points nobody saw
-    // before looks like the data changed.
-    const note = thinned
-      ? {
-          // Room above the plot for the line. The base layout keeps a 10px
-          // top margin, which cut the text off at its cap height.
-          margin: { ...(figure.layout.margin as object | undefined), t: 26 },
-          annotations: [
-            ...((figure.layout.annotations as object[] | undefined) ?? []),
-            {
-              text: `${countOf(drawn.length)} of ${countOf(scoped.length)} points drawn · selections use all`,
-              xref: 'paper',
-              yref: 'paper',
-              x: 0,
-              y: 1,
-              xanchor: 'left',
-              yanchor: 'bottom',
-              yshift: 4,
-              showarrow: false,
-              font: { size: 10, color: theme === 'dark' ? '#8a939e' : '#5d656f' }
+  const thinNote = useMemo(
+    () => (thinned ? { drawn: drawn.length, of: scoped.length } : null),
+    [thinned, drawn.length, scoped.length]
+  )
+  const limited = useMemo(
+    () => withLimits(figure, slot.limits, thinNote, theme),
+    [figure, slot.limits, thinNote, theme]
+  )
+
+  // The same figure in the light theme, for a file. Rebuilt when asked
+  // rather than kept beside the one on screen: an export is rare and a
+  // second figure per redraw is not. The zoom on screen is kept -- a figure
+  // zoomed to show something is exported showing it.
+  useEffect(() => {
+    onExportable(() => {
+      const light = withLimits(
+        buildView(slot.view, table, drawn, {
+          x: slot.x,
+          y: slot.y,
+          color: slot.color,
+          dimensions: slot.dimensions,
+          colormap,
+          keys,
+          theme: 'light',
+          histnorm: slot.histnorm,
+          logScale: slot.logScale
+        }),
+        slot.limits,
+        thinNote,
+        'light'
+      )
+      const graph = host.current?.querySelector('.sv-pane-graph') as
+        | (HTMLElement & {
+            _fullLayout?: Record<string, { autorange?: unknown; range?: unknown[] } | undefined>
+          })
+        | null
+      const layout: Record<string, unknown> = { ...light.layout }
+      if (slot.view !== 'parcats') {
+        for (const axis of ['xaxis', 'yaxis'] as const) {
+          const live = graph?._fullLayout?.[axis]
+          if (live && live.autorange === false && Array.isArray(live.range)) {
+            layout[axis] = {
+              ...(layout[axis] as object | undefined),
+              range: [...live.range],
+              autorange: false
             }
-          ]
+          }
         }
-      : {}
-    if (!x && !y) {
-      return thinned ? { data: figure.data, layout: { ...figure.layout, ...note } } : figure
-    }
-    return {
-      data: figure.data,
-      layout: {
-        ...figure.layout,
-        ...note,
-        xaxis: { ...figure.layout.xaxis, ...(x ? { range: x, autorange: false } : {}) },
-        yaxis: { ...figure.layout.yaxis, ...(y ? { range: y, autorange: false } : {}) }
       }
-    }
-  }, [figure, slot.limits, thinned, drawn.length, scoped.length, theme])
+      return {
+        data: light.data,
+        layout,
+        ...exportSize(graph),
+        name: `${stems.join(' + ') || 'SensorView'} — ${VIEW_LABELS[slot.view]}`
+      }
+    })
+    return () => onExportable(null)
+  })
 
   const view = slot.view
   const revision = [stems.join('+'), view, slot.x, slot.y, slot.color].join('|')
@@ -678,7 +720,7 @@ function Pane({
   const xChoices = view === 'violin' ? categorical : numeric
 
   return (
-    <div className="sv-pane">
+    <div className="sv-pane" ref={host}>
       <div className="sv-pane-controls">
         {/* The pane's own title: what kind of chart it is. Drawn as a
             title rather than as one more labelled box, with a rule after it,
@@ -829,6 +871,65 @@ function Pane({
       />
     </div>
   )
+}
+
+/** A pane's figure rebuilt for a file. */
+type Exporter = () => ExportFigure | null
+
+/**
+ * A built view with the pane's fixed limits, and a thinned scatter's note.
+ *
+ * @param thin How many points were drawn of how many, when thinned.
+ */
+function withLimits(
+  figure: Figure,
+  limits: SlotState['limits'],
+  thin: { drawn: number; of: number } | null,
+  theme: 'dark' | 'light'
+): Figure {
+  const span = (low: string, high: string) => {
+    const a = Number.parseFloat(low)
+    const b = Number.parseFloat(high)
+    return Number.isFinite(a) && Number.isFinite(b) ? ([a, b] as [number, number]) : null
+  }
+  const x = span(limits.xMin, limits.xMax)
+  const y = span(limits.yMin, limits.yMax)
+  // A thinned scatter says so, or a zoom that turns up points nobody saw
+  // before looks like the data changed.
+  const note = thin
+    ? {
+        // Room above the plot for the line. The base layout keeps a 10px
+        // top margin, which cut the text off at its cap height.
+        margin: { ...(figure.layout.margin as object | undefined), t: 26 },
+        annotations: [
+          ...((figure.layout.annotations as object[] | undefined) ?? []),
+          {
+            text: `${countOf(thin.drawn)} of ${countOf(thin.of)} points drawn · selections use all`,
+            xref: 'paper' as const,
+            yref: 'paper' as const,
+            x: 0,
+            y: 1,
+            xanchor: 'left' as const,
+            yanchor: 'bottom' as const,
+            yshift: 4,
+            showarrow: false,
+            font: { size: 10, color: theme === 'dark' ? '#8a939e' : '#5d656f' }
+          }
+        ]
+      }
+    : {}
+  if (!x && !y) {
+    return thin ? { data: figure.data, layout: { ...figure.layout, ...note } } : figure
+  }
+  return {
+    data: figure.data,
+    layout: {
+      ...figure.layout,
+      ...note,
+      xaxis: { ...figure.layout.xaxis, ...(x ? { range: x, autorange: false } : {}) },
+      yaxis: { ...figure.layout.yaxis, ...(y ? { range: y, autorange: false } : {}) }
+    }
+  }
 }
 
 /** The message a drag-select puts up on a large table. */

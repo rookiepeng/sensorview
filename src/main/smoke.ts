@@ -1220,6 +1220,46 @@ export async function runSmoke(
               `${exported.done.length} of ${exported.labels.length} exports finished`
             )
 
+            // The dock's own menu: every figure it offers, in every format.
+            // Its notes are beside its button, not in the top bar.
+            const figures = await probe.webContents.executeJavaScript(
+              `(async () => {${DRIVE}
+                 const openMenu = async () => {
+                   const button = document.querySelector('.sv-dock .sv-figure-export .sv-icon-btn')
+                   if (!button) return null
+                   if (!document.querySelector('[data-sv-menu="export-dock"]')) {
+                     press(button)
+                     await new Promise(r => setTimeout(r, 200))
+                   }
+                   return Array.from(document.querySelectorAll('[data-sv-menu="export-dock"] .sv-menu-item'))
+                 }
+                 const items = await openMenu()
+                 if (!items || items.length === 0) return { error: 'no dock export menu' }
+                 const count = items.length
+                 const done = []
+                 for (let at = 0; at < count; at++) {
+                   const fresh = await openMenu()
+                   press(fresh[at])
+                   const deadline = Date.now() + 60000
+                   while (Date.now() < deadline) {
+                     await new Promise(r => setTimeout(r, 250))
+                     const note = document.querySelector('.sv-dock .sv-figure-note')
+                     const text = note ? note.textContent : ''
+                     if (text && text.indexOf('Saved') === 0) {
+                       done.push(text.slice(6))
+                       break
+                     }
+                     if (text && text.indexOf('…') === -1) {
+                       return { error: 'dock export ' + at + ': ' + text }
+                     }
+                   }
+                   if (done.length !== at + 1) return { error: 'dock export ' + at + ' never finished' }
+                 }
+                 return { done: done }
+               })()`
+            )
+            expect(!figures.error, `figure export: ${figures.error}`)
+
             const { readdir, stat: statOf } = await import('node:fs/promises')
             const written = await readdir(saveDir)
             const sizes: Record<string, number> = {}
@@ -1234,12 +1274,18 @@ export async function runSmoke(
             // empty mask rather than a working export.
             expect(sizes[csv!]! > 500_000, `the CSV is ${sizes[csv!]} bytes`)
 
+            const parquet = find('_table.parquet')
+            expect(Boolean(parquet), 'no Parquet file was written')
+            expect(sizes[parquet!]! > 50_000, `the Parquet file is ${sizes[parquet!]} bytes`)
+
             const png = find('_scene.png')
             expect(Boolean(png), 'no PNG was written')
             expect(sizes[png!]! > 10_000, `the PNG is ${sizes[png!]} bytes -- a blank canvas?`)
 
-            const figure = find('_figure.html')
+            const figure = written.find((name) => /_figure(-left)?\.html$/.test(name))
             expect(Boolean(figure), 'no figure page was written')
+            const figureImage = written.find((name) => /_figure(-left)?\.(png|svg)$/.test(name))
+            expect(Boolean(figureImage), 'no figure image was written')
             // Self-contained means the library is in the file.
             expect(
               sizes[figure!]! > 3_000_000,

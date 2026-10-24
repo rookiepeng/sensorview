@@ -1,4 +1,9 @@
-// The export menu.
+// The top bar's export menu: the table, and the 3D view.
+//
+// The table goes out as CSV or Parquet, for the frame on the slider or for
+// every frame; the 3D view as a PNG of this frame or a video of all of them.
+// The 2D figures are exported from where they are drawn -- the dock and the
+// curves card each have their own button (`FigureExport.tsx`).
 //
 // Every entry rebuilds from the data rather than reading back what a library
 // has on the page. That rule is inherited: the Dash exports took the live
@@ -10,20 +15,18 @@
 // missing, broke every export button silently. There is no flag now: main
 // opens a save dialog, and a dismissed dialog is a null rather than an error.
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { DropdownMenu } from 'radix-ui'
 
 import { filterAll, frameRows } from '@shared/table'
 
 import { maskedRows } from '../figures/common'
 import { recordScene, toBase64 } from '../export/animation'
-import { exportName, snapshotHtml, standaloneHtml, tableCsv } from '../export/exporters'
+import { exportName, tableColumns, tableCsv } from '../export/exporters'
 import { getScene } from '../sceneHandle'
 import { useStore } from '../store'
+import { useExport } from '../useExport'
 import { Icon } from './Icon'
-
-/** Long enough to read a filename, short enough not to outlive its moment. */
-const NOTE_MS = 6000
 
 export function ExportMenu() {
   const table = useStore((s) => s.table)
@@ -35,79 +38,58 @@ export function ExportMenu() {
   const setFrame = useStore((s) => s.setFrame)
 
   const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState<string | null>(null)
-  const [note, setNote] = useState<string | null>(null)
+  const { busy, setBusy, note, save, run } = useExport()
   const cancelled = useRef(false)
-
-  // "Saved foo.csv" used to sit in the top bar until the next export, which
-  // made a stale success look like a live one.
-  useEffect(() => {
-    if (!note) {
-      return
-    }
-    const timer = setTimeout(() => setNote(null), NOTE_MS)
-    return () => clearTimeout(timer)
-  }, [note])
 
   if (!table) {
     return null
   }
 
-  async function save(
-    name: string,
-    data: string,
-    encoding: 'utf8' | 'base64',
-    filters?: Array<{ name: string; extensions: string[] }>
-  ) {
-    const result = await window.sensorview.saveFile({
-      suggestedName: name,
-      data,
-      encoding,
-      filters
-    })
-    if (!result.ok) {
-      setNote(result.error ?? 'could not write the file')
-      return
-    }
-    // A dismissed dialog is not a failure, and saying "cancelled" where the
-    // user cancelled is noise.
-    setNote(result.data ? `Saved ${name}` : null)
-  }
-
-  async function run(label: string, job: () => Promise<void>) {
-    // The menu has closed itself by the time this runs, returning focus to
-    // the trigger -- which is also the cancel button for the job about to
-    // start, so the keyboard lands where it is needed.
-    setBusy(label)
-    setNote(null)
-    try {
-      await job()
-    } catch (problem) {
-      setNote(problem instanceof Error ? problem.message : String(problem))
-    } finally {
-      setBusy(null)
-    }
-  }
+  // The menu has closed itself by the time a job runs, returning focus to
+  // the trigger -- which is also the cancel button for the job about to
+  // start, so the keyboard lands where it is needed.
 
   /**
-   * The filtered table, either whole or just the frame on the slider.
+   * The filtered rows, either every frame's or just the frame on the slider.
    *
    * Both, because the Dash app had both: a whole log is what you hand to
    * another tool, and one frame is what you paste into a bug report.
    */
+  const scopedRows = (scope: 'all' | 'current') => {
+    const rows = maskedRows(filterAll(table!, filters))
+    if (scope === 'all') {
+      return rows
+    }
+    const wanted = new Set(frameRows(table!, frame))
+    return rows.filter((row) => wanted.has(row))
+  }
+  const scopeName = (scope: 'all' | 'current') => (scope === 'all' ? 'table' : `frame${frame}`)
+
   const exportCsv = (scope: 'all' | 'current') =>
     run(scope === 'all' ? 'CSV' : 'CSV (frame)', async () => {
-      const mask = filterAll(table!, filters)
-      let rows = maskedRows(mask)
-      if (scope === 'current') {
-        const wanted = new Set(frameRows(table!, frame))
-        rows = rows.filter((row) => wanted.has(row))
-      }
       await save(
-        exportName(stem, scope === 'all' ? 'table' : `frame${frame}`, 'csv'),
-        tableCsv(table!, rows, keys),
+        exportName(stem, scopeName(scope), 'csv'),
+        tableCsv(table!, scopedRows(scope), keys),
         'utf8',
         [{ name: 'CSV', extensions: ['csv'] }]
+      )
+    })
+
+  // Written by the data process, which has polars; the renderer has no
+  // Parquet writer and the bundle should not grow one for this.
+  const exportParquet = (scope: 'all' | 'current') =>
+    run(scope === 'all' ? 'Parquet' : 'Parquet (frame)', async () => {
+      const result = await window.sensorview.data('tableParquet', {
+        columns: tableColumns(table!, scopedRows(scope))
+      })
+      if (!result.ok || !result.data) {
+        throw new Error(result.error ?? 'could not write the Parquet file')
+      }
+      await save(
+        exportName(stem, scopeName(scope), 'parquet'),
+        await toBase64(new Blob([result.data as BlobPart])),
+        'base64',
+        [{ name: 'Parquet', extensions: ['parquet'] }]
       )
     })
 
@@ -115,59 +97,13 @@ export function ExportMenu() {
     run('PNG', async () => {
       const dataUrl = getScene()?.snapshot()
       if (!dataUrl) {
-        throw new Error('the scene is not drawing')
+        throw new Error('the 3D view is not drawing')
       }
       await save(
         exportName(stem, 'scene', 'png'),
         dataUrl.slice(dataUrl.indexOf(',') + 1),
         'base64',
         [{ name: 'PNG image', extensions: ['png'] }]
-      )
-    })
-
-  const exportHtml = () =>
-    run('HTML', async () => {
-      const dataUrl = getScene()?.snapshot()
-      if (!dataUrl) {
-        throw new Error('the scene is not drawing')
-      }
-      await save(
-        exportName(stem, 'scene', 'html'),
-        snapshotHtml(
-          dataUrl,
-          `${stem ?? 'SensorView'} — frame ${frame}`,
-          // Said rather than left for someone to notice: the axis labels are
-          // CSS2D elements over the canvas, so they are not in the capture.
-          `${stem ?? 'Log'}, frame ${frame + 1} of ${frameCount}. ` +
-            'Captured from the 3D view; axis labels are drawn over the canvas and are not included.'
-        ),
-        'utf8',
-        [{ name: 'HTML page', extensions: ['html'] }]
-      )
-    })
-
-  const exportFigureHtml = () =>
-    run('Figure', async () => {
-      const pane = document.querySelector('.sv-pane-graph.js-plotly-plot') as
-        | (HTMLElement & { data?: unknown[]; layout?: Record<string, unknown> })
-        | null
-      if (!pane?.data?.length) {
-        throw new Error('no dock view to export')
-      }
-      // The library is fetched rather than imported: it is 4.7 MB, and
-      // bundling it into the app to serve an export taken once a session
-      // would put it in memory for every session that never exports.
-      const { default: url } = await import('plotly.js/dist/plotly.min.js?url')
-      const source = await (await fetch(url)).text()
-      await save(
-        exportName(stem, 'figure', 'html'),
-        standaloneHtml(
-          { data: pane.data, layout: pane.layout ?? {} },
-          `${stem ?? 'SensorView'} — figure`,
-          source
-        ),
-        'utf8',
-        [{ name: 'HTML page', extensions: ['html'] }]
       )
     })
 
@@ -275,23 +211,30 @@ export function ExportMenu() {
           sideOffset={5}
           collisionPadding={8}
         >
+          <DropdownMenu.Label className="sv-menu-heading">Table</DropdownMenu.Label>
           <Item
-            label="Table as CSV"
+            label="This frame as CSV"
+            hint="the filtered rows on screen"
+            onSelect={() => exportCsv('current')}
+          />
+          <Item
+            label="All frames as CSV"
             hint="every filtered row"
             onSelect={() => exportCsv('all')}
           />
           <Item
-            label="This frame as CSV"
-            hint="the rows on screen"
-            onSelect={() => exportCsv('current')}
+            label="This frame as Parquet"
+            hint="the filtered rows on screen"
+            onSelect={() => exportParquet('current')}
           />
-          <Item label="Scene as PNG" hint="this frame" onSelect={exportPng} />
-          <Item label="Scene as HTML" hint="this frame, with a caption" onSelect={exportHtml} />
           <Item
-            label="Figure as HTML"
-            hint="the dock view, self-contained"
-            onSelect={exportFigureHtml}
+            label="All frames as Parquet"
+            hint="every filtered row"
+            onSelect={() => exportParquet('all')}
           />
+          <DropdownMenu.Separator className="sv-menu-sep" />
+          <DropdownMenu.Label className="sv-menu-heading">3D view</DropdownMenu.Label>
+          <Item label="3D view as PNG" hint="this frame" onSelect={exportPng} />
           <Item label="Animation" hint="every frame, as video" onSelect={exportAnimation} />
         </DropdownMenu.Content>
         </DropdownMenu.Portal>

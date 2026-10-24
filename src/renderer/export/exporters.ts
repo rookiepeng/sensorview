@@ -14,6 +14,7 @@
 
 import { toCsv, csvNumber } from '@shared/csv'
 import type { ColumnMeta, Table } from '@shared/table'
+import type { DataParams } from '@shared/types'
 
 /**
  * The filtered table as CSV, every column, in table order.
@@ -49,6 +50,76 @@ export function tableCsv(
 }
 
 /**
+ * The rows being exported, column by column, for the Parquet writer.
+ *
+ * The same shapes `readTable` hands over, narrowed to `rows`: the data
+ * process turns NaN back into null and codes back into text, so all this
+ * does is copy. A categorical keeps its full dictionary rather than being
+ * re-coded, because the codes are dropped on the other side anyway.
+ */
+export function tableColumns(table: Table, rows: Int32Array): ExportColumn[] {
+  return [...table.columns.values()].map((column) => {
+    if (column.kind === 'number') {
+      const values = new Float64Array(rows.length)
+      for (let i = 0; i < rows.length; i++) {
+        values[i] = column.values[rows[i]!]!
+      }
+      return { name: column.name, kind: 'number', values }
+    }
+    const codes = new Int32Array(rows.length)
+    for (let i = 0; i < rows.length; i++) {
+      codes[i] = column.codes[rows[i]!]!
+    }
+    return { name: column.name, kind: 'string', codes, levels: column.levels }
+  })
+}
+
+/** One column as `tableColumns` hands it to the data process. */
+export type ExportColumn = DataParams<'tableParquet'>['columns'][number]
+
+/**
+ * A figure's layout, put on paper.
+ *
+ * On screen the figures are transparent over the app's glass, with ink and
+ * grid picked for the theme. A file has no glass behind it, so an exported
+ * figure is always the light theme on white -- the same picture whether it
+ * was taken in the dark theme or not, and one that prints. The caller
+ * builds the figure with the light theme; this fills in what is behind it.
+ *
+ * @param layout The light-theme layout, as the view or curve built it.
+ * @param title Drawn at the top of the figure when given, with room made
+ *     for it.
+ */
+export function onPaper(
+  layout: Record<string, unknown>,
+  title?: string
+): Record<string, unknown> {
+  const paper: Record<string, unknown> = {
+    ...layout,
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor: '#ffffff'
+  }
+  if (title) {
+    const margin = (layout.margin as Record<string, number> | undefined) ?? {}
+    paper.title = {
+      text: title,
+      x: 0,
+      xref: 'paper',
+      xanchor: 'left',
+      y: 1,
+      yref: 'container',
+      yanchor: 'top',
+      pad: { t: 8 },
+      font: { size: 13, color: '#12161c' }
+    }
+    // Room above whatever the layout already keeps there -- the curves'
+    // legend row, a thinned scatter's note -- so the title sits over them.
+    paper.margin = { ...margin, t: (margin.t ?? 10) + 26 }
+  }
+  return paper
+}
+
+/**
  * A Plotly figure as a standalone HTML page.
  *
  * The library is inlined rather than linked, which is what "self-contained"
@@ -80,7 +151,7 @@ export function standaloneHtml(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #0f1319; color: #e6e9ee;
+  html, body { margin: 0; height: 100%; background: #ffffff; color: #12161c;
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
   #figure { width: 100%; height: 100%; }
 </style>
@@ -92,39 +163,6 @@ export function standaloneHtml(
   var figure = ${payload};
   Plotly.newPlot('figure', figure.data, figure.layout, { responsive: true });
 </script>
-</body>
-</html>
-`
-}
-
-/**
- * A still of the scene, wrapped in a page that says what it is.
- *
- * The 3D view is three.js, so there is no figure to hand Plotly and no
- * kaleido to render one. The canvas itself is the picture -- which is
- * strictly better than the Python's export, because it is what was on screen
- * rather than Plotly's drawing of the same data.
- */
-export function snapshotHtml(dataUrl: string, title: string, caption: string): string {
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(title)}</title>
-<style>
-  html, body { margin: 0; background: #0f1319; color: #e6e9ee;
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-  figure { margin: 0; padding: 16px; }
-  img { max-width: 100%; display: block; border-radius: 6px; }
-  figcaption { margin-top: 10px; font-size: 0.85rem; color: #8a929e; }
-</style>
-</head>
-<body>
-<figure>
-<img src="${dataUrl}" alt="${escapeHtml(title)}">
-<figcaption>${escapeHtml(caption)}</figcaption>
-</figure>
 </body>
 </html>
 `
