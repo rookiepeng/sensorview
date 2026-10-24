@@ -20,6 +20,7 @@ import { recordScene, toBase64 } from '../export/animation'
 import { exportName, snapshotHtml, standaloneHtml, tableCsv } from '../export/exporters'
 import { getScene } from '../sceneHandle'
 import { useStore } from '../store'
+import { Icon } from './Icon'
 
 /** Long enough to read a filename, short enough not to outlive its moment. */
 const NOTE_MS = 6000
@@ -251,7 +252,7 @@ export function ExportMenu() {
             // button that still announces itself as Export.
             aria-label={busy ? `Stop the ${busy} export` : 'Export'}
           >
-            <i className={`bi bi-${busy ? 'stop-circle' : 'download'}`} aria-hidden="true" />
+            <Icon name={busy ? 'stop' : 'download'} />
           </button>
         </DropdownMenu.Trigger>
 

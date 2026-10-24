@@ -331,8 +331,8 @@ export function Inspector({
   // offers a way back only to one that went away rather than to one that
   // never existed.
   const panels = [
-    { id: 'camera', icon: 'camera-video', title: 'Camera', has: clips.length > 0 },
-    { id: 'curves', icon: 'graph-up', title: 'Curves', has: plots.length > 0 }
+    { id: 'camera', icon: 'camera', title: 'Camera', has: clips.length > 0 },
+    { id: 'curves', icon: 'curves', title: 'Curves', has: plots.length > 0 }
   ] as const
   const away = panels.filter((panel) => panel.has && hidden.includes(panel.id))
   const showCamera = clips.length > 0 && !hidden.includes('camera')
@@ -404,7 +404,7 @@ export function Inspector({
             {showCamera && (
               <Group
                 className="sv-card-camera"
-                icon="camera-video"
+                icon="camera"
                 title="Camera"
                 reading={`${clips.length} ${clips.length === 1 ? 'view' : 'views'}`}
                 onHide={() => toggleHidden('camera')}
@@ -458,7 +458,7 @@ export function Inspector({
             {showCurves && (
               <Group
                 className="sv-card-curves"
-                icon="graph-up"
+                icon="curves"
                 title="Curves"
                 reading={`${shownPlots.length} ${shownPlots.length === 1 ? 'plot' : 'plots'}`}
                 onHide={() => toggleHidden('curves')}

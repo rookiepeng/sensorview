@@ -10,6 +10,8 @@
 // Rendered by `TopBar`, which owns the reading of a case and therefore the
 // two things this can do.
 
+import { Icon } from './Icon'
+
 /** The folder's own name, which is what the user called the case. */
 export function nameOf(dir: string): string {
   return dir.split(/[\\/]/).filter(Boolean).pop() ?? dir
@@ -47,7 +49,7 @@ export function Welcome({
     return (
       <div className="sv-welcome" role="status">
         <div className="sv-welcome-plate sv-hud">
-          <i className="bi bi-arrow-repeat sv-spin sv-welcome-mark" aria-hidden="true" />
+          <Icon name="spinner" className="sv-spin sv-welcome-mark" />
           <p className="sv-welcome-busy">
             Opening{opening ? <b> {nameOf(opening)}</b> : null} …
           </p>
@@ -59,7 +61,7 @@ export function Welcome({
   return (
     <div className="sv-welcome">
       <div className="sv-welcome-plate sv-hud">
-        <i className="bi bi-box sv-welcome-mark" aria-hidden="true" />
+        <Icon name="app-mark" className="sv-welcome-mark" />
         <h1 className="sv-welcome-title">Open a case</h1>
         <p className="sv-welcome-sub">
           A case is a folder of logs and an <code>info.json</code> beside them. Each log
@@ -68,7 +70,7 @@ export function Welcome({
         </p>
 
         <button type="button" className="sv-welcome-open" onClick={onOpen}>
-          <i className="bi bi-folder2-open" aria-hidden="true" />
+          <Icon name="folder-open" />
           <span>Open case …</span>
           <kbd className="sv-welcome-key">{shortcut}</kbd>
         </button>
@@ -87,7 +89,7 @@ export function Welcome({
                 onClick={() => onPick(dir)}
                 title={dir}
               >
-                <i className="bi bi-folder" aria-hidden="true" />
+                <Icon name="folder" />
                 <span className="sv-welcome-case-text">
                   <span className="sv-welcome-case-name">{nameOf(dir)}</span>
                   <span className="sv-welcome-case-path">{parentOf(dir)}</span>

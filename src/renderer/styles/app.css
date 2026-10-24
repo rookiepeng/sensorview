@@ -361,7 +361,7 @@ body {
     color: var(--sv-text-faint);
 }
 
-.sv-breadcrumb .bi {
+.sv-breadcrumb .sv-icon {
     color: var(--sv-text-dim);
     font-size: 0.8rem;
 }
@@ -408,7 +408,7 @@ body {
     text-overflow: ellipsis;
 }
 
-.sv-topbar-error .bi {
+.sv-topbar-error .sv-icon {
     flex: 0 0 auto;
 }
 
@@ -458,7 +458,7 @@ body {
     color: var(--sv-accent);
 }
 
-.sv-icon-btn .bi {
+.sv-icon-btn .sv-icon {
     font-size: 0.95rem;
 }
 
@@ -764,7 +764,7 @@ body {
     padding: 0 2px;
 }
 
-.sv-group-hide .bi {
+.sv-group-hide .sv-icon {
     font-size: 0.7rem;
 }
 
@@ -780,7 +780,7 @@ body {
     border-bottom: 1px solid var(--sv-border);
 }
 
-.sv-panel-title .bi {
+.sv-panel-title .sv-icon {
     color: var(--sv-accent);
 }
 
@@ -1158,7 +1158,7 @@ body {
     color: var(--sv-accent);
 }
 
-.sv-transport-play .bi {
+.sv-transport-play .sv-icon {
     font-size: 1.1rem;
 }
 
@@ -1676,7 +1676,7 @@ body {
     border-color: var(--sv-accent);
 }
 
-.sv-welcome-open .bi {
+.sv-welcome-open .sv-icon {
     color: var(--sv-accent);
 }
 
@@ -1725,12 +1725,12 @@ body {
     background: var(--sv-surface-3);
 }
 
-.sv-welcome-case .bi {
+.sv-welcome-case .sv-icon {
     flex: 0 0 auto;
     color: var(--sv-text-faint);
 }
 
-.sv-welcome-case:hover .bi {
+.sv-welcome-case:hover .sv-icon {
     color: var(--sv-accent);
 }
 
@@ -1942,6 +1942,16 @@ body {
    appears. */
 .sv-rail-note-bad {
     color: var(--sv-danger);
+}
+
+/* Every glyph: an inline SVG sized to the text around it, sitting on the
+   baseline the way an icon font's glyph did. */
+.sv-icon {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.125em;
 }
 
 /* The one spinner in the app, for the only wait long enough to need one. */

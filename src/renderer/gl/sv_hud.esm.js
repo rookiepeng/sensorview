@@ -6,13 +6,15 @@
 // and as DOM they re-theme with the rest of the chrome instead of needing a
 // texture regenerated.
 
+import { ArrowDownToDot, ArrowLeftToLine, ArrowRightToLine, Box, createElement } from "lucide";
+
 import { gradientStops, categoryCss } from "./sv_color.esm.js";
 
 const PRESETS = [
-  { id: "iso", label: "Iso", icon: "bi-box", title: "Isometric view" },
-  { id: "top", label: "Top", icon: "bi-arrow-down-square", title: "Top-down view" },
-  { id: "front", label: "Front", icon: "bi-arrow-right-square", title: "Front view" },
-  { id: "side", label: "Side", icon: "bi-arrow-left-square", title: "Side view" },
+  { id: "iso", label: "Iso", icon: Box, title: "Isometric view" },
+  { id: "top", label: "Top", icon: ArrowDownToDot, title: "Top-down view" },
+  { id: "front", label: "Front", icon: ArrowRightToLine, title: "Front view" },
+  { id: "side", label: "Side", icon: ArrowLeftToLine, title: "Side view" },
 ];
 
 function div(className, parent) {
@@ -61,7 +63,14 @@ export class Hud {
       button.setAttribute("aria-label", preset.title);
       // aria-hidden: the button is already named, and the glyph is its
       // whole content -- announced, it would read the name twice.
-      button.innerHTML = `<i class="bi ${preset.icon}" aria-hidden="true"></i>`;
+      const glyph = createElement(preset.icon, {
+        class: "sv-icon",
+        width: "1em",
+        height: "1em",
+        "aria-hidden": "true",
+        focusable: "false",
+      });
+      button.appendChild(glyph);
       button.addEventListener("click", () => {
         if (this.handlers.onPreset) {
           this.handlers.onPreset(preset.id);

@@ -40,20 +40,20 @@ export function Transport() {
     <div className="sv-transport">
       <div className="sv-transport-buttons">
         <IconButton
-          icon="skip-backward-fill"
+          icon="previous-frame"
           title="Previous frame"
           onClick={() => stepFrame(-1)}
           disabled={frameCount === 0}
         />
         <IconButton
-          icon={playing ? 'stop-fill' : 'play-fill'}
+          icon={playing ? 'pause' : 'play'}
           title={playing ? 'Pause' : 'Play'}
           onClick={togglePlaying}
           disabled={frameCount === 0}
           className="sv-transport-play"
         />
         <IconButton
-          icon="skip-forward-fill"
+          icon="next-frame"
           title="Next frame"
           onClick={() => stepFrame(1)}
           disabled={frameCount === 0}
