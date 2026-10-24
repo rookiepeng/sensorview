@@ -10,6 +10,9 @@
 // Run with `npm run smoke`, or `SENSORVIEW_SMOKE=<file> electron .` against a
 // packaged build. Exits non-zero on the first failure so CI can gate on it.
 
+import { promises as fs } from 'node:fs'
+import { dirname, join } from 'node:path'
+
 import { BrowserWindow, net } from 'electron'
 
 import type { DataClient } from './dataClient'
@@ -130,7 +133,52 @@ const DRIVE = `
                }
                const flip = (row) =>
                  press(row.querySelector('[role="switch"]') || row.querySelector('input'))
+
+               // The scene's HUD reads "idle | 11.7k pts | 9 draws". The
+               // count abbreviates a thousand and up, so the suffix counts.
+               const hud = (unit) => {
+                 const parts = (document.getElementById('gl-stats').textContent || '').split(' ')
+                 const at = parts.indexOf(unit)
+                 if (at <= 0) return 0
+                 const word = parts[at - 1]
+                 return parseFloat(word) * (word.charAt(word.length - 1) === 'k' ? 1000 : 1)
+               }
+               const pts = () => hud('pts')
+               const draws = () => hud('draws')
 `
+
+/** What each Plotly trace type puts in the DOM once it has actually drawn. */
+const MARKS = [
+  '.scatterlayer .point',
+  '.scatterlayer .points path',
+  '.heatmaplayer image',
+  '.contourlayer .contour',
+  '.barlayer .point',
+  '.violinlayer .trace',
+  '.parcats .paths path',
+  '.parcats .dimension'
+].join(', ')
+
+/**
+ * A window on the built renderer, set up as the real one is.
+ *
+ * `backgroundThrottling` is load-bearing: a shown window that something else
+ * covers is occluded, Chromium stops its compositor, and requestAnimationFrame
+ * never fires -- so the scene stops advancing.
+ */
+function rendererWindow(rendererHtml: string, show = false, width = 1800): BrowserWindow {
+  return new BrowserWindow({
+    show,
+    width,
+    height: 1000,
+    webPreferences: {
+      preload: join(dirname(rendererHtml), '../preload/index.cjs'),
+      contextIsolation: true,
+      sandbox: true,
+      backgroundThrottling: false
+    }
+  })
+}
 
 /**
  * @param media An existing media file to exercise Range against.
@@ -139,19 +187,12 @@ const DRIVE = `
  *     derived: this module is bundled into a chunk, so its own __dirname is
  *     `out/main/chunks` and every relative path from here is wrong by one
  *     level -- in a way that only shows at runtime.
- * @param pageUrl Optional page to load in a hidden window -- the Dash dev server
- *     while the views still live there. Checks that the window can actually
- *     reach and render it, which is the one thing the transitional setup
- *     depends on and the one thing a unit test cannot see.
  */
 export async function runSmoke(
   media: string,
   data: DataClient,
-  rendererHtml: string,
-  pageUrl?: string
+  rendererHtml: string
 ): Promise<number> {
-  const { dirname } = await import('node:path')
-  const { promises: fs } = await import('node:fs')
 
   const look = process.env.SENSORVIEW_SMOKE_LOOK
   const lookCase = process.env.SENSORVIEW_SMOKE_CASE
@@ -248,7 +289,6 @@ export async function runSmoke(
   // than in vitest.
   const caseDir = process.env.SENSORVIEW_SMOKE_CASE
   if (caseDir) {
-    const { join } = await import('node:path')
     const table = join(caseDir, 'scene_0061.parquet')
     const cloud = join(caseDir, 'scene_0061.cloud.h5')
 
@@ -436,33 +476,13 @@ export async function runSmoke(
     checks.push({
       name: 'the renderer opens the case and draws it',
       run: async () => {
-        const { dirname: dirOf, join: joinPath } = await import('node:path')
         // Shown only when a shot was asked for: capturePage on a window that
         // was never shown comes back blank, because there is no compositor
         // output to read.
         const shotPath = process.env.SENSORVIEW_SMOKE_SHOT
-        const probe = new BrowserWindow({
-          show: Boolean(shotPath),
-          // Wide enough for the arrangement this check is about: two
-          // overlays down each side and a dock with room for its two panes.
-          // At 1280 the gap between the overlays is under the dock's
-          // two-pane floor, so the dock shows one and the checks below find
-          // a single view picker where they expect a pair.
-          width: 1800,
-          height: 1000,
-          webPreferences: {
-            preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
-            contextIsolation: true,
-            sandbox: true,
-            // Load-bearing, and the reason this check once failed only with
-            // --shot: a shown window that something else covers is occluded,
-            // and Chromium stops an occluded window's compositor, so
-            // requestAnimationFrame never fires and the scene stops advancing.
-            // A hidden window is never occluded, which is why the invisible
-            // run passed. The real window sets this for the same reason.
-            backgroundThrottling: false
-          }
-        })
+        // 1800 wide: at 1280 the gap between the side overlays is under the
+        // dock's two-pane floor, and the checks below expect two panes.
+        const probe = rendererWindow(rendererHtml, Boolean(shotPath))
         let exports = 'exports not run'
         let multi: string
         let selection: string
@@ -747,15 +767,7 @@ export async function runSmoke(
           // And the reference mesh reached the scene. Counted off the draw
           // calls, which rise by one for the mesh and one for its wireframe.
           const posed = await probe.webContents.executeJavaScript(
-            `(() => {
-               // No backslash escapes in here: this is a TypeScript template
-               // literal, so a regex like /[backslash]s+/ arrives with the
-               // escape already processed and matches the letter instead.
-               const text = document.getElementById('gl-stats').textContent || ''
-               const parts = text.split(' ')
-               const at = parts.indexOf('draws')
-               return at > 0 ? parseInt(parts[at - 1], 10) : 0
-             })()`
+            `(async () => {${DRIVE} return draws() })()`
           )
           expect(posed > 8, `the reference drew nothing: ${posed} draws`)
 
@@ -791,12 +803,7 @@ export async function runSmoke(
                  // What each trace type actually puts in the DOM. Counted
                  // rather than assumed: a trace that exists is not a trace
                  // that rendered, which is how the scattergl notice hid.
-                 const marks = pane.querySelectorAll(
-                   '.scatterlayer .point, .scatterlayer .points path,'
-                   + ' .heatmaplayer image, .contourlayer .contour,'
-                   + ' .barlayer .point, .violinlayer .trace,'
-                   + ' .parcats .paths path, .parcats .dimension'
-                 ).length
+                 const marks = pane.querySelectorAll(${JSON.stringify(MARKS)}).length
                  const notice = pane.querySelector('.no-webgl, .nowebgl')
                  if (notice) {
                    return {
@@ -848,19 +855,6 @@ export async function runSmoke(
           const views = await probe.webContents.executeJavaScript(
             `(async () => {${DRIVE}
                const settle = (ms) => new Promise(r => setTimeout(r, ms))
-               const pts = () => {
-                 const text = document.getElementById('gl-stats').textContent || ''
-                 const parts = text.split(' ')
-                 const at = parts.indexOf('pts')
-                 if (at <= 0) return 0
-                 const word = parts[at - 1]
-                 return parseFloat(word) * (word.indexOf('k') === word.length - 1 ? 1000 : 1)
-               }
-               const draws = () => {
-                 const parts = (document.getElementById('gl-stats').textContent || '').split(' ')
-                 const at = parts.indexOf('draws')
-                 return at > 0 ? parseInt(parts[at - 1], 10) : 0
-               }
                const marks = () => document.querySelectorAll(
                  '.sv-pane-graph .scatterlayer .points path'
                ).length
@@ -1260,11 +1254,10 @@ export async function runSmoke(
             )
             expect(!figures.error, `figure export: ${figures.error}`)
 
-            const { readdir, stat: statOf } = await import('node:fs/promises')
-            const written = await readdir(saveDir)
+                        const written = await fs.readdir(saveDir)
             const sizes: Record<string, number> = {}
             for (const name of written) {
-              sizes[name] = (await statOf(joinPath(saveDir, name))).size
+              sizes[name] = (await fs.stat(join(saveDir, name))).size
             }
 
             const find = (suffix: string) => written.find((name) => name.endsWith(suffix))
@@ -1305,7 +1298,7 @@ export async function runSmoke(
               webPreferences: { sandbox: true, nodeIntegration: false }
             })
             try {
-              await reader.loadFile(joinPath(saveDir, figure!))
+              await reader.loadFile(join(saveDir, figure!))
               const drew = await reader.webContents.executeJavaScript(
                 `(async () => {
                    for (let i = 0; i < 40; i++) {
@@ -1314,12 +1307,7 @@ export async function runSmoke(
                      if (plot) {
                        // Whatever the dock happened to be showing when the
                        // export ran, which is not always a scatter.
-                       const marks = plot.querySelectorAll(
-                         '.scatterlayer .point, .scatterlayer .points path,'
-                         + ' .heatmaplayer image, .contourlayer .contour,'
-                         + ' .barlayer .point, .violinlayer .trace,'
-                         + ' .parcats .paths path, .parcats .dimension'
-                       ).length
+                       const marks = plot.querySelectorAll(${JSON.stringify(MARKS)}).length
                        if (marks > 0) return { marks: marks, plotly: typeof Plotly }
                      }
                    }
@@ -1340,8 +1328,7 @@ export async function runSmoke(
           // Shot last, with the cloud on and the category put back, so the
           // picture is the view in full rather than mid-check.
           if (shotPath) {
-            const { writeFile } = await import('node:fs/promises')
-            await probe.webContents.executeJavaScript(
+                        await probe.webContents.executeJavaScript(
               `(async () => {${DRIVE}
                  const off = document.querySelector('.sv-filter .sv-chip:not(.sv-chip-on)')
                  if (off) press(off)
@@ -1361,7 +1348,7 @@ export async function runSmoke(
                })()`
             )
             const image = await probe.webContents.capturePage()
-            await writeFile(shotPath, image.toPNG())
+            await fs.writeFile(shotPath, image.toPNG())
           }
 
           // What a menu is expected to do once something else implements it.
@@ -1941,18 +1928,7 @@ export async function runSmoke(
     checks.push({
       name: 'the last case and its view come back on a relaunch',
       run: async () => {
-        const { dirname: dirOf, join: joinPath } = await import('node:path')
-        const probe = new BrowserWindow({
-          show: false,
-          width: 1800,
-          height: 1000,
-          webPreferences: {
-            preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
-            contextIsolation: true,
-            sandbox: true,
-            backgroundThrottling: false
-          }
-        })
+        const probe = rendererWindow(rendererHtml)
         const named = process.env.SENSORVIEW_OPEN_CASE
         let relaunched: BrowserWindow | null = null
         try {
@@ -1997,17 +1973,7 @@ export async function runSmoke(
           // Opened before the old one goes, because `window-all-closed`
           // quits the app: letting the count reach zero between the two
           // fails the next load rather than the check.
-          relaunched = new BrowserWindow({
-            show: false,
-            width: 1800,
-            height: 1000,
-            webPreferences: {
-              preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
-              contextIsolation: true,
-              sandbox: true,
-              backgroundThrottling: false
-            }
-          })
+          relaunched = rendererWindow(rendererHtml)
           probe.destroy()
           // The cold start says what it is doing too. Without this the one
           // window whose startup is the whole point of the check was the one
@@ -2113,23 +2079,6 @@ export async function runSmoke(
     })
   }
 
-  if (pageUrl) {
-    checks.push({
-      name: 'a window loads the views',
-      run: async () => {
-        const probe = new BrowserWindow({ show: false, webPreferences: { sandbox: true } })
-        try {
-          await probe.loadURL(pageUrl)
-          const title = await probe.webContents.executeJavaScript('document.title')
-          expect(typeof title === 'string' && title.length > 0, 'page has no title')
-          return `${pageUrl} → "${title}"`
-        } finally {
-          probe.destroy()
-        }
-      }
-    })
-  }
-
   let failed = 0
   for (const check of checks) {
     try {
@@ -2163,20 +2112,12 @@ export async function runSmoke(
  * @returns 0 once the shots are written, 1 if the scene never drew.
  */
 async function lookAt(caseDir: string, out: string, rendererHtml: string): Promise<number> {
-  const { dirname: dirOf, join: joinPath } = await import('node:path')
-  const { writeFile } = await import('node:fs/promises')
   const steps = (process.env.SENSORVIEW_SMOKE_LOOK_STEPS || 'iso').split(',')
-  const probe = new BrowserWindow({
-    show: true,
-    width: Number(process.env.SENSORVIEW_SMOKE_LOOK_WIDTH) || 1800,
-    height: 1000,
-    webPreferences: {
-      preload: joinPath(dirOf(rendererHtml), '../preload/index.cjs'),
-      contextIsolation: true,
-      sandbox: true,
-      backgroundThrottling: false
-    }
-  })
+  const probe = rendererWindow(
+    rendererHtml,
+    true,
+    Number(process.env.SENSORVIEW_SMOKE_LOOK_WIDTH) || 1800
+  )
   try {
     process.env.SENSORVIEW_OPEN_CASE = caseDir
     await probe.loadFile(rendererHtml)
@@ -2214,7 +2155,7 @@ async function lookAt(caseDir: string, out: string, rendererHtml: string): Promi
     for (const [index, step] of steps.entries()) {
       if (step === 'now') {
         // A shot of the page as the script left it, with nothing clicked.
-        await writeFile(out, (await probe.webContents.capturePage()).toPNG())
+        await fs.writeFile(out, (await probe.webContents.capturePage()).toPNG())
         console.log(`  look: now -> ${out}`)
         continue
       }
@@ -2237,7 +2178,7 @@ async function lookAt(caseDir: string, out: string, rendererHtml: string): Promi
          })()`
       )
       const path = index === 0 ? out : out.replace(/\.png$/i, '') + `-${step}.png`
-      await writeFile(path, (await probe.webContents.capturePage()).toPNG())
+      await fs.writeFile(path, (await probe.webContents.capturePage()).toPNG())
       console.log(`  look: ${step} -> ${path}`)
     }
     return 0

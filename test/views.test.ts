@@ -1,6 +1,6 @@
 // The six analysis views, checked against what the Dash views drew.
 //
-// The fixture is captured by `scripts/views_golden.py`. Not the whole figure
+// The fixture was captured from the Python (see `fixtures/README.md`). Not the whole figure
 // dict -- Plotly's defaults are noise, and the port writes traces out by hand
 // where Express generated them. What is asserted is the data: how many traces,
 // in what order, with how many points each, and the values themselves where a

@@ -107,7 +107,6 @@
        thing from another -- panel heads, the dock's head, a segmented
        group. Every neutral in this theme is a grey, and a UI built only of
        greys reads as switched off however carefully the greys are chosen. */
-    --sv-accent-wash: rgba(46, 197, 216, 0.07);
     --sv-warn: #f0a020;
     --sv-danger: #e5484d;
     --sv-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
@@ -128,7 +127,6 @@
        pen, and this has to carry text and a focus ring. */
     --sv-accent: #0e7c8c;
     --sv-accent-soft: rgba(14, 124, 140, 0.12);
-    --sv-accent-wash: rgba(14, 124, 140, 0.05);
     --sv-warn: #b46b00;
     --sv-danger: #c53030;
     --sv-shadow: 0 10px 30px rgba(20, 30, 45, 0.16);
@@ -428,8 +426,7 @@ body {
 }
 
 /* Icon buttons: quiet until touched. */
-.sv-icon-btn,
-.sv-topbar-actions .dropdown > button.btn {
+.sv-icon-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -448,8 +445,7 @@ body {
         border-color var(--sv-ease);
 }
 
-.sv-icon-btn:hover,
-.sv-topbar-actions .dropdown > button.btn:hover {
+.sv-icon-btn:hover {
     background: var(--sv-surface-3);
     border-color: var(--sv-border);
     color: var(--sv-text);
@@ -775,33 +771,6 @@ body {
 }
 
 /* ── Shared panel chrome ─────────────────────────────────────────────── */
-.sv-panel-head {
-    flex: 0 0 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    padding: 0 6px 0 12px;
-    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
-    border-bottom: 1px solid var(--sv-border);
-}
-
-.sv-panel-title .sv-icon {
-    color: var(--sv-accent);
-}
-
-.sv-panel-title {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: var(--sv-font-xs);
-    font-weight: 650;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--sv-text-dim);
-    white-space: nowrap;
-}
-
 .sv-section-label {
     display: block;
     font-size: var(--sv-font-xs);

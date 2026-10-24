@@ -1,16 +1,9 @@
-// The port agrees with the Python it replaces, on real numbers.
+// The port agrees with the Python it replaced, on real numbers.
 //
-// The transliterated suites check the port against the spec as I read it.
-// This checks it against the implementation being replaced, which is a
-// different question: a transposed matrix, a degrees-for-radians slip or the
-// wrong rounding rule all pass a hand-written test that shares the
-// misunderstanding, and all of them show up only as a cloud that is subtly in
-// the wrong place.
-//
-// `test/fixtures/golden.json` was captured by `scripts/golden.py` from the
-// Python, seeded so re-running it produces the same file. Both go when the
-// Python does -- at which point these numbers stop being a cross-check and
-// become an ordinary regression fixture, which is still worth having.
+// A transposed matrix, a degrees-for-radians slip or the wrong rounding rule
+// all pass a hand-written test that shares the misunderstanding, and all of
+// them show up only as a cloud subtly in the wrong place. The fixture was
+// captured from the Python; see `fixtures/README.md`.
 
 import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
@@ -23,103 +16,72 @@ import { videoFrameFor } from '../src/shared/videoFrame'
 
 interface Golden {
   rotation: Array<{ rpy: [number, number, number]; matrix: number[] }>
-  transform: Array<{
-    translation: number[]
-    rpy_deg: number[]
-    points: number[]
-    result: number[]
-  }>
+  transform: Array<{ translation: number[]; rpy_deg: number[]; points: number[]; result: number[] }>
   video: Array<[number, number, number, number]>
-  manifest: Record<string, any> | null
+  manifest: Record<string, any>
 }
 
-const golden: Golden = JSON.parse(
-  readFileSync(join(__dirname, 'fixtures', 'golden.json'), 'utf8')
-)
+const golden: Golden = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'golden.json'), 'utf8'))
 
-describe('rotationMatrix matches numpy', () => {
-  it('has cases to check', () => {
-    expect(golden.rotation.length).toBeGreaterThan(100)
-  })
+/** Largest absolute difference between two equal-length sequences. */
+function worst(a: ArrayLike<number>, b: ArrayLike<number>): number {
+  let out = 0
+  for (let i = 0; i < b.length; i++) {
+    out = Math.max(out, Math.abs(a[i]! - b[i]!))
+  }
+  return out
+}
 
-  it('agrees on every case', () => {
-    // Row-major on both sides. A transpose is the failure this is really
-    // looking for, and it survives every symmetry test a hand-written case
-    // would use.
-    let worst = 0
+describe('matches numpy', () => {
+  it('rotationMatrix, row-major', () => {
+    // A transpose is the failure this is really looking for.
+    expect(golden.rotation.length).toBeGreaterThan(0)
     for (const { rpy, matrix } of golden.rotation) {
-      const mine = rotationMatrix(rpy[0], rpy[1], rpy[2])
-      for (let i = 0; i < 9; i++) {
-        worst = Math.max(worst, Math.abs(mine[i]! - matrix[i]!))
-      }
+      expect(worst(rotationMatrix(...rpy), matrix)).toBeLessThan(1e-12)
     }
-    expect(worst).toBeLessThan(1e-12)
   })
-})
 
-describe('applyTransform matches numpy', () => {
-  it('agrees on every case', () => {
-    let worst = 0
+  it('applyTransform, to float32 precision', () => {
+    expect(golden.transform.length).toBeGreaterThan(0)
     for (const entry of golden.transform) {
       const calibration = new Calibration(entry.translation, entry.rpy_deg)
       const out = applyTransform(Float32Array.from(entry.points), calibration)
-      for (let i = 0; i < entry.result.length; i++) {
-        worst = Math.max(worst, Math.abs(out[i]! - entry.result[i]!))
-      }
+      expect(worst(out, entry.result)).toBeLessThan(1e-3)
     }
-    // The Python works in float64 and this stores float32, which is the same
-    // narrowing the renderer does anyway -- so the tolerance is float32
-    // precision over coordinates up to 50, not a fudge factor.
-    expect(worst).toBeLessThan(1e-3)
   })
 })
 
-describe('videoFrameFor matches Python', () => {
-  it('agrees exactly on every case', () => {
-    // Integers, so this is exact or it is wrong. The half-up rule is the one
-    // that matters and the one a rewrite would change.
-    const wrong = golden.video.filter(
-      ([local, total, frames, expected]) => videoFrameFor(local, total, frames) !== expected
-    )
-    expect(wrong).toEqual([])
-  })
+it('videoFrameFor agrees exactly with the Python', () => {
+  const wrong = golden.video.filter(
+    ([local, total, frames, expected]) => videoFrameFor(local, total, frames) !== expected
+  )
+  expect(wrong).toEqual([])
 })
 
-describe('the manifest port agrees with Python on the real case', () => {
-  const expected = golden.manifest
+it('the manifest port agrees with the Python on the real case', async () => {
+  expect(golden.manifest).not.toBeNull()
+  const caseDir = join(__dirname, '..', 'data', 'NuScenes')
+  const manifest = await Manifest.load(caseDir)
+  const stem = 'scene_0061'
+  const strip = (entries: Array<{ id: string; label: string; file: string }>) =>
+    entries.map((e) => ({ id: e.id, label: e.label, file: basename(e.file) }))
 
-  it('has a captured manifest to check against', () => {
-    // Guards the premise: without the case present the generator writes null,
-    // and every assertion below would vacuously pass.
-    expect(expected).not.toBeNull()
-  })
+  const mine = {
+    name: manifest.name,
+    frame_key: manifest.table.slider,
+    cloud_suffix: manifest.cloudSuffix,
+    cloud_display: manifest.cloudDisplay(),
+    cloud_columns: manifest.cloudColumns(),
+    curve_suffixes: manifest.curveSuffixes,
+    curve_sources: strip(await manifest.curveSources(stem)),
+    curve_plots: manifest.curvePlots(),
+    image_streams: strip(await manifest.imageStreams(stem)),
+    reference_columns: manifest.referenceColumns(),
+    reference_display: normalizeReferenceDisplay(manifest.reference),
+    stem_of: manifest.stemOf(join(caseDir, 'scene_0061.parquet'))
+  }
 
-  it('agrees on every normalized block', async () => {
-    const caseDir = join(__dirname, '..', 'data', 'NuScenes')
-    const manifest = await Manifest.load(caseDir)
-    const stem = 'scene_0061'
-
-    const strip = (entries: Array<{ id: string; label: string; file: string }>) =>
-      entries.map((e) => ({ id: e.id, label: e.label, file: basename(e.file) }))
-
-    const mine = {
-      name: manifest.name,
-      frame_key: manifest.table.slider,
-      cloud_suffix: manifest.cloudSuffix,
-      cloud_display: manifest.cloudDisplay(),
-      cloud_columns: manifest.cloudColumns(),
-      curve_suffixes: manifest.curveSuffixes,
-      curve_sources: strip(await manifest.curveSources(stem)),
-      curve_plots: manifest.curvePlots(),
-      image_streams: strip(await manifest.imageStreams(stem)),
-      reference_columns: manifest.referenceColumns(),
-      reference_display: normalizeReferenceDisplay(manifest.reference),
-      stem_of: manifest.stemOf(join(caseDir, 'scene_0061.parquet'))
-    }
-
-    // Compared whole rather than field by field: a key the port forgot to
-    // normalize is exactly the kind of omission a per-field assertion list
-    // also forgets.
-    expect(JSON.parse(JSON.stringify(mine))).toEqual(expected)
-  })
+  // Compared whole: a key the port forgot is exactly what a per-field list
+  // also forgets.
+  expect(JSON.parse(JSON.stringify(mine))).toEqual(golden.manifest)
 })

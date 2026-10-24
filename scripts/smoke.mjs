@@ -1,6 +1,6 @@
 // Run the end-to-end spine check inside Electron.
 //
-//   node scripts/smoke.mjs [media-file] [--url <page>] [--case <dir>] [--shot <png>]
+//   node scripts/smoke.mjs [media-file] [--case <dir>] [--shot <png>]
 //                            [--save-dir <dir>]
 //                            [--packaged]
 //
@@ -23,8 +23,7 @@
 //
 // Spawns the built main process with SENSORVIEW_SMOKE set, which makes it run
 // the checks in src/main/smoke.ts and exit with the failure count instead of
-// opening a window. Given --url it also loads that page in a hidden window,
-// which is how the Dash-hosting arrangement is checked.
+// opening a window.
 //
 // A thin wrapper rather than an npm script because setting an environment
 // variable in one is not portable.
@@ -41,7 +40,6 @@ const flag = (name) => {
   const at = args.indexOf(name)
   return at === -1 ? undefined : args[at + 1]
 }
-const url = flag('--url')
 const caseDir = flag('--case')
 const shot = flag('--shot')
 const look = flag('--look')
@@ -50,7 +48,7 @@ const saveDir = flag('--save-dir')
 const packaged = args.includes('--packaged')
 
 const consumed = new Set()
-for (const name of ['--url', '--case', '--shot', '--save-dir', '--look', '--steps']) {
+for (const name of ['--case', '--shot', '--save-dir', '--look', '--steps']) {
   const at = args.indexOf(name)
   if (at !== -1) {
     consumed.add(at).add(at + 1)
@@ -85,7 +83,6 @@ const child = spawn(electron, packaged ? [] : ['.'], {
   env: {
     ...process.env,
     SENSORVIEW_SMOKE: media,
-    ...(url ? { SENSORVIEW_SMOKE_URL: url } : {}),
     ...(caseDir ? { SENSORVIEW_SMOKE_CASE: resolve(caseDir) } : {}),
     ...(shot ? { SENSORVIEW_SMOKE_SHOT: resolve(shot) } : {}),
     ...(look ? { SENSORVIEW_SMOKE_LOOK: resolve(look) } : {}),

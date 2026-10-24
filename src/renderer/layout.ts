@@ -110,7 +110,7 @@ export const BOUNDS = {
 }
 
 /** The persisted fields alone, for writing back. */
-export function layoutOf(s: LayoutState): Layout {
+function layoutOf(s: LayoutState): Layout {
   return {
     railW: s.railW,
     inspectorW: s.inspectorW,

@@ -36,26 +36,21 @@ describe('csvField', () => {
 })
 
 describe('csvNumber', () => {
-  it('writes a non-finite value as an empty cell', () => {
-    // `NaN` and `Infinity` read back as text and turn the whole column into
-    // strings, which is worse than a gap.
-    expect(csvNumber(NaN)).toBe('')
-    expect(csvNumber(Infinity)).toBe('')
-    expect(csvNumber(-Infinity)).toBe('')
-  })
-
-  it('honours the manifest’s decimals', () => {
-    expect(csvNumber(1.23456, 2)).toBe('1.23')
-    expect(csvNumber(1.23456)).toBe('1.23456')
+  it.each([
+    // `NaN` read back as text turns the whole column into strings.
+    [NaN, undefined, ''],
+    [Infinity, undefined, ''],
+    [-Infinity, undefined, ''],
+    [1.23456, 2, '1.23'],
+    [1.23456, undefined, '1.23456']
+  ])('%s (%s decimals) -> %j', (value, decimals, expected) => {
+    expect(csvNumber(value, decimals)).toBe(expected)
   })
 })
 
-describe('toCsv', () => {
-  it('uses CRLF and ends with one', () => {
-    // RFC 4180, and what Excel wants; the trailing newline keeps an append
-    // from joining two rows.
-    expect(toCsv(['a', 'b'], [['1', '2']])).toBe('a,b\r\n1,2\r\n')
-  })
+it('toCsv uses CRLF and ends with one', () => {
+  // RFC 4180; the trailing newline keeps an append from joining two rows.
+  expect(toCsv(['a', 'b'], [['1', '2']])).toBe('a,b\r\n1,2\r\n')
 })
 
 describe('tableCsv', () => {
@@ -83,11 +78,6 @@ describe('tableCsv', () => {
     expect(csv.split('\r\n')[0]).toBe('Frame,X,Sensor')
   })
 
-  it('writes only the rows it was given', () => {
-    const csv = tableCsv(table, Int32Array.from([2]), {})
-    expect(csv.trimEnd().split('\r\n')).toHaveLength(2)
-  })
-
   it('rounds to the manifest’s decimals and quotes a level with a comma', () => {
     const csv = tableCsv(table, Int32Array.from([0, 1]), { X: { decimal: 2 } })
     const lines = csv.trimEnd().split('\r\n')
@@ -96,9 +86,9 @@ describe('tableCsv', () => {
     expect(lines[2]).toBe('0,,"rear, left"')
   })
 
-  it('leaves a null level as an empty cell', () => {
+  it('writes only the rows it was given, a null level as an empty cell', () => {
     const csv = tableCsv(table, Int32Array.from([2]), {})
-    expect(csv.trimEnd().split('\r\n')[1]).toBe('1,3,')
+    expect(csv.trimEnd().split('\r\n')).toEqual(['Frame,X,Sensor', '1,3,'])
   })
 })
 
@@ -157,22 +147,14 @@ describe('standaloneHtml', () => {
     layout: { title: 'x' }
   }
 
-  it('spreads typed arrays into real ones', () => {
-    // JSON turns a Float64Array into {"0":1,"1":2}, and the exported page
-    // then draws nothing at all.
-    const html = standaloneHtml(figure, 'Title', '/* plotly */')
+  it('is a light page with the library inlined and typed arrays spread', () => {
+    // JSON turns a Float64Array into {"0":1,"1":2}, which draws nothing.
+    const html = standaloneHtml(figure, 'Title', 'PLOTLY_SOURCE_HERE')
     expect(html).toContain('[1,2]')
     expect(html).not.toContain('"0":1')
-  })
-
-  it('inlines the library rather than linking it', () => {
-    const html = standaloneHtml(figure, 'Title', 'PLOTLY_SOURCE_HERE')
     expect(html).toContain('PLOTLY_SOURCE_HERE')
     expect(html).not.toContain('<script src=')
-  })
-
-  it('is a light page', () => {
-    expect(standaloneHtml(figure, 'Title', '')).toContain('background: #ffffff')
+    expect(html).toContain('background: #ffffff')
   })
 
   it('escapes the title', () => {
@@ -182,14 +164,7 @@ describe('standaloneHtml', () => {
   })
 })
 
-describe('exportName', () => {
-  it('carries the log, a timestamp and the kind', () => {
-    expect(exportName('scene_0061', 'table', 'csv')).toMatch(
-      /^scene_0061_\d{8}_\d{6}_table\.csv$/
-    )
-  })
-
-  it('still names a file with no log open', () => {
-    expect(exportName(null, 'scene', 'png')).toMatch(/^\d{8}_\d{6}_scene\.png$/)
-  })
+it('exportName carries the log if any, a timestamp and the kind', () => {
+  expect(exportName('scene_0061', 'table', 'csv')).toMatch(/^scene_0061_\d{8}_\d{6}_table\.csv$/)
+  expect(exportName(null, 'scene', 'png')).toMatch(/^\d{8}_\d{6}_scene\.png$/)
 })

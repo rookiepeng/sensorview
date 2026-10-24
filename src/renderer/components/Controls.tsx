@@ -81,37 +81,6 @@ export function CollapseButton({
   )
 }
 
-export function PanelHead({
-  icon,
-  title,
-  children,
-  collapse
-}: {
-  icon: IconName
-  title: string
-  /** Anything that sits between the title and the collapse toggle. */
-  children?: ReactNode
-  collapse?: { collapsed: boolean; onToggle: () => void; subject: string; edge: 'left' | 'right' }
-}) {
-  return (
-    <div className="sv-panel-head">
-      <span className="sv-panel-title">
-        <Icon name={icon} />
-        <span className="sv-panel-label">{title}</span>
-      </span>
-      {children}
-      {collapse && (
-        <CollapseButton
-          collapsed={collapse.collapsed}
-          onToggle={collapse.onToggle}
-          subject={collapse.subject}
-          edge={collapse.edge}
-        />
-      )}
-    </div>
-  )
-}
-
 /**
  * One overlay: a titled plate floating over the scene.
  *

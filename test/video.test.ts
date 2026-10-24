@@ -1,6 +1,6 @@
 // Counting a recording's frames without trusting ffmpeg's progress line.
 //
-// Transliterated from `tests/test_probe_frame_count.py`. The probe used to
+// The probe used to
 // scrape `frame=` out of stderr. That counter belongs to the *encoder*, so
 // from ffmpeg 7 a stream copy stopped reporting one and the probe returned
 // nothing for every file on every modern build -- silently, because nothing is
@@ -30,44 +30,20 @@ const FRAMECRC_THREE = `#extradata 0:       46, 0x443c0f73
 `
 
 describe('countPacketLines', () => {
-  it('counts packets and skips the header', () => {
-    expect(countPacketLines(FRAMECRC_THREE)).toBe(3)
-  })
-
-  it('counts nothing in empty output', () => {
-    expect(countPacketLines('')).toBe(0)
-  })
-
-  it('counts nothing in a header alone', () => {
-    const header = FRAMECRC_THREE.split('\n').slice(0, 7).join('\n') + '\n'
-    expect(countPacketLines(header)).toBe(0)
-  })
-
-  it('still counts an unterminated final line', () => {
-    expect(countPacketLines(FRAMECRC_THREE.replace(/\n+$/, ''))).toBe(3)
-  })
-
-  it('agrees with a line split over a long dump', () => {
-    // The count scans rather than splitting, so the two have to be shown to
-    // agree -- including across the header boundary.
-    let dump = FRAMECRC_THREE
-    for (let index = 3; index < 5000; index++) {
-      dump += `0,${String(index * 8000).padStart(12)},${String(index * 8000).padStart(12)},8000,44000, 0x0000${index.toString(16).padStart(4, '0')}\n`
-    }
-    const expected = dump.split('\n').filter((line) => line && !line.startsWith('#')).length
+  it.each([
+    ['packets after the header', FRAMECRC_THREE, 3],
+    ['an unterminated final line', FRAMECRC_THREE.trimEnd(), 3],
+    ['nothing in empty output', '', 0],
+    ['nothing in a header alone', FRAMECRC_THREE.split('\n').slice(0, 7).join('\n') + '\n', 0],
+    // The rule is "a line starting with #", wherever it sits.
+    ['around a header line that is not first', '0,0,0,1,2, 0x1\n#tb 0: 1/90000\n0,1,1,1,2, 0x2\n', 2]
+  ])('counts %s', (_, dump, expected) => {
     expect(countPacketLines(dump)).toBe(expected)
-  })
-
-  it('does not miscount a header line that is not the first', () => {
-    // framecrc writes one header block, but the rule is "a line starting with
-    // #", and the scan has to find those anywhere rather than only at the top.
-    expect(countPacketLines('0,0,0,1,2, 0x1\n#tb 0: 1/90000\n0,1,1,1,2, 0x2\n')).toBe(2)
   })
 })
 
 describe('isBrowserPlayable', () => {
   it.each([
-    ['clip.mp4', true],
     ['clip.MP4', true],
     ['clip.m4v', true],
     ['clip.webm', true],

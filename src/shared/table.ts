@@ -92,7 +92,7 @@ export interface FilterState {
  * @param frameValues The frame column's values, one per row.
  * @returns Ascending frame ids and the CSR arrays addressing their rows.
  */
-export function buildFrameIndex(frameValues: Float64Array): {
+function buildFrameIndex(frameValues: Float64Array): {
   frameIds: Float64Array
   frameStart: Int32Array
   rowOrder: Int32Array
@@ -333,7 +333,7 @@ export function visibleRows(table: Table, position: number, mask: Uint8Array): I
  * chips. Past this a column the manifest calls categorical is more likely
  * mislabelled than meant to fill the rail with chips, so it keeps its slider.
  */
-export const MAX_NUMERIC_LEVELS = 64
+const MAX_NUMERIC_LEVELS = 64
 
 /** Distinct values of numeric columns, worked out once per column. */
 const numericLevels = new WeakMap<NumericColumn, string[]>()

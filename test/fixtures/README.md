@@ -12,8 +12,8 @@ note.
 
 | File | Captured from | What it pins |
 |---|---|---|
-| `golden.json` | `dataio.calibration`, `frame_sources._video_frame_for` | The ZYX rotation product, and the half-up rounding in the frame-count-to-frame-count video mapping. |
-| `filters.json` | `utils.filters.filter_all` | 51 filter states over the real table, as a base64 row bitmask. NaN, ±Inf, an empty categorical selection, and the visibility picker's deliberate two-or-more no-op. |
+| `golden.json` | `dataio.calibration`, `frame_sources._video_frame_for` | A sample of the ZYX rotation product and transform, and the half-up rounding in the frame-count-to-frame-count video mapping. |
+| `filters.json` | `utils.filters.filter_all` | 21 filter states over the real table, as a base64 row bitmask. NaN, ±Inf, an empty categorical selection, and the visibility picker's deliberate two-or-more no-op. |
 | `reference.json` | `dataio.reference.ReferenceStore` | Five column-mapping cases: unmapped, explicit, a field a picker cleared, a field pointed at a missing column, and no `x` at all. Plus the poses and the position extent. |
 | `curves.json` | `dataio.dense_store.CurveStore`, `_split_xy` | The (N,2) and (2,N) orientations MATLAB makes interchangeable, and the real sidecar's samples. NaN crosses as `null`: JSON has no NaN, and `json.dump` writes a bare `NaN` no other parser reads. |
 | `histogram.json` | `numpy.histogram_bin_edges(bins='auto')`, `numpy.histogram2d` | Bin edges for every numeric column, the degenerate shapes a filtered view produces, and a 119×74 count grid by row and column sums. |

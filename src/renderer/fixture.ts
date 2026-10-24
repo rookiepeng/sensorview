@@ -149,8 +149,6 @@ function buildCloud(frame: number, count: number) {
   }
 }
 
-export const FIXTURE_FRAMES = 60
-
 /**
  * Build one synthetic frame.
  *

@@ -14,7 +14,7 @@
 import type { Table } from './table'
 
 /** Cells across and down. One drawn point per cell, so at most their product. */
-export const THIN_GRID = { x: 200, y: 120 }
+const THIN_GRID = { x: 200, y: 120 }
 
 /** Fewer rows than this are drawn as they are. */
 export const THIN_ABOVE = 20_000

@@ -24,7 +24,7 @@ import { protocol } from 'electron'
 
 import { SCHEME, decodeMediaUrl, mimeFor, parseByteRange, withinRoots } from '../shared/media'
 
-export { SCHEME, mediaUrl } from '../shared/media'
+export { mediaUrl } from '../shared/media'
 
 /** Directories the user has opened. Nothing outside these is readable. */
 const roots = new Set<string>()

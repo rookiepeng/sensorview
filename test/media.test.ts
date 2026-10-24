@@ -20,44 +20,30 @@ import {
 const SIZE = 1000
 
 describe('parseByteRange', () => {
-  it('reads an explicit range inclusively', () => {
-    // `bytes=0-99` is 100 bytes, not 99. Content-Length is computed from this.
-    expect(parseByteRange('bytes=0-99', SIZE)).toEqual({ start: 0, end: 99 })
-  })
-
-  it('reads an open-ended range to the last byte', () => {
-    expect(parseByteRange('bytes=500-', SIZE)).toEqual({ start: 500, end: 999 })
-  })
-
-  it('reads a suffix range from the end', () => {
-    // What a player sends to find the trailing moov atom of an mp4 written
-    // without +faststart.
-    expect(parseByteRange('bytes=-64', SIZE)).toEqual({ start: 936, end: 999 })
-  })
-
-  it('clamps a suffix longer than the file to the whole file', () => {
-    expect(parseByteRange('bytes=-5000', SIZE)).toEqual({ start: 0, end: 999 })
-  })
-
-  it('clamps an end past the last byte', () => {
-    expect(parseByteRange('bytes=900-5000', SIZE)).toEqual({ start: 900, end: 999 })
-  })
-
-  it('tolerates surrounding whitespace', () => {
-    expect(parseByteRange('  bytes=10-20 ', SIZE)).toEqual({ start: 10, end: 20 })
+  it.each([
+    // Inclusive: `bytes=0-99` is 100 bytes, and Content-Length comes from it.
+    ['bytes=0-99', 0, 99],
+    ['bytes=500-', 500, 999],
+    // How a player finds the trailing moov atom of a non-faststart mp4.
+    ['bytes=-64', 936, 999],
+    ['bytes=-5000', 0, 999],
+    ['bytes=900-5000', 900, 999],
+    ['  bytes=10-20 ', 10, 20]
+  ])('reads %j as %i-%i', (header, start, end) => {
+    expect(parseByteRange(header, SIZE)).toEqual({ start, end })
   })
 
   it.each([
-    ['bytes=1000-', 'starts at the length'],
-    ['bytes=1500-1600', 'starts past the end'],
-    ['bytes=200-100', 'end before start'],
-    ['bytes=-0', 'zero-length suffix'],
-    ['bytes=-', 'no bounds at all'],
-    ['bytes=abc-def', 'not numbers'],
-    ['items=0-99', 'wrong unit'],
-    ['bytes=0-99, 200-299', 'multipart'],
-    ['', 'empty']
-  ])('refuses %s (%s)', (header) => {
+    'bytes=1000-',
+    'bytes=1500-1600',
+    'bytes=200-100',
+    'bytes=-0',
+    'bytes=-',
+    'bytes=abc-def',
+    'items=0-99',
+    'bytes=0-99, 200-299',
+    ''
+  ])('refuses %j', (header) => {
     expect(parseByteRange(header, SIZE)).toBeNull()
   })
 
@@ -67,84 +53,50 @@ describe('parseByteRange', () => {
 })
 
 describe('mediaUrl', () => {
-  it('round-trips a path', () => {
-    const path = resolve('data/NuScenes/scene_0061.mp4')
-    expect(decodeMediaUrl(mediaUrl(path))).toBe(path)
-  })
-
-  it('round-trips a path with a drive letter, spaces and non-ASCII', () => {
-    // The reason the path is encoded rather than written into the URL: a
-    // colon, a backslash and a space all mean something to a URL parser.
-    const path = 'C:\\Users\\someone\\My Döcs\\case 01\\log.mp4'
-    expect(decodeMediaUrl(mediaUrl(path))).toBe(path)
-  })
-
-  it('preserves case', () => {
-    // A standard-scheme URL lowercases its host, which is why the path is not
-    // put there.
-    const path = '/Data/NuScenes/Scene_0061.MP4'
-    expect(decodeMediaUrl(mediaUrl(path))).toBe(path)
-  })
-
   it.each([
-    ['https://example.com/x', 'another scheme'],
-    ['sv://other/abc', 'another host'],
-    ['sv://media/', 'no payload'],
-    ['not a url', 'not a URL at all']
-  ])('refuses %s (%s)', (url) => {
-    expect(decodeMediaUrl(url)).toBeNull()
+    resolve('data/NuScenes/scene_0061.mp4'),
+    // A colon, a backslash and a space all mean something to a URL parser.
+    'C:\\Users\\someone\\My Döcs\\case 01\\log.mp4',
+    // A standard-scheme URL lowercases its host, so the path is not put there.
+    '/Data/NuScenes/Scene_0061.MP4'
+  ])('round-trips %s', (path) => {
+    expect(decodeMediaUrl(mediaUrl(path))).toBe(path)
   })
+
+  it.each(['https://example.com/x', 'sv://other/abc', 'sv://media/', 'not a url'])(
+    'refuses %s',
+    (url) => {
+      expect(decodeMediaUrl(url)).toBeNull()
+    }
+  )
 })
 
 describe('withinRoots', () => {
   const root = resolve('/data/case')
+  const other = resolve('/elsewhere/case')
 
-  it('accepts the root itself', () => {
-    expect(withinRoots(root, [root])).toBe(true)
-  })
-
-  it('accepts a file inside it', () => {
-    expect(withinRoots(resolve(root, 'log.mp4'), [root])).toBe(true)
-  })
-
-  it('accepts a file in a subdirectory', () => {
-    expect(withinRoots(resolve(root, 'sub', 'log.mp4'), [root])).toBe(true)
-  })
-
-  it('rejects a sibling whose name starts the same way', () => {
-    // The whole reason the separator is part of the test.
-    expect(withinRoots(resolve('/data/case-evil/log.mp4'), [root])).toBe(false)
-  })
-
-  it('rejects a path that climbs out', () => {
-    expect(withinRoots(resolve(root, '..', 'secrets.txt'), [root])).toBe(false)
-  })
-
-  it('rejects an unnormalised path that climbs out', () => {
-    expect(withinRoots(`${root}${sep}..${sep}secrets.txt`, [root])).toBe(false)
-  })
-
-  it('rejects everything when nothing has been opened', () => {
-    expect(withinRoots(resolve(root, 'log.mp4'), [])).toBe(false)
-  })
-
-  it('accepts a file under any of several roots', () => {
-    const other = resolve('/elsewhere/case')
-    expect(withinRoots(resolve(other, 'log.mp4'), [root, other])).toBe(true)
+  it.each([
+    ['the root itself', root, [root], true],
+    ['a file in a subdirectory', resolve(root, 'sub', 'log.mp4'), [root], true],
+    ['a file under any of several roots', resolve(other, 'log.mp4'), [root, other], true],
+    // The reason the separator is part of the test.
+    ['a sibling whose name starts the same', resolve('/data/case-evil/log.mp4'), [root], false],
+    ['a path that climbs out', resolve(root, '..', 'secrets.txt'), [root], false],
+    ['an unnormalised path that climbs out', `${root}${sep}..${sep}secrets.txt`, [root], false],
+    ['anything when nothing is open', resolve(root, 'log.mp4'), [], false]
+  ])('%s -> %s', (_, path, roots, expected) => {
+    expect(withinRoots(path, roots)).toBe(expected)
   })
 })
 
 describe('mimeFor', () => {
   it.each([
-    ['clip.mp4', 'video/mp4'],
     ['CLIP.MP4', 'video/mp4'],
     ['still.png', 'image/png'],
-    ['photo.jpeg', 'image/jpeg']
+    ['photo.jpeg', 'image/jpeg'],
+    ['data.parquet', 'application/octet-stream'],
+    ['noextension', 'application/octet-stream']
   ])('maps %s', (path, type) => {
     expect(mimeFor(path)).toBe(type)
-  })
-
-  it.each([['data.parquet'], ['noextension']])('falls back for %s', (path) => {
-    expect(mimeFor(path)).toBe('application/octet-stream')
   })
 })

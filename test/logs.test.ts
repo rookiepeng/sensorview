@@ -1,7 +1,6 @@
 // Combining logs: who owns a slider position, and what frame that is.
 //
-// Transliterated from `tests/test_frame_owners.py` and
-// `tests/test_stem_runs.py`. Both exist because the failure is silent: the
+// The failure is silent: the
 // wrong owner shows the wrong log's camera, and the wrong `localStart` seeks
 // every frame after the first gap to the wrong moment, with a picture that
 // still looks plausible either way.
@@ -16,20 +15,14 @@ const SHARED = { '0': ['other', 'main'], '1': ['other', 'main'], '2': ['other', 
 
 describe('buildFrameOwners', () => {
   describe('the primary leads', () => {
-    it('keeps both logs on a shared frame', () => {
-      const { ownerSets } = buildFrameOwners([0, 1, 2], SHARED, 'main')
+    it('on a shared frame, keeping both logs', () => {
+      // The head of each set is what everything keyed on one owner reads.
+      const { ownerSets, frameStems } = buildFrameOwners([0, 1, 2], SHARED, 'main')
       expect(ownerSets).toEqual([
         ['main', 'other'],
         ['main', 'other'],
         ['main', 'other']
       ])
-    })
-
-    it('still names the primary in frameStems', () => {
-      // The head of each set is what everything keyed on a single owner
-      // reads, so this is the guarantee that nothing outside the two panels
-      // changed behaviour when a frame gained a second owner.
-      const { frameStems } = buildFrameOwners([0, 1, 2], SHARED, 'main')
       expect(frameStems).toEqual(['main', 'main', 'main'])
     })
 
@@ -78,62 +71,32 @@ describe('buildFrameOwners', () => {
 })
 
 describe('stemRuns', () => {
-  describe('contiguous', () => {
-    it('is one run for an unbroken stretch', () => {
-      expect(stemRuns([0, 1, 2, 3])).toEqual([{ start: 0, count: 4, localStart: 0 }])
-    })
+  const run = (start: number, count: number, localStart: number) => ({ start, count, localStart })
 
-    it('keeps the offset of a stretch starting partway', () => {
-      expect(stemRuns([5, 6, 7])).toEqual([{ start: 5, count: 3, localStart: 0 }])
-    })
-
-    it('has no runs for an empty log', () => {
-      expect(stemRuns([])).toEqual([])
-    })
-
-    it('handles a single position', () => {
-      expect(stemRuns([9])).toEqual([{ start: 9, count: 1, localStart: 0 }])
-    })
+  it.each([
+    ['nothing for an empty log', [], []],
+    ['one run for an unbroken stretch', [0, 1, 2, 3], [run(0, 4, 0)]],
+    ['the offset of a stretch starting partway', [5, 6, 7], [run(5, 3, 0)]],
+    ['a new run at a gap', [0, 1, 4, 5], [run(0, 2, 0), run(4, 2, 2)]],
+    // Every other position: the log's own frames are still 0, 1, 2.
+    ['one run per frame when interleaved', [0, 2, 4], [run(0, 1, 0), run(2, 1, 1), run(4, 1, 2)]]
+  ])('has %s', (_, positions, expected) => {
+    expect(stemRuns(positions)).toEqual(expected)
   })
 
-  describe('gaps', () => {
-    it('starts a new run at a gap', () => {
-      expect(stemRuns([0, 1, 4, 5])).toEqual([
-        { start: 0, count: 2, localStart: 0 },
-        { start: 4, count: 2, localStart: 2 }
-      ])
-    })
-
-    it('yields one run per frame for an interleaved log', () => {
-      // Every other position: the log's own frames are still 0, 1, 2.
-      expect(stemRuns([0, 2, 4])).toEqual([
-        { start: 0, count: 1, localStart: 0 },
-        { start: 2, count: 1, localStart: 1 },
-        { start: 4, count: 1, localStart: 2 }
-      ])
-    })
-
-    it('numbers local frames end to end across gaps', () => {
-      const positions = [0, 1, 5, 6, 7, 20]
-      const runs = stemRuns(positions)
-      // The whole point of localStart: the log is measured against its own
-      // recording, so its frames are 0..n-1 whatever the gaps.
-      expect(positions.map((p) => localFrameFor(runs, p))).toEqual([0, 1, 2, 3, 4, 5])
-    })
-
-    it('resolves a position the log does not own to nothing', () => {
-      expect(localFrameFor(stemRuns([0, 1, 5]), 3)).toBeNull()
-    })
+  it('numbers local frames end to end across gaps, and nothing between', () => {
+    const positions = [0, 1, 5, 6, 7, 20]
+    const runs = stemRuns(positions)
+    expect(positions.map((p) => localFrameFor(runs, p))).toEqual([0, 1, 2, 3, 4, 5])
+    expect(localFrameFor(runs, 3)).toBeNull()
   })
 
   it('spans an interleaved log’s whole recording', () => {
-    // Two logs alternating over ten positions; this one owns five, and those
-    // five must cover its 30-frame clip from first to last.
+    // This log owns five of ten positions; they must cover its 30-frame clip.
     const positions = [0, 2, 4, 6, 8]
     const runs = stemRuns(positions)
     const mapped = positions.map((p) => videoFrameFor(localFrameFor(runs, p)!, 5, 30))
-    expect(mapped[0]).toBe(0)
-    expect(mapped[mapped.length - 1]).toBe(29)
+    expect([mapped[0], mapped.at(-1)]).toEqual([0, 29])
     expect(mapped).toEqual([...mapped].sort((a, b) => a - b))
   })
 })

@@ -91,18 +91,3 @@ export interface ScenePayload {
   /** Hover text is only built for a paused view, as it was under Dash. */
   paused: boolean
 }
-
-/** A group with nothing in it, for the empty-frame case. */
-export function emptyGroup(name = ''): Group {
-  return {
-    name,
-    count: 0,
-    position: new Float32Array(0),
-    value: null,
-    ids: null,
-    hover: () => null,
-    rgb: null,
-    size: 3,
-    showlegend: true
-  }
-}
