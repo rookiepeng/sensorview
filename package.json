@@ -1,7 +1,7 @@
 {
   "name": "sensorview",
   "productName": "SensorView",
-  "version": "13.0.1",
+  "version": "13.0.2",
   "description": "Desktop inspector for radar and lidar logs",
   "author": "Zhengyu Peng",
   "license": "GPL-3.0",
