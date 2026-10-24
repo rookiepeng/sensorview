@@ -147,6 +147,18 @@ const DRIVE = `
                const draws = () => hud('draws')
 `
 
+/**
+ * A value as a JavaScript literal, safe to splice into code run with
+ * `executeJavaScript`. JSON alone leaves `<`, `>`, `/` and the U+2028/U+2029
+ * line separators as they are, which can end a script or a string early.
+ */
+function jsLiteral(value: unknown): string {
+  return JSON.stringify(value).replace(
+    /[<>/\u2028\u2029]/g,
+    c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0')
+  )
+}
+
 /** What each Plotly trace type puts in the DOM once it has actually drawn. */
 const MARKS = [
   '.scatterlayer .point',
@@ -572,7 +584,7 @@ export async function runSmoke(
           // And the readers agree with what is on screen.
           const summary = await probe.webContents.executeJavaScript(
             `(async () => {
-               const scan = await window.sensorview.data('scanCase', { dir: ${JSON.stringify(caseDir)} })
+               const scan = await window.sensorview.data('scanCase', { dir: ${jsLiteral(caseDir)} })
                if (!scan.ok) return { error: scan.error }
                const log = scan.data.logs[0]
                const read = await window.sensorview.data('readTable', { path: log.file })
@@ -803,7 +815,7 @@ export async function runSmoke(
                  // What each trace type actually puts in the DOM. Counted
                  // rather than assumed: a trace that exists is not a trace
                  // that rendered, which is how the scattergl notice hid.
-                 const marks = pane.querySelectorAll(${JSON.stringify(MARKS)}).length
+                 const marks = pane.querySelectorAll(${jsLiteral(MARKS)}).length
                  const notice = pane.querySelector('.no-webgl, .nowebgl')
                  if (notice) {
                    return {
@@ -1307,7 +1319,7 @@ export async function runSmoke(
                      if (plot) {
                        // Whatever the dock happened to be showing when the
                        // export ran, which is not always a scatter.
-                       const marks = plot.querySelectorAll(${JSON.stringify(MARKS)}).length
+                       const marks = plot.querySelectorAll(${jsLiteral(MARKS)}).length
                        if (marks > 0) return { marks: marks, plotly: typeof Plotly }
                      }
                    }
@@ -1938,7 +1950,7 @@ export async function runSmoke(
           // view nobody would land on by accident.
           const left = await probe.webContents.executeJavaScript(
             `(async () => {
-               const dir = ${JSON.stringify(caseDir)}
+               const dir = ${jsLiteral(caseDir)}
                await window.sensorview.settings.set({ recent: [dir] })
                // Two widths nobody would land on by accident, for the cold
                // start to come back to. Nested, so the whole layout is read
@@ -2163,7 +2175,7 @@ async function lookAt(caseDir: string, out: string, rendererHtml: string): Promi
       await probe.webContents.executeJavaScript(
         `(async () => {
            const button = Array.from(document.querySelectorAll('.sv-gl-preset'))
-             .find(b => (b.title || '').toLowerCase().includes(${JSON.stringify(preset)}))
+             .find(b => (b.title || '').toLowerCase().includes(${jsLiteral(preset)}))
            if (button) button.click()
            const canvas = document.getElementById('gl-canvas')
            const box = canvas.getBoundingClientRect()
