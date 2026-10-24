@@ -1158,10 +1158,6 @@ body {
     color: var(--sv-accent);
 }
 
-.sv-transport-play .sv-icon {
-    font-size: 1.1rem;
-}
-
 .sv-transport-play:hover:not(:disabled) {
     background: var(--sv-accent-soft);
     border-color: transparent;
