@@ -1,6 +1,6 @@
 // numpy's histogram machinery, checked against numpy.
 //
-// The fixture is captured by `scripts/histogram_golden.py` from the real
+// The fixture was captured from numpy (see `fixtures/README.md`) on the real
 // table. Every numeric column is binned, because the estimator's branches are
 // chosen by the data: a tight interquartile range takes the sqrt floor, a
 // small sample takes Sturges, and a constant column takes neither.

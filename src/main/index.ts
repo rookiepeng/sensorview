@@ -1,12 +1,4 @@
 // The main process: one window, the IPC handlers behind it, and the lockdown.
-//
-// During the migration this window points at the Dash dev server, which the
-// developer starts separately (`SENSORVIEW_DASH=1 python main.py --debug`).
-// That is deliberate and temporary: packaging Python inside Electron would
-// mean a PyInstaller bundle as an extraResource, a spawned child, a port
-// handshake and orphan cleanup -- all of it thrown away once the renderer is
-// native. So this configuration is never packaged; `npm run dist` builds the
-// real renderer, which is empty until then.
 
 import { rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -28,11 +20,6 @@ import {
 } from '../shared/types'
 
 const here = dirname(fileURLToPath(import.meta.url))
-
-// Where the window points while the UI is still Dash. Unset once the renderer
-// is native; `npm run dev` then serves it the usual way.
-const DASH_URL = process.env.SENSORVIEW_DASH_URL ?? 'http://127.0.0.1:8050'
-const USE_DASH = process.env.SENSORVIEW_DASH === '1'
 
 // Must run before the app is ready.
 registerScheme()
@@ -182,18 +169,9 @@ function createWindow(theme: string, bounds: WindowBounds | null): void {
     }
     return { action: 'deny' }
   })
-  win.webContents.on('will-navigate', (event, url) => {
-    // The Dash shell is a real page load, so it is the one exception, and only
-    // while that mode is on.
-    if (USE_DASH && url.startsWith(DASH_URL)) {
-      return
-    }
-    event.preventDefault()
-  })
+  win.webContents.on('will-navigate', (event) => event.preventDefault())
 
-  if (USE_DASH) {
-    void win.loadURL(DASH_URL)
-  } else if (process.env.ELECTRON_RENDERER_URL) {
+  if (process.env.ELECTRON_RENDERER_URL) {
     void win.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
     void win.loadFile(join(here, '../renderer/index.html'))
@@ -443,12 +421,7 @@ if (!process.env.SENSORVIEW_SMOKE && !app.requestSingleInstanceLock()) {
       // A run that throws is a failed run, and still has to end the process:
       // without the catch it left Electron open until something killed it.
       app.exit(
-        await runSmoke(
-          smokeFile,
-          data,
-          join(here, '../renderer/index.html'),
-          process.env.SENSORVIEW_SMOKE_URL
-        ).catch((problem: unknown) => {
+        await runSmoke(smokeFile, data, join(here, '../renderer/index.html')).catch((problem: unknown) => {
           console.error(`smoke: ${problem instanceof Error ? problem.message : String(problem)}`)
           return 1
         })

@@ -241,7 +241,7 @@ npm run lint
 npm run smoke -- --case data/NuScenes
 ```
 
-The smoke run is the one worth knowing about. It builds, then runs fifteen
+The smoke run is the one worth knowing about. It builds, then runs sixteen
 checks **inside Electron against that build**: the `sv://` protocol and its
 Range handling, the data process reading real Parquet and HDF5, and a probe
 window that opens the bundled case and asserts what the scene drew, what the

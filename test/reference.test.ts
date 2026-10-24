@@ -1,6 +1,6 @@
 // The reference pose sidecar, checked against the Python it replaces.
 //
-// The fixture is captured by `scripts/reference_golden.py` from the real
+// The fixture was captured from the Python (see `fixtures/README.md`) on the real
 // sidecar in `data/NuScenes`. Column resolution is the part worth pinning:
 // an unmapped file, an explicitly mapped one, a field a picker cleared, and a
 // field pointed at a column the file does not have all resolve differently,
@@ -38,57 +38,37 @@ describe('ReferenceStore', () => {
     ReferenceStore.clearCache()
   })
 
-  for (const expected of golden.cases) {
-    describe(expected.label, () => {
-      const open = () =>
-        ReferenceStore.open(PATH, {
-          columns: expected.columns ?? undefined,
-          frameKey: expected.frameKey
-        })!
+  it.each(golden.cases.map((c) => [c.label, c] as const))('%s', (_, expected) => {
+    const store = ReferenceStore.open(PATH, {
+      columns: expected.columns ?? undefined,
+      frameKey: expected.frameKey
+    })!
+    expect(store.resolvedColumns).toEqual(expected.resolved)
+    expect(store.isUsable).toBe(expected.usable)
+    expect(store.availableColumns).toEqual(expected.available)
 
-      it('resolves each field to the same column the Python did', () => {
-        expect(open().resolvedColumns).toEqual(expected.resolved)
-      })
+    for (const [frame, pose] of Object.entries(expected.poses)) {
+      const got = store.pose(Number(frame))
+      // A gap draws nothing rather than stranding the reference.
+      if (pose === null) {
+        expect(got).toBeNull()
+        continue
+      }
+      for (const field of POSE_FIELDS) {
+        expect(got![field]).toBeCloseTo(pose[field]!, 12)
+      }
+    }
 
-      it('agrees about whether the sidecar can place anything', () => {
-        expect(open().isUsable).toBe(expected.usable)
-      })
-
-      it('lists the file’s columns in file order', () => {
-        expect(open().availableColumns).toEqual(expected.available)
-      })
-
-      it('reads the same pose for every sampled frame', () => {
-        const store = open()
-        for (const [frame, pose] of Object.entries(expected.poses)) {
-          const got = store.pose(Number(frame))
-          if (pose === null) {
-            // A gap draws nothing rather than stranding the reference at its
-            // last known pose.
-            expect(got).toBeNull()
-            continue
-          }
-          expect(got).not.toBeNull()
-          for (const field of POSE_FIELDS) {
-            expect(got![field]).toBeCloseTo(pose[field]!, 12)
-          }
-        }
-      })
-
-      it('reports the same position extent', () => {
-        const bounds = open().bounds()
-        if (expected.bounds === null) {
-          expect(bounds).toBeNull()
-          return
-        }
-        expect(bounds).not.toBeNull()
-        for (const axis of ['x', 'y', 'z'] as const) {
-          expect(bounds![axis][0]).toBeCloseTo(expected.bounds[axis]![0], 12)
-          expect(bounds![axis][1]).toBeCloseTo(expected.bounds[axis]![1], 12)
-        }
-      })
-    })
-  }
+    const bounds = store.bounds()
+    if (expected.bounds === null) {
+      expect(bounds).toBeNull()
+    } else {
+      for (const axis of ['x', 'y', 'z'] as const) {
+        expect(bounds![axis][0]).toBeCloseTo(expected.bounds[axis]![0], 12)
+        expect(bounds![axis][1]).toBeCloseTo(expected.bounds[axis]![1], 12)
+      }
+    }
+  })
 
   it('reuses a parsed sidecar, and re-reads it for a different mapping', () => {
     const first = ReferenceStore.open(PATH, { frameKey: 'Frame' })

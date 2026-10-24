@@ -18,7 +18,7 @@ import type { CaseView } from '@shared/types'
 import { useStore, type CaseState } from './store'
 
 /** The persisted fields alone, for writing back. */
-export function viewOf(s: CaseState): CaseView {
+function viewOf(s: CaseState): CaseView {
   return {
     axes: s.axes,
     colormap: s.colormap,

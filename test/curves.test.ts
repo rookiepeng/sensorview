@@ -1,6 +1,6 @@
 // Reading curves, checked against the Python it replaces.
 //
-// The fixture is captured by `scripts/curve_golden.py` from the real sidecar
+// The fixture was captured from the Python (see `fixtures/README.md`) on the real sidecar
 // in `data/NuScenes`. The orientation cases are the point: MATLAB writes
 // column-major, so the same logical curve reads back as (N, 2) or (2, N), and
 // a port that handles only one of them still draws a plausible line from the

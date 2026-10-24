@@ -42,7 +42,7 @@ export interface Recording {
  * for rather than assumed -- an unsupported one makes `MediaRecorder` throw at
  * construction, after the user has already chosen where to save.
  */
-export function pickMimeType(): { mimeType: string; extension: string } {
+function pickMimeType(): { mimeType: string; extension: string } {
   const candidates = [
     { mimeType: 'video/webm;codecs=vp9', extension: 'webm' },
     { mimeType: 'video/webm;codecs=vp8', extension: 'webm' },
