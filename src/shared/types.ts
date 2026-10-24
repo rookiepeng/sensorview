@@ -294,7 +294,7 @@ export interface DockSlot {
   view?: string
   x?: string
   y?: string
-  colour?: string
+  color?: string
   dimensions?: string[]
   logScale?: boolean
   histnorm?: string
@@ -306,7 +306,7 @@ export interface DockSlot {
  * What the user set up for one case.
  *
  * Per case rather than once for the app, because most of it names columns:
- * restoring case A's axes onto case B would colour by a key that case does
+ * restoring case A's axes onto case B would color by a key that case does
  * not have, which reads back as zeros from every row and draws a
  * plausible-looking chart of nothing.
  *
@@ -317,7 +317,7 @@ export interface DockSlot {
  * the two cannot clobber each other.
  */
 export interface CaseView {
-  axes?: { x: string; y: string; z: string; colour: string }
+  axes?: { x: string; y: string; z: string; color: string }
   colormap?: string
   decay?: number
   overlay?: boolean
@@ -336,16 +336,24 @@ export const MAX_VIEWS = 10
  * Shallow on purpose for `slots`: the panes are narrowed by the dock, which
  * is the only place that knows which chart types and columns exist.
  */
+/** The British spelling settings were saved under before the rename. */
+export const LEGACY_COLOR = 'colour'
+
 export function sanitiseView(raw: unknown): CaseView {
   const it = (raw ?? {}) as Record<string, unknown>
   const view: CaseView = {}
-  const axes = (it.axes ?? {}) as Record<string, unknown>
-  if (['x', 'y', 'z', 'colour'].every((key) => typeof axes[key] === 'string')) {
+  const axes = { ...((it.axes ?? {}) as Record<string, unknown>) }
+  // Saved before the key was spelled `color`. Read once and written back
+  // under the new name with the next save.
+  if (axes.color === undefined) {
+    axes.color = axes[LEGACY_COLOR]
+  }
+  if (['x', 'y', 'z', 'color'].every((key) => typeof axes[key] === 'string')) {
     view.axes = {
       x: axes.x as string,
       y: axes.y as string,
       z: axes.z as string,
-      colour: axes.colour as string
+      color: axes.color as string
     }
   }
   // A colormap the palette does not hold would draw every point black.

@@ -21,7 +21,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { filterAll, frameRows, type Table } from '@shared/table'
-import type { DockSlot } from '@shared/types'
+import { LEGACY_COLOR, type DockSlot } from '@shared/types'
 
 import { maskedRows } from '../figures/common'
 import { buildView, VIEW_LABELS, type ViewId, type ViewOptions } from '../figures/views'
@@ -29,7 +29,7 @@ import { LARGE_ROWS, clearLoading, countOf, nextFrames, withLoading } from '../b
 import { regionsOfEvent, rowsInRegions, thinRows } from '@shared/thin'
 import { ToggleGroup } from 'radix-ui'
 
-import { CollapseButton, IconButton, Picker, Switch } from './Controls'
+import { CollapseButton, IconButton, Picker, SelectMenu, Switch } from './Controls'
 import { useLayout } from '../layout'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
@@ -39,7 +39,7 @@ interface SlotState {
   view: ViewId
   x: string
   y: string
-  colour: string
+  color: string
   dimensions: string[]
   logScale: boolean
   histnorm: 'probability' | 'density'
@@ -79,7 +79,7 @@ const EMPTY: SlotState = {
   view: 'histogram',
   x: '',
   y: '',
-  colour: 'None',
+  color: 'None',
   dimensions: [],
   logScale: false,
   histnorm: 'probability',
@@ -289,6 +289,12 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
     // group in `App.tsx` now. What is left here is the dock itself.
     <div className={`sv-dock${collapsed ? ' sv-collapsed' : ''}`} ref={dock}>
         <div className="sv-dock-head">
+          {/* Named like a card, with the card heads' own classes, so the
+              dock reads as one of the panels rather than a bare toolbar. */}
+          <span className="sv-group-title sv-dock-title">
+            <Icon name="analysis" className="sv-group-icon" />
+            <span className="sv-group-label">Analysis</span>
+          </span>
           {/* How many panes, said as a shape. Each pane's own view is picked
               on the pane, where the chart it names is. */}
           {/* One of two, so a single-select group rather than two toggle
@@ -347,25 +353,29 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
               nothing are worse than none. */}
           {selection.length > 0 && (
             <div className="sv-dock-selection">
-              <span className="sv-export-note">{selection.length} selected</span>
+              <span className="sv-dock-count">{selection.length.toLocaleString()} selected</span>
               <button
                 type="button"
-                className="sv-text-btn"
+                className="sv-action-btn"
+                title={`Hide the ${selection.length} selected`}
                 onClick={() => {
                   const chosen = selection
                   changeVisibility('Hiding', () => hideRows(chosen))
                 }}
               >
+                <Icon name="hide" />
                 Hide
               </button>
               <button
                 type="button"
-                className="sv-text-btn"
+                className="sv-action-btn"
+                title={`Show the ${selection.length} selected`}
                 onClick={() => {
                   const chosen = selection
                   changeVisibility('Showing', () => showRows(chosen))
                 }}
               >
+                <Icon name="show" />
                 Show
               </button>
             </div>
@@ -452,7 +462,8 @@ function restore(raw: DockSlot | undefined, fallback: ViewId): SlotState {
     view: it.view && it.view in VIEW_LABELS ? (it.view as ViewId) : fallback,
     x: text(it.x, ''),
     y: text(it.y, ''),
-    colour: text(it.colour, 'None'),
+    // A pane saved under the old spelling of the key keeps its color.
+    color: text(it.color ?? (it as Record<string, unknown>)[LEGACY_COLOR], 'None'),
     dimensions: Array.isArray(it.dimensions)
       ? it.dimensions.filter((name): name is string => typeof name === 'string')
       : [],
@@ -488,8 +499,8 @@ function defaults(
   if (!numeric.includes(next.y)) {
     next.y = preferred[1] ?? preferred[0] ?? numeric[0] ?? ''
   }
-  if (next.colour !== 'None' && ![...numeric, ...categorical].includes(next.colour)) {
-    next.colour = categorical[0] ?? 'None'
+  if (next.color !== 'None' && ![...numeric, ...categorical].includes(next.color)) {
+    next.color = categorical[0] ?? 'None'
   }
   if (next.view === 'violin' && !categorical.includes(next.x)) {
     // A violin's x is what it groups by, so it is a category, not a number.
@@ -560,7 +571,7 @@ function Pane({
   // again inside it. Forgotten when the pane starts showing something else,
   // which is also when Plotly lets go of the zoom (see `revision` below).
   const [zoom, setZoom] = useState<{ x: [number, number]; y: [number, number] } | null>(null)
-  const subject = [stems.join('+'), slot.view, slot.x, slot.y, slot.colour, slot.scope].join('|')
+  const subject = [stems.join('+'), slot.view, slot.x, slot.y, slot.color, slot.scope].join('|')
   useEffect(() => setZoom(null), [subject])
 
   // A scatter of more rows than SVG draws quickly is drawn as one row per
@@ -601,7 +612,7 @@ function Pane({
       buildView(slot.view, table, drawn, {
         x: slot.x,
         y: slot.y,
-        colour: slot.colour,
+        color: slot.color,
         dimensions: slot.dimensions,
         colormap,
         keys,
@@ -662,25 +673,30 @@ function Pane({
   }, [figure, slot.limits, thinned, drawn.length, scoped.length, theme])
 
   const view = slot.view
-  const revision = [stems.join('+'), view, slot.x, slot.y, slot.colour].join('|')
+  const revision = [stems.join('+'), view, slot.x, slot.y, slot.color].join('|')
   const wantsY = view === 'scatter' || view === 'heatmap' || view === 'violin'
   const xChoices = view === 'violin' ? categorical : numeric
 
   return (
     <div className="sv-pane">
       <div className="sv-pane-controls">
-        {/* The pane's own title: what it is a chart of. In the head it was
-            one of two anonymous selects labelled only by position. */}
-        <Picker
-          label="View"
-          value={slot.view}
-          choices={(Object.keys(VIEW_LABELS) as ViewId[]).map((id) => ({
-            value: id,
-            label: VIEW_LABELS[id]
-          }))}
-          onChange={(view) => change({ view: view as ViewId })}
-          className="sv-pane-field sv-slot-picker"
-        />
+        {/* The pane's own title: what kind of chart it is. Drawn as a
+            title rather than as one more labelled box, with a rule after it,
+            so the strip reads "Scatter | of X and Y, colored by C". */}
+        <div className="sv-slot-picker">
+          <SelectMenu
+            label="View"
+            className="sv-view-select"
+            value={slot.view}
+            choices={(Object.keys(VIEW_LABELS) as ViewId[]).map((id) => ({
+              value: id,
+              label: VIEW_LABELS[id],
+              icon: `view-${id}` as const
+            }))}
+            onChange={(view) => change({ view: view as ViewId })}
+          />
+        </div>
+        <span className="sv-pane-rule" aria-hidden="true" />
         {/* Only the scatter: the other four draw a distribution, which one
             frame's few hundred points does not describe. */}
         {view === 'scatter' && (
@@ -704,10 +720,10 @@ function Pane({
         )}
         {view !== 'heatmap' && (
           <Picker
-            label="Colour"
-            value={slot.colour}
+            label="Color"
+            value={slot.color}
             choices={['None', ...categorical, ...numeric]}
-            onChange={(colour) => change({ colour })}
+            onChange={(color) => change({ color })}
           />
         )}
         {view === 'histogram' && (

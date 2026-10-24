@@ -878,14 +878,14 @@ export async function runSmoke(
                if (!clickRow) return { error: 'no click-to-hide toggle in the rail' }
                out.clickToHide = isOn(clickRow)
 
-               // Colour and colormap are in the rail, not behind the column
+               // Color and colormap are in the rail, not behind the column
                // config: they are read while reading the scene.
                const labels = Array.from(rail.querySelectorAll('.sv-section-label'))
                  .map(l => l.textContent.trim().toLowerCase())
-               out.colourInRail = labels.indexOf('colour by') !== -1
+               out.colorInRail = labels.indexOf('color by') !== -1
                out.colormapInRail = labels.indexOf('colormap') !== -1
-               out.colourAdjacent =
-                 labels.indexOf('colormap') === labels.indexOf('colour by') + 1
+               out.colorAdjacent =
+                 labels.indexOf('colormap') === labels.indexOf('color by') + 1
 
                // Both slots on a scatter, so the agreement below has two
                // views to agree between.
@@ -977,9 +977,9 @@ export async function runSmoke(
           expect(!views.error, `views: ${views.error}`)
 
           expect(views.clickToHide === false, 'click-to-hide is on by default')
-          expect(views.colourInRail, 'the colour picker is not in the rail')
+          expect(views.colorInRail, 'the color picker is not in the rail')
           expect(views.colormapInRail, 'the colormap picker is not in the rail')
-          expect(views.colourAdjacent, 'colormap does not sit with the colour picker')
+          expect(views.colorAdjacent, 'colormap does not sit with the color picker')
 
           // The control exists and does what it says.
           expect(

@@ -6,26 +6,26 @@
 // per-point hover text had to be kept out of that. None of those boundaries
 // are left, so the table is turned into this directly.
 //
-// Positions are interleaved xyz. Colours are `[r, g, b]` in 0-255, resolved
+// Positions are interleaved xyz. Colors are `[r, g, b]` in 0-255, resolved
 // here so no later stage parses CSS.
 
-/** One drawn group: a colour category, or the single group of a numeric key. */
+/** One drawn group: a color category, or the single group of a numeric key. */
 export interface Group {
   name: string
   count: number
   /** Interleaved xyz, `count * 3` long. */
   position: Float32Array
-  /** The colour-key value per point, when the key is numeric. */
+  /** The color-key value per point, when the key is numeric. */
   value: Float32Array | null
   /** The table's own row index per point; what a click reports. */
   ids: Float64Array | Uint32Array | null
   /** Hover text by row, built on demand. */
   hover: (row: number) => string | null
-  /** Flat colour for a categorical group; null when a colormap applies. */
+  /** Flat color for a categorical group; null when a colormap applies. */
   rgb: [number, number, number] | null
   size: number
   showlegend: boolean
-  /** Pick colours, written by the picker before upload. */
+  /** Pick colors, written by the picker before upload. */
   pick?: Float32Array
 }
 

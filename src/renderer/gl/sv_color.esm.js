@@ -1,10 +1,10 @@
-// Colour for the GL renderer: continuous colormaps as a lookup texture, and
+// Color for the GL renderer: continuous colormaps as a lookup texture, and
 // the categorical palette.
 //
 // Neither palette is defined here. Both are Plotly's, shipped to the browser in
 // the `gl-palette` store (see `layouts/app_layout.py`), because the two
 // renderers have to agree exactly -- a user toggling between them must not see
-// the colours move. Re-typing Plotly's tables in JS would make that agreement a
+// the colors move. Re-typing Plotly's tables in JS would make that agreement a
 // thing to maintain rather than a thing that is true by construction.
 
 import { DataTexture, RGBAFormat, UnsignedByteType, LinearFilter, ClampToEdgeWrapping } from "three";
@@ -46,13 +46,13 @@ export function setPalette(next) {
 }
 
 /**
- * Parse a CSS colour as Plotly writes it into a colorscale.
+ * Parse a CSS color as Plotly writes it into a colorscale.
  *
  * Only the two forms Plotly's built-in scales use -- `rgb(r,g,b)` and `#rrggbb`
  * -- plus `#rgb` for safety. Anything else returns mid grey rather than
  * throwing: one unparseable stop should not blank the scene.
  *
- * @param {string} value Colour string.
+ * @param {string} value Color string.
  * @returns {number[]} `[r, g, b]`, each 0-255.
  */
 export function parseColor(value) {
@@ -162,7 +162,7 @@ export function lutTexture(name) {
  *
  * @param {string} name Colormap name.
  * @param {number} steps How many stops to emit.
- * @returns {string} The gradient's colour-stop list.
+ * @returns {string} The gradient's color-stop list.
  */
 export function gradientStops(name, steps = 16) {
   const data = sample(palette.colorscales[String(name || "Portland")]);
@@ -176,7 +176,7 @@ export function gradientStops(name, steps = 16) {
 }
 
 /**
- * The categorical colour for the nth group.
+ * The categorical color for the nth group.
  *
  * Plotly assigns colorway entries in trace order and wraps, and the categorical
  * branch of `get_scatter3d_data` emits one trace per group in sorted order --
@@ -191,7 +191,7 @@ export function categoryColor(index) {
 }
 
 /**
- * The categorical colour as CSS, for legend swatches.
+ * The categorical color as CSS, for legend swatches.
  *
  * @param {number} index Group's position in the frame.
  * @returns {string} A `#rrggbb` string.

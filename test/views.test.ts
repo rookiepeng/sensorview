@@ -7,7 +7,7 @@
 // port could get them subtly wrong.
 //
 // Trace order is the load-bearing one. It is the order the colorway is
-// assigned in, so getting it wrong recolours every view at once -- and the
+// assigned in, so getting it wrong recolors every view at once -- and the
 // scene with it, since both sort the same way for exactly this reason.
 
 import { readFileSync } from 'node:fs'
@@ -71,7 +71,7 @@ function options(overrides: Partial<ViewOptions> = {}): ViewOptions {
   return {
     x: golden.x,
     y: golden.y,
-    colour: golden.categorical,
+    color: golden.categorical,
     colormap: 'Portland',
     keys: {},
     theme: 'dark',
@@ -97,8 +97,8 @@ describe('scatterFigure', () => {
     })
   })
 
-  it('is one trace with a colorscale when the colour column is numeric', () => {
-    const figure = scatterFigure(table, allRows, options({ colour: 'RCS' }))
+  it('is one trace with a colorscale when the color column is numeric', () => {
+    const figure = scatterFigure(table, allRows, options({ color: 'RCS' }))
     expect(figure.data.length).toBe(1)
     const marker = fields(figure.data[0]).marker as Record<string, unknown>
     expect(marker.colorscale).toBe('Portland')
@@ -115,7 +115,7 @@ describe('scatterFigure', () => {
 
 describe('histogramFigure', () => {
   it('sets bingroup on every trace', () => {
-    // R4: without it each colour bins independently, producing bars at
+    // R4: without it each color bins independently, producing bars at
     // different offsets per category -- subtle, wrong, and shippable.
     const figure = histogramFigure(table, allRows, options())
     expect(figure.data.length).toBe(golden.levels.length)
@@ -128,13 +128,13 @@ describe('histogramFigure', () => {
     const figure = histogramFigure(
       table,
       allRows,
-      options({ x: 'Frame', colour: 'None' })
+      options({ x: 'Frame', color: 'None' })
     )
     expect(fields(figure.data[0]).nbinsx).toBe(table.frameIds.length)
   })
 
   it('leaves a continuous column to Plotly', () => {
-    const figure = histogramFigure(table, allRows, options({ colour: 'None' }))
+    const figure = histogramFigure(table, allRows, options({ color: 'None' }))
     expect(fields(figure.data[0]).nbinsx).toBeUndefined()
     expect(fields(figure.data[0]).histnorm).toBe('probability')
   })
@@ -207,20 +207,20 @@ describe('parcatsFigure', () => {
     const figure = parcatsFigure(
       table,
       allRows,
-      options({ dimensions: [golden.categorical, 'Dyn_Prop'], colour: 'None' })
+      options({ dimensions: [golden.categorical, 'Dyn_Prop'], color: 'None' })
     )
     const dims = fields(figure.data[0]).dimensions as Array<{ label: string; values: unknown[] }>
     expect(dims.length).toBe(2)
     expect(dims[0]!.values.length).toBe(golden.rows)
   })
 
-  it('colours a categorical column by its sorted level index', () => {
-    // The trace colours by number and a level has none, so the index has to
+  it('colors a categorical column by its sorted level index', () => {
+    // The trace colors by number and a level has none, so the index has to
     // be the same one the colorway is assigned by everywhere else.
     const figure = parcatsFigure(
       table,
       allRows,
-      options({ dimensions: [golden.categorical], colour: golden.categorical })
+      options({ dimensions: [golden.categorical], color: golden.categorical })
     )
     const colors = (fields(figure.data[0]).line as { color: number[] }).color
     expect(new Set(colors).size).toBe(golden.levels.length)

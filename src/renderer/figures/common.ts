@@ -62,7 +62,7 @@ export function levelValues(table: Table, name: string, rows: Int32Array): strin
  * Split rows into one group per level of a categorical column, sorted.
  *
  * Sorted because the order is what the colorway is assigned in, so changing it
- * recolours every view at once -- the same rule `buildFrame` follows for the
+ * recolors every view at once -- the same rule `buildFrame` follows for the
  * scene, for the same reason.
  */
 export function groupByLevel(
@@ -134,7 +134,7 @@ export function themeOf(mode: 'dark' | 'light'): Theme {
  * The layout every dock view starts from.
  *
  * `colorway` is Plotly's own, passed explicitly rather than left to the
- * template: the scene reads the same list, and a category coloured one way in
+ * template: the scene reads the same list, and a category colored one way in
  * the view and another in the scene is the bug this prevents.
  */
 export function baseLayout(theme: Theme, xLabel: string, yLabel: string) {

@@ -23,7 +23,7 @@
  *    50  #gl-tooltip     tracks the pointer, so it is never the thing covered
  */
 
-/* ── Scene colours ───────────────────────────────────────────────────────── */
+/* ── Scene colors ───────────────────────────────────────────────────────── */
 
 /* The floor and the axis stubs, after movens-link's 3D view. These are read
    back by `sv_scene.esm.js` through getComputedStyle rather than duplicated in
@@ -32,7 +32,7 @@
 
    The ground is a shade off the page background rather than a contrasting
    slab: the plane is meant to read as the surface the cloud stands on, and it
-   fades into the background at its rim, so a strong colour would only draw a
+   fades into the background at its rim, so a strong color would only draw a
    hard edge where the fade is supposed to hide one. */
 [data-bs-theme="dark"] {
     /* Dim. The floor is the surface the cloud stands on, not a feature:
@@ -335,16 +335,27 @@
     --sv-inset-r: 0px;
     --sv-inset-t: 0px;
     --sv-inset-b: 0px;
+    /* The same edges, pushed out past a tray of hidden-panel buttons when a
+       column hangs one into the scene. Only the top corners need them: the
+       tray sits at the top of its column. */
+    --sv-tray-l: 0px;
+    --sv-tray-r: 0px;
 }
 
-#gl-colorbar,
 #gl-legend {
     right: calc(var(--sv-inset-r) + 12px);
 }
 
-#gl-camera-presets,
+#gl-colorbar {
+    right: calc(var(--sv-tray-r) + 12px);
+}
+
 #gl-stats {
     left: calc(var(--sv-inset-l) + 12px);
+}
+
+#gl-camera-presets {
+    left: calc(var(--sv-tray-l) + 12px);
 }
 
 #gl-legend {

@@ -1,6 +1,6 @@
 // Which column means what.
 //
-// The axes, the colour, the frame slider and the reference sidecar's pose
+// The axes, the color, the frame slider and the reference sidecar's pose
 // fields. All of it is the dataset author's choice rather than this app's, so
 // all of it is written back to `info.json` -- which is the one thing
 // SensorView writes, and the reason §8 R1 of the plan is about manifest
@@ -113,7 +113,7 @@ export function ColumnConfig() {
           sideOffset={5}
           collisionPadding={8}
         >
-          {/* Axes only. Colour lives in the rail beside the colormap: it is
+          {/* Axes only. Color lives in the rail beside the colormap: it is
               looked at while reading the scene, where this popover is for
               what the dataset's columns mean, set once and left. */}
           <span className="sv-section-label">3D axes</span>

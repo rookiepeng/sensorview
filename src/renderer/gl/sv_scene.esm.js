@@ -422,7 +422,7 @@ export function create(host, options = {}) {
   }
 
   /**
-   * Make sure slot `s` has at least `n` point layers in the given colour mode.
+   * Make sure slot `s` has at least `n` point layers in the given color mode.
    */
   function ensureSlot(s, n, mode, pickable) {
     while (slots.length <= s) {
@@ -540,7 +540,7 @@ export function create(host, options = {}) {
     const lut = live.cType === "numerical" ? lutTexture(state.colormap) : null;
     const pixelRatio = renderer.getPixelRatio();
 
-    // Before the uploads: the pick colour is a vertex attribute, so it has to
+    // Before the uploads: the pick color is a vertex attribute, so it has to
     // exist on the group by the time its buffers go up.
     picker.prepare(live);
 
@@ -562,7 +562,7 @@ export function create(host, options = {}) {
           sizeScale: SIZE_SCALE,
           cRange: frame.cRange,
           lut,
-          // A categorical group with no colour of its own takes the one the
+          // A categorical group with no color of its own takes the one the
           // legend already shows for it. Both read `categoryColor` at the same
           // index, so the swatch and the points cannot drift apart -- which
           // they did while this fell through to grey.
@@ -688,7 +688,7 @@ export function create(host, options = {}) {
   }
 
   /**
-   * Take the scene's colours from the stylesheet.
+   * Take the scene's colors from the stylesheet.
    *
    * Nothing is hard-coded here: the custom properties are read back off the
    * document, so the scene and the chrome cannot drift apart and a change to
@@ -706,7 +706,7 @@ export function create(host, options = {}) {
 
     axes.setTheme({
       // The floor fades into whatever the page is painted with, so the
-      // background colour has to be the real one rather than a stand-in --
+      // background color has to be the real one rather than a stand-in --
       // this is the same token `body` uses.
       background: read("--sv-bg", "#0a0c0f"),
       ground: read("--sv-view-ground", "#111c21"),
@@ -714,7 +714,7 @@ export function create(host, options = {}) {
       axisX: read("--sv-ax-x", "#ff5f5f"),
       axisY: read("--sv-ax-y", "#4fd06a"),
       axisZ: read("--sv-ax-z", "#4e9eff"),
-      // The labels lie in the floor as textures now, so their colour is
+      // The labels lie in the floor as textures now, so their color is
       // drawn in rather than inherited from a stylesheet. The faint one:
       // they are there to be read off when a coordinate is wanted, not to
       // be the second thing the eye lands on after the data.
@@ -793,7 +793,7 @@ export function create(host, options = {}) {
      * A PNG data URL of the scene as it stands.
      *
      * Renders first, in the same turn. Without `preserveDrawingBuffer` the
-     * colour buffer is thrown away once the browser composites, so reading
+     * color buffer is thrown away once the browser composites, so reading
      * the canvas at any other moment gives a blank image -- and setting that
      * flag instead would cost a copy on every frame to serve an export taken
      * once a session.

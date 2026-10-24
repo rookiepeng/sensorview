@@ -17,7 +17,7 @@ note.
 | `reference.json` | `dataio.reference.ReferenceStore` | Five column-mapping cases: unmapped, explicit, a field a picker cleared, a field pointed at a missing column, and no `x` at all. Plus the poses and the position extent. |
 | `curves.json` | `dataio.dense_store.CurveStore`, `_split_xy` | The (N,2) and (2,N) orientations MATLAB makes interchangeable, and the real sidecar's samples. NaN crosses as `null`: JSON has no NaN, and `json.dump` writes a bare `NaN` no other parser reads. |
 | `histogram.json` | `numpy.histogram_bin_edges(bins='auto')`, `numpy.histogram2d` | Bin edges for every numeric column, the degenerate shapes a filtered view produces, and a 119×74 count grid by row and column sums. |
-| `views.json` | `viz.viz`, `view_callbacks/*` | Trace order and contents for the analysis views. Trace order is the load-bearing part: it is the order the colorway is assigned in, so getting it wrong recolours every view at once. |
+| `views.json` | `viz.viz`, `view_callbacks/*` | Trace order and contents for the analysis views. Trace order is the load-bearing part: it is the order the colorway is assigned in, so getting it wrong recolors every view at once. |
 | `palette` (`src/shared/palette.ts`) | `plotly.io.templates["plotly"]`, `plotly.colors` | Plotly's own colorway and the seventeen colorscales the rail offers. Not a fixture but captured the same way, and regenerable from `plotly.py` in a throwaway environment if the colormap list ever changes. |
 
 To re-capture any of these you would need the Python back; `git log` has it,

@@ -36,6 +36,10 @@
        34 percent of the gap are the same answer. Change one, change both. */
     --sv-dock-h: 34vh;
     --sv-dock-tabs-h: 38px;
+    /* Every header bar -- a card's, the dock's -- is this tall, so heads
+       side by side or stacked line up whatever is in them. The dock's own
+       token is the same number: its folded strip is its head. */
+    --sv-head-h: 38px;
     /* Floor for a pane's plot area. The figures reserve 120px of vertical
        margin for their axes, so anything much below this leaves a drawing area
        of a few pixels -- a shape Plotly still accepts and scattergl still
@@ -759,13 +763,15 @@ body {
 /* The one control on a card head that is not about the data in it. */
 .sv-group-hide {
     flex: 0 0 auto;
-    height: 20px;
-    min-width: 20px;
-    padding: 0 2px;
+    height: 24px;
+    min-width: 24px;
+    padding: 0;
+    margin-right: -4px;
+    color: var(--sv-text-faint);
 }
 
 .sv-group-hide .sv-icon {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
 }
 
 /* ── Shared panel chrome ─────────────────────────────────────────────── */
@@ -832,26 +838,35 @@ body {
     min-height: 0;
 }
 
+/* A header bar, the same on every card and on the dock: a fixed height,
+   one flat surface with no gradient or tint, and a hairline under it. */
 .sv-group-head {
-    flex: 0 0 auto;
+    flex: 0 0 var(--sv-head-h);
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
+    gap: 8px;
+    min-height: var(--sv-head-h);
+    padding: 0 10px 0 8px;
+    background: var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
     border-radius: calc(var(--sv-radius) - 1px) calc(var(--sv-radius) - 1px) 0 0;
 }
 
 /* The icon is the card's whole identity once the rail is a strip, so it sits
    with the title rather than being decoration on the label. */
-/* The icon is the one thing on a head that is allowed colour. It names the
+/* The icon is the one thing on a head that is allowed color. It names the
    card, it is the same glyph the tray shows when the card is away, and it
    is enough to stop a column of heads reading as a stack of grey bars. */
 .sv-group-icon {
     flex: 0 0 auto;
+    box-sizing: content-box;
+    width: 0.85rem;
+    height: 0.85rem;
+    padding: 5px;
     font-size: 0.85rem;
     color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: var(--sv-radius-sm);
 }
 
 .sv-group-label {
@@ -859,30 +874,37 @@ body {
     text-overflow: ellipsis;
 }
 
+/* Sentence case in the body color. Small capitals in the dim grey made
+   every head a faint label; the title is what the eye looks for first. */
 .sv-group-title {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     flex: 1 1 auto;
     min-width: 0;
-    font-size: var(--sv-font-xs);
-    font-weight: 650;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--sv-text-dim);
+    font-size: var(--sv-font-sm);
+    font-weight: var(--sv-weight-med);
+    letter-spacing: 0.01em;
+    color: var(--sv-text);
     white-space: nowrap;
 }
 
-/* What the card is worth at a glance: the column the scene is coloured by,
+/* What the card is worth at a glance: the column the scene is colored by,
    how much of the filtering is on, how many plots are behind a minimized
    heading. It stays in the head when the card folds, so folding one away
    costs the controls and not the answer they were set to. */
+/* A pill, so it reads as a value attached to the head rather than as a
+   second, smaller title. */
 .sv-group-reading {
     flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
+    padding: 2px 8px;
     font-size: var(--sv-font-2xs);
     color: var(--sv-text-dim);
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+    border-radius: 999px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -915,7 +937,7 @@ body {
 
 /* -- Toggle switch ---------------------------------------------------
    A Radix `button role=switch`. Only the thumb's position is transitioned:
-   a transitioned colour sticks on the old theme after a flip (see Theme). */
+   a transitioned color sticks on the old theme after a flip (see Theme). */
 .sv-switch {
     flex: 0 0 auto;
     position: relative;
@@ -950,6 +972,89 @@ body {
 .sv-switch[data-state="checked"] .sv-switch-thumb {
     background: var(--sv-bg);
     transform: translateX(14px);
+}
+
+/* A block of related controls in a card. The rule between blocks does the
+   grouping, so the last control in each gives up its own bottom margin. */
+.sv-card-section + .sv-card-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--sv-border);
+}
+
+.sv-card-section > :last-child {
+    margin-bottom: 0;
+}
+
+/* The visibility block: set apart from the column filters under it, since
+   it filters by what was clicked rather than by a column's values. */
+.sv-visibility {
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-visibility .sv-switch-row {
+    margin: 10px 0 0;
+}
+
+.sv-visibility .sv-field-value {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+/* "Show all" sits inline after the count here, not as a line of its own. */
+.sv-visibility .sv-rail-action {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    color: var(--sv-accent);
+}
+
+.sv-visibility .sv-rail-action:hover {
+    text-decoration: underline;
+}
+
+/* One choice of a few, drawn as a single segmented control across the
+   card rather than loose chips that wrap where they like. */
+.sv-segmented {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 2px;
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+}
+
+.sv-segmented .sv-chip {
+    flex: 1 1 0;
+    padding: 4px 8px;
+    border-color: transparent;
+    border-radius: calc(var(--sv-radius) - 2px);
+}
+
+.sv-segmented .sv-chip:hover:not(.sv-chip-on) {
+    border-color: transparent;
+    background: var(--sv-surface-2);
+}
+
+.sv-segmented .sv-chip-on {
+    border-color: transparent;
+}
+
+/* A field's label with its value on the same line, at the far end. */
+.sv-field-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.sv-field-head .sv-section-label {
+    margin-bottom: 0;
 }
 
 .sv-field-value {
@@ -1415,9 +1520,9 @@ body {
     flex: 0 0 var(--sv-dock-tabs-h);
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 6px;
-    background: linear-gradient(var(--sv-accent-wash), var(--sv-accent-wash)) var(--sv-surface-2);
+    gap: 8px;
+    padding: 0 6px 0 8px;
+    background: var(--sv-surface-2);
     border-bottom: 1px solid var(--sv-border);
     /* The same inset corners as a card head, so the tint does not poke past
        the dock's rounded glass. */
@@ -1428,6 +1533,27 @@ body {
 .sv-dock.sv-collapsed .sv-dock-head {
     border-bottom-color: transparent;
     border-radius: calc(var(--sv-radius) - 1px);
+}
+
+/* The card title, without its stretch: here the controls follow it rather
+   than being pushed to the far end. A rule after it sets the name apart
+   from the controls, as a card's body is set apart from its head. */
+.sv-dock-title {
+    flex: 0 0 auto;
+    padding-right: 10px;
+    border-right: 1px solid var(--sv-border-strong);
+}
+
+/* A narrow centre column has no room for the name once a selection's
+   buttons arrive, and the icon still says what the dock is. */
+.sv-dock-head {
+    container-type: inline-size;
+}
+
+@container (max-width: 520px) {
+    .sv-dock-title .sv-group-label {
+        display: none;
+    }
 }
 
 /* One pane or two, as a shape rather than a word. The same segmented idiom
@@ -1505,7 +1631,9 @@ body {
 .sv-pane-controls {
     flex: 0 0 auto;
     display: flex;
-    align-items: center;
+    /* Along the bottom: the fields carry a label above their box and the
+       view picker does not, so their boxes line up with it this way. */
+    align-items: flex-end;
     gap: 6px;
     flex-wrap: wrap;
     margin-bottom: 8px;
@@ -1535,21 +1663,62 @@ body {
    costs a fifth of the plot's height, which is the whole reason the strip is
    this tight. So the fields share the strip's width instead of each claiming
    a fixed slice of it. */
-/* The view picker is the pane's title: wider than the fields beside it, and
-   first, so the strip reads as "a histogram of X, coloured by Y". */
+/* The view picker is the pane's title, not one of its fields: no label
+   over it, the chart's icon, the accent, and a rule between it and the
+   fields that say what the chart is of. */
 .sv-pane-controls .sv-slot-picker {
     flex: 0 1 auto;
-    min-width: 76px;
-    max-width: 164px;
+    min-width: 0;
+    max-width: 200px;
 }
 
-.sv-pane-controls .sv-slot-picker .sv-section-label {
+.sv-dock .sv-view-select {
+    height: var(--sv-control-h-sm);
+    max-width: 100%;
+    padding: 0 8px;
+    font-weight: var(--sv-weight-med);
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-color: transparent;
+}
+
+.sv-dock .sv-view-select:hover:not(:disabled),
+.sv-dock .sv-view-select[data-state="open"] {
+    border-color: var(--sv-accent);
+}
+
+.sv-view-select .sv-select-icon {
+    flex: 0 0 auto;
+    font-size: 0.85rem;
+}
+
+.sv-select-item .sv-select-icon {
     color: var(--sv-text-dim);
+}
+
+.sv-select-item[data-state="checked"] .sv-select-icon {
+    color: var(--sv-accent);
+}
+
+.sv-select-caret {
+    color: var(--sv-accent);
+}
+
+.sv-pane-rule {
+    flex: 0 0 1px;
+    align-self: stretch;
+    margin: 2px 4px 0;
+    background: var(--sv-border-strong);
+}
+
+/* Set once and left, so out of the way at the strip's far end. */
+.sv-pane-controls .sv-limits-btn {
+    margin-left: auto;
 }
 
 .sv-pane-controls .sv-pane-field {
     flex: 1 1 0;
-    /* Low enough that the widest strip -- a scatter's frames, x, y, colour
+    /* Low enough that the widest strip -- a scatter's frames, x, y, color
        and its limits button -- still fits one row in the narrowest pane the
        centre column gives. They grow to fill whatever is actually there. */
     min-width: 56px;
@@ -2027,7 +2196,7 @@ select:disabled {
 }
 
 /* ── Controls ────────────────────────────────────────────────────────────
-   The selects and ranges were styled for colour and left alone for state. */
+   The selects and ranges were styled for color and left alone for state. */
 
 .sv-select:hover:not(:disabled) {
     border-color: var(--sv-accent);
@@ -2260,10 +2429,61 @@ input[type="range"] {
 .sv-dock-selection {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     margin-left: auto;
-    padding: 0 4px;
+    padding-right: 8px;
+    border-right: 1px solid var(--sv-border-strong);
     white-space: nowrap;
+}
+
+/* How many points the lasso caught: a count, so drawn as a badge in the
+   accent rather than as dim words beside the buttons it applies to. */
+.sv-dock-count {
+    margin-right: 2px;
+    padding: 3px 9px;
+    font-size: var(--sv-font-2xs);
+    font-weight: var(--sv-weight-med);
+    font-variant-numeric: tabular-nums;
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+    border-radius: 999px;
+}
+
+/* Hide and Show act on the selection, so they are drawn as buttons --
+   an edge, an icon and a hover -- rather than as words in the header. */
+.sv-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 24px;
+    padding: 0 9px;
+    font-size: var(--sv-font-xs);
+    line-height: 1;
+    color: var(--sv-text);
+    background: var(--sv-surface-2);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+    cursor: pointer;
+    transition: background var(--sv-ease), border-color var(--sv-ease), color var(--sv-ease);
+}
+
+.sv-action-btn:hover {
+    background: var(--sv-accent-soft);
+    border-color: var(--sv-accent);
+    color: var(--sv-accent);
+}
+
+.sv-action-btn:active {
+    transform: translateY(1px);
+}
+
+.sv-action-btn:focus-visible {
+    outline: 2px solid var(--sv-accent);
+    outline-offset: 1px;
+}
+
+.sv-action-btn .sv-icon {
+    font-size: 0.85rem;
 }
 
 /* Then the collapse toggle is no longer the thing pushed to the end. */
@@ -2398,7 +2618,7 @@ input[type="range"] {
     gap: 10px;
 }
 
-.sv-select-item > span:first-child {
+.sv-select-item > span:first-of-type {
     flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;

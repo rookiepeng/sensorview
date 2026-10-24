@@ -29,7 +29,7 @@ export type ViewId = 'scatter' | 'histogram' | 'heatmap' | 'violin' | 'parcats'
 export interface ViewOptions {
   x: string
   y: string
-  colour: string
+  color: string
   /** Extra columns, for the views that take a set rather than a pair. */
   dimensions?: string[]
   colormap: string
@@ -44,7 +44,7 @@ export interface ViewOptions {
 /* ─────────────────────────────────────────────────────────── scatter ─── */
 
 /**
- * 2D scatter, coloured by a third column.
+ * 2D scatter, colored by a third column.
  *
  * SVG `scatter`, not the `scattergl` the Dash view used. Plotly's WebGL path
  * replaces the plot with "WebGL is not supported by your browser" in this
@@ -68,7 +68,7 @@ export function scatterFigure(table: Table, rows: Int32Array, options: ViewOptio
 
   const layout = { ...baseLayout(theme, xLabel, yLabel) }
   const marker = { size: 6, opacity: 0.8, line: { color: '#FFFFFF', width: 0 } }
-  if (kindOf(table, options.colour) === 'number') {
+  if (kindOf(table, options.color) === 'number') {
     return {
       data: [
         {
@@ -82,10 +82,10 @@ export function scatterFigure(table: Table, rows: Int32Array, options: ViewOptio
           customdata: Array.from(rows),
           marker: {
             ...marker,
-            color: numericValues(table, options.colour, rows),
+            color: numericValues(table, options.color, rows),
             colorscale: options.colormap,
             colorbar: {
-              title: { text: labelOf(options.colour, options.keys), side: 'right' },
+              title: { text: labelOf(options.color, options.keys), side: 'right' },
               thickness: 10
             }
           }
@@ -97,7 +97,7 @@ export function scatterFigure(table: Table, rows: Int32Array, options: ViewOptio
 
   // One trace per level, which is also what puts them in the legend.
   return {
-    data: groupByLevel(table, options.colour, rows).map((group) => ({
+    data: groupByLevel(table, options.color, rows).map((group) => ({
       type: 'scatter',
       mode: 'markers',
       name: group.level,
@@ -117,7 +117,7 @@ export function scatterFigure(table: Table, rows: Int32Array, options: ViewOptio
  *
  * `bingroup` is set on every trace, which is R4 in the plan and not optional:
  * Plotly Express sets it automatically, and hand-built traces that omit it bin
- * each colour independently, producing bars at different offsets per category.
+ * each color independently, producing bars at different offsets per category.
  * Visually subtle, numerically wrong, and exactly the kind of thing that
  * ships.
  */
@@ -148,7 +148,7 @@ export function histogramFigure(table: Table, rows: Int32Array, options: ViewOpt
     barmode: 'group' as const
   }
 
-  if (!options.colour || options.colour === 'None') {
+  if (!options.color || options.color === 'None') {
     return {
       data: [{ ...common, ...nbins, x: numericValues(table, options.x, rows) }],
       layout
@@ -156,7 +156,7 @@ export function histogramFigure(table: Table, rows: Int32Array, options: ViewOpt
   }
 
   return {
-    data: groupByLevel(table, options.colour, rows).map((group) => ({
+    data: groupByLevel(table, options.color, rows).map((group) => ({
       ...common,
       ...nbins,
       name: group.level,
@@ -261,7 +261,7 @@ function centers(edges: Float64Array): number[] {
 
 /* ──────────────────────────────────────────────────────────── violin ─── */
 
-/** A violin per category, with its box, optionally split again by colour. */
+/** A violin per category, with its box, optionally split again by color. */
 export function violinFigure(table: Table, rows: Int32Array, options: ViewOptions): Figure {
   const theme = themeOf(options.theme)
   const xLabel = labelOf(options.x, options.keys)
@@ -282,7 +282,7 @@ export function violinFigure(table: Table, rows: Int32Array, options: ViewOption
     points: false as const
   }
 
-  if (!options.colour || options.colour === 'None') {
+  if (!options.color || options.color === 'None') {
     return {
       data: [
         {
@@ -296,7 +296,7 @@ export function violinFigure(table: Table, rows: Int32Array, options: ViewOption
   }
 
   return {
-    data: groupByLevel(table, options.colour, rows).map((group) => ({
+    data: groupByLevel(table, options.color, rows).map((group) => ({
       ...common,
       name: group.level,
       x: levelValues(table, options.x, group.rows),
@@ -311,8 +311,8 @@ export function violinFigure(table: Table, rows: Int32Array, options: ViewOption
 /**
  * Parallel categories across however many dimensions are chosen.
  *
- * Ribbons coloured by a numeric column directly; by a categorical one through
- * its level index, since the trace colours by number and a level has none.
+ * Ribbons colored by a numeric column directly; by a categorical one through
+ * its level index, since the trace colors by number and a level has none.
  */
 export function parcatsFigure(table: Table, rows: Int32Array, options: ViewOptions): Figure {
   const theme = themeOf(options.theme)
@@ -336,21 +336,21 @@ export function parcatsFigure(table: Table, rows: Int32Array, options: ViewOptio
     hoverinfo: 'count+probability'
   }
 
-  if (options.colour && options.colour !== 'None') {
-    if (kindOf(table, options.colour) === 'number') {
+  if (options.color && options.color !== 'None') {
+    if (kindOf(table, options.color) === 'number') {
       trace.line = {
-        color: numericValues(table, options.colour, rows),
+        color: numericValues(table, options.color, rows),
         colorscale: options.colormap,
-        colorbar: { title: { text: labelOf(options.colour, options.keys) }, thickness: 10 }
+        colorbar: { title: { text: labelOf(options.color, options.keys) }, thickness: 10 }
       }
       trace.hoveron = 'color'
     } else {
       // The level's position in sorted order, which is the same index the
       // colorway is assigned by everywhere else.
       const order = new Map(
-        groupByLevel(table, options.colour, rows).map((group, index) => [group.level, index])
+        groupByLevel(table, options.color, rows).map((group, index) => [group.level, index])
       )
-      const levels = levelValues(table, options.colour, rows)
+      const levels = levelValues(table, options.color, rows)
       trace.line = {
         color: levels.map((level) => order.get(level || '(none)') ?? 0),
         colorscale: options.colormap

@@ -10,7 +10,10 @@ import {
   ArrowLeftRight,
   Box,
   Car,
+  AudioWaveform,
+  ChartColumn,
   ChartLine,
+  ChartScatter,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -18,8 +21,11 @@ import {
   ChevronUp,
   CircleStop,
   Columns2,
+  Eye,
+  EyeOff,
   Folder,
   FolderOpen,
+  Grid3x3,
   Funnel,
   LoaderCircle,
   Moon,
@@ -32,6 +38,7 @@ import {
   SkipBack,
   SkipForward,
   SlidersHorizontal,
+  Split,
   Square,
   Sun,
   TriangleAlert,
@@ -41,6 +48,7 @@ import {
 } from 'lucide-react'
 
 const ICONS = {
+  analysis: ChartScatter,
   'app-mark': Box,
   camera: Video,
   check: Check,
@@ -55,6 +63,7 @@ const ICONS = {
   export: Share,
   filters: Funnel,
   folder: Folder,
+  hide: EyeOff,
   'folder-open': FolderOpen,
   'axis-limits': RulerDimensionLine,
   'layout-one': Square,
@@ -64,13 +73,20 @@ const ICONS = {
   play: Play,
   'point-cloud': Radar,
   'previous-frame': SkipBack,
+  show: Eye,
   reference: Car,
   spinner: LoaderCircle,
   stop: CircleStop,
   swap: ArrowLeftRight,
   'theme-dark': Moon,
   'theme-light': Sun,
-  warning: TriangleAlert
+  warning: TriangleAlert,
+  // One per chart in the dock's view menu.
+  'view-scatter': ChartScatter,
+  'view-histogram': ChartColumn,
+  'view-heatmap': Grid3x3,
+  'view-violin': AudioWaveform,
+  'view-parcats': Split
 } satisfies Record<string, LucideIcon>
 
 export type IconName = keyof typeof ICONS
@@ -79,7 +95,7 @@ export type IconName = keyof typeof ICONS
 const FILLED: ReadonlySet<IconName> = new Set(['play', 'pause', 'previous-frame', 'next-frame'])
 
 /**
- * One glyph, sized to the surrounding text (1em) and drawn in its colour.
+ * One glyph, sized to the surrounding text (1em) and drawn in its color.
  *
  * Decorative by default: most sit inside a control that is already named.
  * Pass `aria-label` (and `role="img"`) for one that carries meaning alone.

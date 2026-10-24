@@ -135,85 +135,95 @@ export function FilterRail() {
       <div className="sv-stack">
 
       {!hidden.includes('display') && (
-        <Group
-          icon="display"
-          title="Display"
-          // What the scene is coloured by, which is the one thing in here
-          // that is read rather than set.
-          reading={table ? axes.colour : null}
-          onHide={() => toggleHidden('display')}
-        >
-          <Switch checked={sizeVary} onChange={setSizeVary}>
-            Size varies with category
-          </Switch>
+        <Group icon="display" title="Display" onHide={() => toggleHidden('display')}>
+          {/* Three blocks, each one decision: what the color means, what is
+              drawn, and how much of time is on screen at once. No reading
+              in the head -- it repeated the Color by box right under it. */}
 
-          {/* Only when the case has one. A dead switch is worse than no
-              switch: it says the cloud is off rather than absent. */}
-          {cloudDisplay && (
-            <Switch checked={cloudOn} onChange={setCloudOn}>
-              {/* The manifest names the cloud, and that name is the whole
-                  label. A verb in front of it would be the same word twice
-                  for every case that calls its cloud "Lidar". */}
-              {cloudDisplay.name || 'Point cloud'}
-            </Switch>
-          )}
-
-          {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
-          {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
-
-          {/* What the points are coloured by, and the ramp it is coloured
+          {/* What the points are colored by, and the ramp it is colored
               with. Together because they are one decision read as one: the
-              ramp only means anything against the column it maps. This was in
-              the column config, where nobody would look for it -- that
-              popover is for what the dataset's columns *mean*, which is a
-              thing set once. */}
-          {table && (
-            <Picker
-              label="Colour by"
-              value={axes.colour}
-              choices={[...table.columns.keys()]}
-              onChange={(column) => setAxis('colour', column)}
-              className="sv-field"
-            />
-          )}
+              ramp only means anything against the column it maps. */}
+          <div className="sv-card-section">
+            {table && (
+              <Picker
+                label="Color by"
+                value={axes.color}
+                choices={[...table.columns.keys()]}
+                onChange={(column) => setAxis('color', column)}
+                className="sv-field"
+              />
+            )}
 
-          <Picker
-            label="Colormap"
-            value={colormap}
-            choices={COLORMAPS}
-            onChange={setColormap}
-            className="sv-field"
-            // A categorical column takes its colours from the palette, not
-            // from a ramp, so the ramp has nothing to act on.
-            disabled={Boolean(table) && table!.columns.get(axes.colour)?.kind === 'string'}
-            hint={
-              table && table.columns.get(axes.colour)?.kind === 'string'
-                ? 'Categories use the palette'
-                : undefined
-            }
-          />
+            <Picker
+              label="Colormap"
+              value={colormap}
+              choices={COLORMAPS}
+              onChange={setColormap}
+              className="sv-field"
+              // A categorical column takes its colors from the palette, not
+              // from a ramp, so the ramp has nothing to act on.
+              disabled={Boolean(table) && table!.columns.get(axes.color)?.kind === 'string'}
+              hint={
+                table && table.columns.get(axes.color)?.kind === 'string'
+                  ? 'Categories use the palette'
+                  : undefined
+              }
+            />
+          </div>
+
+          <div className="sv-card-section">
+            <Switch checked={sizeVary} onChange={setSizeVary}>
+              Size varies with category
+            </Switch>
+
+            {/* Only when the case has one. A dead switch is worse than no
+                switch: it says the cloud is off rather than absent. */}
+            {cloudDisplay && (
+              <Switch checked={cloudOn} onChange={setCloudOn}>
+                {/* The manifest names the cloud, and that name is the whole
+                    label. A verb in front of it would be the same word twice
+                    for every case that calls its cloud "Lidar". */}
+                {cloudDisplay.name || 'Point cloud'}
+              </Switch>
+            )}
+
+            {cloudError && <p className="sv-rail-note sv-rail-note-bad">{cloudError}</p>}
+            {referenceError && <p className="sv-rail-note sv-rail-note-bad">{referenceError}</p>}
+          </div>
 
           {/* Decay trails a fixed number of frames behind the current one;
               overlay draws every frame at once. Two answers to one question,
-              so the slider goes dead rather than competing while overlay is
-              on. */}
-          <label className={`sv-field${overlay ? ' sv-field-off' : ''}`}>
-            <span className="sv-section-label">Decay</span>
-            <input
-              type="range"
-              min={0}
-              max={10}
-              step={1}
-              value={decay}
-              disabled={overlay}
-              onChange={(event) => setDecay(Number(event.target.value))}
-            />
-            <span className="sv-field-value">{overlay ? 'all frames' : decay}</span>
-          </label>
+              so they sit together and the slider goes dead rather than
+              competing while overlay is on. */}
+          <div className="sv-card-section">
+            <label className={`sv-field${overlay ? ' sv-field-off' : ''}`}>
+              {/* The value beside its name rather than under the track,
+                  where it read as a stray number. */}
+              <span className="sv-field-head">
+                <span className="sv-section-label">Decay</span>
+                <span className="sv-field-value">
+                  {overlay
+                    ? 'all frames'
+                    : decay === 0
+                      ? 'off'
+                      : `${decay} ${decay === 1 ? 'frame' : 'frames'}`}
+                </span>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                step={1}
+                value={decay}
+                disabled={overlay}
+                onChange={(event) => setDecay(Number(event.target.value))}
+              />
+            </label>
 
-          <Switch checked={overlay} onChange={setOverlay}>
-            Overlay every frame
-          </Switch>
+            <Switch checked={overlay} onChange={setOverlay}>
+              Overlay every frame
+            </Switch>
+          </div>
         </Group>
       )}
 
@@ -243,8 +253,28 @@ export function FilterRail() {
               point or selecting a region -- and a control that appears only
               once it has something to say is one nobody finds. */}
           {table && (
-            <div className="sv-field">
-              <span className="sv-section-label">Visibility</span>
+            <div className="sv-field sv-visibility">
+              {/* The count and the way back on the label's line, so the
+                  block reads as one row of state above its controls. */}
+              <span className="sv-field-head">
+                <span className="sv-section-label">Visibility</span>
+                <span className="sv-field-value">
+                  {hiddenCount > 0 ? `${hiddenCount.toLocaleString()} hidden` : 'none hidden'}
+                  {hiddenCount > 0 && (
+                    <button
+                      type="button"
+                      className="sv-text-btn sv-rail-action"
+                      onClick={() =>
+                        table && table.rows > LARGE_ROWS
+                          ? void withLoading('Showing every point', showAllRows)
+                          : showAllRows()
+                      }
+                    >
+                      Show all
+                    </button>
+                  )}
+                </span>
+              </span>
               {/* One of three, so a single-select group: Radix gives it
                   radio semantics and the arrow keys, where three independent
                   toggle buttons only looked like a choice. Its value is the
@@ -252,7 +282,7 @@ export function FilterRail() {
                   a group's value has to be one string. */}
               <ToggleGroup.Root
                 type="single"
-                className="sv-chips"
+                className="sv-chips sv-segmented"
                 value={VISIBILITIES.find((c) => sameStates(filters.visible, c.states))?.label ?? ''}
                 // An empty value is the active chip being pressed again.
                 // There is no "no visibility", so that answer is ignored.
@@ -287,31 +317,12 @@ export function FilterRail() {
                   </ToggleGroup.Item>
                 ))}
               </ToggleGroup.Root>
-              <span className="sv-field-value">
-                {hiddenCount > 0
-                  ? `${hiddenCount} hidden`
-                  : 'Everything starts out visible'}
-              </span>
-
               {/* Off by default. Lasso in a 2D view is the deliberate way to
                   hide a set of points; this makes the scene itself do it on a
                   single click, which is quick and easy to do by accident. */}
               <Switch checked={clickToHide} onChange={setClickToHide}>
                 Click a point to hide it
               </Switch>
-              {hiddenCount > 0 && (
-                <button
-                  type="button"
-                  className="sv-text-btn sv-rail-action"
-                  onClick={() =>
-                    table && table.rows > LARGE_ROWS
-                      ? void withLoading('Showing every point', showAllRows)
-                      : showAllRows()
-                  }
-                >
-                  Show all again
-                </button>
-              )}
             </div>
           )}
 

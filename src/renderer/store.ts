@@ -79,8 +79,8 @@ export interface CaseState {
    * travels outside them is clipped away rather than widening them.
    */
   referenceBounds: Record<'x' | 'y' | 'z', [number, number]> | null
-  /** Axis and colour columns. */
-  axes: { x: string; y: string; z: string; colour: string }
+  /** Axis and color columns. */
+  axes: { x: string; y: string; z: string; color: string }
   /**
    * A frame column the user chose that the open table is not indexed on.
    *
@@ -106,7 +106,7 @@ export interface CaseState {
   playing: boolean
   /** Colormap name, as `sv_color` knows it. */
   colormap: string
-  /** Point size varies by category when a categorical colour key is chosen. */
+  /** Point size varies by category when a categorical color key is chosen. */
   sizeVary: boolean
   /**
    * How many rows the user has hidden.
@@ -208,7 +208,7 @@ const initial: CaseState = {
   referenceError: null,
   reference: null,
   referenceBounds: null,
-  axes: { x: 'X', y: 'Y', z: 'Z', colour: 'X' },
+  axes: { x: 'X', y: 'Y', z: 'Z', color: 'X' },
   pendingFrameKey: null,
   frame: 0,
   frameCount: 0,
@@ -340,7 +340,7 @@ export const useStore = create<CaseState & Actions>((set) => ({
           x: column(view.axes?.x, s.axes.x),
           y: column(view.axes?.y, s.axes.y),
           z: column(view.axes?.z, s.axes.z),
-          colour: column(view.axes?.colour, s.axes.colour)
+          color: column(view.axes?.color, s.axes.color)
         },
         colormap: view.colormap ?? s.colormap,
         // The rail's slider stops at ten, and a decay of four hundred is

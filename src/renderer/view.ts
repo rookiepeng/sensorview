@@ -102,7 +102,7 @@ export function useViewPersistence(): void {
       // -- took that reset for a change of the user's: it overwrote the view
       // held for the case with the defaults, which the next log then put
       // back, and saved them over the stored view too. So switching logs
-      // reset the colour and the colormap. Not this log's state, not ours.
+      // reset the color and the colormap. Not this log's state, not ours.
       if (state.table !== table || state.dir !== dir) {
         return
       }

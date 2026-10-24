@@ -40,6 +40,8 @@ export class Hud {
     this.root = container;
     /** How much of each edge the panels cover; `reflow` measures it. */
     this.edges = { left: -1, right: -1, top: -1, bottom: -1 };
+    /** How far the hidden-panel trays reach into the stage, each side. */
+    this.trays = { left: -1, right: -1 };
     /** The last stats line written, so an unchanged one is not rewritten. */
     this.statsLine = "";
 
@@ -159,6 +161,21 @@ export class Hud {
       top: Math.round(edge(".sv-topbar", "top")),
       bottom: Math.round(edge(".sv-transport", "bottom")),
     };
+    // A column showing cards hangs its tray of hidden panels outside its own
+    // box, out in the scene, where the corner furniture would sit under it.
+    // Kept apart from the edges: the tray is a few icons tall, so it moves
+    // the colorbar and presets but should not narrow the camera's framing.
+    const trays = {
+      left: Math.max(next.left, Math.round(edge(".sv-hud-left .sv-tray", "left"))),
+      right: Math.max(next.right, Math.round(edge(".sv-hud-right .sv-tray", "right"))),
+    };
+    const style = document.documentElement.style;
+    if (trays.left !== this.trays.left || trays.right !== this.trays.right) {
+      this.trays = trays;
+      style.setProperty("--sv-tray-l", `${trays.left}px`);
+      style.setProperty("--sv-tray-r", `${trays.right}px`);
+    }
+
     const was = this.edges;
     if (
       was.left === next.left &&
@@ -174,7 +191,6 @@ export class Hud {
     // because `.sv-center`, outside the stage, used to read them; only the
     // HUD furniture does now, and it would inherit them from the stage just
     // as well. Moving them would buy nothing.
-    const style = document.documentElement.style;
     style.setProperty("--sv-inset-l", `${next.left}px`);
     style.setProperty("--sv-inset-r", `${next.right}px`);
     style.setProperty("--sv-inset-t", `${next.top}px`);

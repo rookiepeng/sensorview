@@ -1,6 +1,6 @@
 // Point layers for the GL renderer.
 //
-// One `PointLayer` is one drawn group: a colour category, a decay slot's worth
+// One `PointLayer` is one drawn group: a color category, a decay slot's worth
 // of one, or the cloud backdrop. Each owns a BufferGeometry whose attributes
 // are *pooled* -- allocated once at a capacity that only ever grows, and
 // refilled in place. Playback steps frames several times a second and a frame
@@ -45,8 +45,8 @@ varying vec3 vPick;
 
 void main() {
     #ifdef NUMERICAL
-    // Normalized against the colour range the server fixed for the whole log,
-    // not this frame's extent -- otherwise the colours would breathe as the
+    // Normalized against the color range the server fixed for the whole log,
+    // not this frame's extent -- otherwise the colors would breathe as the
     // slider moves.
     vT = clamp((aValue - uCRange.x) / max(uCRange.y - uCRange.x, 1e-9), 0.0, 1.0);
     #endif
@@ -129,7 +129,7 @@ function ensureCapacity(geometry, name, itemSize, count) {
 export class PointLayer {
   /**
    * @param {string} mode `"numerical"` (colormap lookup) or `"categorical"`
-   *     (one flat colour).
+   *     (one flat color).
    * @param {boolean} pickable Whether to carry a pick-id attribute.
    */
   constructor(mode, pickable = false) {
@@ -285,7 +285,7 @@ export class PointLayer {
  * The reference body: a translucent mesh with its wireframe.
  *
  * Phong rather than basic shading so the shape reads as a body from any angle;
- * a flat fill of one colour would show only a silhouette, which is exactly the
+ * a flat fill of one color would show only a silhouette, which is exactly the
  * information the mesh exists to add over a marker.
  */
 export class MeshLayer {

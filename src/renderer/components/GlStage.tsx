@@ -38,7 +38,9 @@ export interface GlStageProps {
 }
 
 /** The floating panels the HUD has to stay clear of. */
-const PANELS = '.sv-rail, .sv-inspector, .sv-transport, .sv-dock'
+// The trays too: one hanging outside its column moves the corner HUD, and
+// appears or goes without the column itself changing size.
+const PANELS = '.sv-rail, .sv-inspector, .sv-transport, .sv-dock, .sv-tray'
 
 /**
  * Whether this machine is drawing WebGL on the CPU.
@@ -87,7 +89,7 @@ export function GlStage({ payload, onPick, software, subject }: GlStageProps) {
     scene.current = instance
     // Published for the exports, which read the canvas directly.
     setScene(instance)
-    // Before the first frame: the colorway decides every categorical colour,
+    // Before the first frame: the colorway decides every categorical color,
     // and the scene falls back to one flat blue without it.
     instance.setPalette(PALETTE)
     instance.setTheme()

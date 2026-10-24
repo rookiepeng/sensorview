@@ -6,9 +6,9 @@
 // from the columns, which are already typed arrays.
 //
 // The grouping rule is carried over exactly, because it decides what the
-// legend says and which colour each point gets: a numeric colour key makes one
-// group coloured by a lookup table, and a categorical one makes a group per
-// level, sorted, each with a flat colour from the palette in that order.
+// legend says and which color each point gets: a numeric color key makes one
+// group colored by a lookup table, and a categorical one makes a group per
+// level, sorted, each with a flat color from the palette in that order.
 
 import type { Frame, Group, SceneLayout } from './frame'
 import {
@@ -24,8 +24,8 @@ export interface BuildOptions {
   x: string
   y: string
   z: string
-  /** Column driving colour. */
-  colour: string
+  /** Column driving color. */
+  color: string
   filters: FilterState
   /** Column metadata, for hover text and labels. */
   keys: Record<string, ColumnMeta>
@@ -183,7 +183,7 @@ function makeGroup(
  *
  * @param table The loaded log.
  * @param position Slider position.
- * @param options Axis and colour columns, filters, column metadata.
+ * @param options Axis and color columns, filters, column metadata.
  * @returns The frame the scene draws, with no groups when the filters leave
  *     nothing -- an empty frame is a frame, not an error.
  */
@@ -210,19 +210,19 @@ export function buildFrame(table: Table, position: number, options: BuildOptions
   }
   const rows = Int32Array.from(kept)
 
-  const colour = table.columns.get(options.colour)
-  const numeric = colour?.kind === 'number'
+  const color = table.columns.get(options.color)
+  const numeric = color?.kind === 'number'
 
   const groups: Group[] = []
   if (rows.length > 0) {
     if (numeric) {
-      groups.push(makeGroup(table, rows, label(options.colour, options.keys), options, colour.values))
-    } else if (colour?.kind === 'string') {
+      groups.push(makeGroup(table, rows, label(options.color, options.keys), options, color.values))
+    } else if (color?.kind === 'string') {
       // One group per level, in sorted order -- which is the order the palette
-      // is assigned in, so changing it recolours the whole scene.
+      // is assigned in, so changing it recolors the whole scene.
       const byCode = new Map<number, number[]>()
       for (let i = 0; i < rows.length; i++) {
-        const code = colour.codes[rows[i]!]!
+        const code = color.codes[rows[i]!]!
         const bucket = byCode.get(code)
         if (bucket) {
           bucket.push(rows[i]!)
@@ -232,13 +232,13 @@ export function buildFrame(table: Table, position: number, options: BuildOptions
       }
 
       const ordered = [...byCode.keys()].sort((a, b) => {
-        const left = a < 0 ? '' : colour.levels[a]!
-        const right = b < 0 ? '' : colour.levels[b]!
+        const left = a < 0 ? '' : color.levels[a]!
+        const right = b < 0 ? '' : color.levels[b]!
         return left < right ? -1 : left > right ? 1 : 0
       })
 
       for (const code of ordered) {
-        const name = code < 0 ? '(none)' : colour.levels[code]!
+        const name = code < 0 ? '(none)' : color.levels[code]!
         groups.push(makeGroup(table, Int32Array.from(byCode.get(code)!), name, options, null))
       }
     } else {
@@ -256,18 +256,18 @@ export function buildFrame(table: Table, position: number, options: BuildOptions
   }
 
   // Over the rows the filters leave, across the whole log: the scale follows
-  // a filter change, but not the frame, so a colour means the same value as
+  // a filter change, but not the frame, so a color means the same value as
   // the slider moves. With every row filtered out there is nothing to fit,
   // and the column's own range is a better colorbar than [0, 0].
   const cRange: [number, number] = numeric
-    ? rangeOf(table, options.colour, mask.includes(1) ? mask : undefined)
+    ? rangeOf(table, options.color, mask.includes(1) ? mask : undefined)
     : [0, 1]
 
   return {
     index: position,
     cType: numeric ? 'numerical' : 'categorical',
     cRange,
-    cLabel: label(options.colour, options.keys),
+    cLabel: label(options.color, options.keys),
     baseSize: 3,
     groups,
     ref: { mesh: null, edges: null, marker: null, name: 'Reference' },

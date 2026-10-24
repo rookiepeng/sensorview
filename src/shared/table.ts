@@ -371,7 +371,7 @@ export function levelsOf(table: Table, name: string): string[] {
  * Finite range of a numeric column.
  *
  * @param mask Optional, one byte per row: only rows marked 1 count. How the
- *     colour scale follows the filters -- its ends are the rows still shown,
+ *     color scale follows the filters -- its ends are the rows still shown,
  *     not the whole log.
  * @returns `[min, max]`, or `[0, 0]` when the column has no finite value --
  *     numpy's `nanmin` raises on an all-NaN column and the Python guarded

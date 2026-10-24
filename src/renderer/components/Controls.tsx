@@ -121,7 +121,7 @@ export function PanelHead({
  * from the scene as one showing its controls.
  *
  * The head's title is deliberately not a `.sv-section-label`. `smoke.ts` reads
- * every one of those in the rail and asserts "colour by" is immediately
+ * every one of those in the rail and asserts "color by" is immediately
  * followed by "colormap"; a heading joining that list is a thing that breaks
  * quietly.
  */
@@ -140,7 +140,7 @@ export function Group({
   children: ReactNode
   /**
    * What the overlay is worth at a glance -- the column the scene is
-   * coloured by, how many filters are on.
+   * colored by, how many filters are on.
    */
   reading?: ReactNode
   /** Rendered at the end of the head -- a Reset, a picker. */
@@ -206,7 +206,7 @@ export function Switch({
   )
 }
 
-export type Choice = string | { value: string; label: string }
+export type Choice = string | { value: string; label: string; icon?: IconName }
 
 /**
  * Radix reserves the empty string for "nothing chosen", and several pickers
@@ -244,10 +244,11 @@ export function SelectMenu({
   title?: string
   className?: string
 }) {
-  const items = choices.map((choice) =>
+  const items: { value: string; label: string; icon?: IconName }[] = choices.map((choice) =>
     typeof choice === 'string' ? { value: choice, label: choice } : choice
   )
-  const shown = items.find((item) => item.value === value)?.label ?? value
+  const current = items.find((item) => item.value === value)
+  const shown = current?.label ?? value
   return (
     <RadixSelect.Root
       value={encode(value)}
@@ -260,6 +261,7 @@ export function SelectMenu({
         title={title ?? shown}
         data-value={value}
       >
+        {current?.icon && <Icon name={current.icon} className="sv-select-icon" />}
         <span className="sv-select-value">
           <RadixSelect.Value>{shown}</RadixSelect.Value>
         </span>
@@ -284,6 +286,7 @@ export function SelectMenu({
                 className="sv-menu-item sv-select-item"
                 data-value={item.value}
               >
+                {item.icon && <Icon name={item.icon} className="sv-select-icon" />}
                 <RadixSelect.ItemText>{item.label}</RadixSelect.ItemText>
                 <RadixSelect.ItemIndicator className="sv-menu-check">
                   <Icon name="check" />
