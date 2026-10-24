@@ -38,7 +38,9 @@ export interface GlStageProps {
 }
 
 /** The floating panels the HUD has to stay clear of. */
-const PANELS = '.sv-rail, .sv-inspector, .sv-transport, .sv-dock'
+// The trays too: one hanging outside its column moves the corner HUD, and
+// appears or goes without the column itself changing size.
+const PANELS = '.sv-rail, .sv-inspector, .sv-transport, .sv-dock, .sv-tray'
 
 /**
  * Whether this machine is drawing WebGL on the CPU.
