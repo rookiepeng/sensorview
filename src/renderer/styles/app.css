@@ -2620,7 +2620,7 @@ input[type="range"] {
 
 .sv-pane-limits input[type='number'],
 .sv-pane-bin input[type='number'] {
-    width: 62px;
+    width: 72px;
     height: var(--sv-control-h-sm);
     padding: 2px 6px;
     font-size: var(--sv-font-control);
@@ -2628,6 +2628,65 @@ input[type="range"] {
     color: inherit;
     border: 1px solid var(--sv-border);
     border-radius: var(--sv-radius);
+}
+
+/* A number box with its own arrows: the native spinners draw in the
+   platform's light chrome and cannot be restyled, so they are hidden and two
+   small buttons sit inside the box's right edge, drawn like a select caret. */
+.sv-stepper {
+    position: relative;
+    display: inline-flex;
+    /* As wide as its box, not its label: in a column-flex field it would
+       otherwise stretch and leave the arrows floating past the border. */
+    align-self: flex-start;
+}
+
+.sv-stepper input[type='number'] {
+    padding-right: 18px;
+    appearance: textfield;
+}
+
+.sv-stepper input[type='number']::-webkit-inner-spin-button,
+.sv-stepper input[type='number']::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
+}
+
+.sv-stepper input[type='number']:hover {
+    border-color: var(--sv-accent);
+}
+
+.sv-stepper-arrows {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    display: flex;
+    flex-direction: column;
+    width: 16px;
+}
+
+.sv-stepper-arrows button {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    color: var(--sv-text-dim);
+    font-size: 0.65rem;
+    background: transparent;
+    border: 0;
+    border-radius: var(--sv-radius-sm);
+    cursor: pointer;
+}
+
+.sv-stepper-arrows button:hover {
+    color: var(--sv-accent);
+    background: var(--sv-accent-soft);
+}
+
+.sv-stepper-arrows button:active {
+    background: var(--sv-border);
 }
 
 /* The toggle reads as pressed while the row is open, since the row is the
