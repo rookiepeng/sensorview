@@ -21,8 +21,8 @@ import { levelsOf, rangeOf, type ColumnMeta } from '@shared/table'
 
 /** The overlays this column holds, in the order their icons stack. */
 const CARDS = [
-  { id: 'display', icon: 'palette', title: 'the display panel' },
-  { id: 'filters', icon: 'funnel', title: 'the data filters' }
+  { id: 'display', icon: 'display', title: 'the display panel' },
+  { id: 'filters', icon: 'filters', title: 'the data filters' }
 ] as const
 
 const COLORMAPS = [
@@ -136,7 +136,7 @@ export function FilterRail() {
 
       {!hidden.includes('display') && (
         <Group
-          icon="palette"
+          icon="display"
           title="Display"
           // What the scene is coloured by, which is the one thing in here
           // that is read rather than set.
@@ -220,7 +220,7 @@ export function FilterRail() {
       {/* What the filtering is, and where the scroll goes. */}
       {!hidden.includes('filters') && (
         <Group
-          icon="funnel"
+          icon="filters"
           title="Data filters"
           reading={
             total > 0 ? (

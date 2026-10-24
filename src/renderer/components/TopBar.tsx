@@ -20,6 +20,7 @@ import { Welcome, nameOf } from './Welcome'
 import { nextFrames } from '../busy'
 import { useSettling, useStore } from '../store'
 import logo from '../assets/logo.svg'
+import { Icon, type IconName } from './Icon'
 
 export function TopBar() {
   const dir = useStore((s) => s.dir)
@@ -305,7 +306,7 @@ export function TopBar() {
           >
             {/* The spinner replaces the caret rather than sitting beside it:
                 there is nothing to drop down while a case is being read. */}
-            {busy && <i className="bi bi-arrow-repeat sv-spin" aria-hidden="true" />}
+            {busy && <Icon name="spinner" className="sv-spin" />}
             <span className={`sv-crumb sv-crumb-file${stem ? '' : ' sv-crumb-empty'}`}>
               {busy ? 'reading …' : (stem ?? 'Open a case …')}
             </span>
@@ -321,7 +322,7 @@ export function TopBar() {
               </span>
             )}
             {!busy && logs.length > 1 && (
-              <i className="bi bi-chevron-down sv-crumb-caret" aria-hidden="true" />
+              <Icon name="chevron-down" className="sv-crumb-caret" />
             )}
           </button>
           </DropdownMenu.Trigger>
@@ -423,10 +424,10 @@ export function TopBar() {
                     {/* What this log has beside its table, so the choice is
                         made on what is in it rather than on the name alone. */}
                     <span className="sv-menu-marks">
-                      {log.hasCloud && <Mark icon="cloud" name="point cloud" />}
-                      {log.hasImage && <Mark icon="camera-video" name="camera" />}
-                      {log.hasCurve && <Mark icon="graph-up" name="curves" />}
-                      {log.hasReference && <Mark icon="car-front" name="reference pose" />}
+                      {log.hasCloud && <Mark icon="point-cloud" name="point cloud" />}
+                      {log.hasImage && <Mark icon="camera" name="camera" />}
+                      {log.hasCurve && <Mark icon="curves" name="curves" />}
+                      {log.hasReference && <Mark icon="reference" name="reference pose" />}
                     </span>
                   </div>
                 )
@@ -439,7 +440,7 @@ export function TopBar() {
 
         {error && (
           <span className="sv-topbar-error" role="alert" title={error}>
-            <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+            <Icon name="warning" />
             {error}
           </span>
         )}
@@ -450,7 +451,7 @@ export function TopBar() {
           <ColumnConfig />
           <ExportMenu />
           <IconButton
-            icon={theme === 'dark' ? 'moon-fill' : 'sun-fill'}
+            icon={theme === 'dark' ? 'theme-dark' : 'theme-light'}
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
             onClick={flipTheme}
           />
@@ -464,9 +465,12 @@ export function TopBar() {
 const MAX_OFFERED = 5
 
 /** One capability marker: a glyph for the eye, a word for everything else. */
-function Mark({ icon, name }: { icon: string; name: string }) {
+function Mark({ icon, name }: { icon: IconName; name: string }) {
+  // The tooltip sits on a wrapper: an SVG's own `title` attribute shows none.
   return (
-    <i className={`bi bi-${icon}`} role="img" aria-label={name} title={name} />
+    <span className="sv-mark" role="img" aria-label={name} title={name}>
+      <Icon name={icon} />
+    </span>
   )
 }
 

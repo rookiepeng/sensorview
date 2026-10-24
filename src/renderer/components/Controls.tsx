@@ -13,9 +13,7 @@
 
 import type { ReactNode } from 'react'
 import { Select as RadixSelect, Switch as RadixSwitch } from 'radix-ui'
-
-/** A bootstrap-icons name without the `bi-` prefix, e.g. `chevron-down`. */
-type Icon = string
+import { Icon, type IconName } from './Icon'
 
 export function IconButton({
   icon,
@@ -25,7 +23,7 @@ export function IconButton({
   disabled,
   className
 }: {
-  icon: Icon
+  icon: IconName
   /** The tooltip. Also the accessible name unless `label` overrides it. */
   title: string
   label?: string
@@ -44,7 +42,7 @@ export function IconButton({
     >
       {/* The glyph is the button's whole visible content, and the button is
           already named. Announced, it would read the name twice. */}
-      <i className={`bi bi-${icon}`} aria-hidden="true" />
+      <Icon name={icon} />
     </button>
   )
 }
@@ -89,7 +87,7 @@ export function PanelHead({
   children,
   collapse
 }: {
-  icon: Icon
+  icon: IconName
   title: string
   /** Anything that sits between the title and the collapse toggle. */
   children?: ReactNode
@@ -98,7 +96,7 @@ export function PanelHead({
   return (
     <div className="sv-panel-head">
       <span className="sv-panel-title">
-        <i className={`bi bi-${icon}`} aria-hidden="true" />
+        <Icon name={icon} />
         <span className="sv-panel-label">{title}</span>
       </span>
       {children}
@@ -137,7 +135,7 @@ export function Group({
   className
 }: {
   /** Names the overlay here, and the button that brings it back. */
-  icon: Icon
+  icon: IconName
   title: string
   children: ReactNode
   /**
@@ -155,14 +153,14 @@ export function Group({
     <section className={className ? `sv-group ${className}` : 'sv-group'}>
       <div className="sv-group-head">
         <span className="sv-group-title">
-          <i className={`bi bi-${icon} sv-group-icon`} aria-hidden="true" />
+          <Icon name={icon} className="sv-group-icon" />
           <span className="sv-group-label">{title}</span>
         </span>
         {reading ? <span className="sv-group-reading">{reading}</span> : null}
         {actions}
         {onHide && (
           <IconButton
-            icon="x-lg"
+            icon="close"
             title={`Hide ${title}`}
             onClick={onHide}
             className="sv-group-hide"
@@ -266,7 +264,7 @@ export function SelectMenu({
           <RadixSelect.Value>{shown}</RadixSelect.Value>
         </span>
         <RadixSelect.Icon asChild>
-          <i className="bi bi-chevron-down sv-select-caret" aria-hidden="true" />
+          <Icon name="chevron-down" className="sv-select-caret" />
         </RadixSelect.Icon>
       </RadixSelect.Trigger>
       <RadixSelect.Portal>
@@ -288,7 +286,7 @@ export function SelectMenu({
               >
                 <RadixSelect.ItemText>{item.label}</RadixSelect.ItemText>
                 <RadixSelect.ItemIndicator className="sv-menu-check">
-                  <i className="bi bi-check2" aria-hidden="true" />
+                  <Icon name="check" />
                 </RadixSelect.ItemIndicator>
               </RadixSelect.Item>
             ))}

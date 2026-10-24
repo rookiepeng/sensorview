@@ -33,6 +33,7 @@ import { CollapseButton, IconButton, Picker, Switch } from './Controls'
 import { useLayout } from '../layout'
 import { PlotlyFigure } from './PlotlyFigure'
 import { useStore } from '../store'
+import { Icon } from './Icon'
 
 interface SlotState {
   view: ViewId
@@ -313,7 +314,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
               title="One pane"
               aria-label="One pane"
             >
-              <i className="bi bi-square" aria-hidden="true" />
+              <Icon name="layout-one" />
             </ToggleGroup.Item>
             <ToggleGroup.Item
               value="2"
@@ -326,7 +327,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
               }
               aria-label="Two panes, side by side"
             >
-              <i className="bi bi-layout-split" aria-hidden="true" />
+              <Icon name="layout-two" />
             </ToggleGroup.Item>
           </ToggleGroup.Root>
 
@@ -335,7 +336,7 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
               one pane. */}
           {panes === 2 && (
             <IconButton
-              icon="arrow-left-right"
+              icon="swap"
               title="Swap the two panes"
               onClick={() => setSlots((current) => [current[1], current[0]])}
             />
@@ -735,7 +736,7 @@ function Pane({
             aria-label="Set fixed axis limits"
             title="Set fixed axis limits"
           >
-            <i className="bi bi-arrows-angle-expand" />
+            <Icon name="axis-limits" />
           </button>
         )}
         {view === 'parcats' &&

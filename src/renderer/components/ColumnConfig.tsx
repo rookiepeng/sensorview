@@ -16,6 +16,7 @@ import { Popover } from 'radix-ui'
 
 import { Picker } from './Controls'
 import { useStore } from '../store'
+import { Icon } from './Icon'
 
 /** Pose fields, in the order the sidecar reader wants them. */
 const POSE_FIELDS = ['x', 'y', 'z', 'yaw', 'pitch', 'roll', 'frame'] as const
@@ -96,7 +97,7 @@ export function ColumnConfig() {
           {/* No `aria-haspopup` or `aria-expanded` here: Radix sets both, and
               a second copy is a second answer that can disagree. */}
           <button type="button" className="sv-icon-btn" title="Columns" aria-label="Columns">
-            <i className="bi bi-sliders" />
+            <Icon name="columns" />
           </button>
         </Popover.Trigger>
 
