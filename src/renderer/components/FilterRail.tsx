@@ -253,8 +253,28 @@ export function FilterRail() {
               point or selecting a region -- and a control that appears only
               once it has something to say is one nobody finds. */}
           {table && (
-            <div className="sv-field">
-              <span className="sv-section-label">Visibility</span>
+            <div className="sv-field sv-visibility">
+              {/* The count and the way back on the label's line, so the
+                  block reads as one row of state above its controls. */}
+              <span className="sv-field-head">
+                <span className="sv-section-label">Visibility</span>
+                <span className="sv-field-value">
+                  {hiddenCount > 0 ? `${hiddenCount.toLocaleString()} hidden` : 'none hidden'}
+                  {hiddenCount > 0 && (
+                    <button
+                      type="button"
+                      className="sv-text-btn sv-rail-action"
+                      onClick={() =>
+                        table && table.rows > LARGE_ROWS
+                          ? void withLoading('Showing every point', showAllRows)
+                          : showAllRows()
+                      }
+                    >
+                      Show all
+                    </button>
+                  )}
+                </span>
+              </span>
               {/* One of three, so a single-select group: Radix gives it
                   radio semantics and the arrow keys, where three independent
                   toggle buttons only looked like a choice. Its value is the
@@ -262,7 +282,7 @@ export function FilterRail() {
                   a group's value has to be one string. */}
               <ToggleGroup.Root
                 type="single"
-                className="sv-chips"
+                className="sv-chips sv-segmented"
                 value={VISIBILITIES.find((c) => sameStates(filters.visible, c.states))?.label ?? ''}
                 // An empty value is the active chip being pressed again.
                 // There is no "no visibility", so that answer is ignored.
@@ -297,31 +317,12 @@ export function FilterRail() {
                   </ToggleGroup.Item>
                 ))}
               </ToggleGroup.Root>
-              <span className="sv-field-value">
-                {hiddenCount > 0
-                  ? `${hiddenCount} hidden`
-                  : 'Everything starts out visible'}
-              </span>
-
               {/* Off by default. Lasso in a 2D view is the deliberate way to
                   hide a set of points; this makes the scene itself do it on a
                   single click, which is quick and easy to do by accident. */}
               <Switch checked={clickToHide} onChange={setClickToHide}>
                 Click a point to hide it
               </Switch>
-              {hiddenCount > 0 && (
-                <button
-                  type="button"
-                  className="sv-text-btn sv-rail-action"
-                  onClick={() =>
-                    table && table.rows > LARGE_ROWS
-                      ? void withLoading('Showing every point', showAllRows)
-                      : showAllRows()
-                  }
-                >
-                  Show all again
-                </button>
-              )}
             </div>
           )}
 

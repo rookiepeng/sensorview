@@ -986,6 +986,64 @@ body {
     margin-bottom: 0;
 }
 
+/* The visibility block: set apart from the column filters under it, since
+   it filters by what was clicked rather than by a column's values. */
+.sv-visibility {
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-visibility .sv-switch-row {
+    margin: 10px 0 0;
+}
+
+.sv-visibility .sv-field-value {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+/* "Show all" sits inline after the count here, not as a line of its own. */
+.sv-visibility .sv-rail-action {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    color: var(--sv-accent);
+}
+
+.sv-visibility .sv-rail-action:hover {
+    text-decoration: underline;
+}
+
+/* One choice of a few, drawn as a single segmented control across the
+   card rather than loose chips that wrap where they like. */
+.sv-segmented {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 2px;
+    background: var(--sv-surface-3);
+    border: 1px solid var(--sv-border);
+    border-radius: var(--sv-radius);
+}
+
+.sv-segmented .sv-chip {
+    flex: 1 1 0;
+    padding: 4px 8px;
+    border-color: transparent;
+    border-radius: calc(var(--sv-radius) - 2px);
+}
+
+.sv-segmented .sv-chip:hover:not(.sv-chip-on) {
+    border-color: transparent;
+    background: var(--sv-surface-2);
+}
+
+.sv-segmented .sv-chip-on {
+    border-color: transparent;
+}
+
 /* A field's label with its value on the same line, at the far end. */
 .sv-field-head {
     display: flex;
