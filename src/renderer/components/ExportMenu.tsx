@@ -252,7 +252,7 @@ export function ExportMenu() {
             // button that still announces itself as Export.
             aria-label={busy ? `Stop the ${busy} export` : 'Export'}
           >
-            <Icon name={busy ? 'stop' : 'download'} />
+            <Icon name={busy ? 'stop' : 'export'} />
           </button>
         </DropdownMenu.Trigger>
 
