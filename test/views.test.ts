@@ -138,6 +138,19 @@ describe('histogramFigure', () => {
     expect(fields(figure.data[0]).nbinsx).toBeUndefined()
     expect(fields(figure.data[0]).histnorm).toBe('probability')
   })
+
+  it('uses a typed bin size, even on the frame column', () => {
+    const figure = histogramFigure(table, allRows, options({ x: 'Frame', color: 'None', binSize: 2 }))
+    expect(fields(figure.data[0]).xbins).toEqual({ size: 2 })
+    expect(fields(figure.data[0]).nbinsx).toBeUndefined()
+  })
+
+  it('falls back to auto for a bin size that is not usable', () => {
+    for (const binSize of [0, -1, NaN, 1e-9]) {
+      const figure = histogramFigure(table, allRows, options({ color: 'None', binSize }))
+      expect(fields(figure.data[0]).xbins).toBeUndefined()
+    }
+  })
 })
 
 describe('heatmapFigure', () => {

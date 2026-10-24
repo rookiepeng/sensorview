@@ -47,6 +47,11 @@ interface SlotState {
   logScale: boolean
   histnorm: 'probability' | 'density'
   /**
+   * Histogram bar width, as typed. A string for the same reason the limits
+   * are; empty means automatic binning.
+   */
+  binSize: string
+  /**
    * Whether a scatter draws this frame or every frame.
    *
    * Only the scatters had this in the Dash app, and it defaulted to the
@@ -86,6 +91,7 @@ const EMPTY: SlotState = {
   dimensions: [],
   logScale: false,
   histnorm: 'probability',
+  binSize: '',
   scope: 'current',
   limits: { xMin: '', xMax: '', yMin: '', yMax: '' }
 }
@@ -468,6 +474,11 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   )
 }
 
+/** A typed bar width as a number, or undefined while it is empty. */
+function binSizeOf(text: string): number | undefined {
+  return text.trim() === '' ? undefined : Number(text)
+}
+
 /**
  * A stored pane, narrowed back to one this component can draw.
  *
@@ -494,6 +505,7 @@ function restore(raw: DockSlot | undefined, fallback: ViewId): SlotState {
       : [],
     logScale: it.logScale === true,
     histnorm: it.histnorm === 'density' ? 'density' : 'probability',
+    binSize: text(it.binSize, ''),
     scope: it.scope === 'all' ? 'all' : 'current',
     limits: {
       xMin: text(it.limits?.xMin, ''),
@@ -587,6 +599,12 @@ function Pane({
   // turning the scope to all, or changing a column while it is -- is a
   // redraw of all of it, so it goes behind the loading message.
   const change = (patch: Partial<SlotState>) => {
+    // A bar width is in the x column's units, so it means nothing once x is
+    // a different column: back to automatic rather than a width of 0.5 on a
+    // column that spans thousands.
+    if (patch.x !== undefined && patch.x !== slot.x && slot.binSize) {
+      patch = { ...patch, binSize: '' }
+    }
     const next = { ...slot, ...patch }
     const heavy = next.view === 'scatter' && next.scope === 'all' && rows.length > LARGE_ROWS
     if (!heavy) {
@@ -647,6 +665,7 @@ function Pane({
         keys,
         theme,
         histnorm: slot.histnorm,
+        binSize: binSizeOf(slot.binSize),
         logScale: slot.logScale
       }),
     [slot, table, drawn, colormap, keys, theme]
@@ -680,6 +699,7 @@ function Pane({
           keys,
           theme: 'light',
           histnorm: slot.histnorm,
+          binSize: binSizeOf(slot.binSize),
           logScale: slot.logScale
         }),
         slot.limits,
@@ -777,6 +797,20 @@ function Pane({
               change({ histnorm: histnorm as SlotState['histnorm'] })
             }
           />
+        )}
+        {view === 'histogram' && (
+          <label className="sv-pane-field sv-pane-bin">
+            <span className="sv-section-label">Bin size</span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              value={slot.binSize}
+              placeholder="auto"
+              title="Width of each bar, in the X column's units. Empty is automatic."
+              onChange={(event) => change({ binSize: event.target.value })}
+            />
+          </label>
         )}
         {view === 'heatmap' && (
           <Switch checked={slot.logScale} onChange={(logScale) => change({ logScale })}>

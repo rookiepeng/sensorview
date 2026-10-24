@@ -2618,7 +2618,8 @@ input[type="range"] {
     margin-top: -4px;
 }
 
-.sv-pane-limits input[type='number'] {
+.sv-pane-limits input[type='number'],
+.sv-pane-bin input[type='number'] {
     width: 62px;
     height: var(--sv-control-h-sm);
     padding: 2px 6px;
