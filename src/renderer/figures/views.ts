@@ -37,6 +37,8 @@ export interface ViewOptions {
   theme: 'dark' | 'light'
   /** Histogram normalisation: Plotly's `histnorm`. */
   histnorm?: 'probability' | 'density'
+  /** Histogram bar width, in the x column's units. Unset or invalid is auto. */
+  binSize?: number
   /** Heatmap: log1p the counts and draw a heatmap rather than a contour. */
   logScale?: boolean
 }
@@ -138,10 +140,15 @@ export function histogramFigure(table: Table, rows: Int32Array, options: ViewOpt
     bingroup: 'shared'
   }
 
-  // The frame column is discrete, so it gets one bin per value rather than
-  // whatever a continuous estimator would choose.
-  const nbins =
-    options.x === table.frameKey ? { nbinsx: table.frameIds.length } : {}
+  // A width the user typed wins. Otherwise the frame column, which is
+  // discrete, gets one bin per value rather than whatever a continuous
+  // estimator would choose.
+  const size = usableBinSize(numericValues(table, options.x, rows), options.binSize)
+  const nbins = size
+    ? { xbins: { size }, autobinx: false }
+    : options.x === table.frameKey
+      ? { nbinsx: table.frameIds.length }
+      : {}
 
   const layout = {
     ...baseLayout(theme, xLabel, yLabel),
@@ -164,6 +171,36 @@ export function histogramFigure(table: Table, rows: Int32Array, options: ViewOpt
     })),
     layout: { ...layout, showlegend: true }
   }
+}
+
+/** More bars than this is a typo, not a histogram: a width of 0.0001 on a
+ *  range of 100 would ask Plotly for a million bins and stall the renderer. */
+export const MAX_BINS = 2000
+
+/**
+ * The typed bar width, if it is one Plotly can draw.
+ *
+ * @returns The width, or undefined to fall back to automatic binning: not a
+ *     positive number, or so small for this data's range that it would make
+ *     more than `MAX_BINS` bars.
+ */
+export function usableBinSize(values: ArrayLike<number>, size: number | undefined) {
+  if (size === undefined || !Number.isFinite(size) || size <= 0) {
+    return undefined
+  }
+  let min = Infinity
+  let max = -Infinity
+  for (let i = 0; i < values.length; i++) {
+    const value = values[i]!
+    if (Number.isFinite(value)) {
+      if (value < min) min = value
+      if (value > max) max = value
+    }
+  }
+  if (max > min && (max - min) / size > MAX_BINS) {
+    return undefined
+  }
+  return size
 }
 
 /* ─────────────────────────────────────────────────────────── heatmap ─── */

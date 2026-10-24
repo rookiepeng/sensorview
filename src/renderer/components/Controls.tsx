@@ -304,3 +304,102 @@ export function Picker({
     </label>
   )
 }
+
+/**
+ * How far one arrow press moves a number.
+ *
+ * One unit at 1 and above, and a decade below that, so a bin width of 0.05
+ * steps to 0.06 rather than to 1.05. Stepping toward zero from a power of
+ * ten drops a decade first (1 → 0.9, 0.1 → 0.09), so a positive value never
+ * lands on zero by stepping.
+ */
+export function stepFor(value: number, direction: 1 | -1): number {
+  const size = Math.abs(value)
+  if (size === 0) {
+    return 1
+  }
+  let exponent = Math.floor(Math.log10(size))
+  const towardZero = Math.sign(value) !== direction
+  if (towardZero && Number((10 ** exponent).toPrecision(12)) === Number(size.toPrecision(12))) {
+    exponent -= 1
+  }
+  return 10 ** Math.min(exponent, 0)
+}
+
+/** `value` moved one step, with the float noise rounded off. */
+export function stepped(value: number, direction: 1 | -1): number {
+  return Number((value + direction * stepFor(value, direction)).toPrecision(12))
+}
+
+/**
+ * A number box with its own up/down arrows.
+ *
+ * The native spinners cannot be styled -- they draw in the platform's own
+ * light chrome on a dark panel -- so they are hidden and replaced with two
+ * buttons that look like the select's caret.
+ *
+ * Kept as a string, like the limits it is used for: empty means "auto".
+ *
+ * @param seed Where the arrows start from while the box is empty: what
+ *     "auto" currently is, when the caller can tell.
+ */
+export function NumberStepper({
+  value,
+  onChange,
+  placeholder,
+  title,
+  positive = false,
+  seed
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  title?: string
+  /** Never step to zero or below. */
+  positive?: boolean
+  seed?: () => number | undefined
+}) {
+  const nudge = (direction: 1 | -1) => {
+    const typed = value.trim() === '' ? NaN : Number(value)
+    const start = Number.isFinite(typed) ? typed : (seed?.() ?? (positive ? 1 : 0))
+    if (!Number.isFinite(start)) {
+      return
+    }
+    // A seed is shown as is on the first press, so the box takes over from
+    // "auto" without the picture jumping a step.
+    const next = Number.isFinite(typed) ? stepped(start, direction) : Number(start.toPrecision(6))
+    if (positive && next <= 0) {
+      return
+    }
+    onChange(String(next))
+  }
+
+  return (
+    <span className="sv-stepper">
+      <input
+        type="number"
+        step="any"
+        min={positive ? 0 : undefined}
+        value={value}
+        placeholder={placeholder}
+        title={title}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            event.preventDefault()
+            nudge(event.key === 'ArrowUp' ? 1 : -1)
+          }
+        }}
+      />
+      {/* Out of the tab order: the arrow keys in the box do the same. */}
+      <span className="sv-stepper-arrows">
+        <button type="button" tabIndex={-1} aria-label="Increase" onClick={() => nudge(1)}>
+          <Icon name="chevron-up" />
+        </button>
+        <button type="button" tabIndex={-1} aria-label="Decrease" onClick={() => nudge(-1)}>
+          <Icon name="chevron-down" />
+        </button>
+      </span>
+    </span>
+  )
+}

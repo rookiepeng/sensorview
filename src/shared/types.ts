@@ -298,6 +298,7 @@ export interface DockSlot {
   dimensions?: string[]
   logScale?: boolean
   histnorm?: string
+  binSize?: string
   scope?: string
   limits?: { xMin?: string; xMax?: string; yMin?: string; yMax?: string }
 }

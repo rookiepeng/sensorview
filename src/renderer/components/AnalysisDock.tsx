@@ -31,7 +31,14 @@ import { LARGE_ROWS, clearLoading, countOf, nextFrames, withLoading } from '../b
 import { regionsOfEvent, rowsInRegions, thinRows } from '@shared/thin'
 import { ToggleGroup } from 'radix-ui'
 
-import { CollapseButton, IconButton, Picker, SelectMenu, Switch } from './Controls'
+import {
+  CollapseButton,
+  IconButton,
+  NumberStepper,
+  Picker,
+  SelectMenu,
+  Switch
+} from './Controls'
 import { useLayout } from '../layout'
 import { FigureExportMenu, type FigureTarget } from './FigureExport'
 import { PlotlyFigure } from './PlotlyFigure'
@@ -46,6 +53,11 @@ interface SlotState {
   dimensions: string[]
   logScale: boolean
   histnorm: 'probability' | 'density'
+  /**
+   * Histogram bar width, as typed. A string for the same reason the limits
+   * are; empty means automatic binning.
+   */
+  binSize: string
   /**
    * Whether a scatter draws this frame or every frame.
    *
@@ -86,6 +98,7 @@ const EMPTY: SlotState = {
   dimensions: [],
   logScale: false,
   histnorm: 'probability',
+  binSize: '',
   scope: 'current',
   limits: { xMin: '', xMax: '', yMin: '', yMax: '' }
 }
@@ -468,6 +481,11 @@ export function AnalysisDock({ theme }: { theme: 'dark' | 'light' }) {
   )
 }
 
+/** A typed bar width as a number, or undefined while it is empty. */
+function binSizeOf(text: string): number | undefined {
+  return text.trim() === '' ? undefined : Number(text)
+}
+
 /**
  * A stored pane, narrowed back to one this component can draw.
  *
@@ -494,6 +512,7 @@ function restore(raw: DockSlot | undefined, fallback: ViewId): SlotState {
       : [],
     logScale: it.logScale === true,
     histnorm: it.histnorm === 'density' ? 'density' : 'probability',
+    binSize: text(it.binSize, ''),
     scope: it.scope === 'all' ? 'all' : 'current',
     limits: {
       xMin: text(it.limits?.xMin, ''),
@@ -586,7 +605,23 @@ function Pane({
   // A change that leaves this pane drawing every frame of a large table --
   // turning the scope to all, or changing a column while it is -- is a
   // redraw of all of it, so it goes behind the loading message.
+  // The drawn graph, for what Plotly settled on while a box reads "auto".
+  const liveGraph = () =>
+    host.current?.querySelector('.sv-pane-graph') as
+      | (HTMLElement & {
+          _fullData?: { xbins?: { size?: number } }[]
+          _fullLayout?: Record<string, { range?: unknown[] } | undefined>
+        })
+      | null
+      | undefined
+
   const change = (patch: Partial<SlotState>) => {
+    // A bar width is in the x column's units, so it means nothing once x is
+    // a different column: back to automatic rather than a width of 0.5 on a
+    // column that spans thousands.
+    if (patch.x !== undefined && patch.x !== slot.x && slot.binSize) {
+      patch = { ...patch, binSize: '' }
+    }
     const next = { ...slot, ...patch }
     const heavy = next.view === 'scatter' && next.scope === 'all' && rows.length > LARGE_ROWS
     if (!heavy) {
@@ -647,6 +682,7 @@ function Pane({
         keys,
         theme,
         histnorm: slot.histnorm,
+        binSize: binSizeOf(slot.binSize),
         logScale: slot.logScale
       }),
     [slot, table, drawn, colormap, keys, theme]
@@ -680,6 +716,7 @@ function Pane({
           keys,
           theme: 'light',
           histnorm: slot.histnorm,
+          binSize: binSizeOf(slot.binSize),
           logScale: slot.logScale
         }),
         slot.limits,
@@ -778,6 +815,21 @@ function Pane({
             }
           />
         )}
+        {view === 'histogram' && (
+          <label className="sv-pane-field sv-pane-bin">
+            <span className="sv-section-label">Bin size</span>
+            <NumberStepper
+              value={slot.binSize}
+              positive
+              placeholder="auto"
+              title="Width of each bar, in the X column's units. Empty is automatic."
+              // The arrows pick up from the width Plotly chose, so the first
+              // press is a small change rather than a jump to 1.
+              seed={() => liveGraph()?._fullData?.[0]?.xbins?.size}
+              onChange={(binSize) => change({ binSize })}
+            />
+          </label>
+        )}
         {view === 'heatmap' && (
           <Switch checked={slot.logScale} onChange={(logScale) => change({ logScale })}>
             Log counts
@@ -829,13 +881,17 @@ function Pane({
           ).map(([field, label]) => (
             <label className="sv-pane-field" key={field}>
               <span className="sv-section-label">{label}</span>
-              <input
-                type="number"
+              <NumberStepper
                 value={slot.limits[field]}
                 placeholder="auto"
-                onChange={(event) =>
-                  change({ limits: { ...slot.limits, [field]: event.target.value } })
-                }
+                // From the axis as drawn, so stepping an empty limit starts
+                // where the edge already is.
+                seed={() => {
+                  const range = liveGraph()?._fullLayout?.[field[0] === 'x' ? 'xaxis' : 'yaxis']?.range
+                  const end = range?.[field.endsWith('Min') ? 0 : 1]
+                  return typeof end === 'number' ? end : undefined
+                }}
+                onChange={(text) => change({ limits: { ...slot.limits, [field]: text } })}
               />
             </label>
           ))}
