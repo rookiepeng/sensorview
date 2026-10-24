@@ -2330,6 +2330,49 @@ input[type="range"] {
     font-size: var(--sv-font-xs);
 }
 
+/* A menu split into what it exports: the table and the 3D view in the top
+   bar, one figure per pane on the dock. The heading is a label, not an
+   entry -- it does not highlight and the arrow keys pass over it. */
+.sv-menu-heading {
+    padding: 6px 8px 3px;
+    font-size: var(--sv-font-2xs);
+    font-weight: var(--sv-weight-med);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--sv-text-faint);
+}
+
+.sv-menu-sep {
+    height: 1px;
+    margin: 4px 2px;
+    background: var(--sv-border);
+}
+
+/* The figure export button on the dock and the curves card, and what it
+   says after a save -- beside it, so a note is read as about that figure. */
+.sv-figure-export {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.sv-figure-export .sv-icon-btn {
+    height: 24px;
+    min-width: 24px;
+    padding: 0;
+}
+
+.sv-figure-note {
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-dim);
+    white-space: nowrap;
+    max-width: 22ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* ── Combining logs ──────────────────────────────────────────────────── */
 
 /* A combine row is a checkbox, a name that opens the log alone, and what the

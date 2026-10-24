@@ -4,14 +4,18 @@
 // produce a file that opens and looks plausible when they are wrong, which is
 // the worst failure an export can have.
 
+import pl from 'nodejs-polars'
 import { describe, expect, it } from 'vitest'
+
+import { tableParquet } from '../src/data/parquet'
 
 import { csvField, csvNumber, toCsv } from '../src/shared/csv'
 import { buildTable, type Column } from '../src/shared/table'
 import {
   exportName,
-  snapshotHtml,
+  onPaper,
   standaloneHtml,
+  tableColumns,
   tableCsv
 } from '../src/renderer/export/exporters'
 
@@ -98,6 +102,55 @@ describe('tableCsv', () => {
   })
 })
 
+describe('tableColumns and tableParquet', () => {
+  const table = buildTable(
+    3,
+    [
+      { name: 'Frame', kind: 'number', values: Float64Array.from([0, 0, 1]) },
+      { name: 'X', kind: 'number', values: Float64Array.from([1.5, NaN, 3]) },
+      {
+        name: 'Sensor',
+        kind: 'string',
+        codes: Int32Array.from([0, 1, -1]),
+        levels: ['front', 'rear']
+      }
+    ] as Column[],
+    'Frame'
+  )
+
+  it('keeps only the rows asked for, in table column order', () => {
+    const columns = tableColumns(table, Int32Array.from([2, 0]))
+    expect(columns.map((c) => c.name)).toEqual(['Frame', 'X', 'Sensor'])
+    expect(Array.from(columns[1]!.values!)).toEqual([3, 1.5])
+    expect(Array.from(columns[2]!.codes!)).toEqual([-1, 0])
+  })
+
+  it('writes a file that reads back with nulls where the gaps were', () => {
+    // NaN and code -1 are how the app holds a missing value; written as
+    // they are, a reader sees NaN and a level called "undefined".
+    const bytes = tableParquet(tableColumns(table, Int32Array.from([0, 1, 2])))
+    const back = pl.readParquet(Buffer.from(bytes))
+    expect(back.columns).toEqual(['Frame', 'X', 'Sensor'])
+    expect(back.getColumn('X').toArray()).toEqual([1.5, null, 3])
+    expect(back.getColumn('Sensor').toArray()).toEqual(['front', 'rear', null])
+  })
+})
+
+describe('onPaper', () => {
+  it('puts the figure on white, whatever was behind it on screen', () => {
+    const layout = onPaper({ paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' })
+    expect(layout.paper_bgcolor).toBe('#ffffff')
+    expect(layout.plot_bgcolor).toBe('#ffffff')
+    expect(layout.title).toBeUndefined()
+  })
+
+  it('makes room above the plot for a title', () => {
+    const layout = onPaper({ margin: { l: 1, t: 22 } }, 'SNR')
+    expect((layout.title as { text: string }).text).toBe('SNR')
+    expect(layout.margin).toEqual({ l: 1, t: 48 })
+  })
+})
+
 describe('standaloneHtml', () => {
   const figure = {
     data: [{ type: 'scatter', x: Float64Array.from([1, 2]), y: Float64Array.from([3, 4]) }],
@@ -118,18 +171,14 @@ describe('standaloneHtml', () => {
     expect(html).not.toContain('<script src=')
   })
 
+  it('is a light page', () => {
+    expect(standaloneHtml(figure, 'Title', '')).toContain('background: #ffffff')
+  })
+
   it('escapes the title', () => {
     const html = standaloneHtml(figure, '<script>x</script>', '')
     expect(html).not.toContain('<script>x</script>')
     expect(html).toContain('&lt;script&gt;')
-  })
-})
-
-describe('snapshotHtml', () => {
-  it('carries the image and says what is missing from it', () => {
-    const html = snapshotHtml('data:image/png;base64,AAAA', 'Scene', 'axis labels are not included')
-    expect(html).toContain('data:image/png;base64,AAAA')
-    expect(html).toContain('axis labels are not included')
   })
 })
 

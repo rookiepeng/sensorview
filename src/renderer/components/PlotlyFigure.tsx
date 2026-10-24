@@ -82,7 +82,8 @@ const BASE = {
  * all, and without the toolbar there is no way to reach either -- which is
  * what a modeBar-less dock meant for everything built on top of them.
  *
- * `toImage` is dropped because the export menu owns that and does it better;
+ * `toImage` is dropped because the export buttons own that and do it better --
+ * in the light theme, as PNG, SVG or HTML;
  * the autoscale and reset pair is kept because fixed limits make it possible
  * to lose the data off-screen. The share button goes too, by its Plotly 4
  * name -- `sendDataToCloud` was the old one, and no longer removed anything.

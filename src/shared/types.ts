@@ -438,6 +438,26 @@ export interface DataMethods {
     }
   }
 
+  /**
+   * Columns written out as a Parquet file, for the export menu.
+   *
+   * Same shapes `readTable` hands back, already narrowed to the rows being
+   * exported. The bytes come back for the renderer to pass to the save
+   * dialog, which keeps choosing where a file lands in main.
+   */
+  tableParquet: {
+    params: {
+      columns: Array<{
+        name: string
+        kind: 'number' | 'string'
+        values?: Float64Array
+        codes?: Int32Array
+        levels?: string[]
+      }>
+    }
+    result: Uint8Array
+  }
+
   /** One cloud frame as interleaved xyz. */
   cloudFrame: {
     params: { path: string; dataset: string }
