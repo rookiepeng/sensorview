@@ -18,8 +18,18 @@ import { Picker } from './Controls'
 import { useStore } from '../store'
 import { Icon } from './Icon'
 
-/** Pose fields, in the order the sidecar reader wants them. */
-const POSE_FIELDS = ['x', 'y', 'z', 'yaw', 'pitch', 'roll', 'frame'] as const
+/** Pose fields, grouped as they are read: position, orientation, frame. */
+const POSE_ROWS = [['x', 'y', 'z'], ['yaw', 'pitch', 'roll'], ['frame']] as const
+
+const POSE_LABELS: Record<string, string> = {
+  x: 'X',
+  y: 'Y',
+  z: 'Z',
+  yaw: 'Yaw',
+  pitch: 'Pitch',
+  roll: 'Roll',
+  frame: 'Frame key'
+}
 
 export function ColumnConfig() {
   const table = useStore((s) => s.table)
@@ -113,70 +123,80 @@ export function ColumnConfig() {
           sideOffset={5}
           collisionPadding={8}
         >
+          <header className="sv-config-head">
+            <span className="sv-config-title">Columns</span>
+            <span className="sv-config-sub">Changes save to info.json</span>
+          </header>
+
           {/* Axes only. Color lives in the rail beside the colormap: it is
               looked at while reading the scene, where this popover is for
               what the dataset's columns mean, set once and left. */}
-          <span className="sv-section-label">3D axes</span>
-          <div className="sv-config-grid">
-            {(['x', 'y', 'z'] as const).map((axis) => (
-              <Field
-                key={axis}
-                label={axis.toUpperCase()}
-                value={axes[axis]}
-                choices={numeric}
-                onChange={(column) => pickAxis(axis, column)}
-              />
-            ))}
-          </div>
+          <section className="sv-config-section">
+            <span className="sv-section-label">3D axes</span>
+            <div className="sv-config-grid">
+              {(['x', 'y', 'z'] as const).map((axis) => (
+                <Field
+                  key={axis}
+                  label={axis.toUpperCase()}
+                  value={axes[axis]}
+                  choices={numeric}
+                  onChange={(column) => pickAxis(axis, column)}
+                />
+              ))}
+            </div>
+          </section>
 
-          <div className="sv-divider" />
-
-          <span className="sv-section-label">Frame slider</span>
-          <p className="sv-rail-note">
-            Changing this re-indexes the log, so it reloads the table.
-          </p>
-          <Field
-            label="Column"
-            value={table.frameKey}
-            choices={every}
-            onChange={(column) => {
-              void save({ table: { slider: column } }).then(() => reopen(column))
-            }}
-          />
+          <section className="sv-config-section">
+            <span className="sv-section-label">Frame slider</span>
+            <Field
+              label="Frame key"
+              value={table.frameKey}
+              choices={every}
+              hint="Changing this re-indexes the log and reloads the table."
+              onChange={(column) => {
+                void save({ table: { slider: column } }).then(() => reopen(column))
+              }}
+            />
+          </section>
 
           {reference && reference.available.length > 0 && (
-            <>
-              <div className="sv-divider" />
+            <section className="sv-config-section">
               <span className="sv-section-label">Reference pose</span>
               <p className="sv-rail-note">
-                From {stem}&rsquo;s own sidecar. Leave one empty for a field it
+                From {stem}&rsquo;s own sidecar. Pick (none) for a field it
                 does not carry.
               </p>
-              <div className="sv-config-grid">
-                {POSE_FIELDS.map((field) => (
-                  <Field
-                    key={field}
-                    label={field}
-                    value={reference.resolved[field] ?? ''}
-                    // The empty option is NO_COLUMN, which the normalizer
-                    // treats as a decision rather than as "unset" -- so a
-                    // field cleared here is not guessed straight back.
-                    choices={['', ...reference.available]}
-                    onChange={(column) => {
-                      setReference({
-                        ...reference,
-                        resolved: { ...reference.resolved, [field]: column || null }
-                      })
-                      void save({ reference: { [field]: column } })
-                    }}
-                  />
-                ))}
-              </div>
-            </>
+              {/* Position, then orientation, then the frame key: three rows
+                  that each read as one thing, rather than seven fields
+                  wrapped two to a row. */}
+              {POSE_ROWS.map((row) => (
+                <div key={row.join()} className="sv-config-grid">
+                  {row.map((field) => (
+                    <Field
+                      key={field}
+                      label={POSE_LABELS[field]}
+                      value={reference.resolved[field] ?? ''}
+                      wide={row.length === 1}
+                      // The empty option is NO_COLUMN, which the normalizer
+                      // treats as a decision rather than as "unset" -- so a
+                      // field cleared here is not guessed straight back.
+                      choices={['', ...reference.available]}
+                      onChange={(column) => {
+                        setReference({
+                          ...reference,
+                          resolved: { ...reference.resolved, [field]: column || null }
+                        })
+                        void save({ reference: { [field]: column } })
+                      }}
+                    />
+                  ))}
+                </div>
+              ))}
+            </section>
           )}
 
           {note && (
-            <p className="sv-rail-note sv-config-note" role="status">
+            <p className="sv-config-note" role="status">
               {note}
             </p>
           )}
@@ -191,17 +211,24 @@ function Field({
   label,
   value,
   choices,
-  onChange
+  onChange,
+  hint,
+  wide = false
 }: {
   label: string
   value: string
   choices: string[]
   onChange: (value: string) => void
+  hint?: string
+  /** Spans the whole grid row, for a field with no siblings. */
+  wide?: boolean
 }) {
   return (
     <Picker
+      className={`sv-pane-field sv-config-field${wide ? ' sv-config-wide' : ''}`}
       label={label}
       value={value}
+      hint={hint}
       choices={choices.map((choice) => ({ value: choice, label: choice || '(none)' }))}
       onChange={onChange}
     />

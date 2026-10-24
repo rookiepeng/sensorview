@@ -2517,21 +2517,84 @@ input[type="range"] {
     opacity: 0.45;
 }
 
-/* The column config popover. Wider than a menu of names because every row is
-   a label and a select, and two columns of those read faster than one long
-   list. */
+/* The column config popover. A short header says where changes go; each
+   section is a heading over a three-column grid, so X/Y/Z and yaw/pitch/roll
+   each sit on one row instead of wrapping two to a row with an orphan. */
 .sv-config {
-    width: 340px;
+    width: 380px;
     max-height: 70vh;
     overflow-y: auto;
-    padding: 10px 12px 12px;
+    padding: 0;
+}
+
+.sv-config-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px 9px;
+    border-bottom: 1px solid var(--sv-border);
+}
+
+.sv-config-title {
+    font-weight: var(--sv-weight-med);
+    color: var(--sv-text);
+}
+
+.sv-config-sub {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--sv-font-xs);
+    color: var(--sv-text-faint);
+}
+
+.sv-config-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px 14px;
+}
+
+.sv-config-section + .sv-config-section {
+    border-top: 1px solid var(--sv-border);
+}
+
+.sv-config-section > .sv-section-label,
+.sv-config-section > .sv-rail-note {
+    margin: 0;
+}
+
+.sv-config-section > .sv-rail-note {
+    margin-top: -4px;
 }
 
 .sv-config-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px 10px;
-    margin-bottom: 4px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+/* A field label is quieter than its section heading: same size, but in
+   sentence case and the dim ink, so the two levels do not read as one. */
+.sv-config-field {
+    gap: 3px;
+}
+
+.sv-config-field .sv-section-label {
+    font-weight: normal;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--sv-text-dim);
+}
+
+.sv-config-field .sv-field-value {
+    color: var(--sv-text-faint);
+}
+
+.sv-config-wide {
+    grid-column: 1 / -1;
 }
 
 .sv-config .sv-select {
@@ -2539,14 +2602,13 @@ input[type="range"] {
     max-width: none;
 }
 
-.sv-config .sv-rail-note {
-    margin-bottom: 6px;
-}
-
 /* The one line that says the file on disk changed. */
 .sv-config-note {
-    margin-top: 10px;
+    margin: 0;
+    padding: 8px 14px;
+    font-size: var(--sv-font-xs);
     color: var(--sv-accent);
+    border-top: 1px solid var(--sv-border);
 }
 
 /* Fixed axis limits: a second control row, shown only while it is wanted.
