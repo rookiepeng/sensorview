@@ -327,7 +327,9 @@ export function App() {
         name: reference.name
       }
     }
-    if (live && !overlay && cloudDisplay && cloud && cloud.frameId === table?.frameIds[frame]) {
+    // The previous frame's cloud stays up until the new read lands; requiring
+    // an exact frame match blanked the cloud on every step and made it flash.
+    if (live && !overlay && cloudDisplay && cloud) {
       const [r, g, b] = parseColor(cloudDisplay.color)
       live.cloud = {
         position: cloud.position,
