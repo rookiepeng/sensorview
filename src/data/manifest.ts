@@ -13,17 +13,13 @@
 //   - Per-log file lists. Logs sit side by side and are associated by
 //     basename, so adding one is dropping files in the folder.
 //
-// Ported from dataio/manifest.py. Two deliberate differences:
+// Ported from dataio/manifest.py. One deliberate difference:
 //
-//   - **A v1 manifest is upgraded on save, not written back as v1.** The old
-//     writer projected down to a five-key whitelist, so every key outside it
-//     was dropped -- and the 3D view saves on every axis-picker change, which
-//     made that a silent edit of the user's file on a mouse click. The
-//     projection existed so the Dash callbacks could read a flat config; they
-//     are gone. The original is kept as `info.json.bak` on the first save.
 //   - **Nothing is reserialized that was not changed.** The parsed object is
 //     mutated in place and written back, so key order, unknown blocks and
 //     anything a future version adds survive a save untouched.
+//
+// Only v2 is read. A manifest without `manifest_version: 2` is refused.
 
 import { promises as fs } from 'node:fs'
 import { basename, dirname, extname, join, normalize, relative, sep } from 'node:path'
@@ -31,8 +27,8 @@ import { basename, dirname, extname, join, normalize, relative, sep } from 'node
 export const MANIFEST_VERSION = 2
 export const MANIFEST_NAME = 'info.json'
 
-/** Keys a v1 info.json carries at the top level; these move under `table`. */
-const V1_TABLE_KEYS = ['slider', 'x_3d', 'y_3d', 'z_3d', 'keys'] as const
+/** Table keys the axis and slider pickers write back. */
+const TABLE_VIEW_KEYS = ['slider', 'x_3d', 'y_3d', 'z_3d'] as const
 
 export const DEFAULT_TABLE_SUFFIX = '.parquet'
 export const DEFAULT_CLOUD_SUFFIX = '.cloud.h5'
@@ -432,14 +428,7 @@ export interface ImageStream {
 export class Manifest {
   constructor(
     public raw: Dict,
-    public caseDir: string,
-    /**
-     * Schema version of the file on disk.
-     *
-     * Tracked so `save` knows whether it is about to replace a v1 file, and
-     * therefore whether to keep a backup first.
-     */
-    public sourceVersion: number = MANIFEST_VERSION
+    public caseDir: string
   ) {}
 
   /**
@@ -469,8 +458,13 @@ export class Manifest {
     }
 
     const dict = raw as Dict
-    const sourceVersion = dict.manifest_version ? MANIFEST_VERSION : 1
-    return new Manifest(upgradeToV2(dict), caseDir, sourceVersion)
+    if (dict.manifest_version !== MANIFEST_VERSION) {
+      throw new ManifestError(
+        `${path} must declare "manifest_version": ${MANIFEST_VERSION}` +
+          (dict.manifest_version === undefined ? ' (v1 manifests are no longer supported)' : '')
+      )
+    }
+    return new Manifest(dict, caseDir)
   }
 
   /* ─────────────────────────────────────────────────── top-level blocks ─── */
@@ -876,8 +870,8 @@ export class Manifest {
   /** Update the axis/slider selections held in the manifest. */
   updateTableView(values: Dict): void {
     const table = (this.raw.table ??= {})
-    for (const key of V1_TABLE_KEYS) {
-      if (key !== 'keys' && key in values) {
+    for (const key of TABLE_VIEW_KEYS) {
+      if (key in values) {
         table[key] = values[key]
       }
     }
@@ -885,16 +879,6 @@ export class Manifest {
 
   /**
    * Write the manifest back to its case directory.
-   *
-   * Always v2. The old writer projected a v1 file back down to a five-key
-   * whitelist, dropping everything outside it -- and the 3D view saves on
-   * every axis-picker change, so that was a silent edit of a user's file on a
-   * mouse click. That projection existed to feed the flat config the Dash
-   * callbacks read, and they are gone.
-   *
-   * A v1 file is backed up to `info.json.bak` before the first upgrade, once:
-   * a second save must not overwrite the original with the already-upgraded
-   * copy.
    *
    * The parsed object is written as-is rather than rebuilt, so unknown blocks,
    * key order and anything a later version adds all survive.
@@ -904,59 +888,13 @@ export class Manifest {
   async save(): Promise<string> {
     const path = join(this.caseDir, MANIFEST_NAME)
 
-    if (this.sourceVersion === 1) {
-      const backup = `${path}.bak`
-      try {
-        await fs.access(backup)
-      } catch {
-        await fs.copyFile(path, backup)
-      }
-      this.raw.manifest_version = MANIFEST_VERSION
-      this.sourceVersion = MANIFEST_VERSION
-    }
-
     // Four-space indent and a trailing newline, matching what the Python
-    // wrote, so upgrading a dataset does not also reflow it. `\n` explicitly:
+    // wrote, so saving does not reflow a dataset. `\n` explicitly:
     // the view saves on every axis change, and letting the platform translate
     // would rewrite every line as a side effect of moving a picker.
     await fs.writeFile(path, JSON.stringify(this.raw, null, 4) + '\n', 'utf8')
     return path
   }
-}
-
-/**
- * Normalize a decoded manifest to the v2 shape.
- *
- * A v1 manifest keeps its column metadata but is nested under a `table` block;
- * it declares no cloud, curve or image sidecars.
- *
- * @returns The input unchanged when it is already v2.
- */
-export function upgradeToV2(raw: Dict): Dict {
-  if (raw.manifest_version) {
-    return raw
-  }
-
-  const table: Dict = {}
-  for (const key of V1_TABLE_KEYS) {
-    if (key in raw) {
-      table[key] = raw[key]
-    }
-  }
-
-  const upgraded: Dict = {
-    manifest_version: MANIFEST_VERSION,
-    name: raw.name ?? null,
-    table
-  }
-
-  // The reference block sits at the top level in both schemas, so a v1 dataset
-  // can style its reference without being migrated first.
-  if (raw.reference !== null && raw.reference !== undefined) {
-    upgraded.reference = raw.reference
-  }
-
-  return upgraded
 }
 
 /**

@@ -540,7 +540,7 @@ vehicle. It is the only thing that places one.
 > to say where one vehicle was across a few hundred frames.
 >
 > **They are no longer read.** A manifest that still names them is not an error:
-> the keys are ignored, and dropped the next time a v1 manifest is written.
+> the keys are ignored.
 
 ### Layout
 
@@ -667,7 +667,7 @@ see which detections land on the vehicle and which are past it:
 - The 3D scene makes room for whatever the mesh adds beyond the data, using the
   furthest vertex as a radius so a rotating mesh is never clipped.
 
-The block is read from both v1 and v2 manifests.
+The block is read from v2 manifests.
 
 ## `info.json` Reference
 
@@ -682,10 +682,9 @@ Two things it deliberately does **not** contain:
   the manifest can never drift out of sync.
 - **Per-log file lists.** Sidecars resolve from the selected log's stem.
 
-A v1 `info.json` (no `manifest_version`, table keys at the top level) is
-accepted and upgraded in memory, so **existing datasets keep working with no
-conversion**. Saving a v1 dataset writes v1 back rather than silently upgrading
-it.
+A manifest without `"manifest_version": 2` (including the old v1 layout, with
+table keys at the top level) is refused with an error; v1 is no longer
+supported.
 
 > The app writes back to `info.json` when you change a 3D axis or reference
 > picker — the `slider` / `x_3d` / `y_3d` / `z_3d` values and
@@ -697,7 +696,7 @@ it.
 
 | Key | Type | Default | Notes |
 |---|---|---|---|
-| `manifest_version` | int | — | `2` selects the v2 schema. Absent means v1. |
+| `manifest_version` | int | — | **Required.** Must be `2`. |
 | `name` | string | case folder name | Display name. |
 | `table` | object | — | **Required.** |
 | `cloud` | object | absent | Omit and no backdrop is read. |

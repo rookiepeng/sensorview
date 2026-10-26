@@ -1,29 +1,15 @@
-// Loading, upgrading and saving a manifest.
+// Loading and saving a manifest.
 //
 // The app writes a file the user authored, and the ways that goes wrong are
-// all silent: a dropped block, an escaped non-ASCII name, a lost original.
-// A v1 file is upgraded on first save and the original kept as
-// `info.json.bak`.
+// all silent: a dropped block, an escaped non-ASCII name.
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { Manifest, ManifestError, upgradeToV2 } from '../src/data/manifest'
+import { Manifest, ManifestError } from '../src/data/manifest'
 import { makeCase } from './helpers/makeCase'
-
-const V1 = {
-  name: 'Legacy Case',
-  slider: 'Frame',
-  x_3d: 'X',
-  y_3d: 'Y',
-  z_3d: 'Z',
-  keys: { X: { description: 'East', type: 'numerical' } },
-  // Keys a v1 file may carry that the upgrade drops.
-  time_unit: 'us',
-  custom_thing: { kept: true }
-}
 
 const EMPTY_V2 = { manifest_version: 2, table: {} }
 
@@ -43,27 +29,21 @@ describe('loading', () => {
   it('falls back to the directory name', async () => {
     expect((await Manifest.load(makeCase(EMPTY_V2, [], 'MyCase'))).name).toBe('MyCase')
   })
-})
 
-describe('upgradeToV2', () => {
-  it('returns a v2 manifest untouched', () => {
-    const v2 = { manifest_version: 2, table: { slider: 'Frame' }, cloud: { suffix: '.c.h5' } }
-    expect(upgradeToV2(v2)).toBe(v2)
+  it('refuses a v1 manifest', async () => {
+    const v1 = { name: 'Legacy Case', slider: 'Frame', x_3d: 'X', keys: {} }
+    await expect(Manifest.load(makeCase(v1))).rejects.toThrow(/manifest_version/)
   })
 
-  it('nests the v1 table keys and declares no sidecars', () => {
-    const upgraded = upgradeToV2({ ...V1, reference: { shape: 'mesh' } })
-    expect(upgraded.manifest_version).toBe(2)
-    expect(upgraded.name).toBe('Legacy Case')
-    expect(upgraded.table).toMatchObject({ slider: 'Frame', x_3d: 'X', keys: V1.keys })
-    // Top-level in both schemas, so it carries straight across.
-    expect(upgraded.reference).toEqual({ shape: 'mesh' })
-    expect([upgraded.cloud, upgraded.curve, upgraded.image]).toEqual([undefined, undefined, undefined])
+  it('refuses an unknown version', async () => {
+    await expect(Manifest.load(makeCase({ ...EMPTY_V2, manifest_version: 3 }))).rejects.toBeInstanceOf(
+      ManifestError
+    )
   })
 })
 
-describe('saving a v2 manifest', () => {
-  it('writes back what it read, LF-terminated and without a backup', async () => {
+describe('saving a manifest', () => {
+  it('writes back what it read, LF-terminated', async () => {
     const original = {
       manifest_version: 2,
       name: 'Ünïcøde café',
@@ -80,7 +60,6 @@ describe('saving a v2 manifest', () => {
     // not rewrite every line.
     expect(text).toContain('Ünïcøde café')
     expect(text.endsWith('\n') && !text.includes('\r')).toBe(true)
-    expect(existsSync(join(dir, 'info.json.bak'))).toBe(false)
   })
 
   it('keeps every block when only an axis changed', async () => {
@@ -100,31 +79,6 @@ describe('saving a v2 manifest', () => {
     expect(written.cloud).toEqual({ suffix: '.cloud.h5' })
     expect(written.curve).toEqual({ suffix: '.curve.h5' })
     expect(written.image).toEqual({})
-  })
-})
-
-describe('saving a v1 manifest', () => {
-  it('upgrades it and keeps the original as info.json.bak', async () => {
-    const dir = makeCase(V1)
-    const manifest = await Manifest.load(dir)
-    expect(manifest.sourceVersion).toBe(1)
-    await manifest.save()
-    expect(manifest.sourceVersion).toBe(2)
-
-    const written = read(dir)
-    expect(written.manifest_version).toBe(2)
-    expect(written.table.slider).toBe('Frame')
-    expect(written.time_unit).toBeUndefined()
-    expect(read(dir, 'info.json.bak')).toEqual(V1)
-  })
-
-  it('does not overwrite the backup on a second save', async () => {
-    const dir = makeCase(V1)
-    const manifest = await Manifest.load(dir)
-    await manifest.save()
-    manifest.updateTableView({ x_3d: 'Changed' })
-    await manifest.save()
-    expect(read(dir, 'info.json.bak')).toEqual(V1)
   })
 })
 

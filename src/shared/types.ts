@@ -475,10 +475,7 @@ export interface DataMethods {
    * Record the axis, slider and reference column choices in `info.json`.
    *
    * The manifest mutates only the paths given and writes the parsed object
-   * back as-is, so unknown blocks and key order survive -- see R1. A v1 file
-   * is upgraded to v2 on the first save, with the original kept once as
-   * `info.json.bak`; the result says whether that happened so the UI can
-   * mention it rather than rewriting someone's file silently.
+   * back as-is, so unknown blocks and key order survive -- see R1.
    */
   saveManifest: {
     params: {
@@ -488,7 +485,7 @@ export interface DataMethods {
       /** Pose field -> column name; the empty string means "no column". */
       reference?: Record<string, string>
     }
-    result: { path: string; upgraded: boolean }
+    result: { path: string }
   }
 
   /**

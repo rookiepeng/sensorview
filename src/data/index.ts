@@ -47,7 +47,6 @@ const handlers: Record<DataMethod, Handler> = {
 
   saveManifest: async ({ dir, table, reference }) => {
     const manifest = await Manifest.load(dir)
-    const upgraded = manifest.sourceVersion === 1
     if (table) {
       manifest.updateTableView(table)
     }
@@ -59,7 +58,7 @@ const handlers: Record<DataMethod, Handler> = {
     // miss anyway -- but the file's mtime moved too, and a stale entry for
     // the old one is just memory held for nothing.
     ReferenceStore.clearCache()
-    return ok({ path, upgraded })
+    return ok({ path })
   },
 
   logReferenceColumns: async ({ dir, stem }) => {

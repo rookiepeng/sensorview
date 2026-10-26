@@ -7,9 +7,7 @@
 // formatting at all.
 //
 // The manifest mutates only the paths given and writes the parsed object back
-// as-is, so a save here does not reformat the rest of someone's file. A v1
-// file is upgraded on the first save, with the original kept once as
-// `info.json.bak`; that is said out loud rather than done quietly.
+// as-is, so a save here does not reformat the rest of someone's file.
 
 import { useEffect, useState } from 'react'
 import { Popover } from 'radix-ui'
@@ -82,7 +80,7 @@ export function ColumnConfig() {
       return
     }
     // Said once, because it is a change to the user's own folder.
-    setNote(result.data?.upgraded ? 'Saved — upgraded to v2, original kept as info.json.bak' : 'Saved to info.json')
+    setNote('Saved to info.json')
   }
 
   const pickAxis = (axis: 'x' | 'y' | 'z', column: string) => {
