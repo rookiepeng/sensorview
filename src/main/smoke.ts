@@ -2164,6 +2164,47 @@ async function lookAt(caseDir: string, out: string, rendererHtml: string): Promi
         return 1
       }
     }
+    // A storyboard: a JSON file of `{ js?, input?, inputJs?, wait?, out? }`
+    // entries, each run in order -- the script in the page, real input events
+    // (a synthetic DOM event cannot take the pointer capture a drag needs;
+    // `inputJs` is a page script returning them, for positions only the page
+    // knows), a pause, then a PNG if `out` is set. For the README's
+    // screenshots and GIF frames.
+    const reel = process.env.SENSORVIEW_SMOKE_LOOK_REEL
+    if (reel) {
+      type InputEvent = Parameters<BrowserWindow['webContents']['sendInputEvent']>[0]
+      const entries = JSON.parse(await fs.readFile(reel, 'utf8')) as Array<{
+        js?: string
+        input?: InputEvent[]
+        inputJs?: string
+        wait?: number
+        out?: string
+      }>
+      for (const entry of entries) {
+        if (entry.js) {
+          try {
+            await probe.webContents.executeJavaScript(`(async () => {${DRIVE}
+ ${entry.js} })()`)
+          } catch (problem) {
+            console.error(`  look: the page script threw: ${problem instanceof Error ? problem.message : String(problem)}`)
+            return 1
+          }
+        }
+        const events = entry.inputJs
+          ? ((await probe.webContents.executeJavaScript(`(async () => {${DRIVE}
+ ${entry.inputJs} })()`)) as InputEvent[])
+          : (entry.input ?? [])
+        for (const event of events) {
+          probe.webContents.sendInputEvent(event)
+          await new Promise((done) => setTimeout(done, 16))
+        }
+        await new Promise((done) => setTimeout(done, entry.wait ?? 0))
+        if (entry.out) {
+          await fs.writeFile(entry.out, (await probe.webContents.capturePage()).toPNG())
+        }
+      }
+      return 0
+    }
     for (const [index, step] of steps.entries()) {
       if (step === 'now') {
         // A shot of the page as the script left it, with nothing clicked.
