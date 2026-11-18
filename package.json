@@ -24,7 +24,7 @@
     "h5wasm": "^0.10.3",
     "lucide": "^1.73.0",
     "lucide-react": "^1.70.0",
-    "nodejs-polars": "^0.26.1",
+    "nodejs-polars": "^0.26.2",
     "plotly.js": "^4.2.0",
     "radix-ui": "1.8.1",
     "react": "19.3.1",
